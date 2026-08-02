@@ -191,6 +191,14 @@
 </style>
 </head>
 <body>
+<script>
+(function(){
+  try{ var orig=localStorage.setItem;
+    localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+  }catch(e){}
+  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+})();
+</script>
 <div class="wrap">
   <div class="note" id="status">行情数据来自新浪 / 腾讯 / 东方财富公开接口（真实数据，需联网）。多数据源自动兜底；断网或全源失败才提示失败，不再显示假数据。</div>
 
