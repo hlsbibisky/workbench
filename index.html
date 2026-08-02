@@ -114,11 +114,10 @@
     background:var(--card); box-shadow:var(--shadow);
   }
   .framebar{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:9px 14px; border-bottom:1px solid var(--line); background:var(--bg);
+    display:flex; align-items:center; justify-content:flex-end;
+    padding:4px 14px; border-bottom:1px solid var(--line); background:var(--bg);
+    min-height:0;
   }
-  .framebar .ftitle{ font-size:13px; color:var(--sub); letter-spacing:.5px; display:flex; align-items:center; gap:8px; }
-  .framebar .ftitle .pip{ width:7px; height:7px; border-radius:50%; background:var(--noted); }
   .framebar .fbtn{
     border:1px solid var(--line); background:#fff; color:var(--sub); cursor:pointer;
     width:30px; height:30px; border-radius:9px; display:grid; place-items:center; transition:.15s;
@@ -162,8 +161,13 @@
     <div class="brand"><span class="dot"></span><b>工作台</b><small>WORKBENCH</small></div>
     <div class="navlabel">导航</div>
     <nav id="nav"></nav>
+    <div class="navlabel">同步</div>
+    <button class="navitem" id="wbSyncNav" onclick="wbOpenSync()" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="lbl">☁ 云同步</span>
+      <span id="wbSyncDot" style="width:8px;height:8px;border-radius:50%;background:#c9bfae"></span>
+    </button>
     <div class="sidefoot">
-      模块：内观觉察 · 股票 · 驱动力<br>日日是好日 · 实用工具<br>
+      模块：内观觉察 · 股票 · 驱动力<br>生活记录 · 周计划 · 实用工具<br>
       <span style="color:var(--noted)">●</span> 内容板块后续接入
       <div class="sync-box">
         <div style="font-size:12px;color:var(--sub);margin-bottom:6px">数据同步（换设备 / 浏览器时备份恢复）</div>
@@ -233,12 +237,18 @@ const MODULES = {
   drive: {
     title:'驱动力', note:'十神 · 关系对应',
     sub:[
-      {id:'main', name:'十神驱动力', type:'iframe', src:'驱动力.html', status:'online'},
+      {id:'drive', name:'驱动力总览', type:'iframe', src:'驱动力.html',      status:'online'},
+      {id:'core',  name:'核心驱动力', type:'iframe', src:'核心驱动力.html',  status:'online'},
+      {id:'cycle', name:'十神关系图', type:'iframe', src:'shishen_cycle.html', status:'online'},
     ]
   },
   daily: {
-    title:'日日是好日', note:'节气 · 宜忌 · 物候',
+    title:'生活记录', note:'生活 · 记录 · 美食',
     sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
+  },
+  week: {
+    title:'周计划', note:'一周安排 · 待办',
+    sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
   },
   tools: {
     title:'实用工具', note:'效率 · 小工具',
@@ -309,6 +319,8 @@ function selectModule(key){
     t.onclick = ()=> selectSub(key, s.id);
     subEl.appendChild(t);
   });
+  /* 只有一个子项时不显示 subtabs（避免嵌入时与 iframe 内导航重复） */
+  subEl.style.display = m.sub.length <= 1 ? 'none' : '';
   selectSub(key, m.sub[0].id);
 }
 
@@ -324,7 +336,7 @@ function selectSub(modKey, subId){
   if(s.type === 'iframe'){
     const box = document.createElement('div'); box.className = 'framebox';
     const bar = document.createElement('div'); bar.className = 'framebar';
-    bar.innerHTML = `<span class="ftitle"><span class="pip"></span>${s.name}</span>`;
+    bar.innerHTML = ''; /* 标题已由上方 subtab 显示，framebar 仅保留刷新按钮 */
     const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
     btn.innerHTML = ICONS.refresh;
     const f = document.createElement('iframe'); f.src = s.src; f.title = s.name;
@@ -375,6 +387,117 @@ function wbImport(file){
   };
   reader.readAsText(file);
 }
+
+/* ===== 工作台级云同步：同步全部页面数据（美食/股票/驱动力/周计划…） ===== */
+const WB_K_SYNC='wb_cloudsync';
+let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbLastSha=null, wbBusy=false;
+const WB_SKIP=['wb_cloudsync','food_cloudsync']; /* 不同步令牌本身，防外泄 */
+function wbLoadCfg(){
+  try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
+  if(!wbSync) wbSync={};
+  if(!wbSync.provider) wbSync.provider='github';
+  if(!wbSync.github) wbSync.github={token:'',repo:'hlsbibisky/workbench',branch:'main',path:'data/workbench_sync.json'};
+  if(wbSync.connected===undefined) wbSync.connected=false;
+  return wbSync;
+}
+function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
+function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0) o[k]=localStorage.getItem(k); } return o; }
+function wbApply(o){ if(!o) return; Object.keys(o).forEach(k=>{ if(WB_SKIP.indexOf(k)<0){ try{ localStorage.setItem(k,o[k]); }catch(e){} } }); wbBroadcastReload(); }
+function wbSchedulePush(){ wbLoadCfg(); if(!wbSync.connected) return; if(wbPushTimer) clearTimeout(wbPushTimer); wbPushTimer=setTimeout(wbPush,1200); }
+function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
+function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
+async function wbPush(){
+  if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
+  try{ const payload=JSON.stringify({updatedAt:new Date().toISOString(),data:wbCollect()});
+    const enc=wbGhB64(payload); let sha=wbLastSha;
+    if(!sha){ try{ const cur=await wbGhReq('GET'); sha=cur.sha; }catch(e){ sha=null; } }
+    await wbGhReq('PUT',{message:'workbench sync '+new Date().toISOString(),content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
+    wbToast('已同步到云端');
+  }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
+  finally{ wbBusy=false; }
+}
+async function wbPull(){
+  if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
+  try{ const cur=await wbGhReq('GET'); wbLastSha=cur.sha; const obj=JSON.parse(wbGhUnB64(cur.content)); if(obj&&obj.data) wbApply(obj.data); }
+  catch(e){ console.error(e); }
+  finally{ wbBusy=false; }
+}
+async function wbGhReq(method,body){
+  const repo=(wbSync.github.repo||'').trim(), token=(wbSync.github.token||'').trim();
+  if(!repo||!token) throw new Error('请先填写 GitHub 仓库与令牌');
+  const url='https://api.github.com/repos/'+repo+'/contents/'+encodeURIComponent(wbSync.github.path.trim());
+  const headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+  const res=await fetch(url,{method,headers,body:body?JSON.stringify(body):undefined});
+  if(!res.ok){ const t=await res.text().catch(()=>''); throw new Error('GitHub '+res.status+' '+t.slice(0,140)); }
+  return res.json();
+}
+function wbGhB64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function wbGhUnB64(s){ return decodeURIComponent(escape(atob(s.replace(/\s/g,'')))); }
+function wbGhStartPoll(){
+  if(wbPollTimer) clearInterval(wbPollTimer);
+  wbPollTimer=setInterval(async()=>{
+    if(!wbSync||!wbSync.connected||wbBusy) return;
+    try{ const cur=await wbGhReq('GET'); if(cur.sha!==wbLastSha){ wbLastSha=cur.sha; const obj=JSON.parse(wbGhUnB64(cur.content)); if(obj&&obj.data) wbApply(obj.data); } }
+    catch(e){}
+  },15000);
+}
+async function wbConnect(){
+  wbLoadCfg();
+  try{
+    if(!wbSync.github.repo||!wbSync.github.token) throw new Error('请填写 GitHub 仓库与令牌');
+    try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
+    wbGhStartPoll();
+    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步'); wbOpenSync();
+  }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
+}
+function wbDisconnect(){
+  wbSync.connected=false; wbSaveCfg();
+  if(wbPollTimer){ clearInterval(wbPollTimer); wbPollTimer=null; }
+  if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
+  wbToast('已断开云同步'); wbOpenSync();
+}
+function wbOpenSync(){
+  wbLoadCfg();
+  const c=wbSync, g=c.github;
+  let m=document.getElementById('wbSyncModal');
+  if(!m){ m=document.createElement('div'); m.id='wbSyncModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998'; document.body.appendChild(m); }
+  m.onclick=e=>{ if(e.target===m) m.style.display='none'; };
+  m.style.display='flex';
+  const conn=c.connected?'已连接 ✅（自动同步中）':'未连接';
+  m.innerHTML='<div style="background:#faf7f1;max-width:460px;width:92%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步</h2>'
+    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据（美食记录 / 股票 / 驱动力 / 周计划…）到 GitHub，电脑与手机自动保持一致。</p>'
+    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">GitHub 仓库（owner/repo）</label><input id="wbRepo" value="'+escAttr(g.repo)+'" style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
+    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">个人访问令牌 PAT（需 repo 权限，仅存本机）</label><input id="wbToken" type="password" value="'+escAttr(g.token)+'" placeholder="ghp_..." style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
+    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">分支</label><input id="wbBranch" value="'+escAttr(g.branch||'main')+'" style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
+    +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +'<button onclick="wbDoConnect()" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">连接并同步</button>'
+    +'<button onclick="wbPush();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即上传</button>'
+    +'<button onclick="wbPull();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
+    + (c.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
+    +'</div>'
+    +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
+    +'</div>';
+}
+function wbDoConnect(){
+  wbLoadCfg();
+  wbSync.github.repo=document.getElementById('wbRepo').value.trim();
+  wbSync.github.token=document.getElementById('wbToken').value.trim();
+  wbSync.github.branch=document.getElementById('wbBranch').value.trim()||'main';
+  wbSaveCfg();
+  wbConnect();
+}
+function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+/* 接收各 iframe 页面数据变更，触发上传 */
+window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
+/* 启动自恢复：若上次已连接，自动重连并开始同步 */
+(function wbRestore(){
+  wbLoadCfg();
+  const dot=document.getElementById('wbSyncDot');
+  if(wbSync.connected){ wbConnect(); if(dot) dot.style.background='#3aa76d'; }
+  else { if(dot) dot.style.background='#c9bfae'; }
+})();
 </script>
 </body>
 </html>
