@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作台</title>
+<style>
+  /* 与「状态记录」模块保持一致的暖色宣纸风格 */
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --noted:#3f9d6b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font); line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--mark); }
+
+  .app{ display:flex; min-height:100vh; }
+
+  /* ===== 左侧导航栏 ===== */
+  .sidebar{
+    width:240px; flex:0 0 240px; background:var(--card);
+    border-right:1px solid var(--line); padding:22px 14px;
+    display:flex; flex-direction:column; gap:4px;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:9px;
+    padding:2px 10px 16px; margin-bottom:6px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; transform:translateY(1px); }
+  .brand b{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); }
+  .brand small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
+
+  .navlabel{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 12px 4px; }
+  .navitem{
+    position:relative;
+    display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+    border:none; background:transparent; color:var(--ink); padding:11px 14px;
+    border-radius:11px; cursor:pointer; font-size:15px; transition:.16s;
+    font-family:inherit; letter-spacing:1px;
+  }
+  .navitem:hover{ background:var(--mark); }
+  .navitem.active{ background:var(--accent); color:#fff; font-weight:600;
+    box-shadow:0 3px 12px rgba(184,113,78,.28); }
+  .navitem.nav-alarm{ border-left:3px solid #d9822b; }
+  .navitem.nav-alarm-red{ border-left:3px solid #c0392b; background:#fdf0ee; }
+  .navitem .navbadge{ position:absolute; top:7px; right:10px; min-width:18px; height:18px;
+    line-height:18px; text-align:center; background:#c0392b; color:#fff; font-size:11px;
+    border-radius:9px; padding:0 5px; font-weight:700; }
+
+  .sidefoot{
+    margin-top:auto; font-size:11px; color:var(--sub); padding:14px 12px 0;
+    border-top:1px solid var(--line); line-height:1.8;
+  }
+  .sync-box{ margin-top:10px; padding:10px; background:rgba(184,113,78,.06); border:1px solid var(--line); border-radius:10px; }
+  .syncbtn{ display:inline-block; margin:2px 4px 2px 0; padding:6px 12px; background:#fff; color:var(--accent); border:1px solid var(--accent); border-radius:14px; cursor:pointer; font-size:12.5px; font-family:inherit; transition:.14s; }
+  .syncbtn:hover{ background:var(--accent); color:#fff; }
+  .sidefoot .stat{ color:var(--noted); font-weight:600; }
+
+  /* ===== 主区 ===== */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  /* 顶栏 */
+  .topbar{
+    height:58px; flex:0 0 58px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 30px; border-bottom:1px solid var(--line); background:rgba(255,253,249,.6);
+    backdrop-filter:blur(4px); position:sticky; top:0; z-index:5;
+  }
+  .crumb{ font-size:13.5px; color:var(--sub); letter-spacing:.5px; display:flex; align-items:center; gap:8px; }
+  .crumb .sep{ color:var(--line); }
+  .crumb .now{ color:var(--accent); font-weight:600; }
+  .topright{ display:flex; align-items:center; gap:14px; font-size:13px; color:var(--sub); }
+  .topright .hi{ color:var(--ink); font-weight:600; }
+  .topright .clock{ font-variant-numeric:tabular-nums; color:var(--ink);
+    background:var(--mark); padding:3px 11px; border-radius:20px; letter-spacing:.5px; }
+
+  .content{ flex:1; padding:26px 30px 56px; min-width:0; }
+
+  .modhead{ margin-bottom:18px; }
+  .modtitle{ font-size:22px; font-weight:700; margin:0 0 14px; letter-spacing:1px;
+    display:flex; align-items:baseline; gap:12px; }
+  .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
+
+  /* 子模块 tab */
+  .subtabs{ display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+  .subtab{
+    display:inline-flex; align-items:center; gap:7px;
+    border:1px solid var(--line); border-bottom:none; background:#fff; color:var(--sub);
+    padding:9px 17px; border-radius:11px 11px 0 0; cursor:pointer; font-size:14px;
+    transition:.16s; font-family:inherit; margin-bottom:-1px; letter-spacing:.5px;
+  }
+  .subtab:hover{ border-color:var(--accent); color:var(--accent); }
+  .subtab.active{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .subtab .pip{ width:6px; height:6px; border-radius:50%; background:var(--noted); }
+  .subtab.active .pip{ background:#fff; }
+
+  .modbody{ margin-top:18px; }
+  .modbody > *{ animation:fade .26s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* iframe 容器 + 工具条 */
+  .framebox{
+    border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
+    background:var(--card); box-shadow:var(--shadow);
+  }
+  .framebar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:9px 14px; border-bottom:1px solid var(--line); background:var(--bg);
+  }
+  .framebar .ftitle{ font-size:13px; color:var(--sub); letter-spacing:.5px; display:flex; align-items:center; gap:8px; }
+  .framebar .ftitle .pip{ width:7px; height:7px; border-radius:50%; background:var(--noted); }
+  .framebar .fbtn{
+    border:1px solid var(--line); background:#fff; color:var(--sub); cursor:pointer;
+    width:30px; height:30px; border-radius:9px; display:grid; place-items:center; transition:.15s;
+  }
+  .framebar .fbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  .framebar .fbtn svg{ width:15px; height:15px; }
+  .framebox iframe{ width:100%; height:calc(100vh - 320px); min-height:460px; border:none; display:block; background:var(--bg); }
+
+  /* 占位面板 */
+  .placeholder{
+    background:var(--card); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:52px 28px; text-align:center; color:var(--sub); box-shadow:var(--shadow);
+  }
+  .placeholder .ico{
+    width:46px; height:46px; margin:0 auto 16px; border-radius:14px; background:var(--mark);
+    display:grid; place-items:center; color:var(--accent);
+  }
+  .placeholder .ico svg{ width:24px; height:24px; }
+  .placeholder h3{ color:var(--accent); font-size:18px; margin:0 0 10px; letter-spacing:1px; }
+  .placeholder p{ font-size:14px; margin:6px auto; max-width:480px; line-height:1.7; }
+  .placeholder .tag{ display:inline-block; margin-top:16px; font-size:11px; color:var(--sub);
+    background:var(--mark); border-radius:12px; padding:4px 13px; letter-spacing:1px; }
+
+  /* 窄屏：侧栏收窄但仍保留文字 */
+  @media (max-width:880px){
+    .sidebar{ width:132px; flex:0 0 132px; padding:18px 10px; }
+    .brand{ justify-content:flex-start; padding:2px 0 14px; }
+    .brand b{ font-size:17px; letter-spacing:2px; }
+    .brand small{ display:none; }
+    .navlabel{ display:none; }
+    .navitem{ justify-content:flex-start; padding:11px 10px; }
+    .sidefoot{ display:none; }
+    .topbar, .content{ padding-left:18px; padding-right:18px; }
+    .framebox iframe{ height:calc(100vh - 300px); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><b>工作台</b><small>WORKBENCH</small></div>
+    <div class="navlabel">导航</div>
+    <nav id="nav"></nav>
+    <div class="sidefoot">
+      模块：内观觉察 · 股票 · 驱动力<br>日日是好日 · 实用工具<br>
+      <span style="color:var(--noted)">●</span> 内容板块后续接入
+      <div class="sync-box">
+        <div style="font-size:12px;color:var(--sub);margin-bottom:6px">数据同步（换设备 / 浏览器时备份恢复）</div>
+        <button class="syncbtn" onclick="wbExport()">⬇ 导出全部</button>
+        <label class="syncbtn" style="cursor:pointer">⬆ 导入备份<input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="topright">
+        <span class="hi" id="hi"></span>
+        <span id="today"></span>
+        <span class="clock" id="clock">--:--</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="modhead">
+        <h1 class="modtitle" id="modtitle"></h1>
+        <div class="subtabs" id="subtabs"></div>
+      </div>
+      <div class="modbody" id="modbody"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* =========================================================
+   工作台框架 —— 模块 / 子模块配置
+   后续接入具体内容时，只需在对应模块下增删 sub 项：
+     type:'iframe'      + src      → 嵌入一个独立页面（如状态记录）
+     type:'placeholder' + desc     → 占位面板（待建设），可加 status:'building'
+     type:'html'        + html     → 直接写内联内容
+   子项可带 status:'online' 标记已上线（导航点 + 底部统计会读取）
+   ========================================================= */
+const ICONS = {
+  inner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.2 5.2l1.8 1.8M17 17l1.8 1.8M18.8 5.2 17 7M7 17l-1.8 1.8"/></svg>',
+  stock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M16 7h5v5"/></svg>',
+  daily:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>',
+  tools:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z"/></svg>',
+  refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>',
+  build:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12 4 7.5"/></svg>'
+};
+
+const MODULES = {
+  inner: {
+    title:'内观觉察', note:'自我觉察与成长',
+    sub:[
+      {id:'now',     name:'当下状态', type:'iframe',      src:'每日状态记录.html', status:'online'},
+      {id:'history', name:'历史记录', type:'placeholder', desc:'汇总过往的状态记录，按时间线回顾每一段心路历程。'},
+      {id:'year',    name:'年度总结', type:'placeholder', desc:'按年聚合状态数据，生成年度回顾与关键词。'},
+      {id:'char',    name:'性格变化', type:'placeholder', desc:'追踪性格维度的长期变化曲线，看见自己的演变。'},
+      {id:'task',    name:'人生课题', type:'placeholder', desc:'记录与梳理当前阶段的人生课题、卡点与领悟。'},
+    ]
+  },
+  stock: {
+    title:'股票', note:'行情 · 持仓 · 策略',
+    sub:[
+      {id:'board',   name:'盘面跟踪',     type:'iframe',  src:'股票.html#board',   status:'online'},
+      {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
+      {id:'journal', name:'状态记录',     type:'iframe',  src:'股票.html#journal', status:'online'},
+    ]
+  },
+  drive: {
+    title:'驱动力', note:'十神 · 关系对应',
+    sub:[
+      {id:'main', name:'十神驱动力', type:'iframe', src:'驱动力.html', status:'online'},
+    ]
+  },
+  daily: {
+    title:'日日是好日', note:'节气 · 宜忌 · 物候',
+    sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
+  },
+  tools: {
+    title:'实用工具', note:'效率 · 小工具',
+    sub:[ {id:'overview', name:'概览', type:'placeholder',
+           desc:'「实用工具」模块建设中，后续接入各类日常小工具。'} ]
+  },
+};
+
+const navEl   = document.getElementById('nav');
+const titleEl = document.getElementById('modtitle');
+const subEl   = document.getElementById('subtabs');
+const bodyEl  = document.getElementById('modbody');
+const crumbEl = document.getElementById('crumb');
+
+let curIframe = null;
+
+/* 顶栏：问候 + 日期 + 实时时钟 */
+const WD = ['周日','周一','周二','周三','周四','周五','周六'];
+function greet(h){ if(h<5)return'夜深了'; if(h<11)return'早上好'; if(h<13)return'中午好'; if(h<18)return'下午好'; return'晚上好'; }
+function tick(){
+  const d=new Date();
+  document.getElementById('hi').textContent = greet(d.getHours());
+  document.getElementById('today').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${WD[d.getDay()]}`;
+  const p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+tick(); setInterval(tick, 1000*20);
+
+/* 构建左侧导航 */
+Object.keys(MODULES).forEach(key=>{
+  const m = MODULES[key];
+  const b = document.createElement('button');
+  b.className = 'navitem';
+  b.dataset.key = key;
+  b.innerHTML = `<span class="lbl">${m.title}</span>`;
+  b.onclick = ()=> selectModule(key);
+  navEl.appendChild(b);
+});
+
+/* 接收股票模块发来的异常预警，在左侧导航「股票」上标注 */
+window.addEventListener('message', e=>{
+  const d = e.data; if(!d || d.type!=='stockAlert') return;
+  const nav = navEl.querySelector('.navitem[data-key="stock"]'); if(!nav) return;
+  const red=(d.red||0), yellow=(d.yellow||0);
+  nav.classList.toggle('nav-alarm-red', red>0);
+  nav.classList.toggle('nav-alarm', yellow>0 && red===0);
+  let badge = nav.querySelector('.navbadge');
+  const total = red+yellow;
+  if(total>0){
+    if(!badge){ badge=document.createElement('span'); badge.className='navbadge'; nav.appendChild(badge); }
+    badge.textContent = total;
+  } else if(badge){ badge.remove(); }
+});
+
+/* 底部状态统计（页脚文案为静态，见 HTML 中 .sidefoot） */
+
+function selectModule(key){
+  const m = MODULES[key];
+  navEl.querySelectorAll('.navitem').forEach(b=> b.classList.toggle('active', b.dataset.key === key));
+  titleEl.innerHTML = `${m.title}<small>${m.note||''}</small>`;
+  subEl.innerHTML = '';
+  m.sub.forEach(s=>{
+    const t = document.createElement('button');
+    t.className = 'subtab';
+    const pip = s.status==='online' ? '<span class="pip"></span>' : '';
+    t.innerHTML = `${pip}<span>${s.name}</span>`;
+    t.dataset.id = s.id;
+    t.onclick = ()=> selectSub(key, s.id);
+    subEl.appendChild(t);
+  });
+  selectSub(key, m.sub[0].id);
+}
+
+function selectSub(modKey, subId){
+  const m = MODULES[modKey];
+  const s = m.sub.find(x=>x.id===subId);
+  subEl.querySelectorAll('.subtab').forEach(t=> t.classList.toggle('active', t.dataset.id === subId));
+
+  // 面包屑
+  crumbEl.innerHTML = `<span>工作台</span><span class="sep">›</span><span>${m.title}</span><span class="sep">›</span><span class="now">${s.name}</span>`;
+
+  bodyEl.innerHTML = '';
+  if(s.type === 'iframe'){
+    const box = document.createElement('div'); box.className = 'framebox';
+    const bar = document.createElement('div'); bar.className = 'framebar';
+    bar.innerHTML = `<span class="ftitle"><span class="pip"></span>${s.name}</span>`;
+    const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
+    btn.innerHTML = ICONS.refresh;
+    const f = document.createElement('iframe'); f.src = s.src; f.title = s.name;
+    btn.onclick = ()=>{ f.src = f.src; };
+    bar.appendChild(btn);
+    box.appendChild(bar); box.appendChild(f);
+    bodyEl.appendChild(box);
+    curIframe = f;
+  } else if(s.type === 'html'){
+    bodyEl.innerHTML = s.html || '';
+  } else { // placeholder
+    const p = document.createElement('div'); p.className = 'placeholder';
+    p.innerHTML = `<div class="ico">${ICONS.build}</div><h3>${s.name}</h3><p>${s.desc||'该板块待建设。'}</p><span class="tag">框架占位 · 待后续接入</span>`;
+    bodyEl.appendChild(p);
+  }
+}
+
+// 数字键 1–5 快速切换模块
+document.addEventListener('keydown', e=>{
+  const n = parseInt(e.key,10);
+  if(n>=1 && n<=Object.keys(MODULES).length){ selectModule(Object.keys(MODULES)[n-1]); }
+});
+
+// 默认进入第一个模块
+selectModule('inner');
+
+/* ============ 数据同步：导出/导入全部 localStorage（跨设备手动备份） ============ */
+function wbExport(){
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); data[k]=localStorage.getItem(k); }
+  const blob = new Blob([JSON.stringify({app:'workbench', exportedAt:new Date().toISOString(), data}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '工作台数据备份_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function wbImport(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const obj = JSON.parse(reader.result);
+      const data = obj.data || obj;
+      let n=0;
+      Object.keys(data).forEach(k=>{ localStorage.setItem(k, data[k]); n++; });
+      if(confirm('已读入 '+n+' 项数据，将刷新页面以应用。确定刷新？')) location.reload();
+    }catch(e){ alert('文件格式不对，导入失败'); }
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
