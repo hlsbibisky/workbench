@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美食记录 · 日日是好日</title>
+<title>美食记录 · 生活记录</title>
 <style>
   /* 与工作台一致的暖色宣纸风格 */
   :root{
@@ -336,19 +336,26 @@
 </style>
 </head>
 <body>
+<script>
+/* 工作台级云同步桥接：数据变化时通知外壳上传；外壳拉取后本页自动刷新 */
+(function(){
+  try{ var orig=localStorage.setItem;
+    localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+  }catch(e){}
+  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+})();
+</script>
   <div class="topbar">
-    <div class="brand"><b>美食记录</b><small>日日是好日 · 好好吃饭</small></div>
+    <div class="brand"><b>美食记录</b><small>生活记录 · 好好吃饭</small></div>
     <div class="topright">
+      <button class="databtn" onclick="openDataMgr()" style="padding:5px 12px;font-size:12px">⚙ 数据备份</button>
       <span id="todayStr"></span>
       <span class="clock" id="clock">--:--</span>
     </div>
   </div>
 
   <div class="content">
-    <div class="modtitle"><span>美食记录 <small>今天吃什么 · 菜谱库 · 我的口味 · 打卡记录</small></span>
-      <button class="databtn" id="syncBtn" onclick="openCloudSync()" title="多设备云同步">☁ 云同步</button>
-      <button class="databtn" onclick="openDataMgr()">⚙ 数据备份</button></div>
-    <div class="moddesc">把吃饭这件小事，变成顺手又贴心的日常。</div>
+    <!-- 大标题卡片已移除（嵌入工作台时与外层导航重复；同步/备份按钮已上移至顶栏） -->
 
     <div class="subtabs">
       <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
