@@ -97,12 +97,16 @@
 </style>
 </head>
 <body>
+<script>
+(function(){
+  try{ var orig=localStorage.setItem;
+    localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+  }catch(e){}
+  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+})();
+</script>
 
-  <header class="page-head">
-    <h1><span class="seal">驱</span>十神驱动力 · 全解与关系对应</h1>
-    <div class="sub">五种底层驱动力，各有「积极」与「过度」两态 —— 共十种；再把它们与你生命中的关系对应起来</div>
-    <div class="rule"></div>
-  </header>
+  <!-- 页面大标题已移除（嵌入工作台时与外层导航重复） -->
 
   <nav class="tabs">
     <button class="tab active" data-tab="overview" onclick="switchTab('overview')">驱动力总览</button>
