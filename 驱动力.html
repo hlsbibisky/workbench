@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>十神驱动力 · 全解与关系对应</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f3ecdc; --paper-2:#fbf6ea; --ink:#3a3329; --ink-soft:#8a7c68;
+    --line:#e2d4bb; --accent:#b8714e;
+    --yong-ink:#5f7a45; --yong-bd:#c9d8b6; --ji-ink:#b15538; --ji-bd:#e6c6b2;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    font-family:'Noto Sans SC', system-ui, sans-serif; color:var(--ink);
+    min-height:100vh;
+    background:radial-gradient(130% 110% at 50% -10%, #fbf5e9 0%, #f3ecdc 55%, #ece1cb 100%);
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 20px 60px;
+  }
+
+  .page-head{ text-align:center; margin-bottom:26px; }
+  .page-head h1{
+    font-family:'Noto Serif SC',serif; font-weight:700; font-size:30px; letter-spacing:4px;
+    color:var(--ink); margin:0; display:inline-flex; align-items:center; gap:14px;
+  }
+  .seal{
+    display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px;
+    border-radius:8px; background:#b8472e; color:#fbf3e7; font-family:'Noto Serif SC',serif;
+    font-weight:700; font-size:18px; transform:rotate(-4deg); box-shadow:0 2px 6px rgba(150,50,30,.35);
+  }
+  .page-head .sub{ margin-top:10px; color:var(--ink-soft); font-size:13.5px; letter-spacing:1px; }
+  .rule{ width:120px; height:1px; margin:14px auto 0; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
+
+  .tabs{ display:flex; gap:10px; justify-content:center; margin:0 0 26px; flex-wrap:wrap; }
+  .tab{ font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:2px; color:var(--ink-soft);
+    background:var(--paper-2); border:1px solid var(--line); border-radius:30px; padding:9px 30px;
+    cursor:pointer; transition:all .2s ease; }
+  .tab:hover{ color:var(--accent); border-color:var(--accent); }
+  .tab.active{ color:#fff; background:var(--accent); border-color:var(--accent); box-shadow:0 8px 18px -8px rgba(184,113,78,.7); }
+
+  .hint{ width:100%; max-width:1100px; margin:0 auto 22px; font-size:12.5px; color:var(--ink-soft);
+    background:rgba(184,113,78,.08); border:1px solid var(--line); border-radius:12px; padding:11px 16px; line-height:1.7; }
+  .hint b{ color:var(--accent); }
+
+  /* —— 驱动力总览 —— */
+  .detail-god{ width:100%; max-width:1100px; margin:0 auto 36px; }
+  .god-name{ font-family:'Noto Serif SC',serif; font-size:21px; color:var(--ink); letter-spacing:2px;
+    margin:0 0 16px; display:flex; align-items:baseline; gap:10px; }
+  .god-name .gx{ font-size:12px; color:var(--ink-soft); letter-spacing:1px; font-family:'Noto Sans SC',sans-serif; }
+  .god-cards{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:780px){ .god-cards{ grid-template-columns:1fr; } }
+
+  .card{ border-radius:16px; padding:20px 20px; border:1px solid var(--line);
+    box-shadow:0 12px 28px -22px rgba(90,60,30,.55); }
+  .card.yong{ background:linear-gradient(180deg,#f4f8ee,#edf2e4); border-color:var(--yong-bd); }
+  .card.ji{   background:linear-gradient(180deg,#faf0e9,#f7ebe1); border-color:var(--ji-bd); }
+
+  .dj-head{ display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+  .dj-pill{ flex:0 0 auto; font-family:'Noto Serif SC',serif; font-weight:700; font-size:13px; letter-spacing:2px;
+    padding:5px 14px; border-radius:30px; }
+  .dj-pill.yong{ background:rgba(95,122,69,.16); color:var(--yong-ink); border:1.5px solid #7d9a58; }
+  .dj-pill.ji{   background:rgba(177,85,56,.16); color:var(--ji-ink);   border:1.5px solid #c4694a; }
+  .dj-name{ font-family:'Noto Serif SC',serif; font-weight:600; font-size:18px; letter-spacing:1px; }
+  .dj-name.yong{ color:var(--yong-ink); }
+  .dj-name.ji{ color:var(--ji-ink); }
+  .dj-desc{ font-size:13.5px; line-height:1.7; color:var(--ink); min-height:26px; outline:none; border-radius:8px; padding:4px 6px; transition:background .15s; }
+  .dj-desc:empty::before, .drive-cell:empty::before{ content:'点击补充…'; color:var(--ink-soft); opacity:.55; }
+  .dj-desc:focus{ background:#fff7ea; box-shadow:inset 0 0 0 2px var(--accent); }
+
+  /* —— 关系对应矩阵 —— */
+  .matrix-toolbar{ width:100%; max-width:1100px; margin:0 auto 14px; display:flex; justify-content:flex-end; }
+  .btn{ border:1px solid var(--line); background:#fff; color:var(--sub,#8a7c68); border-radius:10px;
+    padding:8px 18px; cursor:pointer; font-family:inherit; font-size:13px; letter-spacing:1px; }
+  .btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .matrix-wrap{ width:100%; max-width:1100px; margin:0 auto; overflow-x:auto; }
+  table.matrix{ border-collapse:collapse; width:100%; min-width:820px; background:var(--paper-2);
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  table.matrix th, table.matrix td{ border:1px solid var(--line); padding:15px 16px; vertical-align:top; }
+  table.matrix thead th{ background:var(--accent); color:#fff; font-family:'Noto Serif SC',serif;
+    font-size:14px; letter-spacing:1px; font-weight:600; }
+  table.matrix tbody th.drv{ background:#f6ecdc; text-align:left; width:270px; }
+  .drv-name{ font-family:'Noto Serif SC',serif; font-weight:600; font-size:15px; color:var(--ink);
+    display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  .drv-name .dj-pill{ padding:3px 11px; font-size:12px; }
+  .dn-text{ }
+  .row-yong .dn-text{ color:var(--yong-ink); }
+  .row-ji .dn-text{ color:var(--ji-ink); }
+  .drv-god{ font-size:12px; color:var(--ink-soft); font-family:'Noto Sans SC',sans-serif; }
+  .drive-cell{ min-width:120px; font-size:13px; line-height:1.6; color:var(--ink); outline:none; }
+  .drive-cell:focus{ background:#fff7ea; box-shadow:inset 0 0 0 2px var(--accent); }
+
+  .fade-in{ animation:fadeIn .28s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;} }
+</style>
+</head>
+<body>
+
+  <header class="page-head">
+    <h1><span class="seal">驱</span>十神驱动力 · 全解与关系对应</h1>
+    <div class="sub">五种底层驱动力，各有「积极」与「过度」两态 —— 共十种；再把它们与你生命中的关系对应起来</div>
+    <div class="rule"></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="overview" onclick="switchTab('overview')">驱动力总览</button>
+    <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">关系对应矩阵</button>
+  </nav>
+
+  <!-- 标签一：驱动力总览 -->
+  <div id="tab-overview">
+    <div class="hint">
+      下方每个十神对应一种<b>驱动力</b>：<b>积极</b>态（绿）= 健康发挥，<b>过度</b>态（赭红）= 失衡表现。
+      卡片文字可直接点击编辑，自动保存在本机浏览器。
+    </div>
+    <div id="overview-body"></div>
+  </div>
+
+  <!-- 标签二：关系对应矩阵 -->
+  <div id="tab-matrix" style="display:none; width:100%;">
+    <div class="hint">
+      <b>以「我」为中心</b>：行 = 我（中心人）的驱动力（10 种）；列 = 我生命中的角色。
+      每个单元格填写：<b>我</b>在此驱动力下，对该角色「期待 / 想要对方是什么驱动力、关系如何」。
+      单元格可直接点击编辑，自动存本机。
+    </div>
+    <div class="matrix-toolbar"><button class="btn" onclick="resetMatrix()">清空矩阵填写</button></div>
+    <div class="matrix-wrap"><table class="matrix" id="matrix-table"></table></div>
+  </div>
+
+<script>
+  /* ===== 驱动力数据（名称已按你确认拟定，描述待补） ===== */
+  const drivers = [
+    { key:'bijie',    name:'比劫', sub:'自我 / 同辈', yong:{ name:'自我价值感驱动' }, ji:{ name:'自我价值感驱动' } },
+    { key:'shishang', name:'食伤', sub:'表达 / 才华', yong:{ name:'情感驱动' },       ji:{ name:'情感驱动' } },
+    { key:'cai',      name:'财才', sub:'掌控 / 物质', yong:{ name:'物质驱动' },       ji:{ name:'物质驱动' } },
+    { key:'guansha',  name:'官杀', sub:'约束 / 责任', yong:{ name:'责任感驱动' },     ji:{ name:'责任感驱动' } },
+    { key:'yin',      name:'印枭', sub:'保护 / 思维', yong:{ name:'精神驱动' },       ji:{ name:'精神驱动' } }
+  ];
+  const ROLES = [ ['partner','伴侣'], ['friend','朋友'], ['mom','妈妈'], ['dad','爸爸'], ['child','孩子'] ];
+
+  /* ===== 本地存储 ===== */
+  const LS_DESC='drive_desc_v1', LS_MAT='drive_matrix_v1';
+  function loadLS(k){ try{ return JSON.parse(localStorage.getItem(k))||{}; }catch(e){ return {}; } }
+  function saveLS(k,o){ try{ localStorage.setItem(k, JSON.stringify(o)); }catch(e){} }
+  let descData = loadLS(LS_DESC);
+  let matData  = loadLS(LS_MAT);
+
+  /* ===== 标签切换 ===== */
+  function switchTab(t){
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+    document.getElementById('tab-overview').style.display = t==='overview' ? 'block' : 'none';
+    document.getElementById('tab-matrix').style.display   = t==='matrix'   ? 'block' : 'none';
+  }
+
+  /* ===== 驱动力总览 ===== */
+  function renderOverview(){
+    const body = document.getElementById('overview-body');
+    body.innerHTML = drivers.map(g=>{
+      const yong = `<div class="card yong fade-in">
+          <div class="dj-head"><span class="dj-pill yong">积极</span><span class="dj-name yong">${g.yong.name}</span></div>
+          <div class="dj-desc" contenteditable="true" data-dk="${g.key}_yong">${descData[g.key+'_yong']||''}</div>
+        </div>`;
+      const ji = `<div class="card ji fade-in">
+          <div class="dj-head"><span class="dj-pill ji">过度</span><span class="dj-name ji">${g.ji.name}</span></div>
+          <div class="dj-desc" contenteditable="true" data-dk="${g.key}_ji">${descData[g.key+'_ji']||''}</div>
+        </div>`;
+      return `<div class="detail-god">
+        <div class="god-name"><span class="gn">${g.name}</span><span class="gx">${g.sub}</span></div>
+        <div class="god-cards">${yong}${ji}</div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ===== 关系对应矩阵 ===== */
+  // 示例种子：你举的例子「自我价值感驱动的人，想要自我价值感驱动的孩子」
+  const matSeed = { 'bijie_yong_child':'想要自我价值感驱动的孩子（与自我同频）' };
+  function cellVal(dk, role){ return matData[dk+'_'+role] || matSeed[dk+'_'+role] || ''; }
+
+  function renderMatrix(){
+    const tbl = document.getElementById('matrix-table');
+    const head = `<thead><tr><th>我的驱动力</th>${ROLES.map(r=>`<th>${r[1]}</th>`).join('')}</tr></thead>`;
+
+    const buildRows = (mode, rowCls, pillLabel)=> drivers.map(g=>{
+      const dk = g.key+'_'+mode;
+      const cells = ROLES.map(r=>`<td class="drive-cell" contenteditable="true" data-dk="${dk}" data-role="${r[0]}">${cellVal(dk, r[0])}</td>`).join('');
+      return `<tr class="${rowCls}">
+        <th class="drv"><div class="drv-name">
+          <span class="dj-pill ${mode}">${pillLabel}</span>
+          <span class="dn-text">${mode==='yong'?g.yong.name:g.ji.name}</span>
+          <span class="drv-god">${g.name}</span>
+        </div></th>${cells}</tr>`;
+    }).join('');
+
+    const yongRows = buildRows('yong','row-yong','积极');
+    const jiRows = buildRows('ji','row-ji','过度');
+
+    tbl.innerHTML = head + `<tbody>${yongRows}${jiRows}</tbody>`;
+  }
+
+  function resetMatrix(){
+    if(!confirm('确定清空矩阵里你填写的内容？（预置示例也会清除）')) return;
+    matData = {}; saveLS(LS_MAT, matData); renderMatrix();
+  }
+
+  /* ===== 编辑保存（事件委托） ===== */
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(t.classList.contains('dj-desc')){
+      const dk = t.dataset.dk;
+      if(t.textContent.trim()==='') delete descData[dk]; else descData[dk]=t.textContent.trim();
+      saveLS(LS_DESC, descData);
+    } else if(t.classList.contains('drive-cell')){
+      const key = t.dataset.dk + '_' + t.dataset.role;
+      if(t.textContent.trim()==='') delete matData[key]; else matData[key]=t.textContent.trim();
+      saveLS(LS_MAT, matData);
+    }
+  });
+
+  renderOverview();
+  renderMatrix();
+</script>
+</body>
+</html>
