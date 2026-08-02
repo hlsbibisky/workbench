@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>状态记录</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --term:#c9823a; --today:#fbe9d6; --noted:#3f9d6b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    line-height:1.5; padding:18px 8px 48px;
+  }
+  .wrap{max-width:1600px; margin:0 auto;}
+  header{ text-align:center; margin-bottom:18px; }
+  header h1{ font-size:22px; margin:0 0 4px; letter-spacing:1px; }
+  header .tip{ font-size:12px; color:var(--sub); }
+
+  .bar{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:10px 12px; margin-bottom:22px; flex-wrap:wrap;
+    box-shadow:0 2px 10px rgba(120,100,80,.06);
+  }
+  .nav{ display:flex; align-items:center; gap:6px; }
+  .nav button{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    width:34px; height:34px; border-radius:10px; cursor:pointer; font-size:16px;
+    transition:.15s;
+  }
+  .nav button:hover{ border-color:var(--accent); color:var(--accent); }
+  .title{ font-size:17px; font-weight:600; white-space:nowrap; }
+  .title small{ font-weight:400; color:var(--sub); font-size:12px; margin-left:8px; }
+  .tools{ display:flex; gap:6px; }
+  .tools button{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:7px 12px; border-radius:10px; cursor:pointer; font-size:13px; transition:.15s;
+  }
+  .tools button:hover{ border-color:var(--accent2); color:var(--accent2); }
+
+  .summary{ font-size:13px; color:var(--sub); margin:6px 4px 18px; }
+  .summary b{ color:var(--noted); }
+
+  .month-div{
+    margin:6px 4px 12px; font-size:18px; font-weight:700; color:var(--accent);
+    letter-spacing:2px; border-left:5px solid var(--accent); padding-left:12px;
+  }
+  .month-div small{ font-weight:400; color:var(--sub); font-size:13px; margin-left:10px; letter-spacing:0; }
+
+  .day{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; margin:8px 0; display:flex; gap:14px; align-items:flex-start;
+    box-shadow:0 1px 6px rgba(120,100,80,.04); position:relative;
+  }
+  .day.noted{ border-left:4px solid var(--noted); }
+  .day.today{ background:var(--today); border-color:#f0c9a3; }
+  .datecol{ min-width:100px; flex:0 0 100px; }
+  .gongli{ font-size:15px; font-weight:600; }
+  .ganzhi{ margin-top:4px; font-size:14px; color:var(--accent); font-weight:600; }
+  .term{
+    display:inline-block; margin-top:5px; background:#fbeede; color:var(--term);
+    font-size:11px; padding:1px 8px; border-radius:10px;
+  }
+
+  .bodycol{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+  textarea{
+    width:100%; border:1px solid var(--line); border-radius:8px;
+    padding:8px 10px; font-family:inherit; font-size:14px; color:var(--ink);
+    resize:vertical; background:#fffdfb; min-height:42px;
+  }
+  textarea:focus{ outline:none; border-color:var(--accent); }
+
+  /* 已选驱动标签：横排在编辑框上方 */
+  .tagstrip{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--mark);
+    color:var(--accent); border-radius:14px; padding:3px 11px; font-size:12.5px;
+    cursor:pointer; border:1px solid #e7d3bf;
+  }
+  .chip:hover{ background:#f3d9c4; }
+  .chip .x{ font-size:11px; opacity:.6; }
+  .chip:hover .x{ opacity:1; }
+
+  /* 驱动选项：折叠式小下拉框，展开后平铺选项（默认只占一行，省空间） */
+  .picker{ margin-top:2px; }
+  .picker summary{
+    list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+    font-size:12.5px; color:var(--accent2); padding:2px 0; user-select:none;
+  }
+  .picker summary::-webkit-details-marker{ display:none; }
+  .picker summary::after{ content:' ▾'; font-size:10px; }
+  .picker[open] summary::after{ content:' ▴'; }
+  .tagpick{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .tagpick .grp{ flex-basis:100%; font-size:11px; color:var(--sub); margin-top:2px; }
+  .tagbtn{
+    border:1px solid var(--line); background:#fff; color:var(--sub);
+    padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12.5px;
+    transition:.12s; text-align:center; line-height:1.25; align-self:flex-start;
+  }
+  .tagbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  .tagbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+
+  .saved{ font-size:11px; color:var(--noted); height:14px; opacity:0; transition:.2s; }
+  .saved.show{ opacity:1; }
+
+  footer{ text-align:center; font-size:11px; color:var(--sub); margin-top:30px; line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="nav">
+      <button id="prev" title="上一干支月">‹</button>
+      <div class="title" id="title"></div>
+      <button id="next" title="下一干支月">›</button>
+    </div>
+    <div class="tools">
+      <button id="today">今天</button>
+      <button id="export">导出</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div id="list"></div>
+
+  <footer>
+    干支年以「立春」为界，干支月以十二节令（立春·惊蛰·清明…）为界，整月自「节」起至下一「节」前一日止。<br>
+    节气由「寿星公式」推算，个别中气可能与官方日历相差 1 天。每日标签可多选、可随时点除。
+  </footer>
+</div>
+
+<script>
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
+
+/* 10 个驱动标签选项 */
+const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
+              '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
+
+/* ---------- 干支日：JDN 公式 ---------- */
+function jdn(y,m,d){
+  const a=Math.floor((14-m)/12);
+  const yy=y+4800-a;
+  const mm=m+12*a-3;
+  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;
+}
+function ganzhiDay(y,m,d){
+  const idx=(jdn(y,m,d)+49)%60;
+  return GAN[idx%10]+ZHI[idx%12];
+}
+
+/* ---------- 节气：21世纪寿星公式 ---------- */
+const TERM_C=[5.4055,20.12,3.87,18.73,5.63,20.646,4.81,20.1,5.52,21.04,5.678,21.37,
+             7.108,22.83,7.5,23.13,7.646,23.042,8.318,23.438,7.438,22.36,7.18,21.94];
+const TERM_NAMES=['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至',
+                  '小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
+function solarTermDay(year,i){
+  const Y=year%100;
+  const L=Math.floor((Y-1)/4);
+  return Math.floor(Y*0.2422+TERM_C[i])-L;
+}
+function termOn(y,m,d){
+  for(let i=0;i<24;i++){
+    const mo=Math.floor(i/2)+1;
+    if(mo===m && solarTermDay(y,i)===d) return TERM_NAMES[i];
+  }
+  return '';
+}
+
+/* ---------- 干支年（立春分界） ---------- */
+function lichunDate(y){ return new Date(y,1,solarTermDay(y,2)); }
+function gzYearVal(y,m,d){
+  const cur=new Date(y,m-1,d);
+  return cur < lichunDate(y) ? y-1 : y;
+}
+function ganzhiYear(y){
+  const idx=((y-1984)%60+60)%60;
+  return GAN[idx%10]+ZHI[idx%12];
+}
+
+/* ---------- 干支月（十二节令分界 + 五虎遁） ---------- */
+const JIE_TERM_IDX=[2,4,6,8,10,12,14,16,18,20,22,0];   // 12 个「节」在 TERM_NAMES 的索引
+const JIE_MONTH=[1,2,3,4,5,6,7,8,9,10,11,0];           // 对应公历月（0=1月）
+function gzMonthInfo(y,m,d){
+  const gy=gzYearVal(y,m,d);
+  const cur=new Date(y,m-1,d);
+  let count=0;
+  for(let mi=0;mi<12;mi++){
+    const ty = JIE_MONTH[mi]===0 ? gy+1 : gy;
+    const tm = JIE_MONTH[mi]===0 ? 1 : JIE_MONTH[mi]+1;
+    const td = solarTermDay(ty, JIE_TERM_IDX[mi]);
+    if(cur >= new Date(ty,tm-1,td)) count++;
+  }
+  let k=Math.min(count-1,11);
+  if(k<0) k=0;
+  const yStem=((gy-1984)%10+10)%10;
+  const yinStem=((yStem%5)*2+2)%10;      // 五虎遁：寅月天干
+  const mStem=(yinStem+k)%10;
+  const mBranch=(2+k)%12;                 // 寅=2
+  return { gy:gy, idx:k, ganzhi: GAN[mStem]+ZHI[mBranch] };
+}
+
+/* 某「节」在某公历年的真实日期 */
+function jieGregDate(gregYear, mi){
+  const m = JIE_MONTH[mi]===0 ? 1 : JIE_MONTH[mi]+1;
+  return new Date(gregYear, m-1, solarTermDay(gregYear, JIE_TERM_IDX[mi]));
+}
+/* 整月区间：自包围锚点的上一「节」起，到下一「节」前一日止（扫描真实节气，避免跨年错算） */
+function monthRange(y,m,d){
+  const anchor=new Date(y,m-1,d);
+  const mi=gzMonthInfo(y,m,d);
+  const Y=anchor.getFullYear();
+  const cand=[];
+  for(const gy of [Y-1,Y,Y+1]){
+    for(let k=0;k<12;k++) cand.push(jieGregDate(gy,k));
+  }
+  let start=null;
+  for(const c of cand){ if(c<=anchor){ if(!start||c>start) start=c; } }
+  let nxt=null;
+  for(const c of cand){ if(c>anchor){ if(!nxt||c<nxt) nxt=c; } }
+  if(!start) start=cand.reduce((a,b)=>a<b?a:b);
+  if(!nxt) nxt=cand.reduce((a,b)=>a>b?a:b);
+  const end=new Date(nxt); end.setDate(end.getDate()-1);
+  return { ganzhi:mi.ganzhi, gy:mi.gy, yearGan:ganzhiYear(mi.gy), start:start, end:end };
+}
+
+/* ---------- 状态存取（localStorage，统一对象） ---------- */
+const LS_KEY='DAILY_STATUS';
+function loadAll(){
+  let obj;
+  try{ obj=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ obj=null; }
+  if(!obj){
+    obj={records:{},tags:{}};
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k && k.startsWith('status_')) obj.records[k]=localStorage.getItem(k);
+      }
+    }catch(e){}
+    saveAll(obj);
+  }
+  return obj;
+}
+function saveAll(obj){ try{ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }catch(e){} }
+function dkey(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+/* ---------- 渲染 ---------- */
+let anchor=new Date(); // 当前所在干支月的锚点日期
+
+function render(){
+  const obj=loadAll();
+  const R=monthRange(anchor.getFullYear(),anchor.getMonth()+1,anchor.getDate());
+  const list=document.getElementById('list');
+  list.innerHTML='';
+
+  document.getElementById('title').innerHTML=
+    `${R.yearGan}年 · ${R.ganzhi}月`;
+
+  const div=document.createElement('div');
+  div.className='month-div';
+  div.innerHTML=`${R.yearGan}年 ${R.ganzhi}月 <small>${R.start.getFullYear()}年${R.start.getMonth()+1}月${R.start.getDate()}日 – ${R.end.getFullYear()}年${R.end.getMonth()+1}月${R.end.getDate()}日</small>`;
+  list.appendChild(div);
+
+  let notedCount=0;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const total=Math.round((R.end-R.start)/86400000)+1;
+  const todayInMonth=(today>=R.start && today<=R.end);
+  const todayIdx=Math.round((today-R.start)/86400000);
+  // 收集区间内所有日期，按「环形：自今日向前(未来)排列，到月末绕回月初，昨日收尾」
+  const allDays=[];
+  const c0=new Date(R.start);
+  while(c0<=R.end){ allDays.push(new Date(c0)); c0.setDate(c0.getDate()+1); }
+  allDays.sort((a,b)=>{
+    if(!todayInMonth) return a-b;                 // 非本月：自然升序
+    const ia=Math.round((a-R.start)/86400000);
+    const ib=Math.round((b-R.start)/86400000);
+    const oa=(ia-todayIdx+total)%total;           // 自今日起向前(含今日)的环形距离
+    const ob=(ib-todayIdx+total)%total;
+    return oa-ob;
+  });
+  for(const cur of allDays){
+    const y=cur.getFullYear(), m=cur.getMonth()+1, d=cur.getDate();
+    const key=dkey(y,m,d);
+    const term=termOn(y,m,d);
+    const text=(obj.records[key]||'');
+    const tags=(obj.tags[key]||[]);
+    if(text.trim() || tags.length) notedCount++;
+    const isToday = y===today.getFullYear() && m===today.getMonth()+1 && d===today.getDate();
+
+    const row=document.createElement('div');
+    row.className='day'+((text.trim()||tags.length)?' noted':'')+(isToday?' today':'');
+
+    /* 左侧日期列（紧凑：日期+星期一行，干支日一行） */
+    const datecol=document.createElement('div');
+    datecol.className='datecol';
+    const wd=WEEK[cur.getDay()];
+    datecol.innerHTML=
+      `<div class="gongli">${m}月${d}日 ${wd}</div>`+
+      `<div class="ganzhi">${ganzhiDay(y,m,d)}日</div>`+
+      (term?`<div class="term">${term}</div>`:'');
+    row.appendChild(datecol);
+
+    /* 右侧主体 */
+    const bodycol=document.createElement('div');
+    bodycol.className='bodycol';
+
+    // 已选驱动标签（横排在编辑框上方）
+    const strip=document.createElement('div');
+    strip.className='tagstrip';
+    function refreshStrip(){
+      strip.querySelectorAll('.chip').forEach(c=>c.remove());
+      (obj.tags[key]||[]).forEach(i=>{
+        const c=document.createElement('span');
+        c.className='chip';
+        c.innerHTML=`${DRIVERS[i]}<span class="x">×</span>`;
+        c.onclick=()=>{
+          let arr=obj.tags[key]||[];
+          arr=arr.filter(x=>x!==i);
+          if(arr.length) obj.tags[key]=arr; else delete obj.tags[key];
+          saveAll(obj);
+          refreshStrip();
+          row.querySelectorAll('.tagbtn').forEach(b=>{ if(+b.dataset.i===i) b.classList.remove('on'); });
+          row.classList.toggle('noted', !!(obj.records[key]||'').trim() || (obj.tags[key]||[]).length);
+        };
+        strip.appendChild(c);
+      });
+      strip.style.display = (obj.tags[key]||[]).length ? '' : 'none';
+    }
+    refreshStrip();
+    bodycol.appendChild(strip);
+
+    // 编辑框
+    const ta=document.createElement('textarea');
+    ta.placeholder='记录这一天……';
+    ta.value=text;
+    const savedTip=document.createElement('div');
+    savedTip.className='saved'; savedTip.textContent='已保存';
+    let timer=null;
+    ta.addEventListener('input',()=>{
+      obj.records[key]=ta.value;
+      saveAll(obj);
+      row.classList.toggle('noted', !!ta.value.trim() || (obj.tags[key]||[]).length);
+      savedTip.classList.add('show');
+      clearTimeout(timer);
+      timer=setTimeout(()=>savedTip.classList.remove('show'),1200);
+    });
+    bodycol.appendChild(ta);
+
+    // 驱动选项（折叠式小下拉框，展开后平铺选项）
+    const picker=document.createElement('details');
+    picker.className='picker';
+    const sum=document.createElement('summary');
+    sum.textContent='选择驱动力标签';
+    picker.appendChild(sum);
+    const pick=document.createElement('div');
+    pick.className='tagpick';
+    const g1=document.createElement('div'); g1.className='grp'; g1.textContent='— 积极驱动力 —';
+    const g2=document.createElement('div'); g2.className='grp'; g2.textContent='— 过度驱动力 —';
+    pick.appendChild(g1);
+    DRIVERS.forEach((name,i)=>{
+      if(i===5) pick.appendChild(g2);
+      const b=document.createElement('button');
+      b.className='tagbtn'+((obj.tags[key]||[]).includes(i)?' on':'');
+      b.dataset.i=i;
+      b.textContent=name;
+      b.onclick=()=>{
+        let arr=obj.tags[key]||[];
+        if(arr.includes(i)) arr=arr.filter(x=>x!==i);
+        else arr=[...arr,i];
+        if(arr.length) obj.tags[key]=arr; else delete obj.tags[key];
+        saveAll(obj);
+        b.classList.toggle('on');
+        refreshStrip();
+        row.classList.toggle('noted', !!((obj.records[key]||'').trim()) || (obj.tags[key]||[]).length);
+      };
+      pick.appendChild(b);
+    });
+    picker.appendChild(pick);
+    bodycol.appendChild(picker);
+
+    bodycol.appendChild(savedTip);
+    row.appendChild(bodycol);
+    list.appendChild(row);
+  }
+
+  document.getElementById('summary').innerHTML=
+    `本干支月（${R.ganzhi}月）共 <b>${total}</b> 天，已记录状态 <b>${notedCount}</b> 天。`;
+}
+
+/* ---------- 交互 ---------- */
+function stepMonth(dir){
+  const R=monthRange(anchor.getFullYear(),anchor.getMonth()+1,anchor.getDate());
+  const base = dir>0 ? new Date(R.end) : new Date(R.start);
+  base.setDate(base.getDate()+dir);
+  anchor=base;
+  render();
+}
+document.getElementById('prev').onclick=()=>stepMonth(-1);
+document.getElementById('next').onclick=()=>stepMonth(1);
+document.getElementById('today').onclick=()=>{ anchor=new Date(); render(); window.scrollTo({top:0,behavior:'smooth'}); };
+document.getElementById('export').onclick=()=>{
+  const data=loadAll();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='每日状态备份_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+};
+
+render();
+</script>
+</body>
+</html>
