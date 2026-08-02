@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>周计划 · 工作台</title>
+<style>
+  :root{ --bg:#f7f4ee; --accent:#b8714e; --line:#e7ddcd; --mark:#f0e9dd; --sub:#8a7d6b; --noted:#c0392b; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:#2c241b; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--line); background:#fbf8f2; }
+  .brand{ font-weight:700; font-size:16px; }
+  .brand small{ font-weight:400; color:var(--sub); font-size:11px; margin-left:6px; }
+  .content{ padding:14px 16px 40px; max-width:920px; margin:0 auto; }
+  /* 周日期条 */
+  .weekbar{ display:flex; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .wk-nav{ border:1px solid var(--line); background:#fff; border-radius:8px; width:34px; height:34px; cursor:pointer; color:var(--accent); font-size:16px; }
+  .wk-label{ font-size:13px; color:var(--sub); margin-right:4px; }
+  .days{ display:flex; gap:6px; flex:1; overflow-x:auto; }
+  .day{ flex:1; min-width:54px; text-align:center; padding:8px 4px; border:1px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; transition:.15s; }
+  .day .wd{ font-size:12px; color:var(--sub); }
+  .day .dt{ font-size:13px; font-weight:600; margin-top:2px; }
+  .day.today{ border-color:var(--accent); background:#fdf2ea; }
+  .day.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .day.active .wd{ color:#ffe9dd; }
+  .day.all{ min-width:48px; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--sub); }
+  .day.all.active{ color:#fff; }
+  /* 分类卡片 */
+  .cat{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px; }
+  .cat-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .cat-name{ font-size:15px; font-weight:700; flex:1; outline:none; }
+  .cat-name[contenteditable="true"]{ background:#fff8ef; border-bottom:1px dashed var(--accent); }
+  .mini{ border:none; background:var(--mark); color:var(--accent); border-radius:7px; padding:4px 8px; cursor:pointer; font-size:12px; }
+  .mini.del{ background:#f6e3dd; color:#c0392b; }
+  .add-cat{ display:inline-block; margin:4px 0 18px; border:1px dashed var(--accent); color:var(--accent); background:transparent; border-radius:10px; padding:8px 14px; cursor:pointer; font-size:13px; }
+  .add-task{ display:inline-block; margin:6px 0 2px; border:none; background:var(--mark); color:var(--accent); border-radius:8px; padding:5px 10px; cursor:pointer; font-size:12px; }
+  .task{ display:flex; align-items:center; gap:8px; padding:7px 4px; border-bottom:1px dashed #efe7d8; }
+  .task:last-child{ border-bottom:none; }
+  .ck{ width:18px; height:18px; border:2px solid var(--accent); border-radius:5px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
+  .ck.done{ background:var(--accent); }
+  .ttext{ flex:1; outline:none; font-size:14px; }
+  .ttext.done{ text-decoration:line-through; color:var(--sub); }
+  .ttext[contenteditable="true"]{ background:#fff8ef; }
+  .tday{ border:1px solid var(--line); border-radius:7px; padding:3px 4px; font-size:12px; color:var(--sub); background:#fbf8f2; }
+  .empty{ color:var(--sub); font-size:13px; padding:6px 2px; }
+  @media (max-width:640px){ .day{ min-width:46px; } .cat-name{ font-size:14px; } }
+</style>
+</head>
+<body>
+<script>
+/* 工作台级云同步桥接 */
+(function(){
+  try{ var orig=localStorage.setItem;
+    localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+  }catch(e){}
+  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+})();
+</script>
+  <div class="topbar">
+    <div class="brand">周计划<small>一周安排 · 分类 · 待办</small></div>
+  </div>
+
+  <div class="content">
+    <div class="weekbar">
+      <button class="wk-nav" onclick="shiftWeek(-1)">‹</button>
+      <span class="wk-label" id="wkRange"></span>
+      <div class="days" id="days"></div>
+      <button class="wk-nav" onclick="shiftWeek(1)">›</button>
+    </div>
+
+    <div id="cats"></div>
+
+    <button class="add-cat" onclick="addCat()">＋ 新增分类</button>
+  </div>
+
+<script>
+const K='weekly_plan';
+const WD=['周一','周二','周三','周四','周五','周六','周日'];
+let state={cats:[],tasks:[]};
+let viewDay=-1;       // -1=全部
+let monday=new Date();
+
+function load(){
+  try{ state=JSON.parse(localStorage.getItem(K))||{cats:[],tasks:[]}; }catch(e){ state={cats:[],tasks:[]}; }
+  if(!state.cats) state.cats=[];
+  if(!state.tasks) state.tasks=[];
+}
+function save(){ localStorage.setItem(K, JSON.stringify(state)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function setMonday(d){ const day=d.getDay(); const diff=(day===0?6:day-1); monday=new Date(d); monday.setDate(d.getDate()-diff); monday.setHours(0,0,0,0); }
+function dayDate(i){ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; }
+function fmtMD(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+function isToday(i){ const d=dayDate(i),t=new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
+
+function shiftWeek(n){ monday.setDate(monday.getDate()+7*n); renderWeek(); }
+function pickDay(i){ viewDay=i; renderWeek(); renderCats(); }
+
+function renderWeek(){
+  const el=document.getElementById('days'); el.innerHTML='';
+  // 全部
+  const all=document.createElement('div'); all.className='day all'+(viewDay===-1?' active':'');
+  all.textContent='全部'; all.onclick=()=>pickDay(-1); el.appendChild(all);
+  for(let i=0;i<7;i++){
+    const d=document.createElement('div');
+    d.className='day'+(isToday(i)?' today':'')+(viewDay===i?' active':'');
+    d.innerHTML='<div class="wd">'+WD[i]+'</div><div class="dt">'+fmtMD(dayDate(i))+'</div>';
+    d.onclick=()=>pickDay(i); el.appendChild(d);
+  }
+  const a=dayDate(0), b=dayDate(6);
+  document.getElementById('wkRange').textContent= a.getFullYear()+'年 '+(a.getMonth()+1)+'/'+a.getDate()+' – '+(b.getMonth()+1)+'/'+b.getDate();
+}
+
+function visibleTasks(catId){
+  return state.tasks.filter(t=> t.catId===catId && (viewDay===-1 || (t.day||-1)===viewDay));
+}
+
+function renderCats(){
+  const box=document.getElementById('cats'); box.innerHTML='';
+  if(state.cats.length===0){
+    box.innerHTML='<div class="empty">还没有分类，点下方「＋ 新增分类」开始规划本周。</div>';
+    return;
+  }
+  state.cats.forEach(c=>{
+    const card=document.createElement('div'); card.className='cat';
+    const head=document.createElement('div'); head.className='cat-head';
+    const name=document.createElement('div'); name.className='cat-name'; name.textContent=c.name; name.title='点击重命名';
+    name.onclick=()=>startEdit(name, v=>{ c.name=v; save(); renderCats(); });
+    const addT=document.createElement('button'); addT.className='add-task'; addT.textContent='＋ 计划'; addT.onclick=()=>addTask(c.id);
+    const delC=document.createElement('button'); delC.className='mini del'; delC.textContent='🗑'; delC.title='删除分类（含其下计划）'; delC.onclick=()=>delCat(c.id);
+    head.appendChild(name); head.appendChild(addT); head.appendChild(delC);
+    card.appendChild(head);
+
+    const list=visibleTasks(c.id);
+    if(list.length===0){
+      const e=document.createElement('div'); e.className='empty'; e.textContent= viewDay===-1?'暂无计划':'该日无计划'; card.appendChild(e);
+    }
+    list.forEach(t=> card.appendChild(taskRow(t)));
+    box.appendChild(card);
+  });
+}
+
+function taskRow(t){
+  const row=document.createElement('div'); row.className='task';
+  const ck=document.createElement('div'); ck.className='ck'+(t.done?' done':''); ck.textContent=t.done?'✓':'';
+  ck.onclick=()=>{ t.done=!t.done; save(); renderCats(); };
+  const tx=document.createElement('div'); tx.className='ttext'+(t.done?' done':''); tx.textContent=t.text;
+  tx.onclick=()=>startEdit(tx, v=>{ t.text=v; save(); renderCats(); });
+  const sel=document.createElement('select'); sel.className='tday';
+  sel.innerHTML='<option value="-1">不指定</option>'+WD.map((w,i)=>'<option value="'+i+'">'+w+'</option>').join('');
+  sel.value=(t.day==null?-1:t.day);
+  sel.onchange=()=>{ t.day=parseInt(sel.value,10); if(t.day===-1)t.day=null; save(); if(viewDay!==-1) renderCats(); };
+  const del=document.createElement('button'); del.className='mini del'; del.textContent='🗑'; del.onclick=()=>delTask(t.id);
+  row.appendChild(ck); row.appendChild(tx); row.appendChild(sel); row.appendChild(del);
+  return row;
+}
+
+/* 行内编辑：点击文字变为可编辑，回车/失焦保存 */
+function startEdit(el, onSave){
+  el.setAttribute('contenteditable','true'); el.focus();
+  // 选中全部
+  const r=document.createRange(); r.selectNodeContents(el);
+  const s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  const finish=()=>{ el.removeAttribute('contenteditable'); const v=el.textContent.trim(); if(v) onSave(v); else renderCats(); el.removeEventListener('blur',finish); el.removeEventListener('keydown',key); };
+  const key=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } if(e.key==='Escape'){ el.blur(); } };
+  el.addEventListener('blur',finish); el.addEventListener('keydown',key);
+}
+
+function addCat(){
+  const name=prompt('新分类名称：','新分类'); if(!name) return;
+  state.cats.push({id:uid(), name:name.trim()}); save(); renderCats();
+}
+function delCat(id){
+  if(!confirm('删除该分类及其下全部计划？')) return;
+  state.cats=state.cats.filter(c=>c.id!==id);
+  state.tasks=state.tasks.filter(t=>t.catId!==id);
+  save(); renderCats();
+}
+function addTask(catId){
+  const text=prompt('新计划内容：',''); if(!text) return;
+  const t={id:uid(), catId, text:text.trim(), done:false, day: viewDay===-1?null:viewDay };
+  state.tasks.push(t); save(); renderCats();
+}
+function delTask(id){
+  if(!confirm('删除这条计划？')) return;
+  state.tasks=state.tasks.filter(t=>t.id!==id); save(); renderCats();
+}
+
+load();
+setMonday(new Date());
+renderWeek();
+renderCats();
+</script>
+</body>
+</html>
