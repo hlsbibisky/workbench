@@ -167,8 +167,8 @@
       <span id="wbSyncDot" style="width:8px;height:8px;border-radius:50%;background:#c9bfae"></span>
     </button>
     <div class="sidefoot">
-      模块：内观觉察 · 股票 · 驱动力<br>生活记录 · 周计划 · 实用工具<br>
-      <span style="color:var(--noted)">●</span> 内容板块后续接入
+      模块：内观觉察 · 股票 · 驱动力<br>生活记录 · 周计划 · 放映室 · 实用工具<br>
+      <span style="color:var(--noted)">●</span> 内容板块持续接入
       <div class="sync-box">
         <div style="font-size:12px;color:var(--sub);margin-bottom:6px">数据同步（换设备 / 浏览器时备份恢复）</div>
         <button class="syncbtn" onclick="wbExport()">⬇ 导出全部</button>
@@ -249,6 +249,10 @@ const MODULES = {
   week: {
     title:'周计划', note:'一周安排 · 待办',
     sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
+  },
+  cinema: {
+    title:'放映室', note:'本地观影 · AI陪伴',
+    sub:[ {id:'player', name:'放映室', type:'iframe', src:'放映室.html', status:'online'} ]
   },
   tools: {
     title:'实用工具', note:'效率 · 小工具',
@@ -335,8 +339,7 @@ function selectSub(modKey, subId){
   bodyEl.innerHTML = '';
   if(s.type === 'iframe'){
     const box = document.createElement('div'); box.className = 'framebox';
-    const bar = document.createElement('div'); bar.className = 'framebar';
-    bar.innerHTML = ''; /* 标题已由上方 subtab 显示，framebar 仅保留刷新按钮 */
+    const bar = document.createElement('div'); bar.className = 'framebar'; bar.style.display='none'; /* framebar 已隐藏（标题由 subtab 显示，刷新按钮移至 iframe 右下角悬浮） */
     const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
     btn.innerHTML = ICONS.refresh;
     const f = document.createElement('iframe'); f.src = s.src; f.title = s.name;
