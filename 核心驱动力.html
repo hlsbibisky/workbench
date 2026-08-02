@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>核心驱动力</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;line-height:1.6;
+    padding:22px 26px 60px;}
+  h1{font-size:21px;letter-spacing:2px;color:var(--accent);margin:0 0 4px;}
+  .lead{font-size:13px;color:var(--sub);margin:0 0 18px;}
+
+  .inputs{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;margin-bottom:22px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:12px;color:var(--sub);letter-spacing:1px;}
+  .field input{width:78px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+    background:#fff;font-family:inherit;font-size:15px;color:var(--ink);}
+  .sex{display:flex;gap:8px;}
+  .sex label{font-size:14px;border:1px solid var(--line);border-radius:9px;padding:8px 16px;cursor:pointer;background:#fff;}
+  .sex input{display:none;}
+  .sex label:has(input:checked){border-color:var(--accent);background:var(--mark);}
+  .sex input:checked + span{color:var(--accent);font-weight:600;}
+  .btns{display:flex;gap:10px;margin-left:auto;}
+  button.act{border:none;background:var(--accent);color:#fff;padding:10px 22px;border-radius:10px;
+    cursor:pointer;font-size:14px;letter-spacing:1px;font-family:inherit;}
+  button.ghost{background:#fff;border:1px solid var(--line);color:var(--sub);}
+
+  /* 核心卡 */
+  .core{background:linear-gradient(135deg,#fffdf9,#f6ece2);border:1px solid var(--line);
+    border-radius:16px;padding:22px 24px;margin-bottom:18px;display:flex;gap:20px;align-items:flex-start;}
+  .core .icon{font-size:40px;line-height:1;}
+  .core .body{flex:1;}
+  .core .k{font-size:12px;letter-spacing:2px;color:var(--sub);}
+  .core .t{font-size:24px;font-weight:700;color:var(--accent);margin:2px 0 8px;}
+  .core .d{font-size:14px;color:var(--ink);}
+  .core .pct{margin-left:auto;text-align:center;}
+  .core .pct b{font-size:30px;color:var(--accent2);}
+  .core .pct span{font-size:12px;color:var(--sub);display:block;}
+
+  /* 五驱动力条 */
+  .drivebars{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:18px;}
+  .drivebars h3{font-size:14px;letter-spacing:1px;color:var(--accent);margin:0 0 14px;}
+  .db{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:13px;}
+  .db .nm{width:96px;}
+  .db .bar{flex:1;height:16px;background:var(--mark);border-radius:9px;overflow:hidden;}
+  .db .bar i{display:block;height:100%;border-radius:9px;}
+  .db .pc{width:42px;text-align:right;color:var(--sub);}
+  .db.core .nm{color:var(--accent);font-weight:600;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .box h3{font-size:14px;letter-spacing:1px;color:var(--accent);margin:0 0 10px;}
+  .box p{font-size:13.5px;margin:0;color:var(--ink);}
+  .tag{display:inline-block;margin:3px 4px 0 0;padding:4px 12px;border-radius:11px;background:var(--mark);color:var(--ink);font-size:13px;}
+  .tag.wx{background:#efe6da;}
+
+  .read{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-size:14px;line-height:1.9;}
+  .read .tt{font-size:15px;font-weight:700;display:block;margin:14px 0 6px;letter-spacing:1px;}
+  .read .hl{color:var(--accent);font-weight:600;}
+  .hint{font-size:12px;color:var(--sub);background:var(--mark);border-radius:10px;padding:10px 14px;margin-bottom:18px;}
+
+  /* 二级标签（核心驱动力 / 十神关系图） */
+  .subtabs{display:flex;gap:6px;margin:0 0 20px;border-bottom:1px solid var(--line);}
+  .subtab{background:none;border:none;padding:10px 18px;font-size:14px;color:var(--sub);
+    cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;letter-spacing:1px;}
+  .subtab:hover{color:var(--accent);}
+  .subtab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+  .iframe-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .iframe-wrap iframe{width:100%;border:none;display:block;}
+</style>
+</head>
+<body>
+  <h1>核心驱动力</h1>
+  <p class="lead">从你的命盘提炼最底层的动机类型——什么在真正推着你往前走。</p>
+
+  <div class="subtabs">
+    <button class="subtab active" data-view="drive" onclick="switchView('drive')">核心驱动力解读</button>
+    <button class="subtab" data-view="cycle" onclick="switchView('cycle')">十神关系图</button>
+  </div>
+
+  <div id="view-drive">
+  <div class="inputs" id="inpanel" style="display:none">
+    <div class="field"><label>出生年</label><input id="y" type="number"></div>
+    <div class="field"><label>月</label><input id="m" type="number" min="1" max="12"></div>
+    <div class="field"><label>日</label><input id="d" type="number" min="1" max="31"></div>
+    <div class="field"><label>时</label><input id="hh" type="number" min="0" max="23"></div>
+    <div class="field"><label>分</label><input id="mm" type="number" min="0" max="59"></div>
+    <div class="field"><label>性别</label>
+      <div class="sex">
+        <label><input type="radio" name="g" value="男"><span>男</span></label>
+        <label><input type="radio" name="g" value="女"><span>女</span></label>
+      </div>
+    </div>
+    <div class="btns"><button class="act" onclick="runInput()">分析</button></div>
+  </div>
+
+  <div id="out"></div>
+  </div><!-- /view-drive -->
+
+  <div id="view-cycle" style="display:none">
+    <div class="iframe-wrap">
+      <iframe src="shishen_cycle.html" title="十神关系图" style="height:800px"></iframe>
+    </div>
+  </div>
+
+<script src="bazi_engine.js"></script>
+<script>
+  const E=window.BaziEngine;
+  const COLORS={'食伤':'#4a7fb8','财':'#b8924a','官杀':'#8a6db0','印':'#c8694e','比劫':'#5b8c7b'};
+
+  function switchView(v){
+    const d=document.getElementById('view-drive'), c=document.getElementById('view-cycle');
+    document.querySelectorAll('.subtab').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+    d.style.display = v==='cycle' ? 'none' : 'block';
+    c.style.display = v==='cycle' ? 'block' : 'none';
+  }
+
+  function getInput(){
+    return { y:+document.getElementById('y').value, m:+document.getElementById('m').value,
+      d:+document.getElementById('d').value, hh:+document.getElementById('hh').value,
+      mm:+document.getElementById('mm').value,
+      gender:document.querySelector('input[name=g]:checked')?document.querySelector('input[name=g]:checked').value:'男' };
+  }
+
+  function render(p){
+    const dv=p.drive;
+    const ci=dv.coreInfo, si=dv.secondInfo;
+    // 五驱动力条（按权重排序展示，核心高亮）
+    const order=Object.keys(dv.weights).sort((a,b)=>dv.weights[b]-dv.weights[a]);
+    const maxW=Math.max(...order.map(k=>dv.weights[k]))||1;
+    const bars=order.map(k=>{
+      const w=dv.weights[k]; const pct=dv.pct[k];
+      const isCore=k===dv.core;
+      return `<div class="db ${isCore?'core':''}"><span class="nm">${k}</span>
+        <span class="bar"><i style="width:${Math.round(w/maxW*100)}%;background:${COLORS[k]}"></i></span>
+        <span class="pc">${pct}%</span></div>`;
+    }).join('');
+
+    const dm=E.DAY_MASTER[E.GAN[p.dayMaster]];
+
+    document.getElementById('out').innerHTML=`
+      <div class="hint">核心驱动力由命盘中十神权重推算（天干 1.5、地支本气 1.0、藏干中余气 0.4）。
+        下列结果为<strong>简化模型</strong>，旨在帮你看见自己的动机底色，而非定论。</div>
+
+      <div class="core">
+        <div class="icon">${ci.icon}</div>
+        <div class="body">
+          <div class="k">核心驱动力</div>
+          <div class="t">${ci.title}</div>
+          <div class="d">${ci.desc}</div>
+        </div>
+        <div class="pct"><b>${dv.pct[dv.core]}%</b><span>权重占比</span></div>
+      </div>
+
+      <div class="drivebars"><h3>五类驱动力分布</h3>${bars}</div>
+
+      <div class="grid">
+        <div class="box"><h3>次要驱动力</h3>
+          <p><span class="tag">${si.title}</span></p>
+          <p style="margin-top:8px;color:var(--sub);font-size:12.5px;">${si.desc}</p></div>
+        <div class="box"><h3>日主天性</h3>
+          <p>日主 <b>${E.GAN[p.dayMaster]}${dm.wx}</b>（${dm.yin==='阳'?'阳':'阴'}）</p>
+          <p style="margin-top:6px;color:var(--sub);font-size:12.5px;">${dm.txt}</p></div>
+        <div class="box"><h3>成长方向（用神）</h3>
+          <p><span class="tag">${dv.growTen.join('</span><span class="tag">')}</span></p>
+          <p style="margin-top:8px;color:var(--sub);font-size:12.5px;">补运五行：
+            <span class="tag wx">${dv.growWx.join('</span><span class="tag wx">')}</span></p></div>
+      </div>
+
+      <div class="read">
+        <span class="tt">人生主题</span>
+        <p>${dv.theme}</p>
+        <span class="tt">潜在盲点</span>
+        <p>${ci.blind}</p>
+        <span class="tt">给你的小建议</span>
+        <p>你被「<span class="hl">${ci.title}</span>」推动，但别忘了「${si.title}」也是你的一部分。
+          在 ${dv.growTen.join('、')} 上多给自已一些空间与练习，动力会更稳、更久。</p>
+      </div>`;
+  }
+
+  function runInput(){
+    const inp=getInput();
+    if(!inp.y||inp.m<1||inp.d<1){ alert('请先填写完整的出生信息'); return; }
+    const p=E.computeBazi(inp);
+    render(p);
+    try{ localStorage.setItem('bazi_profile',JSON.stringify(p)); }catch(e){}
+  }
+
+  (function init(){
+    let loaded=null;
+    try{ const s=localStorage.getItem('bazi_profile'); if(s) loaded=JSON.parse(s); }catch(e){}
+    if(loaded && loaded.drive){
+      render(loaded);
+    } else {
+      document.getElementById('inpanel').style.display='flex';
+      const def=[1990,5,20,10,30];
+      ['y','m','d','hh','mm'].forEach((id,i)=>document.getElementById(id).value=def[i]);
+      document.querySelector('input[name=g][value=男]').checked=true;
+      const p=E.computeBazi(getInput()); render(p);
+    }
+  })();
+</script>
+</body>
+</html>
