@@ -122,8 +122,7 @@
   .stage-ing{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; margin-top:14px; max-width:460px; }
   .stage-ing .ing-tag{ font-size:15px; font-weight:600; color:var(--ink); padding:7px 15px; border-radius:15px;
     background:#fff; border:1.5px solid #e6d8c8; box-shadow:0 2px 6px rgba(184,113,78,.08); letter-spacing:.5px; }
-  .stage-ing .ing-opt{ font-size:12.5px; font-weight:600; color:#b8742e; padding:7px 14px; border-radius:15px;
-    background:#fdf3e9; border:1.5px dashed #e0b384; white-space:nowrap; }
+  .ing-opt-row{ font-size:11.5px; color:var(--sub); text-align:center; margin-top:6px; margin-bottom:2px; letter-spacing:.3px; }
   .pos{ font-size:13px; color:var(--sub); margin-top:8px; }
   .actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
 
@@ -590,9 +589,9 @@ function renderToday(){
   } else {
     const opt = optionalConflicts(d);
     const tagsHtml = (d.tags||[]).map(t=>'<span class="badge">'+t+'</span>').join('');
-    // 食材标签（大字体 + 标签设计）；「可去：X」放在食材同一行末尾
+    // 食材标签（大字体 + 标签设计）；「可去：X」独立显示在食材上方
     const ingTags = (d.ing||[]).map(i=>'<span class="ing-tag">'+esc(i)+'</span>').join('');
-    const optHtml = opt.length ? '<span class="ing-opt">可去：'+opt.join('·')+'</span>' : '';
+    const optHtml = opt.length ? '<div class="ing-opt-row">可去除：'+opt.join('·')+'</div>' : '';
     const cover = dishCover(d.id);
     const faceHtml = cover ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'">' : '<div class="emoji">'+d.emoji+'</div>';
     // 箭头放在卡片中间水平两侧，纯图标无文字
@@ -603,7 +602,8 @@ function renderToday(){
       + faceHtml
       + '<div class="dname">'+d.name+'</div>'
       + '<div class="dtags"><span class="badge '+d.type+'">'+d.type+'</span>'+tagsHtml+'</div>'
-      + '<div class="stage-ing">'+ingTags+optHtml+'</div>'
+      + optHtml
+      + '<div class="stage-ing">'+ingTags+'</div>'
       + '<div class="pos">第 '+(state.queueIdx+1)+' / '+state.queue.length+' 道（本轮）</div>'
       + '<div class="actions">'
       +   '<button class="btn btn-like" onclick="actLike()">❤ 喜欢·入菜谱</button>'
