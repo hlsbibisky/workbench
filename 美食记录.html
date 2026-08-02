@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>美食记录 · 日日是好日</title>
+<style>
+  /* 与工作台一致的暖色宣纸风格 */
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --noted:#3f9d6b; --warn:#d9822b; --bad:#c0392b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{ background:var(--bg); color:var(--ink); font-family:var(--font); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  ::selection{ background:var(--mark); }
+
+  .topbar{ height:58px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 30px; border-bottom:1px solid var(--line); background:rgba(255,253,249,.7);
+    backdrop-filter:blur(4px); position:sticky; top:0; z-index:5; }
+  .brand{ display:flex; align-items:baseline; gap:10px; }
+  .brand b{ font-size:19px; font-weight:700; letter-spacing:3px; color:var(--accent); }
+  .brand small{ font-size:11px; color:var(--sub); letter-spacing:1.5px; }
+  .topright{ font-size:13px; color:var(--sub); display:flex; gap:14px; align-items:center; }
+  .topright .clock{ background:var(--mark); padding:3px 11px; border-radius:20px; color:var(--ink); font-variant-numeric:tabular-nums; }
+
+  .content{ padding:22px 30px 60px; max-width:1080px; margin:0 auto; }
+  .modtitle{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:22px; font-weight:700; letter-spacing:1px; margin:0 0 4px; }
+  .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
+  .databtn{ flex-shrink:0; background:rgba(184,113,78,.1); color:var(--accent); border:1px solid var(--line); border-radius:18px; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; transition:.14s; }
+  .databtn:hover{ background:rgba(184,113,78,.2); }
+  .moddesc{ color:var(--sub); font-size:13px; margin-bottom:16px; }
+
+  /* 子模块 tab */
+  .subtabs{ display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+  .subtab{ display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line); border-bottom:none;
+    background:#fff; color:var(--sub); padding:9px 17px; border-radius:11px 11px 0 0; cursor:pointer;
+    font-size:14px; transition:.16s; font-family:inherit; margin-bottom:-1px; letter-spacing:.5px; }
+  .subtab:hover{ border-color:var(--accent); color:var(--accent); }
+  .subtab.active{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .subtab .pip{ width:7px; height:7px; border-radius:50%; background:var(--noted); }
+  .subtab.active .pip{ background:#fff; }
+
+  .modbody{ margin-top:18px; animation:fade .26s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* 通用卡片/按钮 */
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; }
+  .btn{ border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 15px; border-radius:11px;
+    cursor:pointer; font-size:14px; font-family:inherit; transition:.16s; letter-spacing:.5px; }
+  .btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .btn-primary{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .btn-primary:hover{ background:#a5623f; color:#fff; }
+  .btn-like{ background:var(--noted); color:#fff; border-color:var(--noted); font-weight:600; }
+  .btn-like:hover{ background:#368a5c; color:#fff; }
+  .btn-bad{ background:#fff; color:var(--bad); border-color:#eccfcb; }
+  .btn-bad:hover{ background:#fdf0ee; color:var(--bad); border-color:var(--bad); }
+  .btn-skip{ background:#fff; color:var(--sub); }
+  .btn-sm{ padding:6px 11px; font-size:13px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .spread{ justify-content:space-between; }
+
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:3px 10px; border-radius:20px;
+    background:var(--mark); color:var(--accent); border:1px solid var(--line); }
+  .pill.warn{ background:#fbeed7; color:var(--warn); border-color:#f1dcb4; }
+  .pill.good{ background:#e7f3ec; color:var(--noted); border-color:#cfe6da; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:7px 11px 7px 13px; border-radius:20px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:var(--sub); font-size:13.5px; transition:.14s; user-select:none; }
+  .chip:hover{ border-color:var(--accent); }
+  .chip .chip-act{ font-size:10px; margin-left:2px; cursor:pointer; opacity:.5; line-height:1; transition:.12s; }
+  .chip .chip-editbtn:hover{ opacity:1; color:var(--accent); }
+  .chip .chip-x:hover{ opacity:1; color:#fff; background:var(--bad); border-radius:50%; padding:1px 2px; }
+  .chip.on .chip-act{ color:#fff; }
+  .chip.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .chip.on.avoid{ background:var(--bad); border-color:var(--bad); }
+  .chip.on.like{ background:var(--noted); border-color:var(--noted); }
+  .add-group-btn{ display:inline-flex; align-items:center; gap:4px; margin:4px 0 2px; padding:6px 12px; border:1px dashed var(--accent); background:rgba(184,113,78,.06); color:var(--accent); border-radius:16px; cursor:pointer; font-size:13px; font-family:inherit; transition:.14s; }
+  .add-group-btn:hover{ background:rgba(184,113,78,.14); }
+  .gl{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--accent); font-weight:600; margin-bottom:6px; }
+  .gl .gdel{ font-size:11px; cursor:pointer; opacity:.45; color:var(--bad); }
+  .gl .gdel:hover{ opacity:1; }
+  .gl .gedit{ font-size:11px; cursor:pointer; opacity:.45; color:var(--accent); }
+  .gl .gedit:hover{ opacity:1; }
+  .badge{ font-size:11px; padding:2px 8px; border-radius:8px; background:var(--mark); color:var(--accent); }
+  .badge.荤{ background:#fbe9e2; color:#b5532e; }
+  .badge.素{ background:#e7f3ec; color:var(--noted); }
+  .badge.汤{ background:#e8eef6; color:#3f6aa3; }
+  .badge.主食{ background:#f3ecdf; color:#8a6d3b; }
+  .badge.零食{ background:#f1e6f3; color:#7a4f86; }
+
+  .empty{ text-align:center; color:var(--sub); padding:40px 10px; }
+  .empty b{ color:var(--accent); }
+
+  /* ===== 今天吃什么 舞台（箭头在中间水平两侧）===== */
+  .filterbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; font-size:13px; color:var(--sub); }
+  .stage-wrap{ position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:30px 70px 26px; }
+  .stage-arrow{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:48px; height:48px; border-radius:50%; border:2px solid var(--line);
+    background:var(--card); color:var(--sub); font-size:24px; line-height:44px; text-align:center;
+    cursor:pointer; transition:.16s; user-select:none; z-index:2;
+    box-shadow:0 2px 8px rgba(58,54,49,.08);
+  }
+  .stage-arrow:hover{ border-color:var(--accent); color:var(--accent); background:#fff; transform:translateY(-50%) scale(1.08); }
+  .stage-arrow.prev{ left:6px; }
+  .stage-arrow.next{ right:6px; }
+  .stage .emoji{ font-size:84px; line-height:1; filter:drop-shadow(0 6px 12px rgba(58,54,49,.12)); }
+  .stage .dish-cover-img{ width:120px; height:120px; border-radius:24px; object-fit:cover; box-shadow:0 6px 16px rgba(58,54,49,.18); }
+  .cover-preview{ width:120px; height:120px; border-radius:18px; border:1px dashed var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px; background:rgba(184,113,78,.04); }
+  .cover-preview img{ width:100%; height:100%; object-fit:cover; }
+  .cover-modes{ display:flex; gap:8px; margin-bottom:8px; }
+  .cover-mode{ padding:6px 13px; border:1px solid var(--line); background:#fff; border-radius:16px; cursor:pointer; font-size:13px; font-family:inherit; color:var(--sub); transition:.14s; }
+  .cover-mode.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .stage .dname{ font-size:28px; font-weight:700; letter-spacing:1px; }
+  .stage .dtags{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:4px; }
+  .hintline{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:6px; min-height:26px; }
+  /* 食材标签区（大字体 + 标签设计） */
+  .stage-ing{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; margin-top:14px; max-width:460px; }
+  .stage-ing .ing-tag{ font-size:15px; font-weight:600; color:var(--ink); padding:7px 15px; border-radius:15px;
+    background:#fff; border:1.5px solid #e6d8c8; box-shadow:0 2px 6px rgba(184,113,78,.08); letter-spacing:.5px; }
+  .stage-ing .ing-opt{ font-size:12.5px; font-weight:600; color:#b8742e; padding:7px 14px; border-radius:15px;
+    background:#fdf3e9; border:1.5px dashed #e0b384; white-space:nowrap; }
+  .pos{ font-size:13px; color:var(--sub); margin-top:8px; }
+  .actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
+
+  /* ===== 菜谱库网格（精致美食卡片） ===== */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+  .rcard{ background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow);
+    overflow:hidden; display:flex; flex-direction:column; transition:.22s; cursor:default; }
+  .rcard:hover{ transform:translateY(-3px); box-shadow:0 8px 28px rgba(58,54,49,.12), 0 2px 6px rgba(58,54,49,.06); }
+  /* 封面区域 */
+  .rcard .rcover{ position:relative; width:100%; height:180px; overflow:hidden; background:linear-gradient(145deg,#f5ede3,#ece5da); }
+  .rcard .rcover img{ width:100%; height:100%; object-fit:cover; display:block; transition:.35s; }
+  .rcard:hover .rcover img{ transform:scale(1.04); }
+  .rcard .rcover .remoji-fallback{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:56px; background:linear-gradient(145deg, #faf6f0, #f0e8dc); }
+  /* 封面底部渐变条 + 分类角标 */
+  .rcard .rcover::after{ content:''; position:absolute; bottom:0; left:0; right:0; height:40px;
+    background:linear-gradient(transparent, rgba(58,54,49,.08)); pointer-events:none; }
+  .rcard .rtype-badge{ position:absolute; top:10px; left:10px; z-index:2;
+    font-size:11.5px; font-weight:600; padding:4px 11px; border-radius:20px; color:#fff;
+    letter-spacing:.5px; backdrop-filter:blur(6px); }
+  .rtype-badge.荤{ background:rgba(183,83,46,.82); }
+  .rtype-badge.素{ background:rgba(63,157,107,.82); }
+  .rtype-badge.汤{ background:rgba(63,106,163,.82); }
+  .rtype-badge.主食{ background:rgba(138,109,59,.82); }
+  .rtype-badge.零食{ background:rgba(122,79,134,.82); }
+  /* 内容区 */
+  .rcard .rbody{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .rcard .rhead{ display:flex; align-items:center; gap:9px; }
+  .rcard .rname{ font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.3px; line-height:1.3; }
+  /* 菜谱库分类导航栏 */
+  .catbar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .catbtn{ border:1px solid var(--line); background:#fff; color:var(--sub); padding:7px 16px; border-radius:20px;
+    cursor:pointer; font-size:13.5px; font-family:inherit; transition:.16s; letter-spacing:.5px; }
+  .catbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  .catbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .catbtn .cnt{ font-size:11px; opacity:.7; margin-left:4px; }
+
+  /* 时长 + 难度星级行 */
+  .rcard .rmeta-line{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--sub); margin-top:-2px; }
+  .rcard .rmeta-line b{ color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums; }
+  .rcard .rmeta-line .stars{ color:#e8a33d; letter-spacing:1px; font-size:13px; }
+  /* 食材标签行 */
+  .rcard .rtags{ display:flex; flex-wrap:wrap; gap:5px; margin-top:2px; }
+  .rcard .rtag{ font-size:11.5px; padding:3px 9px; border-radius:14px; background:var(--bg); color:var(--sub);
+    border:1px solid var(--line); white-space:nowrap; transition:.14s; }
+  .rcard .rtag.skipped{ text-decoration:line-through; color:var(--sub); opacity:.65; background:#fdf6f4; border-color:#f1e0db; }
+  .rcard .rtag .skip-hint{ font-size:9.5px; background:var(--warn); color:#fff; padding:0 4px; border-radius:6px; margin-left:3px; vertical-align:middle; }
+  /* 操作栏 */
+  .rcard .rbar{ display:flex; gap:6px; margin-top:auto; padding-top:10px; border-top:1px solid var(--line); }
+  .rcard .rbtn{ flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+    padding:7px 0; border-radius:10px; border:1px solid var(--line); background:#fff; color:var(--sub);
+    font-size:13px; font-family:inherit; cursor:pointer; transition:.16s; letter-spacing:.3px; }
+  .rcard .rbtn:hover{ border-color:var(--accent); color:var(--accent); background:var(--bg); }
+  .rcard .rbtn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .rcard .rbtn.primary:hover{ background:#a5623f; color:#fff; }
+  .rcard .rbtn.danger{ color:var(--bad); border-color:#f1e0db; }
+  .rcard .rbtn.danger:hover{ background:#fdf0ee; color:var(--bad); border-color:var(--bad); }
+
+  /* ===== 菜谱详情查看器（参考样本图风格） ===== */
+  .viewer-hero{ width:100%; max-height:320px; object-fit:cover; border-radius:12px; display:block; background:linear-gradient(135deg,#f0e3d6,#ece5da); }
+  .viewer-tags{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px; }
+  .viewer-tag{ font-size:11.5px; padding:3px 10px; border-radius:16px; background:#e7f3ec; color:var(--noted); border:1px solid #cfe6da; }
+  .viewer-stats{ display:flex; gap:20px; margin:10px 0; font-size:14px; color:var(--sub); }
+  .viewer-stat b{ color:var(--accent); font-size:19px; }
+  .viewer-section-title{ font-size:15px; font-weight:700; margin:18px 0 10px; padding-left:10px; border-left:3px solid var(--accent); }
+  .vmat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+  .vmat-item{ display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--bg); border-radius:10px; font-size:13.5px; }
+  .vmat-item .mi-icon{ font-size:20px; flex-shrink:0; }
+  .vmat-item .mi-name{ flex:1; }
+  .vmat-item .mi-qty{ color:var(--sub); font-size:12px; }
+  .vstep{ display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; }
+  .vstep-num{ width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .vstep-text{ flex:1; font-size:14px; line-height:1.75; }
+  .vstep-img{ width:90px; height:64px; border-radius:8px; object-fit:cover; background:var(--bg); flex-shrink:0; }
+
+  /* 口味分组 */
+  .tsec{ margin-bottom:22px; }
+  .tsec h3{ font-size:15px; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .tsec .tip{ font-size:12px; color:var(--sub); margin-bottom:10px; }
+  .tgroup{ margin:10px 0 0 0; }
+  .tgroup .gl{ font-size:12px; color:var(--sub); margin-bottom:6px; letter-spacing:1px; display:flex; align-items:center; gap:6px; }
+  .tchips{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .custom-add{ display:inline-flex; align-items:center; gap:4px; border:1px dashed var(--line); background:none; color:var(--sub);
+    padding:6px 11px; border-radius:20px; cursor:pointer; font-size:13px; font-family:inherit; transition:.14s; }
+  .custom-add:hover{ border-color:var(--accent); color:var(--accent); }
+  .custom-input{ width:84px; padding:5px 9px; border:1px solid var(--accent); border-radius:16px; font-size:13px; font-family:inherit; outline:none; }
+  .summary{ background:var(--mark); border:1px solid var(--line); border-radius:12px; padding:12px 15px; font-size:13px; color:var(--ink); margin-bottom:18px; }
+  .summary b{ color:var(--accent); }
+
+  /* 弹窗 */
+  .modal{ position:fixed; inset:0; background:rgba(58,54,49,.35); display:flex; align-items:flex-start; justify-content:center;
+    padding:40px 16px; z-index:50; overflow:auto; }
+  .modal.hidden{ display:none; }
+  .modal-card{ background:var(--bg); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25); width:min(720px,100%); padding:22px 24px; max-height:90vh; overflow:auto; }
+  .modal-card h2{ margin:0 0 14px; font-size:19px; letter-spacing:1px; }
+  .field{ margin-bottom:13px; }
+  .field label{ display:block; font-size:13px; color:var(--sub); margin-bottom:5px; }
+  .field input, .field select, .field textarea{ width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:10px;
+    background:#fff; font-family:inherit; font-size:14px; color:var(--ink); }
+  .field input::placeholder, .field textarea::placeholder{ color:#bbb; }
+  .field textarea{ resize:vertical; min-height:90px; }
+  /* 难度星级选择器 */
+  .star-pick{ display:inline-flex; gap:4px; font-size:26px; cursor:pointer; line-height:1; user-select:none; }
+  .star-pick .star{ color:#d9d2c7; transition:.12s; }
+  .star-pick .star.on{ color:#e8a33d; }
+  .star-pick .star:hover{ transform:scale(1.12); color:#e8a33d; }
+  .star-hint{ font-size:12px; color:var(--sub); margin-left:8px; }
+  .matrow{ display:grid; grid-template-columns:1fr 90px auto 34px; gap:8px; align-items:center; margin-bottom:8px; }
+  .matrow input{ padding:7px 9px; font-size:13px; }
+  .matrow .skip-tag{ font-size:12px; color:var(--accent); background:rgba(184,113,78,.1); padding:2px 9px; border-radius:8px; white-space:nowrap; }
+  .matrow .row-del{ border:none; background:none; cursor:pointer; color:var(--bad); font-size:15px; opacity:.5; padding:2px 4px; line-height:1; justify-self:end; }
+  .matrow .row-del:hover{ opacity:1; }
+  .emoji-grid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+  .emoji-cell{ width:38px; height:38px; border:1px solid var(--line); background:#fff; border-radius:10px; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:.12s; padding:0; }
+  .emoji-cell:hover{ border-color:var(--accent); transform:scale(1.05); }
+  .emoji-cell.on{ border-color:var(--accent); background:rgba(184,113,78,.12); box-shadow:0 0 0 2px rgba(184,113,78,.25); }
+  .paste-hint{ font-size:12px; color:var(--sub); margin-left:8px; }
+  .modal-act{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+  .warnbox{ background:#fdf0ee; border:1px solid #eccfcb; color:var(--bad); border-radius:10px; padding:9px 12px; font-size:13px; margin-bottom:12px; }
+
+  .toast{ position:fixed; left:50%; bottom:32px; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:10px 18px; border-radius:24px; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:80; opacity:0; transition:.25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+  .linkbtn{ background:none; border:none; color:var(--accent); cursor:pointer; font-size:13px; font-family:inherit; text-decoration:underline; padding:0; }
+
+  /* ===== 打卡记录 ===== */
+  .ck-toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .ck-toolbar input[type="date"]{ border:1px solid var(--line); border-radius:10px; padding:7px 11px; font-size:14px; font-family:inherit; background:#fff; color:var(--ink); outline:none; }
+  .ck-toolbar input[type="date"]:focus{ border-color:var(--accent); }
+  .ck-day{ background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:18px 20px; margin-bottom:14px; transition:.2s; }
+  .ck-day:hover{ box-shadow:0 6px 20px rgba(184,113,78,.12); }
+  .ck-day-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .ck-date{ font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.5px; }
+  .ck-date .ck-wd{ font-size:12px; color:var(--sub); font-weight:400; margin-left:8px; }
+  .ck-day-act{ display:flex; gap:6px; }
+  .ck-day-act button{ border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; font-size:12.5px; padding:4px 10px; color:var(--sub); font-family:inherit; transition:.15s; }
+  .ck-day-act button:hover{ border-color:var(--accent); color:var(--accent); }
+  .ck-day-act .ck-del-btn:hover{ border-color:var(--bad); color:var(--bad); }
+  .ck-items{ display:flex; flex-direction:column; gap:8px; }
+  .ck-item{ display:flex; align-items:center; gap:10px; padding:8px 12px; background:rgba(255,255,255,.7); border-radius:10px; border:1px solid transparent; transition:.15s; }
+  .ck-item:hover{ border-color:var(--line); }
+  .ck-item input[type="checkbox"]{ width:18px; height:18px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+  .ck-item-emoji{ font-size:22px; flex-shrink:0; }
+  .ck-item-thumb{ width:30px; height:30px; border-radius:7px; object-fit:cover; flex-shrink:0; }
+  .ck-item-name{ font-size:14.5px; font-weight:500; }
+  .ck-eye{ border:none; background:none; cursor:pointer; font-size:15px; padding:2px 5px; opacity:.6; line-height:1; }
+  .ck-eye:hover{ opacity:1; }
+  .ck-rm{ margin-left:auto; border:none; background:none; color:var(--bad); cursor:pointer; font-size:18px; padding:2px 6px; line-height:1; }
+  .ck-rm:hover{ opacity:.7; }
+  .ck-item-detail{ margin:2px 0 8px 28px; padding:8px 12px; background:rgba(184,113,78,.06); border-radius:10px; font-size:12.5px; color:var(--sub); line-height:1.7; }
+  .ck-pick-item{ display:flex; align-items:center; gap:6px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; transition:.14s; }
+  .ck-pick-item:hover{ border-color:var(--accent); background:rgba(184,113,78,.05); }
+  .ck-item.checked{ opacity:.65; }
+  .ck-item.checked .ck-item-name{ text-decoration:line-through; color:var(--sub); }
+  .ck-photos{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .ck-photo{ width:100px; height:80px; border-radius:10px; object-fit:cover; border:1px solid var(--line); cursor:pointer; transition:.15s; }
+  .ck-photo:hover{ transform:scale(1.04); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+  .ck-note{ font-size:13px; color:var(--sub); margin-top:8px; font-style:italic; line-height:1.5; }
+  .ck-add-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .ck-add-row input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:13.5px; font-family:inherit; outline:none; }
+  .ck-add-row input:focus{ border-color:var(--accent); }
+  .ck-add-row button{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:8px 16px; font-size:13px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .ck-add-row button:hover{ opacity:.88; }
+  .ck-upload{ position:relative; display:inline-block; }
+  .ck-upload input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .ck-upbtn{ display:inline-flex; align-items:center; gap:5px; border:1px dashed var(--accent); background:rgba(184,113,78,.06); color:var(--accent); border-radius:10px; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; transition:.15s; }
+  .ck-upbtn:hover{ background:rgba(184,113,78,.12); }
+  .ck-empty{ text-align:center; padding:40px 20px; color:var(--sub); }
+  .ck-empty .big-emoji{ font-size:48px; margin-bottom:10px; }
+  .ck-empty p{ font-size:14.5px; margin:6px 0; }
+  .ck-summary{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+
+  /* ===== 移动端适配（手机浏览器） ===== */
+  @media (max-width:640px){
+    .topbar{ height:54px; padding:0 14px; }
+    .brand b{ font-size:16px; letter-spacing:2px; }
+    .brand small{ display:none; }
+    .topright{ gap:10px; font-size:12px; }
+    .content{ padding:14px 14px 56px; }
+    .modtitle{ font-size:19px; }
+    .subtabs{ gap:6px; }
+    .subtab{ padding:8px 12px; font-size:13px; border-radius:10px 10px 0 0; }
+    .grid{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+    .rcard .rcover{ height:140px; }
+    .rcard .rname{ font-size:16px; }
+    .stage-wrap{ padding:18px 46px 16px; }
+    .stage-arrow{ width:40px; height:40px; font-size:20px; line-height:36px; }
+    .stage .emoji{ font-size:62px; }
+    .stage .dish-cover-img{ width:100px; height:100px; border-radius:20px; }
+    .stage .dname{ font-size:22px; }
+    .stage-ing{ max-width:100%; }
+    .modal{ padding:14px 8px; }
+    .modal-card{ padding:16px 15px; max-height:92vh; }
+    .ck-add-row{ flex-wrap:wrap; }
+    .ck-add-row input{ min-width:140px; }
+    .viewer-stats{ flex-wrap:wrap; gap:12px; }
+    .vmat-grid{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+    .matrow{ grid-template-columns:1fr 64px auto 30px; gap:6px; }
+    .cover-preview{ width:100px; height:100px; }
+    .emoji-cell{ width:34px; height:34px; font-size:18px; }
+    .databtn{ padding:6px 11px; font-size:12px; }
+  }
+  @media (max-width:380px){
+    .grid{ grid-template-columns:1fr; }
+    .brand b{ font-size:15px; }
+  }
+  .ck-stat{ background:rgba(184,113,78,.07); border:1px solid rgba(184,113,78,.18); border-radius:10px; padding:8px 14px; font-size:13px; }
+  .ck-stat b{ color:var(--accent); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><b>美食记录</b><small>日日是好日 · 好好吃饭</small></div>
+    <div class="topright">
+      <span id="todayStr"></span>
+      <span class="clock" id="clock">--:--</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="modtitle"><span>美食记录 <small>今天吃什么 · 菜谱库 · 我的口味 · 打卡记录</small></span>
+      <button class="databtn" id="syncBtn" onclick="openCloudSync()" title="多设备云同步">☁ 云同步</button>
+      <button class="databtn" onclick="openDataMgr()">⚙ 数据备份</button></div>
+    <div class="moddesc">把吃饭这件小事，变成顺手又贴心的日常。</div>
+
+    <div class="subtabs">
+      <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
+      <button class="subtab" data-tab="menu" onclick="switchTab('menu')">菜谱库</button>
+      <button class="subtab" data-tab="taste" onclick="switchTab('taste')">我的口味</button>
+      <button class="subtab" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
+    </div>
+
+    <div class="modbody" id="modbody"></div>
+  </div>
+
+  <div class="modal hidden" id="modal"><div class="modal-card" id="modalBody"></div></div>
+  <div class="toast" id="toast"></div>
+
+<!-- 种子菜品库（JSON，便于校验与扩充）。must:true 表示该调料是菜的核心，去掉就不再是这道菜 -->
+<script type="application/json" id="seedDishes">
+[
+  {"id":"d01","name":"土豆烧牛肉","emoji":"🥩","type":"荤","ing":["牛肉","土豆"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["牛肉","土豆","咸鲜"],"prep":10,"cook":40,"steps":["牛肉切块焯水；土豆去皮切滚刀块","热油爆香姜蒜，下牛肉翻炒上色，加生抽老抽","加水炖30分钟，放土豆再炖15分钟收汁"]},
+  {"id":"d02","name":"红烧肉","emoji":"🍖","type":"荤","ing":["猪肉"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["猪肉","咸鲜","酱香"],"prep":15,"cook":60,"steps":["五花肉切块焯水","冰糖炒糖色，下肉上色，加姜葱料酒生抽","小火炖50分钟，大火收汁"]},
+  {"id":"d03","name":"宫保鸡丁","emoji":"🍗","type":"荤","ing":["鸡肉","花生"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":true}],"tags":["鸡肉","坚果","麻辣"],"prep":15,"cook":15,"steps":["鸡腿肉切丁腌制；花生米炸香","热油爆香干辣椒葱姜，下鸡丁滑炒","加调味汁与花生翻炒出锅"]},
+  {"id":"d04","name":"糖醋里脊","emoji":"🍤","type":"荤","ing":["猪肉"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":false},{"n":"蒜","must":false}],"tags":["猪肉","甜","酸"],"prep":20,"cook":15,"steps":["里脊切条裹淀粉糊","油炸至金黄捞出复炸","调糖醋汁下锅裹匀"]},
+  {"id":"d05","name":"酸菜肥牛","emoji":"🍲","type":"荤","ing":["肥牛","酸菜"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":false}],"tags":["牛肉","酸辣"],"prep":10,"cook":15,"steps":["酸菜切丝炒香","加水煮开下肥牛片烫熟","撒葱花蒜末，淋辣油"]},
+  {"id":"d06","name":"可乐鸡翅","emoji":"🍗","type":"荤","ing":["鸡肉"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false}],"tags":["鸡肉","甜"],"prep":10,"cook":25,"steps":["鸡翅划口焯水","煎至两面金黄，加姜片葱段","倒入可乐没过，炖至收汁"]},
+  {"id":"d07","name":"清蒸鱼","emoji":"🐟","type":"荤","ing":["鱼肉"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":true},{"n":"蒜","must":false}],"tags":["鱼肉","海鲜","清淡"],"prep":10,"cook":15,"steps":["鱼身改刀铺姜","水开蒸8-10分钟","倒掉汤汁，铺葱丝淋热油与蒸鱼豉油"]},
+  {"id":"d08","name":"蒜蓉虾","emoji":"🦐","type":"荤","ing":["虾"],"seasonings":[{"n":"蒜","must":true},{"n":"葱","must":false}],"tags":["虾","海鲜","咸鲜"],"prep":10,"cook":10,"steps":["虾开背去虾线","蒜蓉炒香铺虾上","上锅蒸8分钟，淋热油"]},
+  {"id":"d09","name":"回锅肉","emoji":"🥓","type":"荤","ing":["猪肉"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false},{"n":"辣椒","must":false},{"n":"花椒","must":false}],"tags":["猪肉","麻辣","咸鲜"],"prep":15,"cook":20,"steps":["五花肉煮八分熟切片","煸炒出油，下豆瓣酱","加蒜葱青椒翻炒"]},
+  {"id":"d10","name":"番茄牛腩","emoji":"🍅","type":"荤","ing":["牛肉","番茄"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false}],"tags":["牛肉","番茄","酸"],"prep":15,"cook":70,"steps":["牛腩焯水切块","番茄炒出汁加牛腩","炖60分钟调味"]},
+  {"id":"d11","name":"酸辣土豆丝","emoji":"🥔","type":"素","ing":["土豆"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":false},{"n":"醋","must":true}],"tags":["土豆","酸辣"],"prep":10,"cook":10,"steps":["土豆切细丝泡水去淀粉","热油爆蒜辣椒，下土豆丝","加醋盐快速翻炒"]},
+  {"id":"d12","name":"番茄炒蛋","emoji":"🍳","type":"素","ing":["番茄","鸡蛋"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["番茄","鸡蛋","咸鲜"],"prep":5,"cook":8,"steps":["鸡蛋打散炒熟盛出","番茄炒出汁","合炒调味撒葱"]},
+  {"id":"d13","name":"地三鲜","emoji":"🍆","type":"素","ing":["茄子","土豆","青椒"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false}],"tags":["土豆","茄子","咸鲜"],"prep":15,"cook":15,"steps":["茄子土豆青椒过油","留底油爆蒜","下三鲜加酱汁焖炒"]},
+  {"id":"d14","name":"凉拌黄瓜","emoji":"🥒","type":"素","ing":["黄瓜"],"seasonings":[{"n":"蒜","must":true},{"n":"醋","must":true},{"n":"香菜","must":false}],"tags":["清淡","酸"],"prep":10,"cook":0,"steps":["黄瓜拍碎切段","加蒜末醋盐糖","拌匀冷藏更爽口"]},
+  {"id":"d15","name":"麻婆豆腐","emoji":"🌶️","type":"素","ing":["豆腐"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":true},{"n":"花椒","must":true}],"tags":["豆腐","麻辣"],"prep":10,"cook":15,"steps":["豆腐切块焯水","炒豆瓣酱肉末，加蒜葱","下豆腐烧入味，撒花椒粉"]},
+  {"id":"d16","name":"清炒时蔬","emoji":"🥬","type":"素","ing":["青菜"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false}],"tags":["青菜","清淡"],"prep":5,"cook":5,"steps":["青菜洗净沥干","热油爆蒜","下青菜大火快炒调味"]},
+  {"id":"d17","name":"干煸四季豆","emoji":"🫘","type":"素","ing":["四季豆"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false},{"n":"辣椒","must":false}],"tags":["咸鲜"],"prep":10,"cook":15,"steps":["四季豆拉油至皱","爆蒜葱辣椒","下四季豆煸炒调味"]},
+  {"id":"d18","name":"蚝油生菜","emoji":"🥗","type":"素","ing":["生菜"],"seasonings":[{"n":"蒜","must":true},{"n":"葱","must":false}],"tags":["清淡"],"prep":5,"cook":5,"steps":["生菜焯水摆盘","爆蒜蓉加蚝油","淋在生菜上"]},
+  {"id":"d19","name":"番茄蛋花汤","emoji":"🍲","type":"汤","ing":["番茄","鸡蛋"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":false}],"tags":["番茄","鸡蛋","清淡"],"prep":5,"cook":10,"steps":["番茄炒出汁加水","煮沸淋蛋液","加盐葱调味"]},
+  {"id":"d20","name":"紫菜蛋花汤","emoji":"🥣","type":"汤","ing":["鸡蛋","紫菜"],"seasonings":[{"n":"葱","must":false},{"n":"香菜","must":false}],"tags":["鸡蛋","清淡"],"prep":3,"cook":5,"steps":["水开下紫菜","淋蛋液","加盐葱香菜"]},
+  {"id":"d21","name":"冬瓜排骨汤","emoji":"🍖","type":"汤","ing":["猪肉","冬瓜"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false}],"tags":["猪肉","清淡"],"prep":10,"cook":50,"steps":["排骨焯水","加冬瓜姜片炖40分钟","加盐调味"]},
+  {"id":"d22","name":"酸辣汤","emoji":"🌶️","type":"汤","ing":["豆腐","鸡蛋","木耳"],"seasonings":[{"n":"醋","must":true},{"n":"葱","must":false},{"n":"香菜","must":false},{"n":"辣椒","must":false}],"tags":["豆腐","酸辣"],"prep":10,"cook":15,"steps":["豆腐木耳切丝","水开下料，加醋辣调味","淋蛋液撒葱香菜"]},
+  {"id":"d23","name":"蛋炒饭","emoji":"🍚","type":"主食","ing":["鸡蛋","米饭"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["鸡蛋","米饭","咸鲜"],"prep":5,"cook":10,"steps":["米饭打散","炒蛋盛出，爆葱蒜下米饭","回锅蛋加盐葱花"]},
+  {"id":"d24","name":"阳春面","emoji":"🍜","type":"主食","ing":["面条"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["面条","清淡"],"prep":3,"cook":8,"steps":["面条煮熟","清汤加葱蒜酱油","捞面淋汤"]},
+  {"id":"d25","name":"葱油拌面","emoji":"🍜","type":"主食","ing":["面条"],"seasonings":[{"n":"葱","must":true},{"n":"蒜","must":false}],"tags":["面条","咸鲜"],"prep":5,"cook":10,"steps":["葱熬葱油","面条煮熟","拌葱油酱油"]},
+  {"id":"d26","name":"饺子","emoji":"🥟","type":"主食","ing":["猪肉","面粉"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":true},{"n":"蒜","must":false}],"tags":["猪肉","咸鲜"],"prep":30,"cook":15,"steps":["肉馅加葱姜调馅","包饺子","水开煮三点水"]},
+  {"id":"d27","name":"小米粥","emoji":"🥣","type":"主食","ing":["小米"],"seasonings":[],"tags":["粥","清淡"],"prep":3,"cook":30,"steps":["小米洗净","加水大火转小火煮30分","可依口加糖"]},
+  {"id":"d28","name":"西红柿打卤面","emoji":"🍜","type":"主食","ing":["面条","番茄","鸡蛋"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["面条","番茄","咸鲜"],"prep":10,"cook":15,"steps":["番茄炒汁加蛋成卤","面条煮熟","浇卤撒葱"]},
+  {"id":"d29","name":"小葱拌豆腐","emoji":"🥗","type":"零食","ing":["豆腐"],"seasonings":[{"n":"葱","must":true},{"n":"蒜","must":false}],"tags":["豆腐","清淡"],"prep":5,"cook":0,"steps":["豆腐焯水切块","加葱末香油盐","拌匀"]},
+  {"id":"d30","name":"皮蛋瘦肉粥","emoji":"🥣","type":"零食","ing":["猪肉","大米","皮蛋"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":true}],"tags":["猪肉","粥","咸鲜"],"prep":10,"cook":40,"steps":["大米煮粥","加皮蛋瘦肉姜丝","煮稠调味撒葱"]},
+  {"id":"d31","name":"羊肉串","emoji":"🍢","type":"荤","ing":["羊肉"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":false},{"n":"孜然","must":true}],"tags":["羊肉","咸鲜"],"prep":20,"cook":15,"steps":["羊肉切块腌制","串签","炭火烤撒孜然辣椒"]},
+  {"id":"d32","name":"咖喱鸡","emoji":"🍛","type":"荤","ing":["鸡肉","土豆"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":true}],"tags":["鸡肉","土豆","咸鲜"],"prep":15,"cook":30,"steps":["鸡块土豆切块","炒香姜葱下鸡块","加咖喱块炖煮"]},
+  {"id":"d33","name":"芹菜炒香干","emoji":"🥬","type":"素","ing":["芹菜","豆腐干"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false}],"tags":["芹菜","咸鲜"],"prep":10,"cook":10,"steps":["芹菜香干切段","爆蒜下锅","翻炒调味"]},
+  {"id":"d34","name":"凉拌木耳","emoji":"🍄","type":"素","ing":["木耳"],"seasonings":[{"n":"蒜","must":true},{"n":"醋","must":true},{"n":"香菜","must":false}],"tags":["木耳","酸"],"prep":10,"cook":0,"steps":["木耳泡发焯水","加蒜醋香菜拌匀","冷藏入味"]},
+  {"id":"d35","name":"牛奶炖蛋","emoji":"🥛","type":"零食","ing":["鸡蛋","牛奶"],"seasonings":[],"tags":["鸡蛋","乳制品","甜"],"prep":5,"cook":15,"steps":["鸡蛋打散加牛奶","过滤去泡","上锅蒸10分钟"]}
+]
+</script>
+
+<script>
+/* ============ 数据层 ============ */
+const SEED_DISHES = JSON.parse(document.getElementById('seedDishes').textContent);
+
+const TASTE_DEFAULT = { like:[], avoidSeasoning:[], avoidIngredient:[], avoidAllergen:[], customTags:{} };
+
+// 口味标签分组（用于「我的口味」页渲染）——食材忌口已大幅扩充
+const TASTE_GROUPS = [
+  { key:'like', cls:'like', title:'特别喜欢（推荐会多推这些）', tip:'点的越多，含这些食材/口味的菜越容易被推荐。',
+    groups:[
+      {label:'肉类', tags:['猪肉','牛肉','羊肉','鸡肉','鸭肉','鱼肉','虾','海鲜','鸡蛋']},
+      {label:'蔬菜', tags:['土豆','番茄','豆腐','茄子','青椒','青菜','萝卜','蘑菇','洋葱']},
+      {label:'主食/其他', tags:['米饭','面条','粥','饺子','包子']},
+      {label:'口味', tags:['酸辣','麻辣','清淡','甜','咸鲜','酱香']},
+    ]},
+  { key:'avoidSeasoning', cls:'avoid', title:'调味忌口', tip:'含这些调料、且去不掉（核心）的菜会被直接过滤；可去（点缀）的菜仍会推荐并标注「可不放」。',
+    groups:[ {label:'调味', tags:['葱','姜','蒜','香菜','辣椒','花椒','醋','料酒']} ]},
+  { key:'avoidIngredient', cls:'avoid', title:'食材忌口', tip:'含这些食材的菜会被过滤或标注。可自行添加新类别。',
+    groups:[
+      {label:'叶菜类', tags:['韭菜','菠菜','空心菜','油菜','茼蒿']},
+      {label:'根茎类', tags:['胡萝卜','山药','芋头','莲藕','红薯']},
+      {label:'菌菇类', tags:['木耳','香菇','金针菇','杏鲍菇','平菇']},
+      {label:'豆制品类', tags:['豆腐干','腐竹','豆浆','毛豆','纳豆']},
+      {label:'瓜果类', tags:['苦瓜','丝瓜','黄瓜','南瓜','西葫芦']},
+      {label:'其他蔬菜', tags:['芹菜','竹笋','西兰花','花椰菜','芦笋']},
+      {label:'水产类', tags:['海带','紫菜','海苔','贝类','蟹类']},
+      {label:'其他', tags:[]},
+    ]},
+  { key:'avoidAllergen', cls:'avoid', title:'过敏 · 绝对忌口', tip:'含这些过敏原的菜会被直接过滤（如宫保鸡丁含花生、牛奶炖蛋含乳制品）。',
+    groups:[ {label:'过敏原', tags:['坚果','乳制品','海鲜','鸡蛋','麸质','大豆']} ]},
+];
+
+const K = {
+  taste:'food_taste', menu:'food_menu', userDishes:'food_userdishes',
+  disliked:'food_disliked', checkin:'food_checkin', dishCover:'food_dishcover'
+};
+
+// 图标候选集（菜谱/菜品编辑器点选用）
+const EMOJI_SET = ['🍲','🍛','🍜','🍚','🍱','🥘','🍳','🥗','🍖','🍗','🥩','🐟','🦐','🦀','🐚','🥚','🧇','🥞','🍔','🍕','🌭','🌮','🌯','🥙','🫔','🍝','🍣','🥟','🍤','🥠','🍢','🍡','🍧','🍰','🧁','🍮','☕','🍵','🥤','🍎','🍊','🍋','🍉','🍇','🥕','🥦','🍅','🥔','🧄','🧅','🌶️','🫑','🥬','🍄','🌽','🥜','🍞','🧀','🥛','🍶'];
+// 生成点选图标网格
+function emojiGridHtml(current, picker){
+  return '<div class="emoji-grid">' + EMOJI_SET.map(e=>{
+    const on = (e===current)?' on':'';
+    return '<button type="button" class="emoji-cell'+on+'" onclick="'+picker+'(\''+e+'\')">'+e+'</button>';
+  }).join('') + '</div>';
+}
+// 当前激活的「封面粘贴」目标（recipe / dish / null），供全局 Ctrl+V 粘贴截图使用
+let activeCoverTarget = null;
+
+function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
+function save(key, v){ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+const state = {
+  taste: load(K.taste, clone(TASTE_DEFAULT)),
+  menu: load(K.menu, []),
+  userDishes: load(K.userDishes, []),
+  disliked: load(K.disliked, []),
+  dishCover: load(K.dishCover, {}),
+  skipSession: new Set(),
+  queue: [], queueIdx: 0,
+  tab: 'today',
+  menuCat: 'all',
+  checkin: load(K.checkin, [])
+};
+
+function dishCover(id){ return (state.dishCover && state.dishCover[id]) || ''; }
+function allDishes(){
+  // 用户已加入菜品库的菜，按菜名覆盖内置同名菜，避免今天吃什么出现重复
+  const seed = SEED_DISHES.filter(s => !state.userDishes.some(u => u.name===s.name));
+  return seed.concat(state.userDishes);
+}
+function avoidSet(){ return new Set([...state.taste.avoidSeasoning, ...state.taste.avoidIngredient, ...state.taste.avoidAllergen]); }
+
+// 该菜是否因忌口被「硬过滤」（核心调料/食材/过敏原标签命中）
+function aversionsBlock(d){
+  const av = avoidSet();
+  for(const i of (d.ing||[])) if(av.has(i)) return {block:true, reason:i};
+  for(const s of (d.seasonings||[])) if(s.must && av.has(s.n)) return {block:true, reason:s.n};
+  for(const t of (d.tags||[])) if(av.has(t)) return {block:true, reason:t};
+  return {block:false};
+}
+// 该菜含哪些「可去」的忌口调料（点缀，可不放）
+function optionalConflicts(d){
+  const av = avoidSet(); const c=[];
+  for(const s of (d.seasonings||[])) if(!s.must && av.has(s.n)) c.push(s.n);
+  return c;
+}
+// 该菜命中了哪些「喜欢」标签（用于加权与推荐理由）
+function likeMatches(d){
+  const like = new Set(state.taste.like);
+  const set = new Set([...(d.tags||[]), ...(d.ing||[])]);
+  const hit=[]; set.forEach(t=>{ if(like.has(t)) hit.push(t); });
+  return { n: hit.length, hit };
+}
+
+/* ============ 推荐引擎 ============ */
+function eligibleDishes(){
+  const dis = new Set(state.disliked);
+  return allDishes().filter(d => !dis.has(d.id) && !state.skipSession.has(d.id) && !aversionsBlock(d).block);
+}
+function weightedShuffle(items){
+  const res=[]; const pool=items.slice();
+  let total=pool.reduce((s,it)=>s+it.w,0);
+  while(pool.length){
+    let r=Math.random()*total, i=0;
+    for(; i<pool.length; i++){ r-=pool[i].w; if(r<=0) break; }
+    if(i>=pool.length) i=pool.length-1;
+    res.push(pool[i].d); total-=pool[i].w; pool.splice(i,1);
+  }
+  return res;
+}
+function buildQueue(){
+  const list = eligibleDishes();
+  const weighted = list.map(d => ({ d, w: 1 + 2*likeMatches(d).n }));
+  state.queue = weightedShuffle(weighted);
+  state.queueIdx = 0;
+}
+function currentDish(){ return state.queue[state.queueIdx] || null; }
+
+function advanceAfterRemove(){
+  if(state.queue.length === 0){ buildQueue(); return; }
+  if(state.queueIdx >= state.queue.length) state.queueIdx = state.queue.length - 1;
+}
+function actNext(){ if(state.queueIdx < state.queue.length-1) state.queueIdx++; else buildQueue(); renderToday(); }
+function actPrev(){ if(state.queueIdx > 0) state.queueIdx--; else if(state.queue.length) state.queueIdx = state.queue.length-1; renderToday(); }
+function actSkip(){
+  const d = currentDish(); if(!d) return;
+  state.skipSession.add(d.id);
+  state.queue.splice(state.queueIdx,1);
+  advanceAfterRemove(); renderToday();
+}
+function actDislike(){
+  const d = currentDish(); if(!d) return;
+  if(!state.disliked.includes(d.id)) state.disliked.push(d.id);
+  save(K.disliked, state.disliked);
+  state.queue.splice(state.queueIdx,1);
+  toast('已记录：不再推荐「'+d.name+'」');
+  advanceAfterRemove(); renderToday();
+}
+function actLike(){
+  const d = currentDish(); if(!d) return;
+  const r = dishToRecipe(d);
+  state.menu.unshift(r);
+  save(K.menu, state.menu);
+  state.queue.splice(state.queueIdx,1);
+  toast('已加入菜谱库：'+d.name);
+  advanceAfterRemove();
+  openRecipeEditor(r.id, true);
+}
+
+// 菜品 -> 菜谱（自动按口味把「可去」的忌口调料标记为可不放）
+function dishToRecipe(d){
+  const av = avoidSet();
+  const materials = [];
+  (d.ing||[]).forEach(i => materials.push({ n:i, qty:'适量', skip: av.has(i), note: av.has(i)?'你忌口':'' }));
+  (d.seasonings||[]).forEach(s => {
+    const conflict = !s.must && av.has(s.n);
+    materials.push({ n:s.n, qty:'少许', skip: conflict, note: conflict?'你忌口，可不放':'' });
+  });
+  return { id:rid(), name:d.name, emoji:d.emoji, type:d.type, image:'',
+           duration:(d.prep||10)+(d.cook||10), difficulty:2,
+           materials, steps:(d.steps||[]).slice(), fromDish:d.id, created:Date.now() };
+}
+
+/* ============ 渲染：今天吃什么（箭头在中间水平两侧） ============ */
+function renderToday(){
+  const body = document.getElementById('modbody');
+  const d = currentDish();
+  let stageHtml;
+  if(!d){
+    stageHtml = '<div class="empty"><p>没有符合你当前口味的菜了 🙃</p>'
+      + '<p>可能你的「不喜欢」太多，或忌口太严。</p>'
+      + '<button class="btn btn-sm" onclick="clearDisliked()">清除「不喜欢」列表</button> '
+      + '<button class="btn btn-sm" onclick="switchTab(\'taste\')">去调整口味</button></div>';
+  } else {
+    const opt = optionalConflicts(d);
+    const tagsHtml = (d.tags||[]).map(t=>'<span class="badge">'+t+'</span>').join('');
+    // 食材标签（大字体 + 标签设计）；「可去：X」放在食材同一行末尾
+    const ingTags = (d.ing||[]).map(i=>'<span class="ing-tag">'+esc(i)+'</span>').join('');
+    const optHtml = opt.length ? '<span class="ing-opt">可去：'+opt.join('·')+'</span>' : '';
+    const cover = dishCover(d.id);
+    const faceHtml = cover ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'">' : '<div class="emoji">'+d.emoji+'</div>';
+    // 箭头放在卡片中间水平两侧，纯图标无文字
+    stageHtml =
+      '<div class="card"><div class="stage-wrap">'
+      + '<button class="stage-arrow prev" onclick="actPrev()" title="上一道">◀</button>'
+      + '<button class="stage-arrow next" onclick="actNext()" title="下一道">▶</button>'
+      + faceHtml
+      + '<div class="dname">'+d.name+'</div>'
+      + '<div class="dtags"><span class="badge '+d.type+'">'+d.type+'</span>'+tagsHtml+'</div>'
+      + '<div class="stage-ing">'+ingTags+optHtml+'</div>'
+      + '<div class="pos">第 '+(state.queueIdx+1)+' / '+state.queue.length+' 道（本轮）</div>'
+      + '<div class="actions">'
+      +   '<button class="btn btn-like" onclick="actLike()">❤ 喜欢·入菜谱</button>'
+      +   '<button class="btn btn-skip" onclick="actSkip()">➟ 本次跳过</button>'
+      +   '<button class="btn btn-bad" onclick="actDislike()">🚫 不喜欢</button>'
+      + '</div></div></div>';
+  }
+
+  body.innerHTML =
+    '<div class="filterbar">'
+    + '<button class="linkbtn" onclick="buildQueue();renderToday();">↻ 换一批</button>'
+    + '<button class="linkbtn" style="margin-left:auto" onclick="openDishEditor(currentDish())">＋ 添加菜品到库</button></div>'
+    + stageHtml;
+}
+
+function clearDisliked(){
+  state.disliked = []; save(K.disliked, state.disliked);
+  state.skipSession = new Set(); buildQueue(); renderToday();
+  toast('已清除「不喜欢」列表');
+}
+
+/* ============ 渲染：菜谱库（带封面图卡片） ============ */
+function renderMenu(){
+  const body = document.getElementById('modbody');
+  // 分类导航栏（含数量统计）
+  const cats = [
+    {type:'all', label:'全部'},
+    {type:'荤', label:'荤菜'},
+    {type:'素', label:'素菜'},
+    {type:'汤', label:'汤'},
+    {type:'主食', label:'主食'},
+    {type:'零食', label:'零食'}
+  ];
+  const cntOf = t => t==='all' ? state.menu.length : state.menu.filter(r=>r.type===t).length;
+  const catBar = '<div class="catbar">' + cats.map(c=>{
+    const on = state.menuCat===c.type ? ' on':'';
+    return '<button class="catbtn'+on+'" onclick="setMenuCat(\''+c.type+'\')">'+c.label
+      + '<span class="cnt">'+cntOf(c.type)+'</span></button>';
+  }).join('') + '</div>';
+
+  // 按分类过滤
+  const list = state.menuCat==='all' ? state.menu : state.menu.filter(r=>r.type===state.menuCat);
+
+  let inner;
+  if(state.menu.length === 0){
+    inner = '<div class="empty"><p>你的菜谱库还是空的。</p>'
+      + '<p>去「今天吃什么」点 <b>❤ 喜欢·入菜谱</b>，或自己新建一份。</p></div>';
+  } else if(list.length === 0){
+    inner = '<div class="empty"><p>该分类下还没有菜谱。</p>'
+      + '<p>点右侧「＋ 新建菜谱」并选分类为「'+state.menuCat+'」即可。</p></div>';
+  } else {
+    inner = '<div class="grid">' + list.map(r=>{
+      // 封面
+      const imgSrc = r.image || '';
+      const coverHtml = imgSrc
+        ? '<img src="'+esc(imgSrc)+'" alt="'+esc(r.name)+'" onerror="this.style.display\'none\';this.nextElementSibling.style.display=\'flex\'">'
+          + '<div class="remoji-fallback" style="display:none">'+esc(r.emoji)+'</div>'
+        : '<div class="remoji-fallback">'+esc(r.emoji)+'</div>';
+      // 食材标签（最多5个）
+      const tagItems = r.materials.slice(0,5).map(m=>{
+        if(m.skip) return '<span class="rtag skipped">'+esc(m.n)+'<span class="skip-hint">可不放</span></span>';
+        return '<span class="rtag">'+esc(m.n)+'</span>';
+      });
+      if(r.materials.length > 5) tagItems.push('<span class="rtag" style="opacity:.55">+'+(r.materials.length-5)+'</span>');
+      const dur = dishDuration(r), diff = dishDifficulty(r);
+      return '<div class="rcard">'
+        + '<div class="rcover">'+coverHtml
+          + '<span class="rtype-badge '+r.type+'">'+r.type+'</span>'
+          + '</div>'
+        + '<div class="rbody">'
+        + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
+        + '<div class="rmeta-line">时长 <b>'+dur+'</b> min　·　难度 <span class="stars">'+stars(diff)+'</span></div>'
+        + '<div class="rtags">'+tagItems.join('')+'</div>'
+        + '<div class="rbar">'
+        +   '<button class="rbtn primary" onclick="openRecipeViewer(\''+r.id+'\')">📖 查看</button>'
+        +   '<button class="rbtn" onclick="openRecipeEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn danger" onclick="delRecipe(\''+r.id+'\')">🗑</button>'
+        + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  body.innerHTML =
+    catBar
+    + '<div class="row spread" style="margin-bottom:14px">'
+    + '<div class="moddesc" style="margin:0">共 '+list.length+' 份菜谱'
+      + (state.menuCat!=='all' ? '（'+state.menu.length+' 份中筛选）' : '') + '</div>'
+    + '<button class="btn btn-primary" onclick="openRecipeEditor(null)">＋ 新建菜谱</button>'
+    + '</div>' + inner;
+}
+
+function setMenuCat(t){
+  state.menuCat = t;
+  renderMenu();
+}
+
+function delRecipe(id){
+  myConfirm('确定删除这份菜谱？', function(){
+    state.menu = state.menu.filter(r=>r.id!==id);
+    save(K.menu, state.menu); renderMenu(); toast('已删除');
+  });
+}
+
+/* ============ 渲染：我的口味（标签可新增/编辑/删除） ============ */
+let editingTag = null;
+
+// 把预置标签与旧 customTags 合并成可持续编辑的 tagStore
+function ensureTagStore(){
+  if(!state.taste.renamedGroups) state.taste.renamedGroups = {};
+  if(!state.taste.tagStore){
+    state.taste.tagStore = {};
+    TASTE_GROUPS.forEach(g=>{
+      state.taste.tagStore[g.key] = {};
+      g.groups.forEach(gp=>{ state.taste.tagStore[g.key][gp.label] = gp.tags.slice(); });
+    });
+    // 迁移旧 customTags
+    const ct = state.taste.customTags;
+    if(ct){ Object.keys(ct).forEach(k=>{ Object.keys(ct[k]).forEach(l=>{
+      if(!state.taste.tagStore[k]) state.taste.tagStore[k]={};
+      if(!state.taste.tagStore[k][l]) state.taste.tagStore[k][l]=[];
+      ct[k][l].forEach(t=>{ if(!state.taste.tagStore[k][l].includes(t)) state.taste.tagStore[k][l].push(t); });
+    });}); }
+    // 初始化「自定义类别」容器（用户可新增口味类别，如新增食材分组）
+    if(!state.taste.customGroups) state.taste.customGroups = {};
+    TASTE_GROUPS.forEach(g=>{ if(!state.taste.customGroups[g.key]) state.taste.customGroups[g.key]=[]; });
+    save(K.taste, state.taste);
+  }
+}
+// 转义用于 onclick 单引号字符串的标签（防引号破坏）
+function jq(s){ return String(s).replace(/[\\'"]/g, m=>({'\\':'\\\\',"'":"\\'",'"':'\\"'}[m])); }
+
+// 预置类别支持重命名：取当前显示名（origLabel 是静态原名，映射后为改名后的显示名）
+function renamedLabelOf(groupKey, origLabel){
+  const rm = state.taste.renamedGroups && state.taste.renamedGroups[groupKey];
+  return (rm && rm[origLabel]) ? rm[origLabel] : origLabel;
+}
+// 该 groupKey 下所有「当前显示名」（预置重命名后的 + 用户新增的），用于重名校验
+function currentGroupLabels(groupKey){
+  const preset = TASTE_GROUPS.find(g=>g.key===groupKey);
+  const out = [];
+  if(preset) preset.groups.forEach(gp=> out.push(renamedLabelOf(groupKey, gp.label)));
+  const custom = (state.taste.customGroups && state.taste.customGroups[groupKey]) || [];
+  custom.forEach(l=> out.push(l));
+  return out;
+}
+
+function renderTaste(){
+  ensureTagStore();
+  const body = document.getElementById('modbody');
+  const total = allDishes().length;
+  const blocked = allDishes().filter(d=>aversionsBlock(d).block).length;
+  const liked = state.taste.like;
+  const summary = '当前口味会在 <b>'+total+'</b> 道菜中过滤掉 <b>'+blocked+'</b> 道'
+    + (liked.length? '；偏好加权：<b>'+liked.join('、')+'</b>' : '；暂未设置偏好（随机推荐）') + '。';
+
+  let secs = TASTE_GROUPS.map(g=>{
+    const onArr = state.taste[g.key] || [];
+    const customLabels = (state.taste.customGroups && state.taste.customGroups[g.key]) || [];
+    // 预置类别 + 用户新增类别
+    const allGroups = g.groups.map(gp=>({label:gp.label, custom:false}))
+      .concat(customLabels.map(l=>({label:l, custom:true})));
+    let groupsHtml = allGroups.map(gp=>{
+      // 预置类别支持重命名：显示名（label）与静态原名（gp.label）分离
+      const label = gp.custom ? gp.label : renamedLabelOf(g.key, gp.label);
+      const tags = (state.taste.tagStore[g.key] && state.taste.tagStore[g.key][label]) || [];
+      const chips = tags.map(t=>{
+        const on = onArr.includes(t);
+        return '<span class="chip '+(on?('on '+g.cls):'')+'" onclick="toggleTaste(\''+g.key+'\',\''+jq(t)+'\')">'
+          + esc(t)
+          + '<span class="chip-act chip-x" title="删除" onclick="event.stopPropagation();delTag(\''+g.key+'\',\''+jq(label)+'\',\''+jq(t)+'\')">✕</span>'
+          + '</span>';
+      }).join('');
+      const addId = 'add_'+g.key+'_'+label.replace(/\s/g,'_');
+      // 预置类别：显示 ✎ 重命名；用户新增类别：显示 🗑 删除（与现状一致）
+      const ctrlBtn = gp.custom
+        ? ' <span class="gdel" title="删除该类别" onclick="event.stopPropagation();delCustomGroup(\''+g.key+'\',\''+jq(label)+'\')">🗑</span>'
+        : ' <span class="gedit" title="重命名该类别" onclick="event.stopPropagation();renamePresetGroup(\''+g.key+'\',\''+jq(gp.label)+'\')">✎</span>';
+      return '<div class="tgroup"><div class="gl">'+esc(label)+ctrlBtn
+        + '</div><div class="tchips">'+chips
+        + '<input class="custom-input" id="'+addId+'" placeholder="+编辑" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addCustomTag(\''+g.key+'\',\''+jq(label)+'\',this.value.trim());this.value=\'\';}" '
+        + 'onblur="if(this.value.trim())addCustomTag(\''+g.key+'\',\''+jq(label)+'\',this.value.trim());this.value=\'\';">'
+        + '</div></div>';
+    }).join('');
+    // 每个 section 末尾：新增类别按钮
+    groupsHtml += '<div class="tgroup"><button class="add-group-btn" onclick="addCustomGroup(\''+g.key+'\')">＋ 新增类别</button></div>';
+    return '<div class="tsec"><h3>'+g.title+'</h3><div class="tip">'+g.tip+'</div>'+groupsHtml+'</div>';
+  }).join('');
+
+  body.innerHTML = '<div class="summary">'+summary+'</div>' + secs;
+}
+
+// 新增标签（写入 tagStore）
+function addCustomTag(groupKey, groupLabel, tag){
+  if(!tag) return;
+  tag = tag.replace(/[,，]/g,'').trim();
+  if(!tag) return;
+  ensureTagStore();
+  const list = state.taste.tagStore[groupKey][groupLabel] || [];
+  if(list.includes(tag)){ toast('该标签已存在'); return; }
+  state.taste.tagStore[groupKey][groupLabel].push(tag);
+  save(K.taste, state.taste);
+  renderTaste();
+  state.skipSession = new Set(); buildQueue();
+  toast('已添加标签：'+tag);
+}
+function delTag(groupKey, groupLabel, tag){
+  myConfirm('删除标签「'+tag+'」？', function(){
+    const list = state.taste.tagStore[groupKey][groupLabel];
+    if(list) state.taste.tagStore[groupKey][groupLabel] = list.filter(t=>t!==tag);
+    const sel = state.taste[groupKey];
+    if(sel){ const i=sel.indexOf(tag); if(i>=0) sel.splice(i,1); }
+    save(K.taste, state.taste);
+    renderTaste();
+    state.skipSession = new Set(); buildQueue();
+    toast('已删除标签：'+tag);
+  });
+}
+// 新增用户自定义类别
+function addCustomGroup(groupKey){
+  myPrompt('新增类别名称（如：水果、主食类）：', '', function(name){
+    name = (name||'').trim();
+    if(!name) return;
+    if(!state.taste.customGroups) state.taste.customGroups = {};
+    if(!state.taste.customGroups[groupKey]) state.taste.customGroups[groupKey] = [];
+    if(currentGroupLabels(groupKey).includes(name)){ toast('该类别已存在'); return; }
+    state.taste.customGroups[groupKey].push(name);
+    if(!state.taste.tagStore[groupKey]) state.taste.tagStore[groupKey] = {};
+    state.taste.tagStore[groupKey][name] = [];
+    save(K.taste, state.taste);
+    renderTaste();
+    toast('已新增类别：'+name);
+  });
+}
+// 删除用户自定义类别（及其下标签）
+function delCustomGroup(groupKey, groupLabel){
+  myConfirm('删除类别「'+groupLabel+'」？其下标签也会一并删除。', function(){
+    if(state.taste.customGroups && state.taste.customGroups[groupKey]){
+      state.taste.customGroups[groupKey] = state.taste.customGroups[groupKey].filter(x=>x!==groupLabel);
+    }
+    if(state.taste.tagStore[groupKey]){
+      const removed = state.taste.tagStore[groupKey][groupLabel] || [];
+      delete state.taste.tagStore[groupKey][groupLabel];
+      const sel = state.taste[groupKey];
+      if(sel){ removed.forEach(t=>{ const i=sel.indexOf(t); if(i>=0) sel.splice(i,1); }); }
+    }
+    save(K.taste, state.taste);
+    renderTaste();
+    state.skipSession = new Set(); buildQueue();
+    toast('已删除类别：'+groupLabel);
+  });
+}
+// 重命名「预置类别」（用户新增类别用 delCustomGroup + 重新添加，无需此函数）
+function renamePresetGroup(groupKey, origLabel){
+  const cur = renamedLabelOf(groupKey, origLabel);
+  myPrompt('重命名类别（当前：'+cur+'）：', cur, function(newLabel){
+    newLabel = (newLabel||'').trim();
+    if(!newLabel || newLabel===cur) return;
+    if(currentGroupLabels(groupKey).includes(newLabel)){ toast('类别名重复，请换一个'); return; }
+    // 把该类别下的标签整体迁移到新名（tagStore 物理 key 改名）
+    const store = state.taste.tagStore[groupKey];
+    if(store && store[cur]!==undefined){
+      store[newLabel] = store[cur];
+      delete store[cur];
+    }
+    if(!state.taste.renamedGroups) state.taste.renamedGroups = {};
+    if(!state.taste.renamedGroups[groupKey]) state.taste.renamedGroups[groupKey] = {};
+    state.taste.renamedGroups[groupKey][origLabel] = newLabel;
+    save(K.taste, state.taste);
+    renderTaste();
+    toast('已重命名为：'+newLabel);
+  });
+}
+let _committingEdit = false; // 防重入锁
+
+function startEdit(groupKey, groupLabel, tag){ editingTag = {key:groupKey, label:groupLabel, tag}; renderTaste(); }
+function commitEdit(groupKey, groupLabel, oldTag, newTag){
+  if(!editingTag || _committingEdit) return;
+  _committingEdit = true;
+  const et = editingTag; editingTag = null;
+  newTag = (newTag||'').replace(/[,，]/g,'').trim();
+  if(!newTag || newTag===oldTag){ _committingEdit = false; renderTaste(); return; }
+  const list = state.taste.tagStore[et.key][et.label];
+  if(list.includes(newTag)){ toast('该标签已存在'); _committingEdit = false; renderTaste(); return; }
+  // 安全移除旧标签（splice）再插入新标签
+  const pi = list.indexOf(oldTag);
+  if(pi >= 0) list.splice(pi, 1);
+  list.push(newTag);
+  // 同步选中状态
+  const sel = state.taste[et.key];
+  if(sel){ const ji=sel.indexOf(oldTag); if(ji>=0) sel[ji] = newTag; }
+  // 去重安全网
+  state.taste.tagStore[et.key][et.label] = [...new Set(list)];
+  save(K.taste, state.taste);
+  setTimeout(()=>{ _committingEdit = false; }, 50);
+  renderTaste();
+  state.skipSession = new Set(); buildQueue();
+  toast('已重命名为：'+newTag);
+}
+
+function toggleTaste(key, tag){
+  ['like','avoidSeasoning','avoidIngredient','avoidAllergen'].forEach(k=>{
+    if(k!==key) state.taste[k] = state.taste[k].filter(t=>t!==tag);
+  });
+  const arr = state.taste[key];
+  const i = arr.indexOf(tag);
+  if(i>=0) arr.splice(i,1); else arr.push(tag);
+  save(K.taste, state.taste);
+  renderTaste();
+  state.skipSession = new Set(); buildQueue();
+}
+
+/* ============ 打卡记录（每日饮食记录 + 照片） ============ */
+const WD = ['日','一','二','三','四','五','六'];
+function ckId(){ return 'ck_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// 获取今天日期字符串 YYYY-MM-DD
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+// 获取某天的打卡记录，没有则返回 null
+function getCheckin(dateStr){ return state.checkin.find(c=>c.date===dateStr)||null; }
+
+// 确保某天有记录（没有则创建）
+function ensureCheckin(dateStr){
+  let c = getCheckin(dateStr);
+  if(!c){
+    c = { id:ckId(), date:dateStr, items:[], photos:[], note:'', created:Date.now() };
+    state.checkin.unshift(c); // 新的在前面
+    save(K.checkin, state.checkin);
+  }
+  return c;
+}
+
+function renderCheckin(){
+  const body = document.getElementById('modbody');
+  const list = state.checkin.slice().sort((a,b)=>b.date.localeCompare(a.date)); // 降序（最新在前）
+
+  // 统计
+  const totalDays = list.length;
+  const totalItems = list.reduce((s,c)=>s+c.items.length, 0);
+  const thisMonth = todayStr().slice(0,7);
+  const monthDays = list.filter(c=>c.date.slice(0,7)===thisMonth).length;
+
+  if(list.length === 0){
+    body.innerHTML =
+      '<div class="ck-empty">'
+      + '<div class="big-emoji">🍴</div>'
+      + '<p>还没有打卡记录</p>'
+      + '<p>记录每天吃了什么，让饮食更有迹可循～</p>'
+      + '<button class="btn btn-primary" onclick="addTodayCheckin()">＋ 记录今天的饮食</button>'
+      + '</div>';
+    return;
+  }
+
+  let cards = list.map(c=>{
+    const d = new Date(c.date.replace(/-/g,'/'));
+    const wd = WD[d.getDay()];
+    const isToday = c.date === todayStr();
+
+    // 食材行
+    const itemsHtml = c.items.length === 0
+      ? '<div style="color:var(--sub);font-size:13px;padding:6px 0;">还没有添加菜品，点下面「从菜品库选」带出食材与做法～</div>'
+      : c.items.map((it, idx) => {
+          const cls = 'ck-item';
+          const cov = it.cover || '';
+          const coverHtml = cov
+            ? '<img class="ck-item-thumb" src="'+esc(cov)+'" alt="">'
+            : '<span class="ck-item-emoji">'+(it.emoji||'🍽️')+'</span>';
+          const ing = it.ing || [];
+          const steps = it.steps || [];
+          const detailHtml = it.expanded
+            ? '<div class="ck-item-detail">'
+              + (ing.length ? '🥢 食材：'+ing.map(x=>(typeof x==='string'?x:x.n)).join('、') : '')
+              + (steps.length ? '<div style="margin-top:5px">👨‍🍳 做法：'+steps.map((s,i)=>(i+1)+'. '+s).join('；')+'</div>' : '')
+              + ((!ing.length && !steps.length) ? '<div style="color:var(--sub)">暂无食材/做法详情</div>' : '')
+              + '</div>'
+            : '';
+          return '<div class="'+cls+'">'
+            + coverHtml
+            + '<span class="ck-item-name">'+esc(it.name)+'</span>'
+            + '<button class="ck-eye" onclick="toggleCkDetail(\''+c.id+'\','+idx+')" title="查看食材/做法">👁</button>'
+            + '<button class="ck-rm" onclick="removeCkItem(\''+c.id+'\','+idx+')" title="移除">×</button>'
+            + '</div>' + detailHtml;
+        }).join('');
+
+    // 照片
+    const photosHtml = c.photos.length > 0
+      ? '<div class="ck-photos">' + c.photos.map((p,i) =>
+          '<img class="ck-photo" src="'+p+'" alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+p+'\')" title="点击查看大图">'
+        ).join('') + '</div>'
+      : '';
+
+    // 备注
+    const noteHtml = c.note ? '<div class="ck-note">📝 '+esc(c.note)+'</div>' : '';
+
+    // 添加新菜品行（主：从菜品库选；次：手动输入）
+    const addRow =
+      '<div class="ck-add-row">'
+      + '<button class="btn btn-sm btn-primary" style="margin-right:6px;white-space:nowrap" onclick="openCkPicker(\''+c.id+'\')">🍽️ 从菜品库选</button>'
+      + '<input id="ckAdd_'+c.id+'" placeholder="或手动输入菜名，如：一碗面" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addCkItem(\''+c.id+'\');}">'
+      + '<button onclick="addCkItem(\''+c.id+'\')">＋ 添加</button>'
+      + '</div>';
+
+    // 照片上传
+    const uploadRow =
+      '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      + '<div class="ck-upload">'
+      + '<input type="file" accept="image/*" onchange="uploadCkPhoto(\''+c.id+'\',this.files[0])">'
+      + '<span class="ck-upbtn">📷 上传照片</span>'
+      + '</div>'
+      + (c.photos.length > 0 ? '<button class="linkbtn" onclick="clearCkPhotos(\''+c.id+'\')">清除所有照片</button>' : '')
+      + '</div>';
+
+    // 备注编辑
+    const noteRow =
+      '<div style="margin-top:8px;">'
+      + '<input style="width:100%;border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;" '
+      + 'placeholder="今日备注（可选）…" value="'+esc(c.note)+'" '
+      + 'onblur="saveCkNote(\''+c.id+'\',this.value)" onkeydown="if(event.key===\'Enter\'){this.blur();}">'
+      + '</div>';
+
+    return '<div class="ck-day" id="day_'+c.id+'">'
+      + '<div class="ck-day-head">'
+      +   '<div><span class="ck-date">'+c.date.slice(5)+'</span> <span class="ck-wd">周'+wd+'</span>' + (isToday ? ' <span style="background:var(--accent);color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;">今天</span>' : '') + '</div>'
+      +   '<div class="ck-day-act">'
+      +     '<button onclick="editCkDate(\''+c.id+'\')">✎ 改日期</button>'
+      +     '<button class="ck-del-btn" onclick="delCheckin(\''+c.id+'\')">🗑 删除</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="ck-items">'+itemsHtml+'</div>'
+      + addRow
+      + uploadRow
+      + photosHtml
+      + noteRow
+      + noteHtml
+      + '</div>';
+  }).join('');
+
+  body.innerHTML =
+    '<div class="ck-toolbar">'
+    + '<button class="btn btn-primary" onclick="addTodayCheckin()">＋ 记录今天</button>'
+    + '<input type="date" id="ckGoDate" value="'+todayStr()+'" onchange="goToDate(this.value)">'
+    + '<button class="btn btn-sm" onclick="goToDate(document.getElementById(\'ckGoDate\').value)">跳转</button>'
+    + '</div>'
+    + '<div class="ck-summary">'
+    +   '<div class="ck-stat">共打卡 <b>'+totalDays+'</b> 天</div>'
+    +   '<div class="ck-stat">本月 <b>'+monthDays+'</b> 天</div>'
+    +   '<div class="ck-stat">已记录 <b>'+totalItems+'</b> 道菜</div>'
+    + '</div>'
+    + cards;
+}
+
+// 添加今天的打卡
+function addTodayCheckin(){
+  const ts = todayStr();
+  ensureCheckin(ts);
+  save(K.checkin, state.checkin);
+  renderCheckin();
+  // 滚动到该天
+  const c = getCheckin(ts);
+  if(c){ const el=document.getElementById('day_'+c.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
+  toast('已创建今天的打卡');
+}
+
+// 跳转到指定日期
+function goToDate(dateStr){
+  if(!dateStr) return;
+  ensureCheckin(dateStr);
+  save(K.checkin, state.checkin);
+  renderCheckin();
+  const c = getCheckin(dateStr);
+  if(c){ const el=document.getElementById('day_'+c.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+
+// 在某天添加一道菜（手动输入回退：尝试从菜品库/菜谱库匹配详情）
+function addCkItem(ckId){
+  const input = document.getElementById('ckAdd_'+ckId);
+  if(!input) return;
+  const name = input.value.trim();
+  if(!name){ toast('请输入菜品名称'); return; }
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c) return;
+  if(c.items.some(it=>it.name===name)){ toast('该菜品已在列表中'); return; }
+  let emoji='🍽️', ing=[], steps=[], cover='', type='';
+  const dish = allDishes().find(d=>d.name===name);
+  const recipe = state.menu.find(r=>r.name===name);
+  if(dish){ emoji=dish.emoji||'🍽️'; ing=dish.ing||[]; steps=dish.steps||[]; cover=dishCover(dish.id); type=dish.type; }
+  else if(recipe){ emoji=recipe.emoji||'🍽️'; ing=recipe.materials.map(m=>m.n); steps=recipe.steps||[]; cover=recipe.image||''; type=recipe.type; }
+  c.items.push({ name, emoji, type, ing, seasonings:[], steps, cover, checked:true });
+  save(K.checkin, state.checkin);
+  renderCheckin();
+  toast('已添加：'+name);
+}
+
+// 打卡：从菜品库选择（弹窗）
+function openCkPicker(ckId){
+  const dishes = allDishes().map(d=>({src:'dish', name:d.name, emoji:d.emoji, type:d.type, ing:d.ing||[], seasonings:d.seasonings||[], steps:d.steps||[], cover:dishCover(d.id)}));
+  const menu = state.menu.map(r=>({src:'recipe', name:r.name, emoji:r.emoji, type:r.type, ing:r.materials.map(m=>m.n), seasonings:[], steps:r.steps||[], cover:r.image||''}));
+  const map = {};
+  dishes.forEach(x=>{ map[x.name]=x; });
+  menu.forEach(x=>{ if(!map[x.name]) map[x.name]=x; });
+  window.__ckPicker = { ckId, all: Object.values(map) };
+  document.getElementById('modalBody').innerHTML =
+    '<h2>从菜品库选择</h2>'
+    + '<input id="ckPickSearch" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;" placeholder="搜索菜名…" oninput="renderCkPicker()">'
+    + '<div id="ckPickList" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button></div>';
+  showModal();
+  renderCkPicker();
+}
+function renderCkPicker(){
+  const box = document.getElementById('ckPickList');
+  if(!box) return;
+  const q = (document.getElementById('ckPickSearch').value||'').trim();
+  const data = (window.__ckPicker.all||[]).filter(x=> !q || x.name.indexOf(q)>=0);
+  if(data.length===0){ box.innerHTML = '<div style="color:var(--sub);padding:12px;text-align:center">没有匹配的菜品'+(q?'：'+q:'')+'</div>'; return; }
+  box.innerHTML = data.map(x=>{
+    const cov = x.cover || '';
+    const thumb = cov ? '<img src="'+esc(cov)+'" style="width:30px;height:30px;object-fit:cover;border-radius:7px;">' : '<span style="font-size:22px">'+x.emoji+'</span>';
+    return '<div class="ck-pick-item" onclick="pickCkDish(\''+jq(x.name)+'\')">'+thumb+'<span style="margin-left:8px">'+esc(x.name)+'</span><span style="margin-left:auto;color:var(--sub);font-size:12px">'+x.type+'</span></div>';
+  }).join('');
+}
+function pickCkDish(name){
+  const data = window.__ckPicker.all||[];
+  const x = data.find(d=>d.name===name);
+  if(!x){ closeModal(); return; }
+  const c = state.checkin.find(cc=>cc.id===window.__ckPicker.ckId);
+  if(!c){ closeModal(); return; }
+  if(c.items.some(it=>it.name===name)){ toast('该菜品已在列表中'); return; }
+  c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', checked:true });
+  save(K.checkin, state.checkin);
+  closeModal();
+  renderCheckin();
+  toast('已添加：'+name);
+}
+// 展开/收起某道菜的食材与做法
+function toggleCkDetail(ckId, idx){
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c || !c.items[idx]) return;
+  c.items[idx].expanded = !c.items[idx].expanded;
+  save(K.checkin, state.checkin);
+  renderCheckin();
+}
+
+// 移除一道菜
+function removeCkItem(ckId, idx){
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c || !c.items[idx]) return;
+  const name = c.items[idx].name;
+  c.items.splice(idx, 1);
+  save(K.checkin, state.checkin);
+  renderCheckin();
+  toast('已移除：'+name);
+}
+
+// 上传照片（base64 存 localStorage）
+function uploadCkPhoto(ckId, file){
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
+  const reader = new FileReader();
+  reader.onload = function(){
+    const c = state.checkin.find(x=>x.id===ckId);
+    if(!c) return;
+    c.photos.push(reader.result);
+    // 限制最多 9 张
+    if(c.photos.length > 9) c.photos = c.photos.slice(-9);
+    save(K.checkin, state.checkin);
+    renderCheckin();
+    toast('照片已上传');
+  };
+  reader.readAsDataURL(file);
+}
+
+// 清除照片
+function clearCkPhotos(ckId){
+  myConfirm('确定清除所有照片？', function(){
+    const c = state.checkin.find(x=>x.id===ckId);
+    if(!c) return;
+    c.photos = [];
+    save(K.checkin, state.checkin);
+    renderCheckin();
+  });
+}
+
+// 查看大图
+function viewPhoto(src){
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '<div style="text-align:center"><img src="'+src+'" style="max-width:100%;max-height:75vh;border-radius:12px;margin-top:8px;"></div>'
+    + '<div style="text-align:right;margin-top:12px"><button class="btn btn-sm" onclick="closeModal()">关闭</button></div>';
+  modal.classList.remove('hidden');
+}
+
+// 保存备注
+function saveCkNote(ckId, note){
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c) return;
+  c.note = note.trim();
+  save(K.checkin, state.checkin);
+}
+
+// 修改日期
+function editCkDate(ckId){
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c) return;
+  myPrompt('修改日期（YYYY-MM-DD）', c.date, function(newD){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(newD)){ toast('日期格式不对，请用 YYYY-MM-DD'); return; }
+    const existing = getCheckin(newD);
+    if(existing && existing.id !== ckId){
+      myConfirm(newD+' 已有记录，是否合并到那天？', function(){
+        existing.items.push(...c.items);
+        existing.photos.push(...c.photos);
+        if(c.note && !existing.note) existing.note = c.note;
+        existing.items = [...new Map(existing.items.map(it=>[it.name,it])).values()];
+        state.checkin = state.checkin.filter(x=>x.id!==ckId);
+        save(K.checkin, state.checkin);
+        renderCheckin();
+        toast('日期已更新');
+      });
+    } else {
+      c.date = newD;
+      save(K.checkin, state.checkin);
+      renderCheckin();
+      toast('日期已更新');
+    }
+  });
+}
+
+// 删除一整天的打卡
+function delCheckin(ckId){
+  myConfirm('确定删除这天的所有记录吗？', function(){
+    const c = state.checkin.find(x=>x.id===ckId);
+    if(!c) return;
+    state.checkin = state.checkin.filter(x=>x.id!==ckId);
+    save(K.checkin, state.checkin);
+    renderCheckin();
+    toast('已删除 '+c.date+' 的记录');
+  });
+}
+
+/* ============ 弹窗：菜谱编辑（带图片字段 + 默认占位文字） ============ */
+let editBuf = null;
+
+function openRecipeEditor(id, isNewFromDish){
+  let r;
+  if(id){ r = state.menu.find(x=>x.id===id); if(!r) return; }
+  else {
+    r = {
+      id:rid(), name:'', emoji:'🍽️', type:'荤', image:'',
+      duration:20, difficulty:2,
+      materials:[
+        {n:'', qty:'', skip:false, note:''},
+        {n:'', qty:'', skip:false, note:''},
+        {n:'', qty:'', skip:false, note:''}
+      ],
+      steps:['第一步：准备材料…','第二步：开始烹饪…','第三步：完成装盘…'],
+      fromDish:null, created:Date.now()
+    };
+  }
+  editBuf = clone(r);
+  editBuf._cover = editBuf.image || '';
+  activeCoverTarget = 'recipe';
+  renderEditor();
+  showModal();
+}
+function renderEditor(){
+  const r = editBuf;
+  const types = ['荤','素','汤','主食','零食'];
+  // 难度星级选择器
+  let starHtml = '';
+  for(let i=1;i<=5;i++){
+    starHtml += '<span class="star '+(i<=dishDifficulty(r)?'on':'')+'" data-v="'+i+'" onclick="setDiff('+i+')" title="'+i+' 星">★</span>';
+  }
+  const dur = dishDuration(r);
+  const matRows = r.materials.map((m,idx)=>
+    '<div class="matrow">'
+    + '<input value="'+esc(m.n)+'" placeholder="如：牛肉、土豆" oninput="editMat('+idx+',\'n\',this.value)">'
+    + '<input value="'+esc(m.qty)+'" placeholder="用量" oninput="editMat('+idx+',\'qty\',this.value)">'
+    + '<span class="skip-tag" title="做时可酌情增减或省略">可不放</span>'
+    + '<button class="row-del" onclick="delMat('+idx+')" title="删除本行">🗑</button>'
+    + '</div>'
+  ).join('');
+  document.getElementById('modalBody').innerHTML =
+    '<h2>编辑菜谱</h2>'
+    + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填）</span></label>'
+    +   '<input id="f_name" placeholder="给你的菜起个名字，比如「妈妈的红烧肉」" value="'+esc(r.name)+'"></div>'
+    + '<div class="row" style="gap:12px">'
+    +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(editBuf.emoji,'pickEmoji')+'</div>'
+    +   '<div class="field" style="flex:1"><label>分类</label><select id="f_type">'+types.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    + '</div>'
+    + '<div class="field"><label>封面图片 <span style="color:var(--sub);font-weight:400;font-size:12px">（上传本地照片或粘贴截图；不填则用图标）</span></label>'
+    +   '<div class="cover-preview" id="recCoverPreview">'+(editBuf._cover ? '<img src="'+esc(editBuf._cover)+'">' : '<span style="font-size:40px">'+editBuf.emoji+'</span>')+'</div>'
+    +   '<div class="cover-modes">'
+    +     '<button type="button" class="cover-mode '+(editBuf._cover?'':'active')+'" data-mode="icon" onclick="setRecCoverMode(\'icon\')">用图标</button>'
+    +     '<button type="button" class="cover-mode '+(editBuf._cover?'active':'')+'" data-mode="upload" onclick="setRecCoverMode(\'upload\')">上传/粘贴</button>'
+    +   '</div>'
+    +   '<div id="recCoverUp" class="ck-upload" style="margin-top:8px;'+(editBuf._cover?'':'display:none;')+'">'
+    +     '<input type="file" accept="image/*" onchange="setRecCoverUpload(this.files[0])"><span class="ck-upbtn">📁 选择照片</span>'
+    +     '<span class="paste-hint">或在此处 Ctrl+V 粘贴截图</span>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="row" style="gap:12px">'
+    +   '<div class="field" style="width:160px"><label>烹饪时长(分)</label><input id="f_duration" type="number" value="'+dur+'" placeholder="20"></div>'
+    +   '<div class="field" style="flex:1"><label>难度（点击星星选择 1–5 星）</label>'
+    +     '<div class="star-pick" id="starPick">'+starHtml+'</div>'
+    +     '<span class="star-hint">当前：<b id="diffText">'+dishDifficulty(r)+'</b> 星</span></div>'
+    + '</div>'
+    + '<div class="field"><label>材料清单 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一种食材；「可不放」表示做时可酌情增减）</span></label>'
+    +   '<div id="matWrap">'+matRows+'</div>'
+    +   '<button class="btn btn-sm" onclick="addMat()">＋ 加一行材料</button></div>'
+    + '<div class="field"><label>做法步骤 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一步，从准备到完成）</span></label>'
+    +   '<textarea id="f_steps" placeholder="第一步：将主料洗净切好备用&#10;第二步：起锅烧油，放入葱姜爆香&#10;第三步：下入主料翻炒，加入调料&#10;第四步：收汁装盘即可">'+esc((r.steps||[]).join('\n'))+'</textarea></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-primary" onclick="saveRecipe()">保存</button></div>';
+}
+function editMat(idx, field, val){ editBuf.materials[idx][field] = (field==='skip')? val : val; }
+function setDiff(i){
+  editBuf.difficulty = i;
+  document.querySelectorAll('#starPick .star').forEach(s=>{
+    const v = +s.dataset.v;
+    s.classList.toggle('on', v<=i);
+  });
+  const t = document.getElementById('diffText'); if(t) t.textContent = i;
+}
+function addMat(){ editBuf.materials.push({n:'',qty:'',skip:false,note:''}); renderEditor(); }
+function delMat(idx){ editBuf.materials.splice(idx,1); renderEditor(); }
+function saveRecipe(){
+  const r = editBuf;
+  r.name = document.getElementById('f_name').value.trim() || '未命名菜谱';
+  r.emoji = editBuf.emoji || '🍽️';
+  r.type = document.getElementById('f_type').value;
+  r.image = editBuf._cover || '';
+  r.duration = parseInt(document.getElementById('f_duration').value)||0;
+  if(!r.difficulty) r.difficulty = 2;
+  r.steps = document.getElementById('f_steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  r.materials = r.materials.filter(m=>m.n && m.n.trim());
+  const av = avoidSet();
+  r.materials.forEach(m=>{ if(m.skip && !m.note) m.note='你忌口，可不放'; if(!av.has(m.n)) m.note=''; });
+  const exist = state.menu.find(x=>x.id===r.id);
+  if(exist){ Object.assign(exist, r); } else { state.menu.unshift(r); }
+  save(K.menu, state.menu);
+  closeModal(); renderMenu(); toast('菜谱已保存');
+}
+
+// 菜谱编辑器：点选图标
+function pickEmoji(e){
+  editBuf.emoji = e;
+  document.querySelectorAll('#modalBody .emoji-cell').forEach(c=> c.classList.toggle('on', c.textContent===e));
+  const prev = document.getElementById('recCoverPreview');
+  if(prev && !editBuf._cover) prev.innerHTML = '<span style="font-size:40px">'+e+'</span>';
+}
+// 菜谱编辑器：封面三态（用图标 / 上传·粘贴）
+function setRecCoverMode(mode){
+  document.querySelectorAll('.cover-mode').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  const up = document.getElementById('recCoverUp');
+  if(up) up.style.display = (mode==='upload')?'inline-block':'none';
+  if(mode==='icon'){ editBuf._cover=''; updateRecCoverPreview(); }
+}
+function setRecCoverUpload(file){
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
+  const reader = new FileReader();
+  reader.onload = function(){ editBuf._cover = reader.result; updateRecCoverPreview(); };
+  reader.readAsDataURL(file);
+}
+function updateRecCoverPreview(){
+  const box = document.getElementById('recCoverPreview');
+  if(!box) return;
+  if(editBuf._cover){ box.innerHTML = '<img src="'+esc(editBuf._cover)+'">'; }
+  else { box.innerHTML = '<span style="font-size:40px">'+editBuf.emoji+'</span>'; }
+}
+
+/* ============ 菜谱查看器（参考样本图风格：顶部大图 + 食材网格 + 步骤配图） ============ */
+function openRecipeViewer(id){
+  const r = state.menu.find(x=>x.id===id); if(!r) return;
+  const av = avoidSet();
+  const warns = [];
+
+  // 食材网格项
+  const matItems = r.materials.map(m=>{
+    const isAvoid = av.has(m.n);
+    if(isAvoid && !m.skip) warns.push(m.n);
+    let nameHtml;
+    if(m.skip) nameHtml = '<span class="sk">'+esc(m.n)+'</span> <span class="skb">可不放</span>';
+    else if(isAvoid) nameHtml = esc(m.n)+' <span class="skb">你忌口</span>';
+    else nameHtml = esc(m.n);
+    // 材料图标映射
+    const iconMap = {'牛肉':'🥩','猪肉':'🍖','羊肉':'🍢','鸡肉':'🍗','鱼肉':'🐟','虾':'🦐',
+      '土豆':'🥔','番茄':'🍅','豆腐':'🧈','茄子':'🍆','青椒':'🫑','青菜':'🥬','蘑菇':'🍄','鸡蛋':'🥚',
+      '面条':'🍜','米饭':'🍚','牛奶':'🥛','葱':'🌿','姜':'🫚','蒜':'🧄','辣椒':'🌶️'};
+    const icon = iconMap[m.n] || '📦';
+    return '<div class="vmat-item"><span class="mi-icon">'+icon+'</span><span class="mi-name">'+nameHtml+'</span><span class="mi-qty">'+esc(m.qty||'')+'</span></div>';
+  }).join('');
+
+  // 步骤（带编号圆圈）
+  const stepItems = (r.steps&&r.steps.length)? r.steps.map((s,i)=>
+    '<div class="vstep"><span class="vstep-num">'+(i+1)+'</span><span class="vstep-text">'+esc(s)+'</span></div>'
+  ).join('') : '<div style="color:var(--sub);padding:10px 0">暂无步骤</div>';
+
+  // 标签
+  const viewerTags = (r.materials||[]).filter(m=>!m.skip).slice(0,5).map(m=>m.n)
+    .concat((r.tags||[]).slice(0,3))
+    .filter((v,i,a)=>a.indexOf(v)===i)
+    .slice(0,6);
+
+  // 顶部大图
+  const heroImg = r.image
+    ? '<img class="viewer-hero" src="'+esc(r.image)+'" alt="'+esc(r.name)+'" onerror="this.outerHTML=\'<div class=viewer-hero style=display:flex;align-items:center;justify-content:center;font-size:72px>\'+esc(\''+r.emoji+'\')+\'</div>\'">'
+    : '<div class="viewer-hero" style="display:flex;align-items:center;justify-content:center;font-size:80px;color:var(--sub)">'+r.emoji+'</div>';
+
+  document.getElementById('modalBody').innerHTML =
+    '<div class="viewer">'
+    + heroImg
+    + '<div style="margin-top:14px"><h2 style="margin:0;font-size:21px">'+esc(r.name)+'</h2></div>'
+    + (warns.length? '<div class="warnbox">⚠ 含你忌口的：'+warns.join('、')+'。建议把它们标记为「可不放」，或做时省略。</div>' : '')
+    + '<div class="viewer-tags">'+viewerTags.map(t=>'<span class="viewer-tag">'+esc(t)+'</span>').join('')+'</div>'
+    + '<div class="viewer-stats">'
+    +   '<div class="viewer-stat">⏱ <b>'+dishDuration(r)+'</b> 烹饪时长(分)</div>'
+    +   '<div class="viewer-stat">难度 <b style="color:#e8a33d;letter-spacing:1px">'+stars(dishDifficulty(r))+'</b></div>'
+    + '</div>'
+    + '<div class="viewer-section-title">📋 食材清单 <span style="font-size:12px;color:var(--sub);font-weight:400;margin-left:6px">'+r.materials.length+' 种食材</span></div>'
+    + '<div class="vmat-grid">'+matItems+'</div>'
+    + '<div class="viewer-section-title">👨‍🍳 做法</div>'
+    + stepItems
+    + '<div class="modal-act" style="margin-top:18px"><button class="btn" onclick="openRecipeEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
+  showModal();
+}
+
+/* ============ 弹窗：菜品库编辑（补充菜品） ============ */
+let openDishSeed = null; // 记录「添加菜品到库」打开时来源的那道菜（用于保存时判断更新/新增）
+let dishEditorCover = ''; // 当前编辑中的菜品封面（''=用图标，否则为图片URL或base64）
+let dishEditorEmoji = '🍲'; // 当前编辑中的菜品图标
+function openDishEditor(d){
+  openDishSeed = d || null;
+  const dd = d || {};
+  dishEditorCover = dishCover(dd.id) || '';
+  dishEditorEmoji = dd.emoji || '🍲';
+  activeCoverTarget = 'dish';
+  const ing  = (dd.ing||[]).join('、');
+  const must = (dd.seasonings||[]).filter(s=>s.must).map(s=>s.n).join('、');
+  const opt  = (dd.seasonings||[]).filter(s=>!s.must).map(s=>s.n).join('、');
+  const tags = (dd.tags||[]).join('、');
+  const steps= (dd.steps||[]).join('\n');
+  const title = d ? '把这道菜加入菜品库（可修改）' : '添加菜品到菜品库';
+  document.getElementById('modalBody').innerHTML =
+    '<h2>'+title+'</h2>'
+    + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填，已自动带入当前菜品）</span></label><input id="d_name" placeholder="如：干煸杏鲍菇" value="'+esc(dd.name||'')+'"></div>'
+    + '<div class="row" style="gap:12px">'
+    +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(dishEditorEmoji,'pickDishEmoji')+'</div>'
+    +   '<div class="field" style="flex:1"><label>分类</label><select id="d_type">'+['荤','素','汤','主食','零食'].map(t=>'<option '+(t===(dd.type||'荤')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field" style="width:100px"><label>备料分</label><input id="d_prep" type="number" value="'+(dd.prep||10)+'"></div>'
+    +   '<div class="field" style="width:100px"><label>烹饪分</label><input id="d_cook" type="number" value="'+(dd.cook||15)+'"></div>'
+    + '</div>'
+    + '<div class="field"><label>核心食材（逗号分隔，如：牛肉,土豆）</label><input id="d_ing" placeholder="牛肉, 土豆" value="'+esc(ing)+'"></div>'
+    + '<div class="field"><label>必需调料（去不掉，逗号分隔，如：姜）</label><input id="d_must" placeholder="姜" value="'+esc(must)+'"></div>'
+    + '<div class="field"><label>可选调料（点缀，可不放，逗号分隔，如：葱,蒜）</label><input id="d_opt" placeholder="葱, 蒜" value="'+esc(opt)+'"></div>'
+    + '<div class="field"><label>标签（偏好匹配用，逗号分隔，如：土豆,咸鲜）</label><input id="d_tags" placeholder="土豆, 咸鲜" value="'+esc(tags)+'"></div>'
+    + '<div class="field"><label>步骤（每行一步）</label><textarea id="d_steps" placeholder="第一步：杏鲍菇洗净切条&#10;第二步：拉油至表面微皱&#10;第三步：爆蒜煸炒调味即可">'+esc(steps)+'</textarea></div>'
+    + '<div class="field"><label>封面显示 <span style="color:var(--sub);font-weight:400;font-size:12px">（上传照片或粘贴截图；不填则用图标）</span></label>'
+    +   '<div class="cover-preview" id="coverPreview">'+(dishEditorCover ? '<img src="'+esc(dishEditorCover)+'">' : (dishEditorEmoji? '<span style="font-size:40px">'+dishEditorEmoji+'</span>':'🍽️'))+'</div>'
+    +   '<div class="cover-modes">'
+    +     '<button type="button" class="cover-mode '+(dishEditorCover?'':'active')+'" data-mode="icon" onclick="setCoverMode(\'icon\')">用图标</button>'
+    +     '<button type="button" class="cover-mode '+(dishEditorCover?'active':'')+'" data-mode="upload" onclick="setCoverMode(\'upload\')">上传/粘贴</button>'
+    +   '</div>'
+    +   '<div id="coverUpWrap" style="display:'+(dishEditorCover?'inline-block':'none')+';margin-top:8px" class="ck-upload">'
+    +     '<input type="file" accept="image/*" onchange="setCoverUpload(this.files[0])"><span class="ck-upbtn">📁 选择照片</span>'
+    +     '<span class="paste-hint">或在此处 Ctrl+V 粘贴截图</span></div>'
+    + '</div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-primary" onclick="saveDish()">保存</button></div>';
+  showModal();
+}
+function splitCsv(s){ return (s||'').split(/[,，]/).map(x=>x.trim()).filter(Boolean); }
+// 封面三态辅助（用图标 / 上传·粘贴）
+function setCoverMode(mode){
+  document.querySelectorAll('.cover-mode').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  const up = document.getElementById('coverUpWrap');
+  if(up) up.style.display = (mode==='upload')?'inline-block':'none';
+  if(mode==='icon'){ dishEditorCover=''; updateCoverPreview(); }
+}
+function setCoverUpload(file){
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
+  const reader = new FileReader();
+  reader.onload = function(){ dishEditorCover = reader.result; updateCoverPreview(); };
+  reader.readAsDataURL(file);
+}
+function updateCoverPreview(){
+  const box = document.getElementById('coverPreview');
+  if(!box) return;
+  if(dishEditorCover){
+    box.innerHTML = '<img src="'+esc(dishEditorCover)+'">';
+  } else {
+    box.innerHTML = '<span style="font-size:40px">'+(dishEditorEmoji||'🍽️')+'</span>';
+  }
+}
+// 菜品库编辑器：点选图标
+function pickDishEmoji(e){
+  dishEditorEmoji = e;
+  document.querySelectorAll('#modalBody .emoji-cell').forEach(c=> c.classList.toggle('on', c.textContent===e));
+  const prev = document.getElementById('coverPreview');
+  if(prev && !dishEditorCover) prev.innerHTML = '<span style="font-size:40px">'+e+'</span>';
+}
+function saveDish(){
+  const name = document.getElementById('d_name').value.trim();
+  if(!name){ toast('请填写菜名'); return; }
+  const d = {
+    name, emoji: dishEditorEmoji || '🍲',
+    type: document.getElementById('d_type').value,
+    ing: splitCsv(document.getElementById('d_ing').value),
+    seasonings: [
+      ...splitCsv(document.getElementById('d_must').value).map(n=>({n, must:true})),
+      ...splitCsv(document.getElementById('d_opt').value).map(n=>({n, must:false}))
+    ],
+    tags: splitCsv(document.getElementById('d_tags').value),
+    prep: parseInt(document.getElementById('d_prep').value)||10,
+    cook: parseInt(document.getElementById('d_cook').value)||15,
+    steps: document.getElementById('d_steps').value.split('\n').map(s=>s.trim()).filter(Boolean)
+  };
+  // 来源是用户自己菜品库里的菜 → 更新该条目；否则（内置菜预填 / 空白新建）→ 作为新条目加入
+  if(openDishSeed && state.userDishes.some(x=>x.id===openDishSeed.id)){
+    const exist = state.userDishes.find(x=>x.id===openDishSeed.id);
+    Object.assign(exist, d);
+    state.dishCover[exist.id] = dishEditorCover;
+  } else {
+    d.id = 'u'+Date.now().toString(36);
+    state.userDishes.push(d);
+    state.dishCover[d.id] = dishEditorCover;
+  }
+  save(K.userDishes, state.userDishes);
+  closeModal(); buildQueue();
+  toast('已加入菜品库：'+name);
+  if(state.tab==='today') renderToday();
+}
+
+/* ============ 工具 ============ */
+function showModal(){ document.getElementById('modal').classList.remove('hidden'); }
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
+
+// 全局：在封面编辑区时，Ctrl+V 粘贴截图作为封面
+document.addEventListener('paste', function(e){
+  if(!activeCoverTarget) return;
+  const cd = e.clipboardData || window.clipboardData;
+  if(!cd || !cd.items) return;
+  for(let i=0;i<cd.items.length;i++){
+    if(cd.items[i].type && cd.items[i].type.indexOf('image')===0){
+      const f = cd.items[i].getAsFile();
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = function(){
+        if(activeCoverTarget==='recipe'){ editBuf._cover = reader.result; updateRecCoverPreview(); }
+        else if(activeCoverTarget==='dish'){ dishEditorCover = reader.result; updateCoverPreview(); }
+      };
+      reader.readAsDataURL(f);
+      e.preventDefault();
+      toast('已粘贴截图');
+      return;
+    }
+  }
+});
+
+// 页面内自绘确认弹窗（替代原生 confirm，兼容沙箱 iframe 中被禁用的原生对话框）
+function myConfirm(message, onYes){
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modalBody');
+  body.innerHTML =
+    '<h2 style="margin-bottom:10px">请确认</h2>'
+    + '<p style="margin:0 0 18px;color:var(--ink);line-height:1.6">'+esc(message)+'</p>'
+    + '<div class="modal-act">'
+    +   '<button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-bad" id="mcYes">确定</button>'
+    + '</div>';
+  modal.classList.remove('hidden');
+  const yes = document.getElementById('mcYes');
+  if(yes) yes.onclick = function(){ closeModal(); onYes(); };
+}
+
+// 页面内自绘输入弹窗（替代原生 prompt，兼容沙箱 iframe）
+function myPrompt(message, defVal, onOk){
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modalBody');
+  body.innerHTML =
+    '<h2 style="margin-bottom:10px">'+esc(message)+'</h2>'
+    + '<input id="mpInput" value="'+esc(defVal||'')+'" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;margin-bottom:16px;box-sizing:border-box;">'
+    + '<div class="modal-act">'
+    +   '<button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-primary" id="mpOk">确定</button>'
+    + '</div>';
+  modal.classList.remove('hidden');
+  const inp = document.getElementById('mpInput');
+  if(inp){ inp.focus(); inp.select(); }
+  document.getElementById('mpOk').onclick = function(){
+    closeModal();
+    const v = inp.value.trim();
+    if(v) onOk(v);
+  };
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// 时长 / 难度（兼容旧数据 prep+cook 与无 difficulty 字段）
+function dishDuration(r){ return (r.duration!=null)? r.duration : ((r.prep||0)+(r.cook||0)); }
+function dishDifficulty(r){ return r.difficulty || 2; }
+function stars(n){ n=Math.max(1,Math.min(5, n||1)); return '★'.repeat(n)+'☆'.repeat(5-n); }
+let toastTimer;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1900); }
+
+function switchTab(tab){
+  state.tab = tab;
+  document.querySelectorAll('.subtab').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
+  if(tab==='today'){ if(state.queue.length===0) buildQueue(); renderToday(); }
+  else if(tab==='menu') renderMenu();
+  else if(tab==='taste') renderTaste();
+  else if(tab==='checkin') renderCheckin();
+}
+
+/* ============ 时钟 / 初始化 ============ */
+function tick(){
+  const n=new Date();
+  const p=x=>String(x).padStart(2,'0');
+  document.getElementById('clock').textContent = p(n.getHours())+':'+p(n.getMinutes());
+  document.getElementById('todayStr').textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日';
+}
+tick(); setInterval(tick, 30000);
+
+ensureTagStore();
+buildQueue();
+switchTab('today');
+
+/* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
+function openDataMgr(){
+  document.getElementById('modalBody').innerHTML =
+    '<h2>数据备份与同步</h2>'
+    + '<p class="tip" style="margin-bottom:12px">浏览器里的记录存在本机，换设备 / 换浏览器会丢失。点「导出」生成备份文件，到另一台设备点「导入」恢复，即可实现手动同步。</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    +   '<button class="btn btn-primary" onclick="exportFood()">⬇ 导出全部美食数据</button>'
+    +   '<label class="btn" style="cursor:pointer">⬆ 导入备份文件<input type="file" accept="application/json" style="display:none" onchange="importFood(this.files[0])"></label>'
+    + '</div>'
+    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，需要云端存储（把数据放到服务器或网盘同步目录）。当前为手动方案，文件可拷到任意设备导入。</p>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
+  showModal();
+}
+function exportFood(){
+  const keys = Object.keys(localStorage).filter(k=>k.indexOf('food_')===0);
+  const data = {}; keys.forEach(k=>{ data[k]=localStorage.getItem(k); });
+  const blob = new Blob([JSON.stringify({app:'food_record', exportedAt:new Date().toISOString(), data}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '美食记录备份_'+todayStr()+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('已导出 '+keys.length+' 项数据');
+}
+function importFood(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const obj = JSON.parse(reader.result);
+      const data = obj.data || obj;
+      let n=0;
+      Object.keys(data).forEach(k=>{ if(k.indexOf('food_')===0){ localStorage.setItem(k, data[k]); n++; } });
+      myConfirm('已读入 '+n+' 项数据，将刷新页面以应用。确定刷新？', function(){ location.reload(); });
+    }catch(e){ toast('文件格式不对，导入失败'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ============ 云同步（跨设备：PC / 手机浏览器） ============ */
+const K_SYNC = 'food_cloudsync';
+let syncCfg = null, syncSupa = null, syncChannel = null, pushTimer = null, pollTimer = null, syncLastSha = null, syncBusy = false;
+function loadSyncCfg(){
+  try{ syncCfg = JSON.parse(localStorage.getItem(K_SYNC)) || null; }catch(e){ syncCfg = null; }
+  if(!syncCfg) syncCfg = {};
+  if(!syncCfg.provider) syncCfg.provider = 'github';
+  if(!syncCfg.supabase) syncCfg.supabase = { url:'', key:'', slot:'default' };
+  if(!syncCfg.github) syncCfg.github = { token:'', repo:'', branch:'main', path:'data/food_sync.json', slot:'default' };
+  if(syncCfg.connected === undefined) syncCfg.connected = false;
+  return syncCfg;
+}
+function saveSyncCfg(){ localStorage.setItem(K_SYNC, JSON.stringify(syncCfg)); }
+function scheduleCloudPush(){
+  if(!syncCfg) loadSyncCfg();
+  if(!syncCfg.connected) return;
+  if(pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(cloudPush, 1200);
+}
+function foodDataCollect(){
+  const o = {};
+  Object.keys(localStorage).forEach(k=>{ if(k.indexOf('food_')===0) o[k]=localStorage.getItem(k); });
+  return o;
+}
+function foodDataApply(o){
+  if(!o) return;
+  Object.keys(o).forEach(k=>{ if(k.indexOf('food_')===0) localStorage.setItem(k, o[k]); });
+  setTimeout(()=> location.reload(), 400);
+}
+async function cloudPush(){
+  if(!syncCfg || !syncCfg.connected || syncBusy) return;
+  syncBusy = true;
+  try{
+    const payload = JSON.stringify({ updatedAt:new Date().toISOString(), data:foodDataCollect() });
+    if(syncCfg.provider==='github'){ await ghPush(payload); }
+    else if(syncCfg.provider==='supabase'){ await supaPush(payload); }
+    toast('已同步到云端');
+  }catch(e){ console.error(e); toast('同步失败：'+(e&&e.message?e.message:e)); }
+  finally{ syncBusy = false; }
+}
+async function cloudPull(){
+  if(!syncCfg || !syncCfg.connected || syncBusy) return;
+  syncBusy = true;
+  try{
+    let payload;
+    if(syncCfg.provider==='github'){ payload = await ghPull(); }
+    else if(syncCfg.provider==='supabase'){ payload = await supaPull(); }
+    if(payload && payload.data){ foodDataApply(payload.data); }
+  }catch(e){ console.error(e); }
+  finally{ syncBusy = false; }
+}
+/* ---- GitHub 提供方（免注册新账号，用你已有的 GitHub） ---- */
+async function ghReq(method, body){
+  const repo = (syncCfg.github.repo||'').trim();
+  const token = (syncCfg.github.token||'').trim();
+  if(!repo || !token) throw new Error('请先填写 GitHub 仓库与令牌');
+  const url = 'https://api.github.com/repos/'+repo+'/contents/'+encodeURIComponent(syncCfg.github.path.trim());
+  const headers = { 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' };
+  const res = await fetch(url, { method, headers, body: body? JSON.stringify(body): undefined });
+  if(!res.ok){ const t = await res.text().catch(()=> ''); throw new Error('GitHub '+res.status+' '+t.slice(0,140)); }
+  return res.json();
+}
+function ghB64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function ghUnB64(s){ return decodeURIComponent(escape(atob(s.replace(/\s/g,'')))); }
+async function ghPush(payload){
+  const enc = ghB64(payload);
+  let sha = syncLastSha;
+  if(!sha){ try{ const cur = await ghReq('GET'); sha = cur.sha; }catch(e){ sha = null; } }
+  await ghReq('PUT', { message:'food sync '+new Date().toISOString(), content:enc, sha:sha||undefined, branch:(syncCfg.github.branch||'main').trim() });
+}
+async function ghPull(){
+  const cur = await ghReq('GET');
+  syncLastSha = cur.sha;
+  return JSON.parse(ghUnB64(cur.content));
+}
+function ghStartPoll(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    if(!syncCfg || !syncCfg.connected || syncCfg.provider!=='github' || syncBusy) return;
+    try{
+      const cur = await ghReq('GET');
+      if(cur.sha !== syncLastSha){ syncLastSha = cur.sha; const obj = JSON.parse(ghUnB64(cur.content)); if(obj.data) foodDataApply(obj.data); }
+    }catch(e){}
+  }, 15000);
+}
+/* ---- Supabase 提供方（改动即时推送，需建表） ---- */
+async function supaPush(payload){
+  if(!syncSupa) throw new Error('Supabase 未连接');
+  const slot = (syncCfg.supabase.slot||'default').trim();
+  const { error } = await syncSupa.from('food_sync').upsert({ slot, data: JSON.parse(payload), updated_at: new Date().toISOString() });
+  if(error) throw error;
+}
+async function supaPull(){
+  if(!syncSupa) throw new Error('Supabase 未连接');
+  const slot = (syncCfg.supabase.slot||'default').trim();
+  const { data, error } = await syncSupa.from('food_sync').select('data').eq('slot', slot).single();
+  if(error) throw error;
+  return data ? data.data : null;
+}
+function supaStartRealtime(){
+  if(!syncSupa) return;
+  const slot = (syncCfg.supabase.slot||'default').trim();
+  syncChannel = syncSupa.channel('food_sync_'+slot)
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'food_sync', filter:'slot=eq.'+slot }, ()=>{ cloudPull(); })
+    .subscribe();
+}
+function loadSupaLib(){
+  return new Promise((res,rej)=>{
+    if(typeof supabase!=='undefined') return res();
+    const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('Supabase 库加载失败（需联网）'));
+    document.head.appendChild(s);
+  });
+}
+/* ---- 连接 / 断开 ---- */
+async function connectSync(){
+  loadSyncCfg();
+  try{
+    if(syncCfg.provider==='supabase'){
+      if(!syncCfg.supabase.url || !syncCfg.supabase.key) throw new Error('请填写 Supabase URL 与 anon key');
+      if(typeof supabase==='undefined'){ await loadSupaLib(); }
+      syncSupa = supabase.createClient(syncCfg.supabase.url.trim(), syncCfg.supabase.key.trim());
+      await supaPull();
+      supaStartRealtime();
+    } else {
+      if(!syncCfg.github.repo || !syncCfg.github.token) throw new Error('请填写 GitHub 仓库与令牌');
+      await ghPull();
+      ghStartPoll();
+    }
+    syncCfg.connected = true; saveSyncCfg();
+    toast('已连接云端，开始同步');
+    openCloudSync();
+  }catch(e){ toast('连接失败：'+(e&&e.message?e.message:e)); }
+}
+function disconnectSync(){
+  syncCfg.connected = false; saveSyncCfg();
+  if(syncChannel && syncSupa){ try{ syncSupa.removeChannel(syncChannel); }catch(e){} syncChannel=null; }
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  if(pushTimer){ clearTimeout(pushTimer); pushTimer=null; }
+  syncSupa = null;
+  toast('已断开云同步');
+  openCloudSync();
+}
+/* ---- 云同步设置面板 ---- */
+function openCloudSync(){
+  loadSyncCfg();
+  const c = syncCfg;
+  const gitVis = c.provider==='github' ? '' : 'display:none';
+  const spVis  = c.provider==='supabase' ? '' : 'display:none';
+  document.getElementById('modalBody').innerHTML =
+    '<h2>☁ 云同步（多设备）</h2>'
+    + '<p class="tip" style="margin-bottom:12px">把记录放到云端，PC 与手机浏览器登录同一账号即可自动同步。推荐用你已有的 <b>GitHub</b>（免注册新账号、近实时轮询）；想要「改动即时推送」可选 Supabase。</p>'
+    + '<div style="margin-bottom:12px">同步方式：'
+    +   '<select id="syncProv" onchange="toggleSyncProv()">'
+    +     '<option value="github" '+(c.provider==='github'?'selected':'')+'>GitHub（推荐，免注册）</option>'
+    +     '<option value="supabase" '+(c.provider==='supabase'?'selected':'')+'>Supabase（实时推送）</option>'
+    +   '</select></div>'
+    + '<div id="syncGithub" style="'+gitVis+'">'
+    +   '<div class="field"><label>GitHub 仓库 <span style="color:var(--sub)">（格式 owner/repo）</span></label><input id="ghRepo" value="'+esc(c.github.repo)+'" placeholder="例如 Lui/food-sync"></div>'
+    +   '<div class="field"><label>个人访问令牌 PAT <span style="color:var(--sub)">（需 repo 权限，仅存本机浏览器）</span></label><input id="ghToken" type="password" value="'+esc(c.github.token)+'" placeholder="ghp_..."></div>'
+    +   '<div class="row" style="gap:10px">'
+    +     '<div class="field" style="flex:1"><label>分支</label><input id="ghBranch" value="'+esc(c.github.branch||'main')+'"></div>'
+    +     '<div class="field" style="flex:2"><label>文件路径</label><input id="ghPath" value="'+esc(c.github.path||'data/food_sync.json')+'"></div>'
+    +   '</div>'
+    +   '<p style="color:var(--sub);font-size:12px;line-height:1.6">① 在 GitHub 新建一个<strong>私有</strong>仓库；② 生成一个 PAT（勾选 repo 权限）；③ 填好点「连接并同步」。数据以 JSON 存到该仓库文件中，每 15 秒自动拉取远端变更。</p>'
+    + '</div>'
+    + '<div id="syncSupa" style="'+spVis+'">'
+    +   '<div class="field"><label>Supabase URL</label><input id="spUrl" value="'+esc(c.supabase.url)+'" placeholder="https://xxxx.supabase.co"></div>'
+    +   '<div class="field"><label>anon public key</label><input id="spKey" type="password" value="'+esc(c.supabase.key)+'" placeholder="eyJ..."></div>'
+    +   '<div class="field"><label>同步槽位 slot</label><input id="spSlot" value="'+esc(c.supabase.slot||'default')+'"></div>'
+    +   '<p style="color:var(--sub);font-size:12px;line-height:1.6">在 Supabase 的 SQL 编辑器运行：<br>'
+    +     '<code style="display:block;background:#f3efe7;padding:8px;border-radius:8px;margin-top:4px;white-space:pre-wrap;font-size:11px">create table food_sync(slot text primary key, data jsonb, updated_at timestamptz default now());\nalter table food_sync enable row level security;\ncreate policy "anon_all" on food_sync for all to anon using(true) with check(true);</code></p>'
+    + '</div>'
+    + '<div id="syncStatus" style="margin:10px 0;font-size:13px;color:var(--accent)">状态：'+(c.connected?'已连接 ✅（自动同步中）':'未连接')+'</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +   '<button class="btn btn-primary" onclick="doConnectSync()">连接并同步</button>'
+    +   '<button class="btn" onclick="cloudPush();">立即上传</button>'
+    +   '<button class="btn" onclick="cloudPull();">拉取</button>'
+    +   (c.connected?'<button class="btn btn-bad" onclick="disconnectSync()">断开</button>':'')
+    + '</div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
+  showModal();
+}
+function toggleSyncProv(){
+  const p = document.getElementById('syncProv').value;
+  syncCfg.provider = p; saveSyncCfg();
+  document.getElementById('syncGithub').style.display = p==='github'?'':'none';
+  document.getElementById('syncSupa').style.display = p==='supabase'?'':'none';
+}
+function doConnectSync(){
+  loadSyncCfg();
+  if(syncCfg.provider==='supabase'){
+    syncCfg.supabase.url = document.getElementById('spUrl').value.trim();
+    syncCfg.supabase.key = document.getElementById('spKey').value.trim();
+    syncCfg.supabase.slot = document.getElementById('spSlot').value.trim()||'default';
+  } else {
+    syncCfg.github.repo = document.getElementById('ghRepo').value.trim();
+    syncCfg.github.token = document.getElementById('ghToken').value.trim();
+    syncCfg.github.branch = document.getElementById('ghBranch').value.trim()||'main';
+    syncCfg.github.path = document.getElementById('ghPath').value.trim()||'data/food_sync.json';
+  }
+  saveSyncCfg();
+  connectSync();
+}
+// 启动时若已连接则恢复云端连接（用于刷新后保持同步）
+(function restoreSync(){
+  try{
+    const c = JSON.parse(localStorage.getItem(K_SYNC));
+    if(c && c.connected){
+      loadSyncCfg();
+      if(syncCfg.provider==='github'){ ghPull().then(()=>ghStartPoll()).catch(()=>{}); syncCfg.connected = true; saveSyncCfg(); }
+      else { connectSync().catch(()=>{}); }
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
