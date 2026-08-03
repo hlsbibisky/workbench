@@ -453,9 +453,19 @@ async function wbPush(){
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
 }
+// 解析 GitHub contents API 返回：小文件直接 decode content；超过 1MB 的文件 content 为空，需用 download_url 取完整内容
+async function wbParseSync(cur){
+  if(cur && cur.content) return wbGhUnB64(cur.content);
+  if(cur && cur.download_url){
+    const r = await fetch(cur.download_url);
+    if(!r.ok) throw new Error('download '+r.status);
+    return await r.text();
+  }
+  throw new Error('no content available');
+}
 async function wbPull(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
-  try{ const cur=await wbGhReq('GET'); wbLastSha=cur.sha; const obj=JSON.parse(wbGhUnB64(cur.content)); if(obj&&obj.data) wbApply(obj.data); }
+  try{ const cur=await wbGhReq('GET'); wbLastSha=cur.sha; const text=await wbParseSync(cur); const obj=JSON.parse(text); if(obj&&obj.data) wbApply(obj.data); }
   catch(e){ console.error(e); }
   finally{ wbBusy=false; }
 }
@@ -474,7 +484,7 @@ function wbGhStartPoll(){
   if(wbPollTimer) clearInterval(wbPollTimer);
   wbPollTimer=setInterval(async()=>{
     if(!wbSync||!wbSync.connected||wbBusy) return;
-    try{ const cur=await wbGhReq('GET'); if(cur.sha!==wbLastSha){ wbLastSha=cur.sha; const obj=JSON.parse(wbGhUnB64(cur.content)); if(obj&&obj.data) wbApply(obj.data); } }
+    try{ const cur=await wbGhReq('GET'); if(cur.sha!==wbLastSha){ wbLastSha=cur.sha; const text=await wbParseSync(cur); const obj=JSON.parse(text); if(obj&&obj.data) wbApply(obj.data); } }
     catch(e){}
   },15000);
 }
