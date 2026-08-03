@@ -408,7 +408,8 @@
     localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
   }catch(e){}
   window.addEventListener('message',function(e){
-    if(e.data&&e.data.type==='wb-reload'){
+    if(!e.data) return;
+    if(e.data.type==='wb-reload'){
       // 正在编辑（弹窗打开 / 输入框聚焦 / 标签编辑中）时跳过刷新，绝不清空未保存内容
       var modalEl=document.getElementById('modal');
       var modalOpen = modalEl && !modalEl.classList.contains('hidden');
@@ -424,8 +425,15 @@
           else if(state.tab==='checkin') renderCheckin();
         } else { location.reload(); }
       }catch(err){ try{ location.reload(); }catch(e){} }
+    } else if(e.data.type==='wb-request-save'){
+      try{ if(window.__savePage) window.__savePage(); }catch(err){}
     }
   });
+  window.__savePage=function(){
+    var m=document.getElementById('modal');
+    if(m && !m.classList.contains('hidden') && typeof saveRecipe==='function'){ saveRecipe(); }
+    try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){}
+  };
 })();
 </script>
   <div class="topbar">
