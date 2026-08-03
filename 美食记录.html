@@ -334,6 +334,8 @@
   .ck-item-emoji{ font-size:22px; flex-shrink:0; }
   .ck-item-thumb{ width:30px; height:30px; border-radius:7px; object-fit:cover; flex-shrink:0; }
   .ck-item-name{ font-size:14.5px; font-weight:500; }
+  .ck-tag{ margin-left:auto; border:1px solid var(--line); background:#fff; border-radius:10px; padding:4px 8px; font-size:12.5px; color:var(--sub); font-family:inherit; outline:none; cursor:pointer; }
+  .ck-tag:focus{ border-color:var(--accent); }
   .ck-eye{ border:none; background:none; cursor:pointer; font-size:15px; padding:2px 5px; opacity:.6; line-height:1; }
   .ck-eye:hover{ opacity:1; }
   .ck-rm{ margin-left:auto; border:none; background:none; color:var(--bad); cursor:pointer; font-size:18px; padding:2px 6px; line-height:1; }
@@ -347,11 +349,6 @@
   .ck-photo{ width:100px; height:80px; border-radius:10px; object-fit:cover; border:1px solid var(--line); cursor:pointer; transition:.15s; }
   .ck-photo:hover{ transform:scale(1.04); box-shadow:0 4px 12px rgba(0,0,0,.15); }
   .ck-note{ font-size:13px; color:var(--sub); margin-top:8px; font-style:italic; line-height:1.5; }
-  .ck-add-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .ck-add-row input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:13.5px; font-family:inherit; outline:none; }
-  .ck-add-row input:focus{ border-color:var(--accent); }
-  .ck-add-row button{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:8px 16px; font-size:13px; cursor:pointer; font-family:inherit; white-space:nowrap; }
-  .ck-add-row button:hover{ opacity:.88; }
   .ck-upload{ position:relative; display:inline-block; }
   .ck-upload input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
   .ck-upbtn{ display:inline-flex; align-items:center; gap:5px; border:1px dashed var(--accent); background:rgba(184,113,78,.06); color:var(--accent); border-radius:10px; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; transition:.15s; }
@@ -382,8 +379,6 @@
     .stage-ing{ max-width:100%; }
     .modal{ padding:14px 8px; }
     .modal-card{ padding:16px 15px; max-height:92vh; }
-    .ck-add-row{ flex-wrap:wrap; }
-    .ck-add-row input{ min-width:140px; }
     .viewer-stats{ flex-wrap:wrap; gap:12px; }
     .vmat-grid{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
     .recipe-card{ padding: 18px 14px 20px; border-radius: 18px; }
@@ -1078,6 +1073,7 @@ function renderCheckin(){
     const wd = WD[d.getDay()];
     const isToday = c.date === todayStr();
 
+    const TAGS = ['早餐','午餐','晚餐','夜宵','零食'];
     // 食材行
     const itemsHtml = c.items.length === 0
       ? '<div style="color:var(--sub);font-size:13px;padding:6px 0;">还没有添加菜品，点下面「从菜品库选」带出食材与做法～</div>'
@@ -1096,9 +1092,13 @@ function renderCheckin(){
               + ((!ing.length && !steps.length) ? '<div style="color:var(--sub)">暂无食材/做法详情</div>' : '')
               + '</div>'
             : '';
+          const tagOpts = TAGS.map(t=>'<option value="'+t+'" '+(it.tag===t?'selected':'')+'>'+t+'</option>').join('');
+          const tagSelect = '<select class="ck-tag" onchange="setCkTag(\''+c.id+'\','+idx+',this.value)" title="选择用餐标签">'
+            + '<option value="">选择标签</option>'+tagOpts+'</select>';
           return '<div class="'+cls+'">'
             + coverHtml
             + '<span class="ck-item-name">'+esc(it.name)+'</span>'
+            + tagSelect
             + '<button class="ck-eye" onclick="toggleCkDetail(\''+c.id+'\','+idx+')" title="查看食材/做法">👁</button>'
             + '<button class="ck-rm" onclick="removeCkItem(\''+c.id+'\','+idx+')" title="移除">×</button>'
             + '</div>' + detailHtml;
@@ -1114,23 +1114,16 @@ function renderCheckin(){
     // 备注
     const noteHtml = c.note ? '<div class="ck-note">📝 '+esc(c.note)+'</div>' : '';
 
-    // 添加新菜品行（主：从菜品库选；次：手动输入）
+    // 添加新菜品：只保留从菜品库选择
     const addRow =
-      '<div class="ck-add-row">'
-      + '<button class="btn btn-sm btn-primary" style="margin-right:6px;white-space:nowrap" onclick="openCkPicker(\''+c.id+'\')">🍽️ 从菜品库选</button>'
-      + '<input id="ckAdd_'+c.id+'" placeholder="或手动输入菜名，如：一碗面" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addCkItem(\''+c.id+'\');}">'
-      + '<button onclick="addCkItem(\''+c.id+'\')">＋ 添加</button>'
+      '<div style="margin-top:10px;">'
+      + '<button class="btn btn-sm btn-primary" onclick="openCkPicker(\''+c.id+'\')">🍽️ 从菜品库选</button>'
       + '</div>';
 
-    // 照片上传
-    const uploadRow =
-      '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-      + '<div class="ck-upload">'
-      + '<input type="file" accept="image/*" onchange="uploadCkPhoto(\''+c.id+'\',this.files[0])">'
-      + '<span class="ck-upbtn">📷 上传照片</span>'
-      + '</div>'
-      + (c.photos.length > 0 ? '<button class="linkbtn" onclick="clearCkPhotos(\''+c.id+'\')">清除所有照片</button>' : '')
-      + '</div>';
+    // 旧照片清理入口（不再提供上传）
+    const photoClearRow = c.photos.length > 0
+      ? '<div style="margin-top:8px;"><button class="linkbtn" onclick="clearCkPhotos(\''+c.id+'\')">清除所有照片</button></div>'
+      : '';
 
     // 备注编辑
     const noteRow =
@@ -1150,7 +1143,7 @@ function renderCheckin(){
       + '</div>'
       + '<div class="ck-items">'+itemsHtml+'</div>'
       + addRow
-      + uploadRow
+      + photoClearRow
       + photosHtml
       + noteRow
       + noteHtml
@@ -1193,26 +1186,6 @@ function goToDate(dateStr){
   if(c){ const el=document.getElementById('day_'+c.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 
-// 在某天添加一道菜（手动输入回退：尝试从菜品库/菜谱库匹配详情）
-function addCkItem(ckId){
-  const input = document.getElementById('ckAdd_'+ckId);
-  if(!input) return;
-  const name = input.value.trim();
-  if(!name){ toast('请输入菜品名称'); return; }
-  const c = state.checkin.find(x=>x.id===ckId);
-  if(!c) return;
-  if(c.items.some(it=>it.name===name)){ toast('该菜品已在列表中'); return; }
-  let emoji='🍽️', ing=[], steps=[], cover='', type='';
-  const dish = allDishes().find(d=>d.name===name);
-  const recipe = state.menu.find(r=>r.name===name);
-  if(dish){ emoji=dish.emoji||'🍽️'; ing=dish.ing||[]; steps=dish.steps||[]; cover=dishCover(dish.id); type=dish.type; }
-  else if(recipe){ emoji=recipe.emoji||'🍽️'; ing=recipe.materials.map(m=>m.n); steps=recipe.steps||[]; cover=recipe.image||''; type=recipe.type; }
-  c.items.push({ name, emoji, type, ing, seasonings:[], steps, cover, checked:true });
-  save(K.checkin, state.checkin);
-  renderCheckin();
-  toast('已添加：'+name);
-}
-
 // 打卡：从菜品库选择（弹窗）
 function openCkPicker(ckId){
   const dishes = allDishes().map(d=>({src:'dish', name:d.name, emoji:d.emoji, type:d.type, ing:d.ing||[], seasonings:d.seasonings||[], steps:d.steps||[], cover:dishCover(d.id)}));
@@ -1248,7 +1221,7 @@ function pickCkDish(name){
   const c = state.checkin.find(cc=>cc.id===window.__ckPicker.ckId);
   if(!c){ closeModal(); return; }
   if(c.items.some(it=>it.name===name)){ toast('该菜品已在列表中'); return; }
-  c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', checked:true });
+  c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', tag:'', checked:true });
   save(K.checkin, state.checkin);
   closeModal();
   renderCheckin();
@@ -1274,21 +1247,14 @@ function removeCkItem(ckId, idx){
   toast('已移除：'+name);
 }
 
-// 上传照片（压缩后 base64 存 localStorage）
-function uploadCkPhoto(ckId, file){
-  if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){
-    const c = state.checkin.find(x=>x.id===ckId);
-    if(!c) return;
-    c.photos.push(dataUrl);
-    // 限制最多 9 张
-    if(c.photos.length > 9) c.photos = c.photos.slice(-9);
-    if(save(K.checkin, state.checkin)){
-      renderCheckin();
-      toast('照片已上传');
-    }
-  });
+// 设置某道菜的用餐标签
+function setCkTag(ckId, idx, tag){
+  const c = state.checkin.find(x=>x.id===ckId);
+  if(!c || !c.items[idx]) return;
+  c.items[idx].tag = tag;
+  if(save(K.checkin, state.checkin)){
+    toast(tag ? '已标记为「'+tag+'」' : '已取消标签');
+  }
 }
 
 // 清除照片
