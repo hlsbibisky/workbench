@@ -32,14 +32,17 @@
     position:sticky; top:0; height:100vh;
   }
   .brand{
-    display:flex; align-items:baseline; gap:9px;
+    display:flex; align-items:flex-start; gap:9px;
     padding:2px 10px 16px; margin-bottom:6px;
     border-bottom:1px solid var(--line);
   }
   .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
-    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; transform:translateY(1px); }
-  .brand b{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); }
-  .brand small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
+    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; transform:translateY(5px); }
+  .brand-text{ display:flex; flex-direction:column; gap:3px; }
+  .brand-line1{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
+  .brand-line2{ display:flex; align-items:baseline; gap:7px; }
+  .brand-main{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
+  .brand-small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
 
   .navlabel{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 12px 4px; }
   .navitem{
@@ -150,8 +153,8 @@
   @media (max-width:880px){
     .sidebar{ width:132px; flex:0 0 132px; padding:18px 10px; }
     .brand{ justify-content:flex-start; padding:2px 0 14px; }
-    .brand b{ font-size:17px; letter-spacing:2px; }
-    .brand small{ display:none; }
+    .brand-line1, .brand-main{ font-size:17px; letter-spacing:2px; }
+    .brand-small{ display:none; }
     .navlabel{ display:none; }
     .navitem{ justify-content:flex-start; padding:11px 10px; }
     .sidefoot{ display:none; }
@@ -166,9 +169,9 @@
       flex-direction:column; padding:10px 12px; border-right:none; border-bottom:1px solid var(--line);
     }
     .brand{ padding:2px 0 8px; }
-    .brand small{ display:none; }
+    .brand-small{ display:none; }
     .navlabel{ display:none; }
-    #nav{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+    #navCommon, #navOther{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
     .navitem{ flex:0 0 auto; width:auto; padding:8px 13px; font-size:13.5px; white-space:nowrap; }
     .navitem .navbadge{ position:static; margin-left:6px; }
     .sidefoot{ display:none; }
@@ -183,7 +186,16 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>HLS工作台</b><small>WorkBench</small></div>
+    <div class="brand">
+      <span class="dot"></span>
+      <div class="brand-text">
+        <div class="brand-line1">HLS</div>
+        <div class="brand-line2">
+          <span class="brand-main">工作台</span>
+          <span class="brand-small">WorkBench</span>
+        </div>
+      </div>
+    </div>
     <div class="navlabel">常用</div>
     <nav id="navCommon"></nav>
     <div class="navlabel">其他</div>
