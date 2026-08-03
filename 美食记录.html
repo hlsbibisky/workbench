@@ -1812,6 +1812,11 @@ switchTab('today');
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
+  const ck = load(K.checkin, []);
+  let photoBytes = 0, photoCount = 0;
+  ck.forEach(c=>{ (c.photos||[]).forEach(p=>{ if(p){ photoBytes += p.length; photoCount++; } }); });
+  const photoInfo = photoCount > 0 ? '<p style="color:var(--sub);font-size:12.5px;margin:6px 0 12px">当前打卡照片共 <b>'+photoCount+'</b> 张，约 <b>'+Math.round(photoBytes/1024)+'KB</b>。如果保存时提示「本地存储已满」，可点下方「压缩历史照片」减少占用。</p>'
+    + '<div style="margin-bottom:14px"><button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button></div>' : '';
   document.getElementById('modalBody').innerHTML =
     '<h2>数据备份与同步</h2>'
     + '<p class="tip" style="margin-bottom:12px">浏览器里的记录存在本机，换设备 / 换浏览器会丢失。点「导出」生成备份文件，到另一台设备点「导入」恢复，即可实现手动同步。</p>'
@@ -1819,7 +1824,8 @@ function openDataMgr(){
     +   '<button class="btn btn-primary" onclick="exportFood()">⬇ 导出全部美食数据</button>'
     +   '<label class="btn" style="cursor:pointer">⬆ 导入备份文件<input type="file" accept="application/json" style="display:none" onchange="importFood(this.files[0])"></label>'
     + '</div>'
-    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，需要云端存储（把数据放到服务器或网盘同步目录）。当前为手动方案，文件可拷到任意设备导入。</p>'
+    + photoInfo
+    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
 }
@@ -1832,6 +1838,54 @@ function exportFood(){
   a.download = '美食记录备份_'+todayStr()+'.json';
   document.body.appendChild(a); a.click(); a.remove();
   toast('已导出 '+keys.length+' 项数据');
+}
+
+// 批量压缩历史打卡照片，减少 localStorage 占用
+function compressHistoryPhotos(){
+  const ck = load(K.checkin, []);
+  const tasks = [];
+  ck.forEach((c,ci)=>{ (c.photos||[]).forEach((p,pi)=>{ if(p && p.indexOf('data:image')===0) tasks.push({ci,pi,src:p}); }); });
+  if(tasks.length===0){ toast('没有可压缩的照片'); return; }
+  let done = 0, before = 0, after = 0;
+  tasks.forEach(t=>before += t.src.length);
+  const progress = document.createElement('div');
+  progress.id='compressProgress'; progress.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
+  progress.textContent = '正在压缩 0/'+tasks.length+' …';
+  document.body.appendChild(progress);
+  let i = 0;
+  function next(){
+    if(i >= tasks.length){
+      if(save(K.checkin, ck)){
+        progress.textContent = '完成：'+tasks.length+' 张照片，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
+        setTimeout(()=>progress.remove(), 1800);
+        renderCheckin();
+      } else {
+        progress.textContent = '压缩完成但保存失败，请导出备份后清理';
+        setTimeout(()=>progress.remove(), 3000);
+      }
+      return;
+    }
+    const t = tasks[i++];
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, 1200/w, 1200/h);
+      w = Math.round(w*scale); h = Math.round(h*scale);
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      ck[t.ci].photos[t.pi] = dataUrl;
+      after += dataUrl.length; done++;
+      progress.textContent = '正在压缩 '+done+'/'+tasks.length+' …';
+      setTimeout(next, 15);
+    };
+    img.onerror = function(){ done++; setTimeout(next,15); };
+    img.src = t.src;
+  }
+  next();
 }
 function importFood(file){
   if(!file) return;
