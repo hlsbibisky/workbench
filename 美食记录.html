@@ -427,7 +427,18 @@
   try{ var orig=localStorage.setItem;
     localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
   }catch(e){}
-  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+  window.addEventListener('message',function(e){
+    if(e.data&&e.data.type==='wb-reload'){
+      // 如果用户正在输入/上传，先让当前输入框失焦保存，稍后再刷新，避免丢失未保存内容
+      var active = document.activeElement;
+      if(active && (active.tagName==='INPUT' || active.tagName==='TEXTAREA')){
+        try{ active.blur(); }catch(err){}
+        setTimeout(function(){ location.reload(); }, 350);
+      } else {
+        try{ location.reload(); }catch(err){}
+      }
+    }
+  });
 })();
 </script>
   <div class="topbar">
@@ -546,9 +557,38 @@ function emojiGridHtml(current, picker){
 let activeCoverTarget = null;
 
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
-function save(key, v){ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); }
+function save(key, v){
+  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
+  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); return false; }
+}
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// 图片压缩：限制最大宽度/高度，转 JPEG，降低 localStorage 占用
+function compressImage(file, callback, opts){
+  opts = opts || {};
+  const maxW = opts.maxWidth || 1200;
+  const maxH = opts.maxHeight || 1200;
+  const quality = opts.quality || 0.82;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, maxW/w, maxH/h);
+      w = Math.round(w*scale); h = Math.round(h*scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = function(){ callback(e.target.result); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 
 const state = {
   taste: load(K.taste, clone(TASTE_DEFAULT)),
@@ -745,7 +785,7 @@ function renderMenu(){
       // 封面
       const imgSrc = r.image || '';
       const coverHtml = imgSrc
-        ? '<img src="'+esc(imgSrc)+'" alt="'+esc(r.name)+'" onerror="this.style.display\'none\';this.nextElementSibling.style.display=\'flex\'">'
+        ? '<img src="'+esc(imgSrc)+'" alt="'+esc(r.name)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
           + '<div class="remoji-fallback" style="display:none">'+esc(r.emoji)+'</div>'
         : '<div class="remoji-fallback">'+esc(r.emoji)+'</div>';
       // 食材标签（最多5个）
@@ -1075,7 +1115,7 @@ function renderCheckin(){
     // 照片
     const photosHtml = c.photos.length > 0
       ? '<div class="ck-photos">' + c.photos.map((p,i) =>
-          '<img class="ck-photo" src="'+p+'" alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+p+'\')" title="点击查看大图">'
+          '<img class="ck-photo" src="'+esc(p)+'" alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+esc(p)+'\')" title="点击查看大图">'
         ).join('') + '</div>'
       : '';
 
@@ -1242,22 +1282,21 @@ function removeCkItem(ckId, idx){
   toast('已移除：'+name);
 }
 
-// 上传照片（base64 存 localStorage）
+// 上传照片（压缩后 base64 存 localStorage）
 function uploadCkPhoto(ckId, file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
-  const reader = new FileReader();
-  reader.onload = function(){
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){
     const c = state.checkin.find(x=>x.id===ckId);
     if(!c) return;
-    c.photos.push(reader.result);
+    c.photos.push(dataUrl);
     // 限制最多 9 张
     if(c.photos.length > 9) c.photos = c.photos.slice(-9);
-    save(K.checkin, state.checkin);
-    renderCheckin();
-    toast('照片已上传');
-  };
-  reader.readAsDataURL(file);
+    if(save(K.checkin, state.checkin)){
+      renderCheckin();
+      toast('照片已上传');
+    }
+  });
 }
 
 // 清除照片
@@ -1427,16 +1466,13 @@ function stepImgRowsHtml(){
 }
 function setStepImg(idx, file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
-  const reader = new FileReader();
-  reader.onload = function(){
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){
     if(!editBuf.stepImgs) editBuf.stepImgs = [];
-    editBuf.stepImgs[idx] = reader.result;
-    // refresh step imgs area
+    editBuf.stepImgs[idx] = dataUrl;
     const wrap = document.getElementById('stepImgsWrap');
     if(wrap) wrap.innerHTML = stepImgRowsHtml();
-  };
-  reader.readAsDataURL(file);
+  });
 }
 function removeStepImg(idx){
   if(!editBuf.stepImgs) return;
@@ -1492,10 +1528,8 @@ function setRecCoverMode(mode){
 }
 function setRecCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
-  const reader = new FileReader();
-  reader.onload = function(){ editBuf._cover = reader.result; updateRecCoverPreview(); };
-  reader.readAsDataURL(file);
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){ editBuf._cover = dataUrl; updateRecCoverPreview(); });
 }
 function updateRecCoverPreview(){
   const box = document.getElementById('recCoverPreview');
@@ -1633,10 +1667,8 @@ function setCoverMode(mode){
 }
 function setCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('图片不能超过 3MB'); return; }
-  const reader = new FileReader();
-  reader.onload = function(){ dishEditorCover = reader.result; updateCoverPreview(); };
-  reader.readAsDataURL(file);
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){ dishEditorCover = dataUrl; updateCoverPreview(); });
 }
 function updateCoverPreview(){
   const box = document.getElementById('coverPreview');
@@ -1691,7 +1723,7 @@ function showModal(){ document.getElementById('modal').classList.remove('hidden'
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
 
-// 全局：在封面编辑区时，Ctrl+V 粘贴截图作为封面
+// 全局：在封面编辑区时，Ctrl+V 粘贴截图作为封面（自动压缩）
 document.addEventListener('paste', function(e){
   if(!activeCoverTarget) return;
   const cd = e.clipboardData || window.clipboardData;
@@ -1700,12 +1732,10 @@ document.addEventListener('paste', function(e){
     if(cd.items[i].type && cd.items[i].type.indexOf('image')===0){
       const f = cd.items[i].getAsFile();
       if(!f) return;
-      const reader = new FileReader();
-      reader.onload = function(){
-        if(activeCoverTarget==='recipe'){ editBuf._cover = reader.result; updateRecCoverPreview(); }
-        else if(activeCoverTarget==='dish'){ dishEditorCover = reader.result; updateCoverPreview(); }
-      };
-      reader.readAsDataURL(f);
+      compressImage(f, function(dataUrl){
+        if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; updateRecCoverPreview(); }
+        else if(activeCoverTarget==='dish'){ dishEditorCover = dataUrl; updateCoverPreview(); }
+      });
       e.preventDefault();
       toast('已粘贴截图');
       return;
