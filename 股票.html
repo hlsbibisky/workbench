@@ -111,6 +111,23 @@
   .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   .rev-grid .panel{margin:0;}
   @media(max-width:760px){ .rev-grid{grid-template-columns:1fr;} }
+  /* 手机整体适配 */
+  @media(max-width:680px){
+    .sechtabs{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+    .sechtabs .stab{ flex:0 0 auto; white-space:nowrap; }
+    .addrow{ flex-wrap:wrap; }
+    .addrow input{ flex:1 1 100%; }
+    .addrow select{ flex:1 1 auto; }
+    .addrow button{ flex:1 1 auto; }
+    .panel{ padding:12px 12px; }
+    #jbackRow{ flex-direction:column !important; align-items:stretch !important; }
+    #jbackRow label{ display:flex; flex-direction:column; gap:4px; }
+    #jbackRow input{ width:100%; }
+    .jbtns{ flex-wrap:wrap; }
+    .jbtn{ flex:1 1 auto; }
+    .jlist .jitem .jact{ position:static; margin-top:8px; justify-content:flex-end; }
+    .wlitem{ flex-wrap:wrap; }
+  }
   .rev-canvas{width:100%;display:block;border-radius:8px;}
   .rev-pie{height:280px;}
   .rev-bar{height:300px;}
@@ -298,7 +315,15 @@
       <h3>状态记录 · 交易日志</h3>
       <div class="jlist" id="jlist"></div>
       <textarea id="jtext" placeholder="记录今天的盘面感受、操作逻辑、情绪波动……"></textarea>
-      <button class="jbtn" id="jbtn">添加记录</button>
+      <div id="jbackRow" style="display:none;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap">
+        <label style="font-size:13px;color:var(--sub)">补记时间：<input type="datetime-local" id="jdt" style="padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit"></label>
+        <button class="jbtn" id="jbackok">确认补记</button>
+        <button class="jbtn" id="jbackcancel" style="background:#fff;color:var(--sub);border-color:var(--line)">取消</button>
+      </div>
+      <div class="jbtns" style="display:flex;gap:8px;margin-top:10px">
+        <button class="jbtn" id="jbtn">添加记录</button>
+        <button class="jbtn" id="jback" style="background:#fff;color:var(--accent);border-color:var(--accent)">补记过往</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1086,6 +1111,24 @@ document.getElementById('jbtn').onclick=()=>{
     localStorage.setItem(JL, JSON.stringify(arr));
   }
   document.getElementById('jtext').value=''; renderJournal();
+};
+/* ============ 补记过往（可指定任意日期时间） ============ */
+function toLocalDT(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+document.getElementById('jback').onclick=()=>{
+  const row=document.getElementById('jbackRow');
+  if(row.style.display==='none'){ row.style.display='flex'; document.getElementById('jdt').value=toLocalDT(new Date()); document.getElementById('jtext').focus(); }
+  else { row.style.display='none'; }
+};
+document.getElementById('jbackcancel').onclick=()=>{ document.getElementById('jbackRow').style.display='none'; };
+document.getElementById('jbackok').onclick=()=>{
+  const tx=document.getElementById('jtext').value.trim(); if(!tx){ alert('请先填写记录内容'); return; }
+  const dt=document.getElementById('jdt').value; let ts=Date.now();
+  if(dt){ const pd=new Date(dt); if(!isNaN(pd.getTime())) ts=pd.getTime(); }
+  const arr=loadJournal();
+  arr.push({id:'j'+Date.now()+'-'+Math.random().toString(36).slice(2,6), ts, text:tx});
+  localStorage.setItem(JL, JSON.stringify(arr));
+  document.getElementById('jtext').value=''; document.getElementById('jbackRow').style.display='none';
+  renderJournal();
 };
 
 /* ============ 添加自选 ============ */
