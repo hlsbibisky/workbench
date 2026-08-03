@@ -1186,16 +1186,12 @@ function goToDate(dateStr){
   if(c){ const el=document.getElementById('day_'+c.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 
-// 打卡：从菜品库选择（弹窗）
+// 打卡：从菜谱库选择（弹窗）——只显示用户实际创建/收藏的菜谱
 function openCkPicker(ckId){
-  const dishes = allDishes().map(d=>({src:'dish', name:d.name, emoji:d.emoji, type:d.type, ing:d.ing||[], seasonings:d.seasonings||[], steps:d.steps||[], cover:dishCover(d.id)}));
   const menu = state.menu.map(r=>({src:'recipe', name:r.name, emoji:r.emoji, type:r.type, ing:r.materials.map(m=>m.n), seasonings:[], steps:r.steps||[], cover:r.image||''}));
-  const map = {};
-  dishes.forEach(x=>{ map[x.name]=x; });
-  menu.forEach(x=>{ if(!map[x.name]) map[x.name]=x; });
-  window.__ckPicker = { ckId, all: Object.values(map) };
+  window.__ckPicker = { ckId, all: menu };
   document.getElementById('modalBody').innerHTML =
-    '<h2>从菜品库选择</h2>'
+    '<h2>从菜谱库选择</h2>'
     + '<input id="ckPickSearch" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;" placeholder="搜索菜名…" oninput="renderCkPicker()">'
     + '<div id="ckPickList" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button></div>';
