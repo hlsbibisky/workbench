@@ -355,16 +355,19 @@ function jsonp(url, timeout=4000){
     document.body.appendChild(sc);
   });
 }
-/* 最新公告（东方财富公开接口，浏览器直连；失败/受限返回 null） */
+/* 最新公告（东方财富公开接口，浏览器直连；JSONP 模式 cb=jQuery 包装；失败/无数据返回 null） */
 async function fetchAnn(code){
   const key='ann_'+code+'_'+todayStr();
   const c=cacheGet(key); if(c!==null) return c;
-  const url=`https://np-anotice-stock.eastmoney.com/api/security/ann?sr=-1&page_size=3&page_index=1&ann_type=0&client_source=web&stock_list=${code}`;
-  const data=await jsonp(url);
+  const cb='_ann'+Math.random().toString(36).slice(2,8);
+  const url=`https://np-anotice-stock.eastmoney.com/api/security/ann?cb=${cb}&sr=-1&page_size=3&page_index=1&ann_type=A&client_source=web&stock_list=${code}`;
+  let data=null;
+  try{ data=await jsonp(url, cb, 'call'); }catch(e){ data=null; }
   let list=[];
   if(data){ const arr=(data.data&&data.data.list)||data.list||[];
     list=arr.slice(0,2).map(it=>({title:it.title||'', date:(it.notice_date||it.ei_date||'').slice(0,10), url:it.url||''})); }
-  const out=data===null?null:list;
+  // 失败/null 缓存 null（一天内不重试），但渲染时仍标"暂无最新公告"（绝大多数 ETF 在该接口本就无公告）
+  const out=(data===null||!data)?null:list;
   cacheSet(key, out);
   return out;
 }
@@ -811,23 +814,20 @@ async function renderAnalysis(longs, shorts, mv, cost){
       const ex=techText(s,'周线 EXPMA'); if(ex.includes('死叉')) r.push('周线EXPMA死叉(趋势转弱)');
       html+=`<li><b>${s.name}</b>：${r.length?r.join('、'):'小幅浮亏，技术面尚未破位'}</li>`; }); }
   html+='</ul></div>';
-  // 技术信号筛选（保留偏强/健康信号与中性，删除冗余的风险弱势罗列）
+  // 技术信号筛选：偏强/健康信号清单已并入下方「AI 点评 · 异动与资讯」避免重复，此处仅作背景参考
   html+=`<div class="grp"><h4>技术信号筛选</h4><ul>`;
-  const sigOf=s=>{ const m=techMap[s.code]; const bull=[]; if(!m) return {bull};
+  const isBull=s=>{ const m=techMap[s.code]; if(!m) return false;
     const d5=m['日线 MA5'], w5=m['周线 MA5'], ex=m['周线 EXPMA'], rsi=m['日线 RSI(14)'], bol=m['日线 BOLL'];
-    if(d5 && d5.bull) bull.push('日线站上MA5');
-    if(w5 && w5.bull) bull.push('周线站上MA5');
-    if(ex && ex.bull) bull.push(ex.v.includes('刚')?'周线EXPMA刚金叉(趋势转强)':'周线EXPMA金叉(趋势转强)');
-    if(rsi && rsi.d==='超买') bull.push('RSI超买(强势)');
-    if(bol && /突破上轨|上轨附近|中轨上方/.test(bol.v)) bull.push('BOLL运行于中轨上方');
-    return {bull};
+    if(d5 && d5.bull) return true;
+    if(w5 && w5.bull) return true;
+    if(ex && ex.bull) return true;
+    if(rsi && rsi.d==='超买') return true;
+    if(bol && /突破上轨|上轨附近|中轨上方/.test(bol.v)) return true;
+    return false;
   };
-  const strong=[],neutral=[];
-  all.forEach(s=>{ const sg=sigOf(s); if(sg.bull.length>0) strong.push({s,sg}); else neutral.push(s); });
-  if(strong.length){ html+='<li class="cat ok">🟢 偏强 / 健康信号</li>';
-    strong.forEach(({s,sg})=>{ html+=`<li><b>${s.name}</b>：主因 ${sg.bull[0]}${sg.bull.length>1?'（另：'+sg.bull.slice(1).join('、')+'）':''}</li>`; }); }
-  else html+='<li class="muted">当前无偏强信号（注意：弱势信号已移入下方“AI 点评·异动与资讯”，不再逐只罗列）</li>';
+  const neutral=all.filter(s=>!isBull(s));
   if(neutral.length){ html+=`<li class="muted">⚪ 中性震荡 ${neutral.length} 只：${neutral.map(s=>s.name).join('、')}</li>`; }
+  else html+='<li class="muted">全部标的至少有一项偏强/健康信号（详见下方 AI 点评）</li>';
   html+='</ul></div>';
   // AI 点评 · 异动与资讯（量价异动 + 最新公告 + 点评句，区别于技术指标罗列）
   html+=`<div class="grp"><h4>AI 点评 · 异动与资讯</h4><ul>`;
