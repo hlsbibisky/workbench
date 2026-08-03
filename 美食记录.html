@@ -202,10 +202,6 @@
     letter-spacing: 2px;
     text-shadow: 2px 2px 0 rgba(255,255,255,.8);
   }
-  .recipe-card .rc-tagline{
-    text-align: center; font-size: 13.5px; color: var(--sub);
-    letter-spacing: 1.5px; margin-bottom: 14px;
-  }
   .recipe-card .rc-hero{
     width: 100%; max-width: 420px; margin: 0 auto 18px; display: block;
     border-radius: 50%; aspect-ratio: 1 / 1; object-fit: cover;
@@ -268,15 +264,6 @@
   .rc-tips-title{ font-size: 13.5px; font-weight: 700; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
   .rc-tip-item{ font-size: 12.5px; color: var(--sub); line-height: 1.7; padding: 3px 0; padding-left: 16px; position: relative; }
   .rc-tip-item::before{ content: '💡'; position: absolute; left: 0; top: 3px; }
-
-  /* 菜谱编辑器：步骤配图 */
-  .step-img-row{ display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .step-img-row .step-idx{ width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .step-img-row .step-thumb{ width: 60px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
-  .step-img-row .step-thumb-placeholder{ width: 60px; height: 44px; border-radius: 8px; border: 1.5px dashed var(--line); background: #fff; display: flex; align-items: center; justify-content: center; color: var(--sub); font-size: 18px; flex-shrink: 0; }
-  .step-img-row .step-txt{ flex: 1; font-size: 12.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .step-img-row .ck-upload{ flex-shrink: 0; }
-  .step-img-row .ck-upbtn{ padding: 5px 10px; font-size: 12px; }
 
   /* 口味分组 */
   .tsec{ margin-bottom:22px; }
@@ -1374,7 +1361,7 @@ function openRecipeEditor(id, isNewFromDish){
   if(id){ r = state.menu.find(x=>x.id===id); if(!r) return; }
   else {
     r = {
-      id:rid(), name:'', emoji:'🍽️', type:'荤', image:'', tagline:'',
+      id:rid(), name:'', emoji:'🍽️', type:'荤', image:'',
       duration:20, difficulty:2,
       materials:[
         {n:'', qty:'', skip:false, note:''},
@@ -1382,7 +1369,7 @@ function openRecipeEditor(id, isNewFromDish){
         {n:'', qty:'', skip:false, note:''}
       ],
       steps:['第一步：准备材料…','第二步：开始烹饪…','第三步：完成装盘…'],
-      stepImgs:[], tips:[], fromDish:null, created:Date.now()
+      tips:[], fromDish:null, created:Date.now()
     };
   }
   editBuf = clone(r);
@@ -1412,8 +1399,6 @@ function renderEditor(){
     '<h2>编辑菜谱</h2>'
     + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填）</span></label>'
     +   '<input id="f_name" placeholder="给你的菜起个名字，比如「妈妈的红烧肉」" value="'+esc(r.name)+'"></div>'
-    + '<div class="field"><label>副标题 / 一句话介绍 <span style="color:var(--sub);font-weight:400;font-size:12px">（如：酸甜开胃 · 营养下饭）</span></label>'
-    +   '<input id="f_tagline" placeholder="酸甜开胃 · 营养下饭" value="'+esc(r.tagline||'')+'"></div>'
     + '<div class="row" style="gap:12px">'
     +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(editBuf.emoji,'pickEmoji')+'</div>'
     +   '<div class="field" style="flex:1"><label>分类</label><select id="f_type">'+types.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
@@ -1440,46 +1425,12 @@ function renderEditor(){
     +   '<button class="btn btn-sm" onclick="addMat()">＋ 加一行材料</button></div>'
     + '<div class="field"><label>做法步骤 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一步，从准备到完成）</span></label>'
     +   '<textarea id="f_steps" placeholder="第一步：将主料洗净切好备用&#10;第二步：起锅烧油，放入葱姜爆香&#10;第三步：下入主料翻炒，加入调料&#10;第四步：收汁装盘即可">'+esc((r.steps||[]).join('\n'))+'</textarea></div>'
-    + '<div class="field"><label>步骤配图 <span style="color:var(--sub);font-weight:400;font-size:12px">（可选，每步可上传一张图）</span></label>'
-    +   '<div id="stepImgsWrap">'+stepImgRowsHtml()+'</div></div>'
     + '<div class="field"><label>小贴士 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一条，会显示在菜谱卡底部）</span></label>'
     +   '<textarea id="f_tips" placeholder="番茄选熟透的，炒出来更鲜甜多汁。&#10;喜欢汤汁多的可以少收汁，拌饭超赞！">'+esc((r.tips||[]).join('\n'))+'</textarea></div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
     +   '<button class="btn btn-primary" onclick="saveRecipe()">保存</button></div>';
 }
 function editMat(idx, field, val){ editBuf.materials[idx][field] = (field==='skip')? val : val; }
-function stepImgRowsHtml(){
-  const steps = (editBuf.steps || []).filter(s=>s.trim());
-  if(!steps.length) return '<div style="color:var(--sub);font-size:12.5px">先填写做法步骤，再回来配图。</div>';
-  const imgs = editBuf.stepImgs || [];
-  return steps.map((s,i)=>{
-    const img = imgs[i] || '';
-    const thumb = img ? '<img class="step-thumb" src="'+esc(img)+'">' : '<div class="step-thumb-placeholder">🖼️</div>';
-    return '<div class="step-img-row">'
-      + '<span class="step-idx">'+(i+1)+'</span>'
-      + thumb
-      + '<span class="step-txt">'+esc(s.length>18?s.slice(0,18)+'…':s)+'</span>'
-      + '<div class="ck-upload"><input type="file" accept="image/*" onchange="setStepImg('+i+', this.files[0])"><span class="ck-upbtn">'+(img?'换图':'上传')+'</span></div>'
-      + (img?'<button class="row-del" onclick="removeStepImg('+i+')" title="删除配图">🗑</button>':'')
-      + '</div>';
-  }).join('');
-}
-function setStepImg(idx, file){
-  if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){
-    if(!editBuf.stepImgs) editBuf.stepImgs = [];
-    editBuf.stepImgs[idx] = dataUrl;
-    const wrap = document.getElementById('stepImgsWrap');
-    if(wrap) wrap.innerHTML = stepImgRowsHtml();
-  });
-}
-function removeStepImg(idx){
-  if(!editBuf.stepImgs) return;
-  editBuf.stepImgs[idx] = '';
-  const wrap = document.getElementById('stepImgsWrap');
-  if(wrap) wrap.innerHTML = stepImgRowsHtml();
-}
 function setDiff(i){
   editBuf.difficulty = i;
   document.querySelectorAll('#starPick .star').forEach(s=>{
@@ -1493,7 +1444,6 @@ function delMat(idx){ editBuf.materials.splice(idx,1); renderEditor(); }
 function saveRecipe(){
   const r = editBuf;
   r.name = document.getElementById('f_name').value.trim() || '未命名菜谱';
-  r.tagline = document.getElementById('f_tagline').value.trim();
   r.emoji = editBuf.emoji || '🍽️';
   r.type = document.getElementById('f_type').value;
   r.image = editBuf._cover || '';
@@ -1501,8 +1451,6 @@ function saveRecipe(){
   if(!r.difficulty) r.difficulty = 2;
   r.steps = document.getElementById('f_steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   r.tips = document.getElementById('f_tips').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(!r.stepImgs) r.stepImgs = [];
-  r.stepImgs = r.stepImgs.slice(0, r.steps.length); // trim to step count
   r.materials = r.materials.filter(m=>m.n && m.n.trim());
   const av = avoidSet();
   r.materials.forEach(m=>{ if(m.skip && !m.note) m.note='你忌口，可不放'; if(!av.has(m.n)) m.note=''; });
@@ -1552,9 +1500,6 @@ function openRecipeViewer(id){
     heroHtml = '<div class="rc-hero emoji-hero">'+esc(r.emoji||'🍽️')+'</div>';
   }
 
-  // 副标题/标签
-  const tagline = r.tagline ? esc(r.tagline) : '';
-
   // 食材网格
   const matItems = r.materials.map(m=>{
     const isAvoid = av.has(m.n);
@@ -1571,15 +1516,11 @@ function openRecipeViewer(id){
       + (m.qty ? '<span class="mi-qty">'+esc(m.qty)+'</span>' : '')+'</div></div>';
   }).join('');
 
-  // 步骤卡片（可配图）
-  const stepImgs = r.stepImgs || [];
+  // 步骤卡片
   const stepItems = (r.steps&&r.steps.length)
     ? r.steps.map((s,i)=>{
-        const img = stepImgs[i];
-        const imgHtml = img ? '<img class="rc-step-img" src="'+esc(img)+'" alt="步骤图" onerror="this.style.display=\'none\'">' : '';
         return '<div class="rc-step">'
           + '<div class="rc-step-header"><span class="rc-step-num">'+(i+1)+'</span><span class="rc-step-title">步骤 '+(i+1)+'</span></div>'
-          + imgHtml
           + '<p class="rc-step-text">'+esc(s)+'</p></div>';
       }).join('')
     : '<div style="color:var(--sub);padding:10px 0">暂无步骤</div>';
@@ -1595,7 +1536,6 @@ function openRecipeViewer(id){
   document.getElementById('modalBody').innerHTML =
     '<div class="recipe-card">'
     + '<div class="rc-title">'+esc(r.name)+'</div>'
-    + (tagline ? '<div class="rc-tagline">'+tagline+'</div>' : '')
     + heroHtml
     + '<div class="rc-meta">'
     +   '<span><b>'+dishDuration(r)+'</b> 分钟</span>'
