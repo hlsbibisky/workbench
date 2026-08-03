@@ -153,6 +153,26 @@
     .topbar, .content{ padding-left:18px; padding-right:18px; }
     .framebox iframe{ height:calc(100vh - 300px); }
   }
+  /* 手机：侧栏变顶部横滑导航，主区 iframe 全屏 */
+  @media (max-width:680px){
+    .app{ flex-direction:column; }
+    .sidebar{
+      width:100%; flex:0 0 auto; height:auto; position:sticky; top:0; z-index:20;
+      flex-direction:column; padding:10px 12px; border-right:none; border-bottom:1px solid var(--line);
+    }
+    .brand{ padding:2px 0 8px; }
+    .brand small{ display:none; }
+    .navlabel{ display:none; }
+    #nav{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+    .navitem{ flex:0 0 auto; width:auto; padding:8px 13px; font-size:13.5px; white-space:nowrap; }
+    .navitem .navbadge{ position:static; margin-left:6px; }
+    .sidefoot{ display:none; }
+    .topbar{ padding:0 14px; height:50px; flex:0 0 50px; }
+    .content{ padding:12px 12px 36px; }
+    .modtitle{ font-size:19px; }
+    .crumb{ font-size:12.5px; }
+    .framebox iframe{ height:calc(100vh - 160px); min-height:320px; }
+  }
 </style>
 </head>
 <body>
@@ -405,7 +425,20 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0) o[k]=localStorage.getItem(k); } return o; }
-function wbApply(o){ if(!o) return; Object.keys(o).forEach(k=>{ if(WB_SKIP.indexOf(k)<0){ try{ localStorage.setItem(k,o[k]); }catch(e){} } }); wbBroadcastReload(); }
+function wbApply(o){
+  if(!o) return;
+  let changed = false;
+  Object.keys(o).forEach(k=>{
+    if(WB_SKIP.indexOf(k)<0){
+      const cur = localStorage.getItem(k);
+      if(cur !== o[k]){
+        try{ localStorage.setItem(k,o[k]); changed=true; }
+        catch(e){ console.error('wbApply failed for',k,e); }
+      }
+    }
+  });
+  if(changed) wbBroadcastReload();
+}
 function wbSchedulePush(){ wbLoadCfg(); if(!wbSync.connected) return; if(wbPushTimer) clearTimeout(wbPushTimer); wbPushTimer=setTimeout(wbPush,1200); }
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
@@ -414,7 +447,8 @@ async function wbPush(){
   try{ const payload=JSON.stringify({updatedAt:new Date().toISOString(),data:wbCollect()});
     const enc=wbGhB64(payload); let sha=wbLastSha;
     if(!sha){ try{ const cur=await wbGhReq('GET'); sha=cur.sha; }catch(e){ sha=null; } }
-    await wbGhReq('PUT',{message:'workbench sync '+new Date().toISOString(),content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
+    const res=await wbGhReq('PUT',{message:'workbench sync '+new Date().toISOString(),content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
+    if(res && res.sha) wbLastSha = res.sha;
     wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
@@ -450,14 +484,14 @@ async function wbConnect(){
     if(!wbSync.github.repo||!wbSync.github.token) throw new Error('请填写 GitHub 仓库与令牌');
     try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
     wbGhStartPoll();
-    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步'); wbOpenSync();
+    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步');
   }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
 }
 function wbDisconnect(){
   wbSync.connected=false; wbSaveCfg();
   if(wbPollTimer){ clearInterval(wbPollTimer); wbPollTimer=null; }
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
-  wbToast('已断开云同步'); wbOpenSync();
+  wbToast('已断开云同步');
 }
 function wbOpenSync(){
   wbLoadCfg();
@@ -494,13 +528,17 @@ function wbDoConnect(){
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 /* 接收各 iframe 页面数据变更，触发上传 */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
-/* 启动自恢复：若上次已连接，自动重连并开始同步 */
-(function wbRestore(){
+/* 启动自恢复：若上次已连接，静默重连（拉数据 + 起轮询），不弹任何界面 */
+async function wbSilentReconnect(){
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
-  if(wbSync.connected){ wbConnect(); if(dot) dot.style.background='#3aa76d'; }
-  else { if(dot) dot.style.background='#c9bfae'; }
-})();
+  if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; return; }
+  if(!wbSync.github.repo||!wbSync.github.token){ wbSync.connected=false; wbSaveCfg(); if(dot) dot.style.background='#c9bfae'; return; }
+  if(dot) dot.style.background='#3aa76d';
+  try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
+  wbGhStartPoll();
+}
+wbSilentReconnect();
 </script>
 </body>
 </html>
