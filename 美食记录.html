@@ -414,14 +414,21 @@
   }catch(e){}
   window.addEventListener('message',function(e){
     if(e.data&&e.data.type==='wb-reload'){
-      // 如果用户正在输入/上传，先让当前输入框失焦保存，稍后再刷新，避免丢失未保存内容
+      // 正在编辑（弹窗打开 / 输入框聚焦 / 标签编辑中）时跳过刷新，绝不清空未保存内容
+      var modalEl=document.getElementById('modal');
+      var modalOpen = modalEl && !modalEl.classList.contains('hidden');
       var active = document.activeElement;
-      if(active && (active.tagName==='INPUT' || active.tagName==='TEXTAREA')){
-        try{ active.blur(); }catch(err){}
-        setTimeout(function(){ location.reload(); }, 350);
-      } else {
-        try{ location.reload(); }catch(err){}
-      }
+      var typing = active && (active.tagName==='INPUT' || active.tagName==='TEXTAREA' || active.tagName==='SELECT');
+      if(modalOpen || typing || editingTag){ return; }
+      // 非编辑态：仅软刷新当前视图（不整页 reload，避免丢失滚动位置与输入）
+      try{
+        if(typeof state!=='undefined' && state){
+          if(state.tab==='today') renderToday();
+          else if(state.tab==='menu') renderMenu();
+          else if(state.tab==='taste') renderTaste();
+          else if(state.tab==='checkin') renderCheckin();
+        } else { location.reload(); }
+      }catch(err){ try{ location.reload(); }catch(e){} }
     }
   });
 })();
@@ -1854,6 +1861,7 @@ function loadSyncCfg(){
 }
 function saveSyncCfg(){ localStorage.setItem(K_SYNC, JSON.stringify(syncCfg)); }
 function scheduleCloudPush(){
+  if(window.parent!==window) return;   // iframe 内（被工作台承载）：同步交给外壳统一处理，避免双推送互相覆盖
   if(!syncCfg) loadSyncCfg();
   if(!syncCfg.connected) return;
   if(pushTimer) clearTimeout(pushTimer);
@@ -2050,6 +2058,11 @@ function doConnectSync(){
     const c = JSON.parse(localStorage.getItem(K_SYNC));
     if(c && c.connected){
       loadSyncCfg();
+      if(window.parent!==window){
+        // iframe 内（被工作台承载）：同步完全由工作台外壳负责（wbApply 注入 + wb-data-changed 收集上传），
+        // 本页不启动自己的轮询/实时通道，避免与外壳双重同步互相触发整页刷新、清空编辑内容
+        return;
+      }
       if(syncCfg.provider==='github'){ ghPull().then(()=>ghStartPoll()).catch(()=>{}); syncCfg.connected = true; saveSyncCfg(); }
       else { connectSync().catch(()=>{}); }
     }
