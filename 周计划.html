@@ -126,7 +126,7 @@ function renderWeek(){
 }
 
 function visibleTasks(catId){
-  return state.tasks.filter(t=> t.catId===catId && (viewDay===-1 || (t.day||-1)===viewDay));
+  return state.tasks.filter(t=> t.catId===catId);
 }
 
 function renderCats(){
@@ -174,13 +174,9 @@ function taskRow(t){
   ck.onclick=()=>{ t.done=!t.done; save(); renderCats(); };
   const tx=document.createElement('div'); tx.className='ttext'+(t.done?' done':''); tx.textContent=t.text;
   tx.onclick=()=>startEdit(tx, v=>{ t.text=v; save(); renderCats(); });
-  const sel=document.createElement('select'); sel.className='tday';
-  sel.innerHTML='<option value="-1">不指定</option>'+WD.map((w,i)=>'<option value="'+i+'">'+w+'</option>').join('');
-  sel.value=(t.day==null?-1:t.day);
-  sel.onchange=()=>{ t.day=parseInt(sel.value,10); if(t.day===-1)t.day=null; save(); if(viewDay!==-1) renderCats(); };
   const del=document.createElement('button'); del.className='mini del'; del.textContent='🗑'; del.onclick=()=>delTask(t.id);
-  // 新顺序：勾选 → 任务名 → 指定星期 → 完成次数+▼ → 删除
-  row.appendChild(ck); row.appendChild(tx); row.appendChild(sel); row.appendChild(wrap); row.appendChild(del);
+  // 顺序：勾选 → 任务名 → 完成次数+▼ → 删除
+  row.appendChild(ck); row.appendChild(tx); row.appendChild(wrap); row.appendChild(del);
   return row;
 }
 
@@ -207,7 +203,7 @@ function delCat(id){
 }
 function addTask(catId){
   const text=prompt('新计划内容：',''); if(!text) return;
-  const t={id:uid(), catId, text:text.trim(), done:false, day: viewDay===-1?null:viewDay };
+  const t={id:uid(), catId, text:text.trim(), done:false, day:null };
   state.tasks.push(t); save(); renderCats();
 }
 function delTask(id){
