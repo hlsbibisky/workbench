@@ -411,8 +411,9 @@ function wbImport(file){
 
 /* ===== 工作台级云同步：同步全部页面数据（美食/股票/驱动力/周计划…） ===== */
 const WB_K_SYNC='wb_cloudsync';
+const WB_K_LAST_SYNC='wb_last_sync_at';
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbLastSha=null, wbBusy=false;
-const WB_SKIP=['wb_cloudsync','food_cloudsync']; /* 不同步令牌本身，防外泄 */
+const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at']; /* 不同步令牌/时间戳本身，防外泄 */
 function wbLoadCfg(){
   try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
   if(!wbSync) wbSync={};
@@ -442,11 +443,12 @@ function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ t
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
 async function wbPush(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
-  try{ const payload=JSON.stringify({updatedAt:new Date().toISOString(),data:wbCollect()});
+  const now = new Date().toISOString();
+  try{ const payload=JSON.stringify({updatedAt:now,data:wbCollect()});
     const enc=wbGhB64(payload); let sha=wbLastSha;
     if(!sha){ try{ const cur=await wbGhReq('GET'); sha=cur.sha; }catch(e){ sha=null; } }
-    const res=await wbGhReq('PUT',{message:'workbench sync '+new Date().toISOString(),content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
-    if(res && res.sha) wbLastSha = res.sha;
+    const res=await wbGhReq('PUT',{message:'workbench sync '+now,content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
+    if(res && res.sha){ wbLastSha = res.sha; try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){} }
     wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
@@ -463,7 +465,15 @@ async function wbParseSync(cur){
 }
 async function wbPull(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
-  try{ const cur=await wbGhReq('GET'); wbLastSha=cur.sha; const text=await wbParseSync(cur); const obj=JSON.parse(text); if(obj&&obj.data) wbApply(obj.data); }
+  try{
+    const cur=await wbGhReq('GET'); wbLastSha=cur.sha;
+    const text=await wbParseSync(cur); const obj=JSON.parse(text);
+    if(obj&&obj.data){
+      const localAt = localStorage.getItem(WB_K_LAST_SYNC) || '1970-01-01T00:00:00.000Z';
+      const cloudAt = obj.updatedAt || '1970-01-01T00:00:00.000Z';
+      if(cloudAt > localAt){ wbApply(obj.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
+    }
+  }
   catch(e){ console.error(e); }
   finally{ wbBusy=false; }
 }
@@ -482,7 +492,18 @@ function wbGhStartPoll(){
   if(wbPollTimer) clearInterval(wbPollTimer);
   wbPollTimer=setInterval(async()=>{
     if(!wbSync||!wbSync.connected||wbBusy) return;
-    try{ const cur=await wbGhReq('GET'); if(cur.sha!==wbLastSha){ wbLastSha=cur.sha; const text=await wbParseSync(cur); const obj=JSON.parse(text); if(obj&&obj.data) wbApply(obj.data); } }
+    try{
+      const cur=await wbGhReq('GET');
+      if(cur.sha!==wbLastSha){
+        wbLastSha=cur.sha;
+        const text=await wbParseSync(cur); const obj=JSON.parse(text);
+        if(obj&&obj.data){
+          const localAt = localStorage.getItem(WB_K_LAST_SYNC) || '1970-01-01T00:00:00.000Z';
+          const cloudAt = obj.updatedAt || '1970-01-01T00:00:00.000Z';
+          if(cloudAt > localAt){ wbApply(obj.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
+        }
+      }
+    }
     catch(e){}
   },15000);
 }
