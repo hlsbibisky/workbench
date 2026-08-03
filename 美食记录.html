@@ -33,6 +33,10 @@
   .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
   .databtn{ flex-shrink:0; background:rgba(184,113,78,.1); color:var(--accent); border:1px solid var(--line); border-radius:18px; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; transition:.14s; }
   .databtn:hover{ background:rgba(184,113,78,.2); }
+  .syncbar{ display:flex; align-items:center; gap:14px; padding:8px 16px; margin:0 0 14px; background:rgba(184,113,78,.06); border:1px solid var(--line); border-radius:12px; font-size:13px; }
+  .syncbar-label{ color:var(--accent); font-weight:600; }
+  .syncbar-time{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .syncbar .databtn{ margin-left:auto; }
   .moddesc{ color:var(--sub); font-size:13px; margin-bottom:16px; }
 
   /* 子模块 tab */
@@ -437,16 +441,19 @@
 })();
 </script>
   <div class="topbar">
-    <div class="brand"><b>美食记录</b><small>生活记录 · 好好吃饭</small></div>
     <div class="topright">
-      <button class="databtn" onclick="openDataMgr()" style="padding:5px 12px;font-size:12px">⚙ 数据备份</button>
       <span id="todayStr"></span>
       <span class="clock" id="clock">--:--</span>
     </div>
   </div>
 
   <div class="content">
-    <!-- 大标题卡片已移除（嵌入工作台时与外层导航重复；同步/备份按钮已上移至顶栏） -->
+    <!-- 同步/数据信息条（已上移至 subtabs 上方） -->
+    <div class="syncbar">
+      <span class="syncbar-label">☁ 数据同步</span>
+      <span class="syncbar-time" id="syncbarTime">--</span>
+      <button class="databtn" onclick="openDataMgr()" style="padding:4px 12px;font-size:12px">⚙ 数据备份</button>
+    </div>
 
     <div class="subtabs">
       <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
@@ -1718,6 +1725,8 @@ function tick(){
   const p=x=>String(x).padStart(2,'0');
   document.getElementById('clock').textContent = p(n.getHours())+':'+p(n.getMinutes());
   document.getElementById('todayStr').textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日';
+  const sb=document.getElementById('syncbarTime');
+  if(sb) sb.textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日 '+p(n.getHours())+':'+p(n.getMinutes());
 }
 tick(); setInterval(tick, 30000);
 
