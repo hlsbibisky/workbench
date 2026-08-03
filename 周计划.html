@@ -41,12 +41,16 @@
   .ttext{ flex:1; outline:none; font-size:14px; }
   .ttext.done{ color:var(--sub); }
   .ttext[contenteditable="true"]{ background:#fff8ef; }
-  .tcount{ flex:none; font-size:11px; color:var(--accent); background:#fdf2ea; border:1px solid #f0d8c0; border-radius:9px; padding:1px 7px; margin-left:-2px; }
+  .tcount-wrap{ flex:none; display:flex; align-items:center; gap:3px; margin-right:4px; }
+  .tcount-btn{ font-size:11px; color:var(--accent); background:#fdf2ea; border:1px solid #f0d8c0; border-radius:9px; padding:2px 8px; cursor:pointer; user-select:none; white-space:nowrap; }
+  .tcount-btn:hover{ background:#fae7d7; }
+  .tcount-arrow{ width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--sub); font-size:10px; cursor:pointer; }
+  .tcount-arrow:hover{ border-color:var(--accent); color:var(--accent); }
   .add-task-row{ display:inline-block; margin:8px 0 0; border:none; background:transparent; color:var(--accent); font-size:12px; cursor:pointer; padding:2px 0; }
   .add-task-row:hover{ text-decoration:underline; }
   .tday{ border:1px solid var(--line); border-radius:7px; padding:3px 4px; font-size:12px; color:var(--sub); background:#fbf8f2; }
   .empty{ color:var(--sub); font-size:13px; padding:6px 2px; }
-  @media (max-width:640px){ .day{ min-width:46px; } .cat-name{ font-size:14px; } }
+  @media (max-width:640px){ .day{ min-width:46px; } .cat-name{ font-size:14px; } .tcount-btn{ font-size:10px; padding:2px 6px; } .tcount-arrow{ width:16px; height:16px; } }
 </style>
 </head>
 <body>
@@ -143,9 +147,21 @@ function renderCats(){
 
 function taskRow(t){
   const row=document.createElement('div'); row.className='task';
+
+  // 完成次数控制：按钮（点击+1）+ 上下箭头
+  const wrap=document.createElement('div'); wrap.className='tcount-wrap';
+  const cntBtn=document.createElement('span'); cntBtn.className='tcount-btn';
+  cntBtn.textContent='完成 '+(t.count||0)+' 次'; cntBtn.title='点击 +1';
+  cntBtn.onclick=()=>{ t.count=(t.count||0)+1; if(!t.done) t.done=true; save(); renderCats(); };
+  const up=document.createElement('span'); up.className='tcount-arrow'; up.textContent='▲'; up.title='+1';
+  up.onclick=()=>{ t.count=(t.count||0)+1; if(!t.done) t.done=true; save(); renderCats(); };
+  const down=document.createElement('span'); down.className='tcount-arrow'; down.textContent='▼'; down.title='-1';
+  down.onclick=()=>{ if((t.count||0)>0){ t.count=(t.count||0)-1; save(); renderCats(); } };
+  wrap.appendChild(cntBtn); wrap.appendChild(up); wrap.appendChild(down);
+
   const ck=document.createElement('div'); ck.className='ck'+(t.done?' done':''); ck.textContent=t.done?'✓':'';
-  ck.title='点击记录完成一次';
-  ck.onclick=()=>{ t.done=!t.done; if(t.done) t.count=(t.count||0)+1; save(); renderCats(); };
+  ck.title='点击标记完成/取消';
+  ck.onclick=()=>{ t.done=!t.done; save(); renderCats(); };
   const tx=document.createElement('div'); tx.className='ttext'+(t.done?' done':''); tx.textContent=t.text;
   tx.onclick=()=>startEdit(tx, v=>{ t.text=v; save(); renderCats(); });
   const sel=document.createElement('select'); sel.className='tday';
@@ -153,12 +169,7 @@ function taskRow(t){
   sel.value=(t.day==null?-1:t.day);
   sel.onchange=()=>{ t.day=parseInt(sel.value,10); if(t.day===-1)t.day=null; save(); if(viewDay!==-1) renderCats(); };
   const del=document.createElement('button'); del.className='mini del'; del.textContent='🗑'; del.onclick=()=>delTask(t.id);
-  row.appendChild(ck); row.appendChild(tx);
-  if(t.count && t.count>0){
-    const cnt=document.createElement('span'); cnt.className='tcount'; cnt.textContent='×'+t.count; cnt.title='已累计完成 '+t.count+' 次';
-    row.appendChild(cnt);
-  }
-  row.appendChild(sel); row.appendChild(del);
+  row.appendChild(wrap); row.appendChild(ck); row.appendChild(tx); row.appendChild(sel); row.appendChild(del);
   return row;
 }
 
