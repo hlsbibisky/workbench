@@ -207,5 +207,13 @@
     }
   })();
 </script>
+<script>
+(function(){
+  window.addEventListener('message',function(e){
+    if(!e.data) return;
+    if(e.data.type==='wb-request-save'){ try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(err){} try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} }
+  });
+})();
+</script>
 </body>
 </html>
