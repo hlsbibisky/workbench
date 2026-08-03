@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八字解盘</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;line-height:1.6;
+    padding:22px 26px 60px;}
+  h1{font-size:21px;letter-spacing:2px;color:var(--accent);margin:0 0 4px;}
+  .lead{font-size:13px;color:var(--sub);margin:0 0 18px;}
+
+  /* 输入区 */
+  .inputs{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;margin-bottom:20px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:12px;color:var(--sub);letter-spacing:1px;}
+  .field input,.field select{width:78px;padding:8px 10px;border:1px solid var(--line);
+    border-radius:9px;background:#fff;font-family:inherit;font-size:15px;color:var(--ink);}
+  .field.wide input{width:96px;}
+  .sex{display:flex;gap:8px;}
+  .sex label{font-size:14px;border:1px solid var(--line);border-radius:9px;padding:8px 16px;cursor:pointer;background:#fff;}
+  .sex input{display:none;}
+  .sex input:checked + span{color:var(--accent);font-weight:600;}
+  .sex label:has(input:checked){border-color:var(--accent);background:var(--mark);}
+  .btns{display:flex;gap:10px;margin-left:auto;}
+  button.act{border:none;background:var(--accent);color:#fff;padding:10px 22px;border-radius:10px;
+    cursor:pointer;font-size:14px;letter-spacing:1px;font-family:inherit;transition:.15s;}
+  button.act:hover{filter:brightness(1.05);}
+  button.ghost{background:#fff;border:1px solid var(--line);color:var(--sub);}
+  .note{font-size:11px;color:var(--sub);width:100%;margin-top:2px;}
+
+  /* 四柱表 */
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .pcol{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;}
+  .pcol .tag{font-size:12px;color:var(--sub);letter-spacing:2px;margin-bottom:8px;}
+  .pcol .gz{display:flex;justify-content:center;gap:10px;align-items:flex-end;}
+  .pcol .gan,.pcol .zhi{font-size:34px;font-weight:700;line-height:1.1;border-radius:10px;padding:4px 8px;}
+  .pcol .ss{font-size:12px;margin-top:8px;color:var(--sub);}
+  .pcol .ss b{display:inline-block;margin:2px 3px;padding:2px 8px;border-radius:10px;color:#fff;font-weight:500;}
+  .mini{font-size:11px;color:var(--sub);margin-top:6px;}
+
+  /* 通用卡片网格 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .box h3{font-size:14px;letter-spacing:1px;color:var(--accent);margin:0 0 12px;}
+
+  /* 五行条 */
+  .wxrow{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px;}
+  .wxrow .nm{width:34px;color:var(--ink);}
+  .wxbar{flex:1;height:14px;background:var(--mark);border-radius:8px;overflow:hidden;}
+  .wxbar i{display:block;height:100%;}
+  .wxrow .ct{width:20px;text-align:right;color:var(--sub);}
+
+  /* 十神 chip */
+  .chip{display:inline-block;margin:3px;padding:4px 11px;border-radius:11px;color:#fff;font-size:13px;}
+  .zh-detail{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.9;}
+  .zh-detail span{display:inline-block;margin-right:10px;}
+
+  /* 大运 */
+  .yun{display:flex;flex-wrap:wrap;gap:8px;}
+  .yun .y{background:var(--mark);border-radius:10px;padding:8px 12px;text-align:center;min-width:62px;}
+  .yun .y .g{font-size:17px;font-weight:700;}
+  .yun .y .a{font-size:11px;color:var(--sub);}
+
+  /* 解读 */
+  .read{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-size:14px;line-height:1.9;}
+  .read p{margin:0 0 10px;}
+  .read .hl{color:var(--accent);font-weight:600;}
+  .read .tt{font-size:15px;font-weight:700;color:var(--ink);display:block;margin:14px 0 6px;letter-spacing:1px;}
+</style>
+</head>
+<body>
+  <h1>八字解盘</h1>
+  <p class="lead">输入公历出生信息，自动排出四柱八字、十神格局、五行强弱与用神大运。</p>
+
+  <div class="inputs">
+    <div class="field"><label>出生年</label><input id="y" type="number" value="1990"></div>
+    <div class="field"><label>月</label><input id="m" type="number" value="5" min="1" max="12"></div>
+    <div class="field"><label>日</label><input id="d" type="number" value="20" min="1" max="31"></div>
+    <div class="field"><label>时</label><input id="hh" type="number" value="10" min="0" max="23"></div>
+    <div class="field"><label>分</label><input id="mm" type="number" value="30" min="0" max="59"></div>
+    <div class="field"><label>性别</label>
+      <div class="sex">
+        <label><input type="radio" name="g" value="男" checked><span>男</span></label>
+        <label><input type="radio" name="g" value="女"><span>女</span></label>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="act" onclick="run()">排盘</button>
+      <button class="ghost act" onclick="fillExample()">填入示例</button>
+    </div>
+    <div class="note">说明：按北京时间（东八区）推算；时辰由小时自动判定（23–1 点为子时）。如出生时已换算真太阳时，请直接填入对应时辰即可。节气采用寿星公式近似，覆盖 1900–2099，强弱/用神为简化判断，仅供参考。</div>
+  </div>
+
+  <div id="out"></div>
+
+<script src="bazi_engine.js"></script>
+<script>
+  const E = window.BaziEngine;
+  function getInput(){
+    return {
+      y:+document.getElementById('y').value,
+      m:+document.getElementById('m').value,
+      d:+document.getElementById('d').value,
+      hh:+document.getElementById('hh').value,
+      mm:+document.getElementById('mm').value,
+      gender: document.querySelector('input[name=g]:checked').value
+    };
+  }
+  function fillExample(){ ['y','m','d','hh','mm'].forEach((id,i)=>{
+    document.getElementById(id).value=[1990,5,20,10,30][i];
+  });
+    document.querySelector('input[name=g][value=男]').checked=true;
+    run();
+  }
+  function wxTag(i){ return `<span style="color:${E.WX_COLOR[i]}">${E.WX_NAME[i]}</span>`; }
+
+  function render(p){
+    const G=E.GAN, Z=E.ZHI;
+    // 四柱
+    const cols=['year','month','day','hour'].map((k,i)=>{
+      const lab=['年柱','月柱','日柱','时柱'][i];
+      const pil=p[k];
+      const ganSS = k==='day' ? '日主' : p.ganSS[k];
+      const zhiSS = p.zhiSS[k];
+      const ganWx=E.GAN_WX[pil.gan], zhiWx=E.ZHI_WX[pil.zhi];
+      const ganCol=E.WX_COLOR[ganWx], zhiCol=E.WX_COLOR[zhiWx];
+      return `<div class="pcol">
+        <div class="tag">${lab}</div>
+        <div class="gz">
+          <span class="gan" style="color:${ganCol}">${G[pil.gan]}</span>
+          <span class="zhi" style="color:${zhiCol}">${Z[pil.zhi]}</span>
+        </div>
+        <div class="ss"><b style="background:${E.SS_COLOR[ganSS]||'#5b8c7b'}">${ganSS}</b>
+          <b style="background:${E.SS_COLOR[zhiSS]||'#999'}">${zhiSS}</b></div>
+        <div class="mini">${wxTag(ganWx)} · ${wxTag(zhiWx)}</div>
+      </div>`;
+    }).join('');
+
+    // 五行
+    const wxRows=E.WX_NAME.map((nm,i)=>{
+      const ct=p.wxCount[i]; const pct=Math.round(ct/p.wxTotal*100);
+      return `<div class="wxrow"><span class="nm" style="color:${E.WX_COLOR[i]}">${nm}</span>
+        <span class="wxbar"><i style="width:${pct}%;background:${E.WX_COLOR[i]}"></i></span>
+        <span class="ct">${ct}</span></div>`;
+    }).join('');
+
+    // 十神 chips（天干）
+    const ssChips=['year','month','hour'].map(k=>{
+      const ss=p.ganSS[k]; return `<span class="chip" style="background:${E.SS_COLOR[ss]}">${G[p[k].gan]}·${ss}</span>`;
+    }).join('') + `<span class="chip" style="background:${E.SS_COLOR['日主']||'#5b8c7b'}">${G[p.day.gan]}·日主</span>`;
+
+    // 地支藏干
+    const zh=Object.keys(p.hidden).map(k=>{
+      const lab={year:'年支',month:'月支',day:'日支',hour:'时支'}[k];
+      const sp=p.hidden[k].map(h=>`<span>${Z[p[k].zhi]}${h.role=== '本气'?'':('('+h.role+')')}：${G[h.g]}<b style="color:${E.SS_COLOR[h.ss]||'#999'}"> ${h.ss}</b></span>`).join('');
+      return sp;
+    }).join('<br>');
+
+    // 大运
+    const yun=p.dayun.list.map(y=>`<div class="y"><div class="g">${G[y.gan]}${Z[y.zhi]}</div><div class="a">${y.ageFrom}–${y.ageTo}岁</div></div>`).join('');
+
+    // 解读
+    const dm=E.DAY_MASTER[G[p.dayMaster]];
+    const read=`<span class="tt">命盘总览</span>
+      <p>日主 <span class="hl">${G[p.dayMaster]}${dm.wx}</span>（${dm.yin==='阳'?'阳':'阴'}），${dm.txt}</p>
+      <p>五行分布：${E.WX_NAME.map((n,i)=>n+' '+p.wxCount[i]).join('、')}。${E.WX_DESC[dm.wx]}是其底色。</p>
+      <span class="tt">强弱与用神</span>
+      <p>格局判定：<span class="hl">${p.strength.level}</span>。${p.strength.note}
+        得令${p.strength.deling?'✔':'✘'} · 得地${p.strength.didi} · 得势${p.strength.desi}。</p>
+      <p>喜用：${p.yongshen.xiTen.join('、')}（五行：${p.yongshen.xiWx.map(i=>E.WX_NAME[i]).join('、')}）；
+        忌：${p.yongshen.jiTen.join('、')}（五行：${p.yongshen.jiWx.map(i=>E.WX_NAME[i]).join('、')}）。</p>
+      <span class="tt">十神格局</span>
+      <p>天干透出：${['year','month','hour'].map(k=>G[p[k].gan]+p.ganSS[k]).join('、')}。
+        其中${topTen(p)}最为突出，主导你的外在表现与行事风格。</p>
+      <span class="tt">大运走势</span>
+      <p>起运约 <span class="hl">${p.dayun.startAge}</span> 岁，${p.dayun.forward?'顺排':'逆排'}。每十年一步，前期运势如上（可读作人生不同阶段的主题底色）。</p>`;
+
+    document.getElementById('out').innerHTML = `
+      <div class="pillars">${cols}</div>
+      <div class="grid">
+        <div class="box"><h3>五行分布</h3>${wxRows}</div>
+        <div class="box"><h3>天干十神</h3>${ssChips}
+          <div class="zh-detail">${zh}</div></div>
+        <div class="box"><h3>大运（约 ${p.dayun.startAge} 岁起）</h3><div class="yun">${yun}</div></div>
+      </div>
+      <div class="read">${read}</div>`;
+
+    // 存入 localStorage 供「核心驱动力」读取
+    try{ localStorage.setItem('bazi_profile', JSON.stringify(stripForStore(p))); }catch(e){}
+  }
+
+  function topTen(p){
+    const order=['year','month','hour'];
+    const list=order.map(k=>p.ganSS[k]);
+    const cnt={}; list.forEach(s=>cnt[s]=(cnt[s]||0)+1);
+    let best=list[0],n=0; for(const s in cnt){ if(cnt[s]>n){n=cnt[s];best=s;} }
+    return best;
+  }
+  // 仅存可用于核心驱动力的关键字段，减小体积
+  function stripForStore(p){
+    return { input:p.input, dayMaster:p.dayMaster, dmWx:p.dmWx,
+      year:p.year, month:p.month, day:p.day, hour:p.hour,
+      ganSS:p.ganSS, zhiSS:p.zhiSS, hidden:p.hidden,
+      wxCount:p.wxCount, wxTotal:p.wxTotal,
+      strength:p.strength, yongshen:p.yongshen, dayun:p.dayun,
+      bucket:p.bucket, driveW:p.driveW, drive:p.drive };
+  }
+
+  function run(){
+    const inp=getInput();
+    if(!inp.y||inp.m<1||inp.m>12||inp.d<1||inp.d>31){ alert('请填写有效的出生日期'); return; }
+    const p=E.computeBazi(inp);
+    render(p);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // 初始化：尝试读取上次结果，否则用示例
+  (function init(){
+    let loaded=null;
+    try{ const s=localStorage.getItem('bazi_profile'); if(s) loaded=JSON.parse(s); }catch(e){}
+    if(loaded && loaded.input){
+      ['y','m','d','hh','mm'].forEach((id,i)=>{
+        const v=[loaded.input.y,loaded.input.m,loaded.input.d,loaded.input.hh,loaded.input.mm][i];
+        if(v!=null) document.getElementById(id).value=v;
+      });
+      const r=document.querySelector(`input[name=g][value="${loaded.input.gender}"]`);
+      if(r) r.checked=true;
+      // 若上次已算过，直接渲染
+      try{ render(loaded); return; }catch(e){}
+    }
+    run();
+  })();
+</script>
+<script>
+(function(){
+  window.addEventListener('message',function(e){
+    if(!e.data) return;
+    if(e.data.type==='wb-request-save'){ try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(err){} try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} }
+  });
+})();
+</script>
+</body>
+</html>
