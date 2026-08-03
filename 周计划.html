@@ -39,8 +39,11 @@
   .ck{ width:18px; height:18px; border:2px solid var(--accent); border-radius:5px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
   .ck.done{ background:var(--accent); }
   .ttext{ flex:1; outline:none; font-size:14px; }
-  .ttext.done{ text-decoration:line-through; color:var(--sub); }
+  .ttext.done{ color:var(--sub); }
   .ttext[contenteditable="true"]{ background:#fff8ef; }
+  .tcount{ flex:none; font-size:11px; color:var(--accent); background:#fdf2ea; border:1px solid #f0d8c0; border-radius:9px; padding:1px 7px; margin-left:-2px; }
+  .add-task-row{ display:inline-block; margin:8px 0 0; border:none; background:transparent; color:var(--accent); font-size:12px; cursor:pointer; padding:2px 0; }
+  .add-task-row:hover{ text-decoration:underline; }
   .tday{ border:1px solid var(--line); border-radius:7px; padding:3px 4px; font-size:12px; color:var(--sub); background:#fbf8f2; }
   .empty{ color:var(--sub); font-size:13px; padding:6px 2px; }
   @media (max-width:640px){ .day{ min-width:46px; } .cat-name{ font-size:14px; } }
@@ -56,10 +59,6 @@
   window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
 })();
 </script>
-  <div class="topbar">
-    <div class="brand">周计划<small>一周安排 · 分类 · 待办</small></div>
-  </div>
-
   <div class="content">
     <div class="weekbar">
       <button class="wk-nav" onclick="shiftWeek(-1)">‹</button>
@@ -125,9 +124,8 @@ function renderCats(){
     const head=document.createElement('div'); head.className='cat-head';
     const name=document.createElement('div'); name.className='cat-name'; name.textContent=c.name; name.title='点击重命名';
     name.onclick=()=>startEdit(name, v=>{ c.name=v; save(); renderCats(); });
-    const addT=document.createElement('button'); addT.className='add-task'; addT.textContent='＋ 计划'; addT.onclick=()=>addTask(c.id);
     const delC=document.createElement('button'); delC.className='mini del'; delC.textContent='🗑'; delC.title='删除分类（含其下计划）'; delC.onclick=()=>delCat(c.id);
-    head.appendChild(name); head.appendChild(addT); head.appendChild(delC);
+    head.appendChild(name); head.appendChild(delC);
     card.appendChild(head);
 
     const list=visibleTasks(c.id);
@@ -135,6 +133,10 @@ function renderCats(){
       const e=document.createElement('div'); e.className='empty'; e.textContent= viewDay===-1?'暂无计划':'该日无计划'; card.appendChild(e);
     }
     list.forEach(t=> card.appendChild(taskRow(t)));
+
+    const addT=document.createElement('button'); addT.className='add-task-row'; addT.textContent='＋ 在此分类下新增计划'; addT.onclick=()=>addTask(c.id);
+    card.appendChild(addT);
+
     box.appendChild(card);
   });
 }
@@ -142,7 +144,8 @@ function renderCats(){
 function taskRow(t){
   const row=document.createElement('div'); row.className='task';
   const ck=document.createElement('div'); ck.className='ck'+(t.done?' done':''); ck.textContent=t.done?'✓':'';
-  ck.onclick=()=>{ t.done=!t.done; save(); renderCats(); };
+  ck.title='点击记录完成一次';
+  ck.onclick=()=>{ t.done=!t.done; if(t.done) t.count=(t.count||0)+1; save(); renderCats(); };
   const tx=document.createElement('div'); tx.className='ttext'+(t.done?' done':''); tx.textContent=t.text;
   tx.onclick=()=>startEdit(tx, v=>{ t.text=v; save(); renderCats(); });
   const sel=document.createElement('select'); sel.className='tday';
@@ -150,7 +153,12 @@ function taskRow(t){
   sel.value=(t.day==null?-1:t.day);
   sel.onchange=()=>{ t.day=parseInt(sel.value,10); if(t.day===-1)t.day=null; save(); if(viewDay!==-1) renderCats(); };
   const del=document.createElement('button'); del.className='mini del'; del.textContent='🗑'; del.onclick=()=>delTask(t.id);
-  row.appendChild(ck); row.appendChild(tx); row.appendChild(sel); row.appendChild(del);
+  row.appendChild(ck); row.appendChild(tx);
+  if(t.count && t.count>0){
+    const cnt=document.createElement('span'); cnt.className='tcount'; cnt.textContent='×'+t.count; cnt.title='已累计完成 '+t.count+' 次';
+    row.appendChild(cnt);
+  }
+  row.appendChild(sel); row.appendChild(del);
   return row;
 }
 
