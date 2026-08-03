@@ -213,7 +213,23 @@
   try{ var orig=localStorage.setItem;
     localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
   }catch(e){}
-  window.addEventListener('message',function(e){ if(e.data&&e.data.type==='wb-reload'){ try{ location.reload(); }catch(e){} } });
+  function _editing(){
+    var a=document.activeElement;
+    if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable)) return true;
+    var m=document.querySelector('.modal:not(.hidden)'); if(m) return true;
+    var am=document.getElementById('modal'); if(am && !am.classList.contains('hidden')) return true;
+    return false;
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data) return;
+    if(e.data.type==='wb-reload'){ if(_editing()) return; try{ location.reload(); }catch(err){} }
+    else if(e.data.type==='wb-request-save'){ try{ if(window.__savePage) window.__savePage(); }catch(err){} }
+  });
+  window.__savePage=function(){
+    var t=document.getElementById('jtext');
+    if(t && t.value && t.value.trim()){ var b=document.getElementById('jbtn'); if(b) b.click(); }
+    try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){}
+  };
 })();
 </script>
 <div class="wrap">
