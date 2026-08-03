@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>放映室 · 工作台</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --noted:#3f9d6b; --warn:#d9822b; --bad:#c0392b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--mark);}
+
+  /* 顶部栏 */
+  .topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(255,253,249,.7);backdrop-filter:blur(4px);position:sticky;top:0;z-index:5;}
+  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand b{font-size:17px;font-weight:700;letter-spacing:3px;color:var(--accent);}
+  .brand small{font-size:10.5px;color:var(--sub);letter-spacing:1px;}
+  .topacts{display:flex;gap:10px;align-items:center;}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;transition:.14s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.primary:hover{background:#a05f3d;}
+  .btn.danger{color:var(--bad);border-color:#e8d9d5;}
+  .fileinp{display:none;}
+
+  /* 主体：三栏 */
+  .app{display:flex;height:calc(100vh - 53px);min-height:600px;}
+  .col{height:100%;overflow:auto;padding:16px;}
+  .col::-webkit-scrollbar{width:6px;height:6px;}
+  .col::-webkit-scrollbar-thumb{background:#d9d0c3;border-radius:3px;}
+  .side-l{width:240px;flex:0 0 240px;background:var(--card);border-right:1px solid var(--line);}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
+  .side-r{width:300px;flex:0 0 300px;background:var(--card);border-left:1px solid var(--line);}
+
+  /* 卡片 */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);}
+  .card h3{margin:0 0 12px;font-size:14px;color:var(--accent);letter-spacing:1px;display:flex;align-items:center;gap:8px;}
+  .card h3 .count{font-size:11px;background:var(--mark);color:var(--sub);padding:2px 7px;border-radius:10px;}
+
+  /* 左侧：影片信息 */
+  .meta-row{margin-bottom:10px;}
+  .meta-row label{display:block;font-size:11px;color:var(--sub);margin-bottom:4px;letter-spacing:.5px;}
+  .meta-row input,.meta-row textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;background:#fff;}
+  .meta-row input:focus,.meta-row textarea:focus{outline:none;border-color:var(--accent);}
+  .meta-row textarea{resize:vertical;min-height:70px;}
+  .poster{width:100%;aspect-ratio:3/4;background:var(--mark);border-radius:10px;display:grid;place-items:center;color:var(--sub);font-size:13px;margin-bottom:10px;overflow:hidden;}
+  .poster img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* 观影记录 */
+  .history-item{padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:.12s;background:#fff;}
+  .history-item:hover{border-color:var(--accent);background:#fffbf7;}
+  .history-item .htitle{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .history-item .hmeta{font-size:11px;color:var(--sub);margin-top:3px;display:flex;gap:8px;}
+  .history-item .hmeta span{background:var(--mark);padding:1px 6px;border-radius:8px;}
+  .empty-tip{font-size:12px;color:var(--sub);text-align:center;padding:16px 0;}
+
+  /* 中间：播放器 */
+  .player-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .screen{flex:1;background:#1a1815;border-radius:var(--radius);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .screen video{max-width:100%;max-height:100%;display:block;}
+  .dropzone{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-size:14px;gap:10px;pointer-events:none;}
+  .dropzone b{font-size:16px;font-weight:500;}
+  .screen.has-video .dropzone{display:none;}
+
+  /* 进度条 */
+  .controls{height:46px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:0 14px;display:flex;align-items:center;gap:10px;}
+  .playbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--accent);background:var(--accent);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:14px;}
+  .time{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;min-width:90px;text-align:center;}
+  .progress{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;cursor:pointer;}
+  .progress .bar{height:100%;background:var(--accent);border-radius:3px;width:0%;position:relative;}
+  .progress .bar::after{content:'';position:absolute;right:-5px;top:-3px;width:12px;height:12px;background:#fff;border:2px solid var(--accent);border-radius:50%;}
+  .speed{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--sub);cursor:pointer;font-family:inherit;}
+
+  /* AI陪伴面板 */
+  .ai-panel{height:220px;flex:0 0 220px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;box-shadow:var(--shadow);}
+  .ai-head{height:42px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+  .ai-head .l{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--accent);}
+  .ai-head .r{font-size:12px;color:var(--sub);}
+  .ai-body{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+  .ai-msg{max-width:92%;padding:10px 13px;border-radius:12px;font-size:13.5px;line-height:1.6;animation:pop .2s ease;}
+  .ai-msg.ai{align-self:flex-start;background:#f5efe6;border-top-left-radius:4px;color:var(--ink);}
+  .ai-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-top-right-radius:4px;}
+  .ai-msg .when{font-size:10px;color:var(--sub);margin-bottom:3px;}
+  .ai-msg.ai .when{color:#a89882;}
+  .ai-input{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);align-items:center;}
+  .ai-input input{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;font-family:inherit;}
+  .ai-input input:focus{outline:none;border-color:var(--accent);}
+  .micbtn{width:36px;height:36px;border:1px solid var(--line);background:#fff;border-radius:50%;display:grid;place-items:center;cursor:pointer;font-size:15px;transition:.14s;}
+  .micbtn:hover{border-color:var(--accent);color:var(--accent);}
+  .micbtn.rec{border-color:var(--bad);background:#fdf0ee;color:var(--bad);animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.25);}70%{box-shadow:0 0 0 8px rgba(192,57,43,0);}100%{box-shadow:0 0 0 0 rgba(192,57,43,0);}}
+  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* 右侧：时间轴 */
+  .tooltabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:12px;}
+  .ttab{border:1px solid var(--line);border-bottom:none;background:#fff;color:var(--sub);padding:7px 13px;border-radius:9px 9px 0 0;cursor:pointer;font-size:12px;font-family:inherit;margin-bottom:-1px;}
+  .ttab:hover{border-color:var(--accent);color:var(--accent);}
+  .ttab.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .tpane{display:none;}
+  .tpane.show{display:block;}
+
+  .note-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);}
+  .note-row:last-child{border-bottom:none;}
+  .note-time{flex:0 0 52px;font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums;cursor:pointer;background:var(--mark);padding:3px 6px;border-radius:6px;text-align:center;}
+  .note-time:hover{background:var(--accent);color:#fff;}
+  .note-text{flex:1;font-size:13px;color:var(--ink);line-height:1.5;}
+  .note-text .tag{font-size:10px;color:var(--sub);background:#f0ebe3;padding:1px 5px;border-radius:6px;margin-right:5px;}
+  .note-del{flex:0 0 22px;color:var(--sub);cursor:pointer;font-size:15px;text-align:center;}
+  .note-del:hover{color:var(--bad);}
+  .addnote{display:flex;gap:6px;margin-top:10px;}
+  .addnote input{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;}
+  .addnote input[type="time"]{flex:0 0 78px;}
+  .addnote button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;}
+
+  /* AI剧情生成区 */
+  .aiarea textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;background:#fff;}
+  .aiarea textarea:focus{outline:none;border-color:var(--accent);}
+  .aiopts{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .aiopts input{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;font-family:inherit;}
+  .hint{font-size:11px;color:var(--sub);line-height:1.5;margin-top:8px;background:#faf7f1;padding:8px;border-radius:8px;}
+  .hint b{color:var(--accent);}
+
+  /* 弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal.show{display:flex;}
+  .mdialog{background:#faf7f1;max-width:460px;width:92%;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:auto;}
+  .mdialog h3{margin:0 0 10px;font-size:17px;color:var(--accent);}
+  .mrow{margin-bottom:10px;}
+  .mrow label{display:block;font-size:11px;color:var(--sub);margin-bottom:4px;}
+  .mrow input,.mrow select,.mrow textarea{width:100%;border:1px solid #ddd3c4;border-radius:8px;padding:8px;font-size:13px;font-family:inherit;}
+  .macts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+
+  @media (max-width:1100px){
+    .side-l,.side-r{display:none;}
+    .main{width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><b>放映室</b><small>CINEMA</small></div>
+  <div class="topacts">
+    <label class="btn primary"><input type="file" class="fileinp" id="fileInp" accept="video/*">📂 选择影片</label>
+    <button class="btn" onclick="openAiCfg()">⚙ AI配置</button>
+    <button class="btn" onclick="openHelp()">❓ 怎么用</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- 左：影片信息 + 观影记录 -->
+  <aside class="col side-l">
+    <div class="card" style="margin-bottom:14px;">
+      <h3>影片信息</h3>
+      <div class="poster" id="poster"><span>暂无海报</span></div>
+      <div class="meta-row">
+        <label>片名</label>
+        <input id="mTitle" placeholder="输入片名" onchange="saveMeta()">
+      </div>
+      <div class="meta-row">
+        <label>年份 / 导演</label>
+        <input id="mInfo" placeholder="如 1995 / BBC" onchange="saveMeta()">
+      </div>
+      <div class="meta-row">
+        <label>剧情简介</label>
+        <textarea id="mPlot" placeholder="粘贴剧情简介…" onchange="saveMeta()"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>观影记录 <span class="count" id="hCount">0</span></h3>
+      <div id="historyList"><div class="empty-tip">还没有观影记录</div></div>
+    </div>
+  </aside>
+
+  <!-- 中：播放器 + AI面板 -->
+  <main class="col main">
+    <div class="player-wrap card" style="padding:0;overflow:hidden;">
+      <div class="screen" id="screen">
+        <video id="video" controlsList="nodownload" ontimeupdate="onTimeUpdate()" onloadedmetadata="onLoaded()" onplay="onPlayState()" onpause="onPlayState()"></video>
+        <div class="dropzone">
+          <b>拖拽影片到这里</b>
+          <span>或点击右上角「选择影片」</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="playbtn" id="playBtn" onclick="togglePlay()">▶</button>
+        <span class="time" id="timeTxt">00:00 / 00:00</span>
+        <div class="progress" id="progress" onclick="seek(event)"><div class="bar" id="bar"></div></div>
+        <select class="speed" id="speed" onchange="setSpeed(this.value)">
+          <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option><option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option><option value="2">2x</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ai-panel" id="aiPanel">
+      <div class="ai-head">
+        <div class="l">🎭 AI 陪伴</div>
+        <div class="r" id="aiStatus">等待开始</div>
+      </div>
+      <div class="ai-body" id="aiBody">
+        <div class="ai-msg ai">
+          <div class="when">系统</div>
+          打开一部影片后，AI 会在关键时间点在这里说话。它不会挡住画面，只安静地待在下方。
+        </div>
+      </div>
+      <div class="ai-input">
+        <button class="micbtn" id="micBtn" onclick="toggleMic()" title="按住说话 / 点击开始语音识别">🎤</button>
+        <input id="chatInp" placeholder="随时和 AI 聊这部电影…也可点击左侧麦克风说话" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn primary" onclick="sendChat()">发送</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 右：时间轴 + AI生成 -->
+  <aside class="col side-r">
+    <div class="card" style="height:100%;display:flex;flex-direction:column;">
+      <div class="tooltabs">
+        <button class="ttab active" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
+        <button class="ttab" onclick="switchTab('ai')" data-tab="ai">AI生成</button>
+      </div>
+
+      <div class="tpane show" id="pane-notes" style="flex:1;overflow:auto;">
+        <div id="noteList"><div class="empty-tip">还没有时间轴评论</div></div>
+        <div class="addnote">
+          <input type="time" id="noteTime" step="1">
+          <input type="text" id="noteText" placeholder="添加一条评论…" onkeydown="if(event.key==='Enter')addNote()">
+          <button onclick="addNote()">+</button>
+        </div>
+      </div>
+
+      <div class="tpane" id="pane-ai" style="flex:1;overflow:auto;">
+        <div class="aiarea">
+          <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里。AI 会据此生成几条关键时间点的评论。"></textarea>
+          <div class="aiopts">
+            <input id="aiModel" placeholder="模型，如 gpt-4o-mini">
+            <input id="aiKey" type="password" placeholder="API Key（仅存在本机）">
+            <input id="aiEndpoint" placeholder="API 地址，留空用 OpenAI">
+          </div>
+          <button class="btn primary" style="width:100%;margin-top:10px;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
+          <div class="hint">
+            <b>AI 是怎么「看」电影的？</b><br>
+            这里用的是「剧情文本预读」方案：你把剧情/字幕给 AI，它提前写好每个时间点该说什么。播放时到点自动显示在下方面板。不需要实时截图，成本低、响应快。如果想做实时画面分析，需要调用多模态模型（费用高很多），可以先在「AI配置」里填接口尝试。
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 帮助弹窗 -->
+<div class="modal" id="helpModal" onclick="if(event.target===this)closeHelp()">
+  <div class="mdialog">
+    <h3>放映室使用说明</h3>
+    <p style="font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 12px;">
+      1. 点击「选择影片」加载本地视频，支持 mp4 / mkv / webm 等常见格式。<br><br>
+      2. 在右侧「AI生成」粘贴剧情简介或字幕，填写 API Key 后生成时间轴评论。<br><br>
+      3. 播放时到达对应时间点，AI 的评论会显示在下方「AI 陪伴」面板，不会遮挡画面。<br><br>
+      4. 你也可以在时间轴里手动添加自己的评论或备注。<br><br>
+      5. 观影记录、影片信息、时间轴评论都会自动保存在本地浏览器里。
+    </p>
+    <div class="macts"><button class="btn primary" onclick="closeHelp()">知道了</button></div>
+  </div>
+</div>
+
+<!-- AI配置弹窗 -->
+<div class="modal" id="cfgModal" onclick="if(event.target===this)closeAiCfg()">
+  <div class="mdialog">
+    <h3>AI 配置</h3>
+    <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.openai.com/v1/chat/completions"></div>
+    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="gpt-4o-mini"></div>
+    <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
+    <div class="mrow"><label>实时视觉分析间隔（秒，0=关闭）</label><input id="cfgVision" type="number" min="0" step="5" placeholder="0"></div>
+    <div class="hint">实时视觉分析会定时截图并调用多模态模型，费用较高，默认关闭。</div>
+    <div class="macts">
+      <button class="btn" onclick="closeAiCfg()">取消</button>
+      <button class="btn primary" onclick="saveAiCfg()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 数据层 ================= */
+const LS_PREFIX='cinema_';
+const K_CFG=LS_PREFIX+'ai_cfg';
+const K_HISTORY=LS_PREFIX+'history';
+let state={
+  file:null, url:null, currentId:null,
+  meta:{title:'',info:'',plot:''},
+  notes:[], // {id,time(sec),text,type:'ai'|'manual'|'chat'}
+  shown:new Set(), // 当前会话已显示的 note id
+  visionTimer:null
+};
+
+function lsGet(k){ try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;} }
+function lsSet(k,v){ localStorage.setItem(k,JSON.stringify(v)); notifyParent(); }
+function notifyParent(){ try{parent.postMessage({type:'wb-data-changed'},'*');}catch(e){} }
+
+// iframe 桥接：通知工作台外壳数据变化
+const _origSetItem=localStorage.setItem;
+const _origRemoveItem=localStorage.removeItem;
+localStorage.setItem=function(k,v){ _origSetItem.call(localStorage,k,v); notifyParent(); };
+localStorage.removeItem=function(k){ _origRemoveItem.call(localStorage,k); notifyParent(); };
+
+function loadCfg(){
+  let cfg=lsGet(K_CFG)||{};
+  cfg.endpoint=cfg.endpoint||'';
+  cfg.model=cfg.model||'gpt-4o-mini';
+  cfg.key=cfg.key||'';
+  cfg.vision=cfg.vision||0;
+  return cfg;
+}
+function saveCfg(cfg){ lsSet(K_CFG,cfg); }
+
+function loadHistory(){ return lsGet(K_HISTORY)||[]; }
+function saveHistory(h){ lsSet(K_HISTORY,h); renderHistory(); }
+function addHistory(title,duration){
+  let h=loadHistory();
+  h.unshift({id:Date.now()+'',title:title||'未命名影片',duration:duration||0,last:Date.now(),progress:0});
+  if(h.length>50) h=h.slice(0,50);
+  saveHistory(h);
+}
+function updateHistoryProgress(progress){
+  if(!state.currentId) return;
+  let h=loadHistory();
+  const idx=h.findIndex(x=>x.id===state.currentId);
+  if(idx>=0){ h[idx].progress=progress; h[idx].last=Date.now(); saveHistory(h); }
+}
+
+function movieKey(id){ return LS_PREFIX+'movie_'+id; }
+function loadMovie(id){
+  let m=lsGet(movieKey(id))||{};
+  state.meta=m.meta||{title:'',info:'',plot:''};
+  state.notes=m.notes||[];
+}
+function saveMovie(){
+  if(!state.currentId) return;
+  lsSet(movieKey(state.currentId),{meta:state.meta,notes:state.notes,updated:Date.now()});
+}
+function saveMeta(){
+  state.meta={
+    title:document.getElementById('mTitle').value,
+    info:document.getElementById('mInfo').value,
+    plot:document.getElementById('mPlot').value
+  };
+  saveMovie();
+}
+
+/* ================= UI ================= */
+const $=id=>document.getElementById(id);
+const video=$('video'), playBtn=$('playBtn'), timeTxt=$('timeTxt'), bar=$('bar'), progress=$('progress');
+
+function fmt(sec){
+  if(!isFinite(sec)) return '00:00';
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=Math.floor(sec%60);
+  const p=n=>String(n).padStart(2,'0');
+  return h>0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+}
+function parseTime(t){
+  // mm:ss 或 hh:mm:ss
+  const p=t.split(':').map(Number);
+  if(p.length===2) return p[0]*60+p[1];
+  if(p.length===3) return p[0]*3600+p[1]*60+p[2];
+  return 0;
+}
+
+function renderMeta(){
+  $('mTitle').value=state.meta.title;
+  $('mInfo').value=state.meta.info;
+  $('mPlot').value=state.meta.plot;
+}
+function renderNotes(){
+  const list=$('noteList');
+  if(!state.notes.length){ list.innerHTML='<div class="empty-tip">还没有时间轴评论</div>'; return; }
+  const sorted=[...state.notes].sort((a,b)=>a.time-b.time);
+  list.innerHTML=sorted.map(n=>`
+    <div class="note-row">
+      <div class="note-time" onclick="seekTo(${n.time})">${fmt(n.time)}</div>
+      <div class="note-text"><span class="tag">${n.type==='ai'?'AI':'我'}</span>${esc(n.text)}</div>
+      <div class="note-del" onclick="delNote('${n.id}')">×</div>
+    </div>
+  `).join('');
+}
+function renderHistory(){
+  const h=loadHistory();
+  $('hCount').textContent=h.length;
+  const el=$('historyList');
+  if(!h.length){ el.innerHTML='<div class="empty-tip">还没有观影记录</div>'; return; }
+  el.innerHTML=h.map(x=>`
+    <div class="history-item" onclick="restoreHistory('${x.id}')">
+      <div class="htitle">${esc(x.title||'未命名')}</div>
+      <div class="hmeta"><span>${fmt(x.duration)}</span><span>进度 ${fmt(x.progress)}</span></div>
+    </div>
+  `).join('');
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ================= 播放器控制 ================= */
+function loadFile(file){
+  if(!file) return;
+  if(state.url) URL.revokeObjectURL(state.url);
+  state.file=file;
+  state.url=URL.createObjectURL(file);
+  video.src=state.url;
+  video.load();
+  $('screen').classList.add('has-video');
+  state.currentId=Date.now()+'';
+  state.meta={title:file.name.replace(/\.[^.]+$/,''),info:'',plot:''};
+  state.notes=[]; state.shown.clear();
+  renderMeta(); renderNotes(); clearAi();
+  aiSay('系统','已加载影片：'+state.meta.title);
+  saveMovie();
+}
+
+$('fileInp').addEventListener('change',e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
+
+// 拖放
+window.addEventListener('dragover',e=>{ e.preventDefault(); });
+window.addEventListener('drop',e=>{
+  e.preventDefault();
+  const f=e.dataTransfer.files[0];
+  if(f && f.type.startsWith('video/')) loadFile(f);
+});
+
+function togglePlay(){ if(video.paused) video.play(); else video.pause(); }
+function onPlayState(){ playBtn.textContent=video.paused?'▶':'❚❚'; }
+function setSpeed(v){ video.playbackRate=parseFloat(v); }
+function onLoaded(){
+  timeTxt.textContent=`00:00 / ${fmt(video.duration)}`;
+  addHistory(state.meta.title,video.duration);
+  if(state.meta.plot) maybeSummarize();
+}
+function onTimeUpdate(){
+  const cur=video.currentTime, dur=video.duration||1;
+  timeTxt.textContent=`${fmt(cur)} / ${fmt(video.duration)}`;
+  bar.style.width=(cur/dur*100)+'%';
+  if(Math.floor(cur)%3===0) updateHistoryProgress(cur);
+  checkNotes(cur);
+}
+function seek(e){
+  const rect=progress.getBoundingClientRect();
+  const p=(e.clientX-rect.left)/rect.width;
+  video.currentTime=p*(video.duration||0);
+}
+function seekTo(t){ video.currentTime=t; if(video.paused) video.play(); }
+
+/* ================= 时间轴评论 ================= */
+function checkNotes(cur){
+  state.notes.forEach(n=>{
+    if(state.shown.has(n.id)) return;
+    if(Math.abs(cur-n.time)<=0.5){
+      state.shown.add(n.id);
+      aiSay((n.type==='ai'?'AI':'我'), n.text, fmt(n.time));
+    }
+  });
+}
+function addNote(){
+  const t=$('noteTime').value, txt=$('noteText').value.trim();
+  if(!t || !txt) return;
+  const sec=parseTime(t);
+  state.notes.push({id:Date.now()+'',time:sec,text:txt,type:'manual'});
+  saveMovie(); renderNotes();
+  $('noteText').value='';
+}
+function delNote(id){
+  state.notes=state.notes.filter(n=>n.id!==id);
+  saveMovie(); renderNotes();
+}
+
+/* ================= AI 面板 ================= */
+function clearAi(){ $('aiBody').innerHTML=''; }
+function aiSay(who, text, when){
+  const body=$('aiBody');
+  const div=document.createElement('div');
+  div.className='ai-msg '+(who==='我'?'user':'ai');
+  div.innerHTML=(when?`<div class="when">${esc(who)} · ${when}</div>`:`<div class="when">${esc(who)}</div>`)+esc(text);
+  body.appendChild(div);
+  body.scrollTop=body.scrollHeight;
+  $('aiStatus').textContent=who==='AI'?'AI 刚刚发言':'等待开始';
+}
+function sendChat(){
+  const inp=$('chatInp'), txt=inp.value.trim(); if(!txt) return;
+  aiSay('我', txt);
+  inp.value='';
+  // 如果用户问电影相关问题，这里可以调用 AI；先简单本地回复
+  setTimeout(()=>{
+    aiSay('AI','我在听。等你看完这一段，我们可以一起聊聊剧情。');
+  },600);
+}
+
+/* ================= 语音输入（Web Speech API） ================= */
+let recognizer=null, isRec=false;
+function initSpeech(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ $('micBtn').style.display='none'; return; }
+  recognizer = new SR();
+  recognizer.continuous = false;
+  recognizer.interimResults = true;
+  recognizer.lang = 'zh-CN';
+  recognizer.onstart = ()=>{ isRec=true; $('micBtn').classList.add('rec'); $('micBtn').title='正在听…再点结束'; };
+  recognizer.onend = ()=>{ isRec=false; $('micBtn').classList.remove('rec'); $('micBtn').title='点击说话'; };
+  recognizer.onresult = (e)=>{
+    let final='', interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=t; else interim+=t;
+    }
+    const inp=$('chatInp');
+    if(final){ inp.value=final; sendChat(); }
+    else if(interim){ inp.value=interim; }
+  };
+  recognizer.onerror = (e)=>{
+    console.error(e);
+    if(e.error==='not-allowed'){ aiSay('系统','麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风。'); }
+    else if(e.error==='no-speech'){ /* 没说话，静默结束 */ }
+    else { aiSay('系统','语音识别出错：'+e.error); }
+  };
+}
+function toggleMic(){
+  if(!recognizer){ initSpeech(); }
+  if(!recognizer){ aiSay('系统','当前浏览器不支持语音识别，请用 Edge / Chrome 打开。'); return; }
+  if(isRec){ recognizer.stop(); }
+  else { try{ recognizer.start(); }catch(e){ aiSay('系统','无法启动麦克风：'+e.message); } }
+}
+
+/* ================= AI 生成时间轴 ================= */
+function switchTab(name){
+  document.querySelectorAll('.ttab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.tpane').forEach(p=>p.classList.toggle('show',p.id==='pane-'+name));
+}
+function openHelp(){$('helpModal').classList.add('show');}
+function closeHelp(){$('helpModal').classList.remove('show');}
+function openAiCfg(){
+  const cfg=loadCfg();
+  $('cfgEndpoint').value=cfg.endpoint;
+  $('cfgModel').value=cfg.model;
+  $('cfgKey').value=cfg.key;
+  $('cfgVision').value=cfg.vision;
+  $('cfgModal').classList.add('show');
+}
+function closeAiCfg(){$('cfgModal').classList.remove('show');}
+function saveAiCfg(){
+  saveCfg({
+    endpoint:$('cfgEndpoint').value.trim(),
+    model:$('cfgModel').value.trim(),
+    key:$('cfgKey').value.trim(),
+    vision:parseInt($('cfgVision').value||'0',10)
+  });
+  closeAiCfg();
+  setupVision();
+}
+
+async function genAiNotes(){
+  const plot=$('plotText').value.trim();
+  if(!plot){ alert('请先粘贴剧情文本'); return; }
+  const cfg=loadCfg();
+  const key=cfg.key||$('aiKey').value.trim();
+  const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
+  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.openai.com/v1/chat/completions';
+  if(!key){ alert('请先在 AI配置 或右侧面板填写 API Key'); return; }
+  const btn=$('genBtn'); const old=btn.textContent; btn.textContent='生成中…'; btn.disabled=true;
+  try{
+    const prompt=`你是一位陪用户看电影的 AI 朋友。用户把一部电影的部分剧情/字幕发给你，请根据内容生成 5~10 条「观影时间轴评论」。
+要求：
+1. 输出必须是合法 JSON 数组，不要 markdown 代码块。
+2. 每条格式：{"time":"mm:ss","text":"评论内容"}
+3. time 使用 mm:ss，覆盖影片前 80% 的时长即可；text 要口语化、有陪伴感，像朋友一样吐槽或点评细节，不要剧透结局，每条 30~80 字。
+4. 评论要有趣、有情绪、有互动感，让用户感觉有人陪着一起看。
+
+剧情文本如下：
+${plot}`;
+    const res=await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:model,messages:[{role:'user',content:prompt}],temperature:0.85})
+    });
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    let text=data.choices?.[0]?.message?.content||'';
+    // 去掉 markdown 代码块
+    text=text.replace(/```json\s*/,'').replace(/```\s*$/,'').trim();
+    const arr=JSON.parse(text);
+    if(!Array.isArray(arr)) throw new Error('返回格式不是数组');
+    let added=0;
+    arr.forEach(item=>{
+      const sec=parseTime(item.time);
+      if(sec>=0 && item.text){
+        state.notes.push({id:Date.now()+Math.random()+'',time:sec,text:String(item.text).trim(),type:'ai'});
+        added++;
+      }
+    });
+    saveMovie(); renderNotes();
+    aiSay('系统',`已生成 ${added} 条 AI 时间轴评论，播放时会自动显示。`);
+    switchTab('notes');
+  }catch(e){
+    alert('生成失败：'+e.message+'\n\n请检查 API Key、模型名和接口地址是否正确。');
+  }finally{ btn.textContent=old; btn.disabled=false; }
+}
+
+function maybeSummarize(){
+  // 若已有 AI 配置且剧情较长，可自动总结；暂时不自动调用，避免费钱
+}
+
+/* ================= 实时视觉分析（可选） ================= */
+function setupVision(){
+  if(state.visionTimer){ clearInterval(state.visionTimer); state.visionTimer=null; }
+  const cfg=loadCfg();
+  if(!cfg.vision || cfg.vision<=0 || !cfg.key) return;
+  state.visionTimer=setInterval(()=>{
+    if(video.paused || video.ended) return;
+    captureAndAnalyze();
+  }, Math.max(10,cfg.vision)*1000);
+}
+async function captureAndAnalyze(){
+  const cfg=loadCfg();
+  if(!cfg.key) return;
+  try{
+    const canvas=document.createElement('canvas');
+    canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||360;
+    const ctx=canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const base64=canvas.toDataURL('image/jpeg',0.7).split(',')[1];
+    const res=await fetch(cfg.endpoint||'https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+      body:JSON.stringify({
+        model:cfg.model||'gpt-4o-mini',
+        messages:[{
+          role:'user',
+          content:[
+            {type:'text',text:'你是陪用户看电影的 AI。请用一句话描述当前画面里正在发生什么，语气像朋友一样。只输出一句。'},
+            {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+base64}}
+          ]
+        }],
+        max_tokens:80
+      })
+    });
+    if(!res.ok) return;
+    const data=await res.json();
+    const txt=data.choices?.[0]?.message?.content?.trim();
+    if(txt) aiSay('AI', txt, fmt(video.currentTime));
+  }catch(e){ console.error(e); }
+}
+
+/* ================= 历史记录恢复 ================= */
+function restoreHistory(id){
+  const h=loadHistory().find(x=>x.id===id);
+  if(!h) return;
+  state.currentId=id;
+  loadMovie(id);
+  renderMeta(); renderNotes(); clearAi();
+  aiSay('系统','继续观看：'+state.meta.title);
+  // 如果没有文件对象，只能恢复元数据，无法真正播放
+  if(!state.file){
+    aiSay('系统','本地影片文件未保留，请重新选择同一部影片。');
+  }
+}
+
+/* ================= 启动 ================= */
+function init(){
+  renderHistory();
+  const cfg=loadCfg();
+  $('aiModel').value=cfg.model;
+  $('aiEndpoint').value=cfg.endpoint;
+  initSpeech();
+  setupVision();
+}
+init();
+
+// 接收工作台刷新 / 保存信号
+window.addEventListener('message',e=>{
+  if(!e.data) return;
+  if(e.data.type==='wb-reload'){
+    var a=document.activeElement;
+    if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)) return; // 编辑中跳过，不刷新
+    try{ location.reload(); }catch(err){}
+  } else if(e.data.type==='wb-request-save'){
+    try{ if(window.__savePage) window.__savePage(); }catch(err){}
+  }
+});
+window.__savePage=function(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} };
+</script>
+</body>
+</html>
