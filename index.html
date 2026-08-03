@@ -183,10 +183,11 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><b>工作台</b><small>WORKBENCH</small></div>
-    <div class="navlabel">导航</div>
-    <nav id="nav"></nav>
-    <div class="navlabel">同步</div>
+    <div class="brand"><span class="dot"></span><b>HLS工作台</b><small>WorkBench</small></div>
+    <div class="navlabel">常用</div>
+    <nav id="navCommon"></nav>
+    <div class="navlabel">其他</div>
+    <nav id="navOther"></nav>
     <button class="navitem" id="wbSyncNav" onclick="wbOpenSync()" style="display:flex;align-items:center;justify-content:space-between">
       <span class="lbl">☁ 云同步</span>
       <span id="wbSyncDot" style="width:8px;height:8px;border-radius:50%;background:#c9bfae"></span>
@@ -241,13 +242,21 @@ const ICONS = {
 
 const MODULES = {
   inner: {
-    title:'内观觉察', note:'自我觉察与成长',
+    title:'内观觉察', note:'自我觉察与成长', group:'common',
     sub:[
       {id:'now',     name:'当下状态', type:'iframe',      src:'每日状态记录.html', status:'online'},
     ]
   },
+  week: {
+    title:'周计划', note:'一周安排 · 待办', group:'common',
+    sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
+  },
+  daily: {
+    title:'生活记录', note:'生活 · 记录 · 美食', group:'common',
+    sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
+  },
   stock: {
-    title:'股票', note:'行情 · 持仓 · 策略',
+    title:'股票', note:'行情 · 持仓 · 策略', group:'common',
     sub:[
       {id:'board',   name:'盘面跟踪',     type:'iframe',  src:'股票.html#board',   status:'online'},
       {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
@@ -255,33 +264,26 @@ const MODULES = {
     ]
   },
   drive: {
-    title:'驱动力', note:'十神 · 关系对应',
+    title:'八字驱动力', note:'八字 · 十神 · 关系对应', group:'common',
     sub:[
       {id:'drive', name:'驱动力总览', type:'iframe', src:'驱动力.html',      status:'online'},
       {id:'core',  name:'核心驱动力', type:'iframe', src:'核心驱动力.html',  status:'online'},
       {id:'cycle', name:'十神关系图', type:'iframe', src:'shishen_cycle.html', status:'online'},
     ]
   },
-  daily: {
-    title:'生活记录', note:'生活 · 记录 · 美食',
-    sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
-  },
-  week: {
-    title:'周计划', note:'一周安排 · 待办',
-    sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
-  },
   cinema: {
-    title:'放映室', note:'本地观影 · AI陪伴',
+    title:'放映室', note:'本地观影 · AI陪伴', group:'other',
     sub:[ {id:'player', name:'放映室', type:'iframe', src:'放映室.html', status:'online'} ]
   },
   tools: {
-    title:'实用工具', note:'效率 · 小工具',
+    title:'工具', note:'效率 · 小工具', group:'other',
     sub:[ {id:'overview', name:'概览', type:'placeholder',
-           desc:'「实用工具」模块建设中，后续接入各类日常小工具。'} ]
+           desc:'「工具」模块建设中，后续接入各类日常小工具。'} ]
   },
 };
 
-const navEl   = document.getElementById('nav');
+const navCommon = document.getElementById('navCommon');
+const navOther  = document.getElementById('navOther');
 const titleEl = document.getElementById('modtitle');
 const subEl   = document.getElementById('subtabs');
 const bodyEl  = document.getElementById('modbody');
@@ -301,21 +303,24 @@ function tick(){
 }
 tick(); setInterval(tick, 1000*20);
 
-/* 构建左侧导航 */
-Object.keys(MODULES).forEach(key=>{
+/* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
+const NAV_ORDER = ['inner','week','daily','stock','drive','cinema','tools'];
+NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
+  if(!m) return;
+  const target = (m.group==='other') ? navOther : navCommon;
   const b = document.createElement('button');
   b.className = 'navitem';
   b.dataset.key = key;
   b.innerHTML = `<span class="lbl">${m.title}</span>`;
   b.onclick = ()=> selectModule(key);
-  navEl.appendChild(b);
+  target.appendChild(b);
 });
 
 /* 接收股票模块发来的异常预警，在左侧导航「股票」上标注 */
 window.addEventListener('message', e=>{
   const d = e.data; if(!d || d.type!=='stockAlert') return;
-  const nav = navEl.querySelector('.navitem[data-key="stock"]'); if(!nav) return;
+  const nav = document.querySelector('.navitem[data-key="stock"]'); if(!nav) return;
   const red=(d.red||0), yellow=(d.yellow||0);
   nav.classList.toggle('nav-alarm-red', red>0);
   nav.classList.toggle('nav-alarm', yellow>0 && red===0);
@@ -331,7 +336,7 @@ window.addEventListener('message', e=>{
 
 function selectModule(key){
   const m = MODULES[key];
-  navEl.querySelectorAll('.navitem').forEach(b=> b.classList.toggle('active', b.dataset.key === key));
+  document.querySelectorAll('.navitem[data-key]').forEach(b=> b.classList.toggle('active', b.dataset.key === key));
   titleEl.innerHTML = `${m.title}<small>${m.note||''}</small>`;
   subEl.innerHTML = '';
   m.sub.forEach(s=>{
