@@ -19,9 +19,10 @@
   body{ background:var(--bg); color:var(--ink); font-family:var(--font); line-height:1.55; -webkit-font-smoothing:antialiased; }
   ::selection{ background:var(--mark); }
 
-  .topbar{ height:58px; display:flex; align-items:center; justify-content:space-between;
+  .topbar{ height:58px; display:flex; align-items:center; justify-content:flex-start;
     padding:0 30px; border-bottom:1px solid var(--line); background:rgba(255,253,249,.7);
     backdrop-filter:blur(4px); position:sticky; top:0; z-index:5; }
+  .topbar .syncbar{ margin:0; max-width:480px; }
   .brand{ display:flex; align-items:baseline; gap:10px; }
   .brand b{ font-size:19px; font-weight:700; letter-spacing:3px; color:var(--accent); }
   .brand small{ font-size:11px; color:var(--sub); letter-spacing:1.5px; }
@@ -117,7 +118,8 @@
   .stage-arrow:hover{ border-color:var(--accent); color:var(--accent); background:#fff; transform:translateY(-50%) scale(1.08); }
   .stage-arrow.prev{ left:6px; }
   .stage-arrow.next{ right:6px; }
-  .stage .emoji{ font-size:84px; line-height:1; filter:drop-shadow(0 6px 12px rgba(58,54,49,.12)); }
+  .stage .emoji{ font-size:84px; line-height:1; filter:drop-shadow(0 6px 12px rgba(58,54,49,.12));
+    font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif; }
   .stage .dish-cover-img{ width:120px; height:120px; border-radius:24px; object-fit:cover; box-shadow:0 6px 16px rgba(58,54,49,.18); }
   .cover-preview{ width:120px; height:120px; border-radius:18px; border:1px dashed var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px; background:rgba(184,113,78,.04); }
   .cover-preview img{ width:100%; height:100%; object-fit:cover; }
@@ -452,14 +454,15 @@
   };
 })();
 </script>
-  <div class="content">
-    <div id="storageWarn" class="storage-warn"></div>
-    <!-- 同步/数据信息条（已上移至 subtabs 上方） -->
+  <div class="topbar">
     <div class="syncbar">
       <span class="syncbar-label">☁ 数据同步</span>
       <span class="syncbar-time" id="syncbarTime">--</span>
-      <button class="databtn" onclick="openDataMgr()" style="padding:4px 12px;font-size:12px">⚙ 数据备份</button>
     </div>
+  </div>
+
+  <div class="content">
+    <div id="storageWarn" class="storage-warn"></div>
 
     <div class="subtabs">
       <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
@@ -624,6 +627,7 @@ const state = {
 };
 
 function dishCover(id){ return (state.dishCover && state.dishCover[id]) || ''; }
+function dishCoverFallback(img){ img.outerHTML = '<div class="emoji">'+img.dataset.fallbackEmoji+'</div>'; }
 function allDishes(){
   // 用户已加入菜品库的菜，按菜名覆盖内置同名菜，避免今天吃什么出现重复
   const seed = SEED_DISHES.filter(s => !state.userDishes.some(u => u.name===s.name));
@@ -739,7 +743,9 @@ function renderToday(){
     const ingTags = (d.ing||[]).map(i=>'<span class="ing-tag">'+esc(i)+'</span>').join('');
     const optHtml = opt.length ? '<div class="ing-opt-row">可去除：'+opt.join('·')+'</div>' : '';
     const cover = dishCover(d.id);
-    const faceHtml = cover ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'">' : '<div class="emoji">'+d.emoji+'</div>';
+    const faceHtml = cover
+      ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'" data-fallback-emoji="'+d.emoji+'" onerror="dishCoverFallback(this)">'
+      : '<div class="emoji">'+d.emoji+'</div>';
     // 箭头放在卡片中间水平两侧，纯图标无文字
     stageHtml =
       '<div class="card"><div class="stage-wrap">'
