@@ -37,10 +37,10 @@
     border-bottom:1px solid var(--line);
   }
   .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
-    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; transform:translateY(5px); }
-  .brand-text{ display:flex; flex-direction:column; gap:3px; }
+    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; }
+  .brand-text{ display:flex; flex-direction:column; gap:5px; }
   .brand-line1{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-line2{ display:flex; align-items:baseline; gap:7px; }
+  .brand-line2{ display:flex; align-items:center; gap:7px; }
   .brand-main{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
   .brand-small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
 
@@ -92,9 +92,9 @@
   .topright .clock{ font-variant-numeric:tabular-nums; color:var(--ink);
     background:var(--mark); padding:3px 11px; border-radius:20px; letter-spacing:.5px; }
 
-  .content{ flex:1; padding:26px 30px 56px; min-width:0; }
+  .content{ flex:1; padding:26px 30px 56px; min-width:0; display:flex; flex-direction:column; }
 
-  .modhead{ margin-bottom:18px; }
+  .modhead{ margin-bottom:18px; flex:0 0 auto; }
   .modtitle{ font-size:22px; font-weight:700; margin:0 0 14px; letter-spacing:1px;
     display:flex; align-items:baseline; gap:12px; }
   .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
@@ -112,7 +112,7 @@
   .subtab .pip{ width:6px; height:6px; border-radius:50%; background:var(--noted); }
   .subtab.active .pip{ background:#fff; }
 
-  .modbody{ margin-top:18px; }
+  .modbody{ margin-top:18px; flex:1; min-height:0; display:flex; flex-direction:column; }
   .modbody > *{ animation:fade .26s ease; }
   @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
 
@@ -120,6 +120,7 @@
   .framebox{
     border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
     background:var(--card); box-shadow:var(--shadow);
+    display:flex; flex-direction:column; flex:1; min-height:0;
   }
   .framebar{
     display:flex; align-items:center; justify-content:flex-end;
@@ -132,7 +133,7 @@
   }
   .framebar .fbtn:hover{ border-color:var(--accent); color:var(--accent); }
   .framebar .fbtn svg{ width:15px; height:15px; }
-  .framebox iframe{ width:100%; height:calc(100vh - 320px); min-height:460px; border:none; display:block; background:var(--bg); }
+  .framebox iframe{ width:100%; flex:1; min-height:0; border:none; display:block; background:var(--bg); }
 
   /* 占位面板 */
   .placeholder{
@@ -159,7 +160,7 @@
     .navitem{ justify-content:flex-start; padding:11px 10px; }
     .sidefoot{ display:none; }
     .topbar, .content{ padding-left:18px; padding-right:18px; }
-    .framebox iframe{ height:calc(100vh - 300px); }
+    .framebox iframe{ flex:1; min-height:0; }
   }
   /* 手机：侧栏变顶部横滑导航，主区 iframe 全屏 */
   @media (max-width:680px){
@@ -179,7 +180,7 @@
     .content{ padding:12px 12px 36px; }
     .modtitle{ font-size:19px; }
     .crumb{ font-size:12.5px; }
-    .framebox iframe{ height:calc(100vh - 160px); min-height:320px; }
+    .framebox iframe{ flex:1; min-height:0; }
   }
 </style>
 </head>
@@ -187,10 +188,10 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <span class="dot"></span>
       <div class="brand-text">
         <div class="brand-line1">HLS</div>
         <div class="brand-line2">
+          <span class="dot"></span>
           <span class="brand-main">工作台</span>
           <span class="brand-small">WorkBench</span>
         </div>
@@ -264,7 +265,7 @@ const MODULES = {
     sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
   },
   daily: {
-    title:'生活记录', note:'生活记录 · 好好吃饭', group:'common',
+    title:'美食记录', note:'美食记录 · 好好吃饭', group:'common',
     sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
   },
   stock: {
@@ -289,8 +290,7 @@ const MODULES = {
   },
   tools: {
     title:'工具', note:'效率 · 小工具', group:'other',
-    sub:[ {id:'overview', name:'概览', type:'placeholder',
-           desc:'「工具」模块建设中，后续接入各类日常小工具。'} ]
+    sub:[ {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'} ]
   },
 };
 
@@ -457,7 +457,11 @@ function wbApply(o){
   });
   if(changed) wbBroadcastReload();
 }
-function wbSchedulePush(){ wbLoadCfg(); if(!wbSync.connected) return; if(wbPushTimer) clearTimeout(wbPushTimer); wbPushTimer=setTimeout(wbPush,1200); }
+function wbSchedulePush(immediate){
+  wbLoadCfg(); if(!wbSync.connected) return;
+  if(wbPushTimer) clearTimeout(wbPushTimer);
+  wbPushTimer=setTimeout(wbPush, immediate?0:300);
+}
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
 /* 统一【保存】按钮：把当前可见 iframe 里的编辑内容立即落盘（子页监听 wb-request-save 自行保存） */
 function wbRequestSave(){
