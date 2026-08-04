@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美食记录 · 生活记录</title>
+<title>美食记录</title>
 <style>
   /* 与工作台一致的暖色宣纸风格 */
   :root{
@@ -38,6 +38,11 @@
   .syncbar-time{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .syncbar .databtn{ margin-left:auto; }
   .moddesc{ color:var(--sub); font-size:13px; margin-bottom:16px; }
+  .storage-warn{ display:none; align-items:center; gap:10px; margin:0 0 12px; padding:10px 14px; background:#fdf0ee; border:1px solid #eccfcb; border-radius:10px; color:#a23; font-size:13px; line-height:1.5; }
+  .storage-warn.show{ display:flex; }
+  .storage-warn.warn{ background:#fbeed7; border-color:#f1dcb4; color:#8a5d18; }
+  .storage-warn button{ background:#fff; border:1px solid currentColor; color:inherit; padding:4px 10px; border-radius:8px; cursor:pointer; font-size:12px; font-family:inherit; }
+  .storage-warn button:hover{ opacity:.85; }
 
   /* 子模块 tab */
   .subtabs{ display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
@@ -448,6 +453,7 @@
   </div>
 
   <div class="content">
+    <div id="storageWarn" class="storage-warn"></div>
     <!-- 同步/数据信息条（已上移至 subtabs 上方） -->
     <div class="syncbar">
       <span class="syncbar-label">☁ 数据同步</span>
@@ -560,8 +566,20 @@ let activeCoverTarget = null;
 
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
-  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
-  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); return false; }
+  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); updateStorageBar(); return true; }
+  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); updateStorageBar(); return false; }
+}
+function updateStorageBar(){
+  let size=0; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) size += (localStorage.getItem(k)||'').length; }
+  const mb = size/1024/1024;
+  const el = document.getElementById('storageWarn'); if(!el) return;
+  if(mb>4){
+    el.className='storage-warn show';
+    el.innerHTML='<span>⚠️ 浏览器存储已接近上限（'+mb.toFixed(2)+'MB），新记录可能无法保存。</span><button onclick="openDataMgr()">压缩照片</button>';
+  } else if(mb>2.5){
+    el.className='storage-warn warn show';
+    el.innerHTML='<span>💡 浏览器存储占用 '+mb.toFixed(2)+'MB，建议压缩历史照片以释放空间。</span><button onclick="openDataMgr()">压缩照片</button>';
+  } else { el.className='storage-warn'; el.innerHTML=''; }
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -1733,6 +1751,7 @@ tick(); setInterval(tick, 30000);
 ensureTagStore();
 buildQueue();
 switchTab('today');
+updateStorageBar();
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
