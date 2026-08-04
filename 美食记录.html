@@ -578,10 +578,10 @@ function updateStorageBar(){
   const el = document.getElementById('storageWarn'); if(!el) return;
   if(mb>4){
     el.className='storage-warn show';
-    el.innerHTML='<span>⚠️ 浏览器存储已接近上限（'+mb.toFixed(2)+'MB），新记录可能无法保存。</span><button onclick="openDataMgr()">压缩照片</button>';
+    el.innerHTML='<span>⚠️ 浏览器存储已接近上限（'+mb.toFixed(2)+'MB），新记录可能无法保存。</span><button onclick="compressHistoryPhotos()">压缩照片</button>';
   } else if(mb>2.5){
     el.className='storage-warn warn show';
-    el.innerHTML='<span>💡 浏览器存储占用 '+mb.toFixed(2)+'MB，建议压缩历史照片以释放空间。</span><button onclick="openDataMgr()">压缩照片</button>';
+    el.innerHTML='<span>💡 浏览器存储占用 '+mb.toFixed(2)+'MB，建议压缩历史照片以释放空间。</span><button onclick="compressHistoryPhotos()">压缩照片</button>';
   } else { el.className='storage-warn'; el.innerHTML=''; }
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
