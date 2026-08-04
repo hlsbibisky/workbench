@@ -445,13 +445,6 @@
   };
 })();
 </script>
-  <div class="topbar">
-    <div class="topright">
-      <span id="todayStr"></span>
-      <span class="clock" id="clock">--:--</span>
-    </div>
-  </div>
-
   <div class="content">
     <div id="storageWarn" class="storage-warn"></div>
     <!-- 同步/数据信息条（已上移至 subtabs 上方） -->
@@ -1741,8 +1734,6 @@ function switchTab(tab){
 function tick(){
   const n=new Date();
   const p=x=>String(x).padStart(2,'0');
-  document.getElementById('clock').textContent = p(n.getHours())+':'+p(n.getMinutes());
-  document.getElementById('todayStr').textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日';
   const sb=document.getElementById('syncbarTime');
   if(sb) sb.textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日 '+p(n.getHours())+':'+p(n.getMinutes());
 }
