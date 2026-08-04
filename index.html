@@ -32,17 +32,23 @@
     position:sticky; top:0; height:100vh;
   }
   .brand{
-    display:flex; align-items:flex-start; gap:9px;
-    padding:2px 10px 16px; margin-bottom:6px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+    padding:2px 4px 16px; margin-bottom:6px;
     border-bottom:1px solid var(--line);
+    position:relative;
   }
-  .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
-    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; margin-top:8px; }
-  .brand-text{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
-  .brand-line1{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-line2{ position:relative; display:flex; align-items:center; gap:7px; }
-  .brand-main{ position:relative; font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-small{ position:absolute; left:calc(100% + 7px); top:50%; transform:translateY(-50%);
+  .brand-tag{
+    align-self:flex-end;
+    font-size:9px; font-weight:600; letter-spacing:1.8px;
+    color:var(--accent); line-height:1;
+    padding:0 2px 2px 0; opacity:.85;
+  }
+  .brand-row{ display:flex; align-items:center; gap:8px; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; }
+  .brand-title{ font-size:22px; font-weight:700; letter-spacing:2.5px; color:var(--accent); line-height:1.1; }
+  .brand-en{ font-size:11px; font-weight:500; letter-spacing:1px; color:var(--sub);
+    padding-bottom:2px; }
     font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; white-space:nowrap; }
 
   .navlabel{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 12px 4px; }
@@ -160,8 +166,8 @@
   @media (max-width:880px){
     .sidebar{ width:132px; flex:0 0 132px; padding:18px 10px; }
     .brand{ justify-content:flex-start; padding:2px 0 14px; }
-    .brand-line1, .brand-main{ font-size:17px; letter-spacing:2px; }
-    .brand-small{ display:none; }
+    .brand-title{ font-size:17px; letter-spacing:2px; }
+    .brand-en{ display:none; }
     .navlabel{ display:none; }
     .navitem{ justify-content:flex-start; padding:11px 10px; }
     .sidefoot{ display:none; }
@@ -176,7 +182,7 @@
       flex-direction:column; padding:10px 12px; border-right:none; border-bottom:1px solid var(--line);
     }
     .brand{ padding:2px 0 8px; }
-    .brand-small{ display:none; }
+    .brand-en{ display:none; }
     .navlabel{ display:none; }
     #navCommon, #navOther{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
     .navitem{ flex:0 0 auto; width:auto; padding:8px 13px; font-size:13.5px; white-space:nowrap; }
@@ -194,13 +200,11 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-text">
-        <div class="brand-line1">HLS</div>
-        <div class="brand-line2">
-          <span class="dot"></span>
-          <span class="brand-main">工作台</span>
-          <span class="brand-small">WorkBench</span>
-        </div>
+      <span class="brand-tag">HLS</span>
+      <div class="brand-row">
+        <span class="dot"></span>
+        <span class="brand-title">工作台</span>
+        <span class="brand-en">WorkBench</span>
       </div>
     </div>
     <div class="navlabel">常用</div>
