@@ -129,7 +129,11 @@
     if(e.data.type==='wb-reload'){ if(_editing()) return; try{ location.reload(); }catch(err){} }
     else if(e.data.type==='wb-request-save'){ try{ if(window.__savePage) window.__savePage(); }catch(err){} }
   });
-  window.__savePage=function(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} };
+  window.__savePage=function(){
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    try{ if(window.__obj) saveAll(window.__obj); }catch(e){}
+    try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){}
+  };
 })();
 </script>
 <div class="wrap">
@@ -275,6 +279,7 @@ let anchor=new Date(); // 当前所在干支月的锚点日期
 
 function render(){
   const obj=loadAll();
+  window.__obj = obj; // 供手动保存按钮读取最新内存数据
   const R=monthRange(anchor.getFullYear(),anchor.getMonth()+1,anchor.getDate());
   const list=document.getElementById('list');
   list.innerHTML='';
