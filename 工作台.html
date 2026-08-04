@@ -32,17 +32,24 @@
     position:sticky; top:0; height:100vh;
   }
   .brand{
-    display:flex; align-items:flex-start; gap:9px;
-    padding:2px 10px 16px; margin-bottom:6px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+    padding:2px 4px 16px; margin-bottom:6px;
     border-bottom:1px solid var(--line);
+    position:relative;
   }
-  .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
+  .brand-tag{
+    align-self:flex-end;
+    font-size:9px; font-weight:600; letter-spacing:1.8px;
+    color:var(--accent); line-height:1;
+    padding:0 2px 2px 0; opacity:.85;
+  }
+  .brand-row{ display:flex; align-items:center; gap:8px; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent);
     box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; }
-  .brand-text{ display:flex; flex-direction:column; gap:5px; }
-  .brand-line1{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-line2{ display:flex; align-items:center; gap:7px; }
-  .brand-main{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
+  .brand-title{ font-size:22px; font-weight:700; letter-spacing:2.5px; color:var(--accent); line-height:1.1; }
+  .brand-en{ font-size:11px; font-weight:500; letter-spacing:1px; color:var(--sub);
+    padding-bottom:2px; }
+    font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; white-space:nowrap; }
 
   .navlabel{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 12px 4px; }
   .navitem{
@@ -89,12 +96,17 @@
     display:inline-flex; align-items:center; gap:5px; transition:transform .12s, background .15s; }
   #wbSaveBtn:hover{ background:#a5613f; }
   #wbSaveBtn:active{ transform:scale(.96); }
+  .wb-icon-btn{ font-family:inherit; font-size:12.5px; font-weight:500; color:var(--accent); background:#fff;
+    border:1px solid var(--line); border-radius:9px; padding:6px 12px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px; transition:.14s; }
+  .wb-icon-btn:hover{ background:var(--mark); border-color:var(--accent); }
+  .topright label.wb-icon-btn input{ display:none; }
   .topright .clock{ font-variant-numeric:tabular-nums; color:var(--ink);
     background:var(--mark); padding:3px 11px; border-radius:20px; letter-spacing:.5px; }
 
-  .content{ flex:1; padding:26px 30px 56px; min-width:0; }
+  .content{ flex:1; padding:26px 30px 56px; min-width:0; display:flex; flex-direction:column; }
 
-  .modhead{ margin-bottom:18px; }
+  .modhead{ margin-bottom:18px; flex:0 0 auto; }
   .modtitle{ font-size:22px; font-weight:700; margin:0 0 14px; letter-spacing:1px;
     display:flex; align-items:baseline; gap:12px; }
   .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
@@ -112,7 +124,7 @@
   .subtab .pip{ width:6px; height:6px; border-radius:50%; background:var(--noted); }
   .subtab.active .pip{ background:#fff; }
 
-  .modbody{ margin-top:18px; }
+  .modbody{ margin-top:18px; flex:1; min-height:0; display:flex; flex-direction:column; }
   .modbody > *{ animation:fade .26s ease; }
   @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
 
@@ -120,6 +132,7 @@
   .framebox{
     border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
     background:var(--card); box-shadow:var(--shadow);
+    display:flex; flex-direction:column; flex:1; min-height:0;
   }
   .framebar{
     display:flex; align-items:center; justify-content:flex-end;
@@ -132,7 +145,7 @@
   }
   .framebar .fbtn:hover{ border-color:var(--accent); color:var(--accent); }
   .framebar .fbtn svg{ width:15px; height:15px; }
-  .framebox iframe{ width:100%; height:calc(100vh - 320px); min-height:460px; border:none; display:block; background:var(--bg); }
+  .framebox iframe{ width:100%; flex:1; min-height:0; border:none; display:block; background:var(--bg); }
 
   /* 占位面板 */
   .placeholder{
@@ -153,13 +166,13 @@
   @media (max-width:880px){
     .sidebar{ width:132px; flex:0 0 132px; padding:18px 10px; }
     .brand{ justify-content:flex-start; padding:2px 0 14px; }
-    .brand-line1, .brand-main{ font-size:17px; letter-spacing:2px; }
-    .brand-small{ display:none; }
+    .brand-title{ font-size:17px; letter-spacing:2px; }
+    .brand-en{ display:none; }
     .navlabel{ display:none; }
     .navitem{ justify-content:flex-start; padding:11px 10px; }
     .sidefoot{ display:none; }
     .topbar, .content{ padding-left:18px; padding-right:18px; }
-    .framebox iframe{ height:calc(100vh - 300px); }
+    .framebox iframe{ flex:1; min-height:0; }
   }
   /* 手机：侧栏变顶部横滑导航，主区 iframe 全屏 */
   @media (max-width:680px){
@@ -169,7 +182,7 @@
       flex-direction:column; padding:10px 12px; border-right:none; border-bottom:1px solid var(--line);
     }
     .brand{ padding:2px 0 8px; }
-    .brand-small{ display:none; }
+    .brand-en{ display:none; }
     .navlabel{ display:none; }
     #navCommon, #navOther{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
     .navitem{ flex:0 0 auto; width:auto; padding:8px 13px; font-size:13.5px; white-space:nowrap; }
@@ -179,7 +192,7 @@
     .content{ padding:12px 12px 36px; }
     .modtitle{ font-size:19px; }
     .crumb{ font-size:12.5px; }
-    .framebox iframe{ height:calc(100vh - 160px); min-height:320px; }
+    .framebox iframe{ flex:1; min-height:0; }
   }
 </style>
 </head>
@@ -187,13 +200,11 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-text">
-        <div class="brand-line1">HLS</div>
-        <div class="brand-line2">
-          <span class="dot"></span>
-          <span class="brand-main">工作台</span>
-          <span class="brand-small">WorkBench</span>
-        </div>
+      <span class="brand-tag">HLS</span>
+      <div class="brand-row">
+        <span class="dot"></span>
+        <span class="brand-title">工作台</span>
+        <span class="brand-en">WorkBench</span>
       </div>
     </div>
     <div class="navlabel">常用</div>
@@ -204,23 +215,17 @@
       <span class="lbl">☁ 云同步</span>
       <span id="wbSyncDot" style="width:8px;height:8px;border-radius:50%;background:#c9bfae"></span>
     </button>
-    <div class="sidefoot">
-      <div class="sync-box">
-        <div style="font-size:12px;color:var(--sub);margin-bottom:6px">数据同步（换设备 / 浏览器时备份恢复）</div>
-        <button class="syncbtn" onclick="wbExport()">⬇ 导出全部</button>
-        <label class="syncbtn" style="cursor:pointer">⬆ 导入备份<input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
-      </div>
-    </div>
   </aside>
 
   <main class="main">
     <div class="topbar">
       <div class="crumb" id="crumb"></div>
       <div class="topright">
+        <button class="wb-icon-btn" onclick="wbExport()" title="导出全部数据为 JSON 备份">⬇ 导出</button>
+        <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer">⬆ 导入<input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
         <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地并同步云端">💾 保存</button>
         <span class="hi" id="hi"></span>
         <span id="today"></span>
-        <span class="clock" id="clock">--:--</span>
       </div>
     </div>
 
@@ -264,7 +269,7 @@ const MODULES = {
     sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
   },
   daily: {
-    title:'生活记录', note:'生活记录 · 好好吃饭', group:'common',
+    title:'美食记录', note:'美食记录 · 好好吃饭', group:'common',
     sub:[ {id:'food', name:'美食记录', type:'iframe', src:'美食记录.html', status:'online'} ]
   },
   stock: {
@@ -309,8 +314,6 @@ function tick(){
   const d=new Date();
   document.getElementById('hi').textContent = greet(d.getHours());
   document.getElementById('today').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${WD[d.getDay()]}`;
-  const p=n=>String(n).padStart(2,'0');
-  document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 tick(); setInterval(tick, 1000*20);
 
@@ -456,14 +459,21 @@ function wbApply(o){
   });
   if(changed) wbBroadcastReload();
 }
-function wbSchedulePush(){ wbLoadCfg(); if(!wbSync.connected) return; if(wbPushTimer) clearTimeout(wbPushTimer); wbPushTimer=setTimeout(wbPush,1200); }
+function wbSchedulePush(immediate){
+  wbLoadCfg(); if(!wbSync.connected) return;
+  // 本地一发生改动就标记为「最新」，防止刷新/轮询时被较旧的云端版本覆盖
+  try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
+  if(wbPushTimer) clearTimeout(wbPushTimer);
+  wbPushTimer=setTimeout(wbPush, immediate?0:300);
+}
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
 /* 统一【保存】按钮：把当前可见 iframe 里的编辑内容立即落盘（子页监听 wb-request-save 自行保存） */
 function wbRequestSave(){
   const f=document.querySelector('.modbody iframe');
   if(!f || !f.contentWindow){ wbToast('当前页面没有可保存的内容'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  wbToast('已发送保存指令，内容将存入本地并同步云端');
+  wbSchedulePush(true); // 立即把本地最新数据上传云端，不等防抖
+  wbToast('已保存并同步到云端');
 }
 /* 子页保存成功后的回执 */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
