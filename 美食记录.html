@@ -439,8 +439,15 @@
     }
   });
   window.__savePage=function(){
-    var m=document.getElementById('modal');
-    if(m && !m.classList.contains('hidden') && typeof saveRecipe==='function'){ saveRecipe(); }
+    try{
+      // 全量把内存数据写回 localStorage（打卡/口味/菜谱库/忌口/封面等）
+      save(K.checkin, state.checkin);
+      save(K.taste, state.taste);
+      save(K.menu, state.menu);
+      save(K.disliked, state.disliked);
+      if(state.dishCover) save(K.dishCover, state.dishCover);
+      if(state.userDishes) save(K.userDishes, state.userDishes);
+    }catch(e){}
     try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){}
   };
 })();
