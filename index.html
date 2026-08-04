@@ -37,12 +37,13 @@
     border-bottom:1px solid var(--line);
   }
   .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
-    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; }
-  .brand-text{ display:flex; flex-direction:column; gap:5px; }
+    box-shadow:0 0 0 4px rgba(184,113,78,.14); flex:0 0 auto; margin-top:8px; }
+  .brand-text{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
   .brand-line1{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-line2{ display:flex; align-items:center; gap:7px; }
-  .brand-main{ font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
-  .brand-small{ font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; }
+  .brand-line2{ position:relative; display:flex; align-items:center; gap:7px; }
+  .brand-main{ position:relative; font-size:20px; font-weight:700; letter-spacing:4px; color:var(--accent); line-height:1.15; }
+  .brand-small{ position:absolute; left:calc(100% + 7px); top:50%; transform:translateY(-50%);
+    font-size:10.5px; color:var(--sub); letter-spacing:1.5px; font-weight:400; white-space:nowrap; }
 
   .navlabel{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 12px 4px; }
   .navitem{
@@ -221,7 +222,6 @@
         <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地并同步云端">💾 保存</button>
         <span class="hi" id="hi"></span>
         <span id="today"></span>
-        <span class="clock" id="clock">--:--</span>
       </div>
     </div>
 
@@ -310,8 +310,6 @@ function tick(){
   const d=new Date();
   document.getElementById('hi').textContent = greet(d.getHours());
   document.getElementById('today').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${WD[d.getDay()]}`;
-  const p=n=>String(n).padStart(2,'0');
-  document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 tick(); setInterval(tick, 1000*20);
 
