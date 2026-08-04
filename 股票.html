@@ -135,6 +135,11 @@
   .rev-legend .li{display:flex;align-items:center;gap:6px;}
   .rev-legend .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
   .rev-legend .pc{color:var(--sub);margin-left:3px;}
+  /* 饼图板块市值 · 独立展示（避免数字压在饼图上） */
+  .pie-cap{margin:6px 0 4px;text-align:center;font-size:13px;color:var(--sub);
+    background:var(--mark);border:1px solid #e7d3bf;border-radius:9px;padding:7px 10px;line-height:1.5;}
+  .pie-cap b{color:var(--accent);font-size:17px;font-weight:700;margin:0 3px;}
+  .pie-cap em{font-style:normal;color:var(--ink);font-weight:600;margin-right:4px;}
   .analysis{font-size:13.5px;color:var(--ink);line-height:1.85;}
   .analysis .grp{margin-bottom:12px;}
   .analysis .grp h4{margin:0 0 6px;font-size:14px;color:var(--accent);}
@@ -311,11 +316,13 @@
       <div class="panel">
         <h3>长线板块 · 仓位分布（饼图）</h3>
         <canvas id="longPie" class="rev-canvas rev-pie"></canvas>
+        <div class="pie-cap" id="longCap">—</div>
         <div class="rev-legend" id="longLegend"></div>
       </div>
       <div class="panel">
         <h3>短线板块 · 仓位分布（饼图）</h3>
         <canvas id="shortPie" class="rev-canvas rev-pie"></canvas>
+        <div class="pie-cap" id="shortCap">—</div>
         <div class="rev-legend" id="shortLegend"></div>
       </div>
     </div>
@@ -713,9 +720,14 @@ function setupCanvas(cv){
   const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
   return {ctx,w,h};
 }
-function drawPie(cv, items, centerLabel){
+function drawPie(cv, items, centerLabel, capId){
   const {ctx,w,h}=setupCanvas(cv); ctx.clearRect(0,0,w,h);
   const total=items.reduce((a,b)=>a+Math.max(0,b.value),0);
+  // 板块市值单独显示在饼图外侧（capId 对应 .pie-cap 元素），不在 canvas 内画文字
+  const capEl=capId && document.getElementById(capId);
+  if(capEl){ capEl.innerHTML = total>0
+      ? `<em>${centerLabel||'板块市值'}</em><b>${fmt(total)}</b> 元`
+      : '<em>暂无持仓</em>'; }
   if(total<=0){ ctx.fillStyle='#8a837a'; ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('暂无持仓数据', w/2, h/2); return; }
   const cx=w/2, cy=h/2, R=Math.min(w,h)/2-46;
   let ang=-Math.PI/2;
@@ -740,10 +752,6 @@ function drawPie(cv, items, centerLabel){
     if(right){ ctx.textAlign='left'; ctx.fillText(it.name, lx+13, ly); }
     else { ctx.textAlign='right'; ctx.fillText(it.name, lx-13, ly); }
   });
-  // 中心：板块市值
-  ctx.fillStyle='#3a3631'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.font='13px sans-serif'; ctx.fillText(centerLabel||'市值', cx, cy-9);
-  ctx.font='bold 16px sans-serif'; ctx.fillText(fmt(total), cx, cy+11);
 }
 function drawBar(cv, items){
   const {ctx,w,h}=setupCanvas(cv); ctx.clearRect(0,0,w,h);
@@ -793,16 +801,16 @@ async function renderReview(){
   // 饼图：长线 / 短线 各标的仓位金额（只计已持仓）
   const pieItems=(arr)=>arr.map((s,i)=>({name:s.name, value:s.shares*(s.price||0), color:PIE_COLORS[i%PIE_COLORS.length]}));
   const longPie=pieItems(longs), shortPie=pieItems(shorts);
-  drawPie(document.getElementById('longPie'), longPie, '长线市值');
-  drawPie(document.getElementById('shortPie'), shortPie, '短线市值');
+  drawPie(document.getElementById('longPie'), longPie, '长线市值', 'longCap');
+  drawPie(document.getElementById('shortPie'), shortPie, '短线市值', 'shortCap');
   const legendHtml=(items)=>{ const tot=items.reduce((a,b)=>a+Math.max(0,b.value),0);
     return tot>0 ? items.map(it=>`<span class="li"><span class="sw" style="background:${it.color}"></span>${it.name}<span class="pc">${fmt(it.value/tot*100)}%</span></span>`).join('')
                   : '<span class="muted">暂无持仓（成本/股数未填）</span>'; };
   document.getElementById('longLegend').innerHTML=legendHtml(longPie);
   document.getElementById('shortLegend').innerHTML=legendHtml(shortPie);
-  await renderAnalysis(longs, shorts, mv, cost);
+  await renderAnalysis(longs, shorts, mv, cost, cap);
 }
-async function renderAnalysis(longs, shorts, mv, cost){
+async function renderAnalysis(longs, shorts, mv, cost, cap){
   const all=[...longs,...shorts];
   const pnlOf=s=>((s.price||0)-s.cost)*s.shares;
   const win=all.filter(s=>pnlOf(s)>0), loss=all.filter(s=>pnlOf(s)<0), flat=all.filter(s=>pnlOf(s)===0);
@@ -830,47 +838,19 @@ async function renderAnalysis(longs, shorts, mv, cost){
       const ex=techText(s,'周线 EXPMA'); if(ex.includes('死叉')) r.push('周线EXPMA死叉(趋势转弱)');
       html+=`<li><b>${s.name}</b>：${r.length?r.join('、'):'小幅浮亏，技术面尚未破位'}</li>`; }); }
   html+='</ul></div>';
-  // 技术信号筛选：偏强/健康信号清单已并入下方「AI 点评 · 异动与资讯」避免重复，此处仅作背景参考
-  html+=`<div class="grp"><h4>技术信号筛选</h4><ul>`;
-  const isBull=s=>{ const m=techMap[s.code]; if(!m) return false;
-    const d5=m['日线 MA5'], w5=m['周线 MA5'], ex=m['周线 EXPMA'], rsi=m['日线 RSI(14)'], bol=m['日线 BOLL'];
-    if(d5 && d5.bull) return true;
-    if(w5 && w5.bull) return true;
-    if(ex && ex.bull) return true;
-    if(rsi && rsi.d==='超买') return true;
-    if(bol && /突破上轨|上轨附近|中轨上方/.test(bol.v)) return true;
-    return false;
-  };
-  const neutral=all.filter(s=>!isBull(s));
-  if(neutral.length){ html+=`<li class="muted">⚪ 中性震荡 ${neutral.length} 只：${neutral.map(s=>s.name).join('、')}</li>`; }
-  else html+='<li class="muted">全部标的至少有一项偏强/健康信号（详见下方 AI 点评）</li>';
-  html+='</ul></div>';
-  // AI 点评 · 异动与资讯（量价异动 + 最新公告 + 点评句，区别于技术指标罗列）
-  html+=`<div class="grp"><h4>AI 点评 · 异动与资讯</h4><ul>`;
-  const annMap={};
-  await Promise.all(all.map(async s=>{ try{ annMap[s.code]=await fetchAnn(s.code); }catch(e){ annMap[s.code]=null; } }));
+  // 持仓数据（每只标的的持仓金额 + 占总仓位比例 + 盈亏情况）
+  html+=`<div class="grp"><h4>持仓数据</h4><ul>`;
   all.forEach(s=>{
-    const parts=[];
-    const day=dayMap[s.code];
-    if(day && day.length>1){
-      const last=day[day.length-1].c, prev=day[day.length-2].c;
-      if(prev>0){ const chgP=(last-prev)/prev*100;
-        if(Math.abs(chgP)>=3) parts.push(`今日${chgP>=0?'大涨':'大跌'} ${chgP.toFixed(1)}%`); }
-      const vols=day.map(x=>x.v); const tv=vols[vols.length-1];
-      const avg=mean(vols.slice(-6,-1)); if(avg>0){ const vr=tv/avg; if(vr>=2) parts.push(`量比 ${vr.toFixed(1)}（成交异动）`); }
-    }
-    if(s.shares>0 && s.cost>0){ const p=pnlOf(s), base=s.cost*s.shares;
-      parts.push(p>0?`持仓盈利 ${(p/base*100).toFixed(1)}%`:p<0?`持仓浮亏 ${(p/base*100).toFixed(1)}%`:'持仓持平'); }
-    else if(s.shares>0){ parts.push('已建仓（成本未填）'); }
-    const an=annMap[s.code];
-    let ann='';
-    if(an===null) ann='公告接口暂不可用';
-    else if(an.length) ann=`最新公告：${an[0].title}（${an[0].date}）`;
-    else ann='暂无最新公告';
-    const comment=parts.length?parts.join('，'):'近期走势平稳，无明显异动';
-    html+=`<li><b>${s.name}</b>：${comment} ｜ ${ann}</li>`;
+    const mv=s.shares*(s.price||0);
+    const pct=mv/(cap||1)*100; // 占总仓金额比例
+    const p=pnlOf(s);
+    const subTxt = s.shares>0 && s.cost>0
+      ? (p>0?`持仓盈利 ${(p/(s.cost*s.shares)*100).toFixed(1)}%` : p<0?`持仓浮亏 ${(p/(s.cost*s.shares)*100).toFixed(1)}%` : '持仓持平')
+      : (s.shares>0 ? '已建仓（成本未填）' : '仅观察');
+    const mvTxt = s.shares>0 ? `${fmt(mv)} 元` : '—';
+    html+=`<li><b>${s.name}</b>：持仓金额 <b style="color:var(--accent)">${mvTxt}</b> · 占总仓 <b style="color:var(--accent)">${pct.toFixed(2)}%</b> ｜ ${subTxt}</li>`;
   });
-  html+=`</ul><div class="muted">※ 异动依据最新交易日量价计算；公告来自东方财富公开接口（浏览器直连，受限时显示“暂不可用”）。本栏展示异动/资讯，不再重复 MA5 / EXPMA 等技术信号。</div></div>`;
+  html+=`</ul><div class="muted">※ 占总仓比例 = 持仓金额 ÷ 总仓金额（万元输入框）；盈亏% = 持仓盈亏 ÷ 持仓成本。</div></div>`;
   document.getElementById('revAnalysis').innerHTML=html;
 }
 
