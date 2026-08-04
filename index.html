@@ -457,6 +457,8 @@ function wbApply(o){
 }
 function wbSchedulePush(immediate){
   wbLoadCfg(); if(!wbSync.connected) return;
+  // 本地一发生改动就标记为「最新」，防止刷新/轮询时被较旧的云端版本覆盖
+  try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
   if(wbPushTimer) clearTimeout(wbPushTimer);
   wbPushTimer=setTimeout(wbPush, immediate?0:300);
 }
@@ -466,7 +468,8 @@ function wbRequestSave(){
   const f=document.querySelector('.modbody iframe');
   if(!f || !f.contentWindow){ wbToast('当前页面没有可保存的内容'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  wbToast('已发送保存指令，内容将存入本地并同步云端');
+  wbSchedulePush(true); // 立即把本地最新数据上传云端，不等防抖
+  wbToast('已保存并同步到云端');
 }
 /* 子页保存成功后的回执 */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
