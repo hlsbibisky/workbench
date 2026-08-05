@@ -158,6 +158,26 @@
   .rcard .rbody{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .rcard .rhead{ display:flex; align-items:center; gap:9px; }
   .rcard .rname{ font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.3px; line-height:1.3; }
+  /* ===== 今天吃什么·候选清单 ===== */
+  .pick-wrap{ margin-top:22px; border-top:1px dashed var(--line); padding-top:16px; }
+  .pick-head{ font-size:14px; color:var(--sub); margin-bottom:12px; font-weight:600; }
+  .pick-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .pick-card{ position:relative; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; cursor:pointer; transition:.14s; }
+  .pick-card:hover{ border-color:var(--accent); box-shadow:var(--shadow); transform:translateY(-2px); }
+  .pick-face{ height:64px; display:flex; align-items:center; justify-content:center; font-size:40px; border-radius:10px; background:var(--mark); overflow:hidden; }
+  .pick-img{ width:100%; height:64px; object-fit:cover; border-radius:10px; }
+  .pick-name{ font-size:14.5px; font-weight:600; margin:8px 0 4px; }
+  .pick-meta{ display:flex; flex-wrap:wrap; gap:4px; }
+  .pick-meta .badge{ font-size:11px; padding:2px 7px; border-radius:10px; background:var(--mark); color:var(--sub); }
+  .pick-meta .badge.荤{ background:rgba(184,113,78,.12); color:var(--accent); }
+  .pick-meta .badge.素{ background:rgba(91,140,123,.14); color:var(--accent2); }
+  .pick-meta .badge.汤{ background:rgba(120,140,170,.14); color:#5a6b86; }
+  .pick-meta .badge.主食{ background:rgba(180,150,90,.16); color:#9a7b3a; }
+  .pick-meta .badge.海鲜{ background:rgba(80,150,170,.16); color:#3f8aa0; }
+  .pick-like{ position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#fff; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--accent); line-height:1; }
+  .pick-like:hover{ background:var(--accent); color:#fff; }
+  .pick-more{ margin-top:12px; text-align:center; }
+
   /* 菜谱库分类导航栏 */
   .catbar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
   .catbtn{ border:1px solid var(--line); background:#fff; color:var(--sub); padding:7px 16px; border-radius:20px;
@@ -484,10 +504,10 @@
 
   <div class="content">
     <div class="subtabs">
-      <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
+      <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
       <button class="subtab" data-tab="menu" onclick="switchTab('menu')">菜谱库</button>
+      <button class="subtab" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
       <button class="subtab" data-tab="taste" onclick="switchTab('taste')">我的口味</button>
-      <button class="subtab" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
     </div>
 
     <div class="modbody" id="modbody"></div>
@@ -540,6 +560,30 @@
 <script>
 /* ============ 数据层 ============ */
 const SEED_DISHES = JSON.parse(document.getElementById('seedDishes').textContent);
+
+// 「新鲜菜」扩展池：跨流派的菜，混入「今天吃什么」候选，制造新鲜感（与内置种子菜不重名）
+const FRESH_DISHES = [
+ {"id":"f01","name":"水煮肉片","emoji":"🥩","type":"荤","ing":["猪肉","豆芽"],"seasonings":[{"n":"姜","must":true},{"n":"蒜","must":false},{"n":"辣椒","must":true},{"n":"葱","must":false}],"tags":["猪肉","麻辣","辣"],"prep":15,"cook":15,"steps":["里脊肉切片上浆","豆芽菜焯水垫碗底","肉片滑熟连汤浇上，淋蒜末辣油"]},
+ {"id":"f02","name":"鱼香肉丝","emoji":"🍲","type":"荤","ing":["猪肉","木耳","竹笋"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"姜","must":false},{"n":"辣椒","must":false}],"tags":["猪肉","酸甜","咸鲜"],"prep":15,"cook":15,"steps":["肉丝腌制上浆","木耳笋切丝","调鱼香汁同炒"]},
+ {"id":"f03","name":"辣子鸡","emoji":"🍗","type":"荤","ing":["鸡肉"],"seasonings":[{"n":"辣椒","must":true},{"n":"花椒","must":true},{"n":"蒜","must":false},{"n":"葱","must":false}],"tags":["鸡肉","麻辣"],"prep":20,"cook":20,"steps":["鸡块炸至酥香","爆香辣椒花椒","下鸡块翻炒"]},
+ {"id":"f04","name":"白切鸡","emoji":"🐔","type":"荤","ing":["鸡肉"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false}],"tags":["鸡肉","清淡"],"prep":10,"cook":30,"steps":["整鸡浸熟","过冰水皮脆","姜葱蘸料"]},
+ {"id":"f05","name":"蒜蓉粉丝蒸扇贝","emoji":"🦪","type":"海鲜","ing":["扇贝","粉丝"],"seasonings":[{"n":"蒜","must":true},{"n":"葱","must":false}],"tags":["海鲜","咸鲜"],"prep":15,"cook":12,"steps":["扇贝洗净摆盘","蒜蓉炒香铺粉丝","蒸8分钟淋热油"]},
+ {"id":"f06","name":"椰子鸡汤","emoji":"🍲","type":"汤","ing":["鸡肉","椰子"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false}],"tags":["鸡肉","甜","清淡"],"prep":15,"cook":60,"steps":["椰子取肉","鸡块焯水","同炖1小时"]},
+ {"id":"f07","name":"木须肉","emoji":"🥘","type":"荤","ing":["猪肉","鸡蛋","木耳"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"姜","must":false}],"tags":["猪肉","咸鲜"],"prep":15,"cook":15,"steps":["肉片滑炒","黄花菜木耳同炒","淋蛋液"]},
+ {"id":"f08","name":"西湖醋鱼","emoji":"🐟","type":"荤","ing":["鱼肉"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["鱼肉","酸甜"],"prep":10,"cook":15,"steps":["草鱼汆熟","调糖醋汁","浇淋鱼身"]},
+ {"id":"f09","name":"龙井虾仁","emoji":"🦐","type":"海鲜","ing":["虾","茶叶"],"seasonings":[{"n":"姜","must":false},{"n":"葱","must":false}],"tags":["虾","清淡","茶香"],"prep":15,"cook":10,"steps":["虾仁上浆","龙井茶泡开取汤","滑炒虾仁"]},
+ {"id":"f10","name":"剁椒鱼头","emoji":"🐟","type":"荤","ing":["鱼肉"],"seasonings":[{"n":"辣椒","must":true},{"n":"蒜","must":false},{"n":"葱","must":false}],"tags":["鱼肉","麻辣","辣"],"prep":15,"cook":20,"steps":["鱼头劈开摆盘","铺剁椒蒜末","蒸15分钟"]},
+ {"id":"f11","name":"农家小炒肉","emoji":"🥓","type":"荤","ing":["猪肉","青椒"],"seasonings":[{"n":"蒜","must":false},{"n":"辣椒","must":false},{"n":"葱","must":false}],"tags":["猪肉","咸鲜","辣"],"prep":10,"cook":15,"steps":["五花肉煸出油","下青椒蒜片","翻炒调味"]},
+ {"id":"f12","name":"臭鳜鱼","emoji":"🐟","type":"荤","ing":["鱼肉"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"姜","must":false},{"n":"辣椒","must":false}],"tags":["鱼肉","咸鲜","发酵"],"prep":30,"cook":20,"steps":["鳜鱼腌渍发酵","煎至金黄","红烧入味"]},
+ {"id":"f13","name":"照烧鸡腿","emoji":"🍗","type":"荤","ing":["鸡肉"],"seasonings":[{"n":"姜","must":true},{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["鸡肉","甜","咸鲜"],"prep":10,"cook":20,"steps":["鸡腿煎皮","调照烧汁","收汁裹匀"]},
+ {"id":"f14","name":"味噌汤","emoji":"🍲","type":"汤","ing":["豆腐","海带"],"seasonings":[{"n":"葱","must":false}],"tags":["豆腐","清淡"],"prep":5,"cook":10,"steps":["昆布高汤煮开","下豆腐海带","味噌化开"]},
+ {"id":"f15","name":"泡菜炒饭","emoji":"🍚","type":"主食","ing":["米饭","泡菜","鸡蛋"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["米饭","酸辣"],"prep":5,"cook":10,"steps":["泡菜切碎","炒蛋炒饭","加泡菜葱花"]},
+ {"id":"f16","name":"部队锅","emoji":"🍲","type":"汤","ing":["午餐肉","豆腐","泡菜","方便面"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false},{"n":"辣椒","must":false}],"tags":["咸鲜","辣"],"prep":15,"cook":20,"steps":["码放食材","倒高汤","煮开涮料"]},
+ {"id":"f17","name":"奶油蘑菇汤","emoji":"🥣","type":"汤","ing":["蘑菇","牛奶"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["乳制品","清淡","西式"],"prep":10,"cook":20,"steps":["蘑菇炒软","加面粉炒匀","倒牛奶煮稠"]},
+ {"id":"f18","name":"番茄意大利面","emoji":"🍝","type":"主食","ing":["面条","番茄","牛肉"],"seasonings":[{"n":"蒜","must":false},{"n":"葱","must":false},{"n":"洋葱","must":false}],"tags":["番茄","咸鲜","西式"],"prep":10,"cook":20,"steps":["意面煮熟","番茄牛肉酱熬煮","拌面撒芝士"]},
+ {"id":"f19","name":"菠萝咕咾肉","emoji":"🍍","type":"荤","ing":["猪肉","菠萝"],"seasonings":[{"n":"葱","must":false},{"n":"姜","must":false},{"n":"蒜","must":false}],"tags":["猪肉","甜","酸"],"prep":20,"cook":15,"steps":["肉块裹糊炸脆","菠萝青椒块","调糖醋汁裹匀"]},
+ {"id":"f20","name":"罗宋汤","emoji":"🍲","type":"汤","ing":["牛肉","番茄","土豆","卷心菜"],"seasonings":[{"n":"葱","must":false},{"n":"蒜","must":false}],"tags":["牛肉","番茄","酸","西式"],"prep":20,"cook":50,"steps":["牛肉炖酥","加番茄蔬菜","煮至浓稠"]}
+];
 
 const TASTE_DEFAULT = { like:[], avoidSeasoning:[], avoidIngredient:[], avoidAllergen:[], customTags:{} };
 
@@ -628,17 +672,28 @@ const state = {
   dishCover: load(K.dishCover, {}),
   skipSession: new Set(),
   queue: [], queueIdx: 0,
-  tab: 'today',
+  tab: 'checkin',
   menuCat: 'all',
   checkin: load(K.checkin, [])
 };
 
 function dishCover(id){ return (state.dishCover && state.dishCover[id]) || ''; }
 function dishCoverFallback(img){ img.outerHTML = '<div class="emoji">'+img.dataset.fallbackEmoji+'</div>'; }
+function menuToDish(r){
+  // 把「菜谱库」(food_menu) 里的菜也并入今天吃什么候选池
+  return {
+    id: 'm_'+(r.id||rid()), name: r.name, emoji: r.emoji, type: r.type||'其他',
+    ing: (r.materials||[]).map(m=>m.n).filter(Boolean),
+    seasonings: [], tags: [], steps: (r.steps||[]).slice(),
+    fromMenu: true, cover: r.image||''
+  };
+}
 function allDishes(){
-  // 用户已加入菜品库的菜，按菜名覆盖内置同名菜，避免今天吃什么出现重复
-  const seed = SEED_DISHES.filter(s => !state.userDishes.some(u => u.name===s.name));
-  return seed.concat(state.userDishes);
+  // 内置菜：用户菜品库(userDishes) 与菜谱库(menu) 同名覆盖，避免重复
+  const usedNames = new Set([...state.userDishes.map(u=>u.name), ...(state.menu||[]).map(r=>r.name)]);
+  const seed = SEED_DISHES.filter(s => !usedNames.has(s.name));
+  const menu = (state.menu||[]).filter(r => !SEED_DISHES.some(s=>s.name===r.name) && !state.userDishes.some(u=>u.name===r.name)).map(menuToDish);
+  return seed.concat(state.userDishes, menu);
 }
 function avoidSet(){ return new Set([...state.taste.avoidSeasoning, ...state.taste.avoidIngredient, ...state.taste.avoidAllergen]); }
 
@@ -667,7 +722,8 @@ function likeMatches(d){
 /* ============ 推荐引擎 ============ */
 function eligibleDishes(){
   const dis = new Set(state.disliked);
-  return allDishes().filter(d => !dis.has(d.id) && !state.skipSession.has(d.id) && !aversionsBlock(d).block);
+  const base = allDishes().concat(FRESH_DISHES);
+  return base.filter(d => !dis.has(d.id) && !state.skipSession.has(d.id) && !aversionsBlock(d).block);
 }
 function weightedShuffle(items){
   const res=[]; const pool=items.slice();
@@ -708,15 +764,19 @@ function actDislike(){
   toast('已记录：不再推荐「'+d.name+'」');
   advanceAfterRemove(); renderToday();
 }
-function actLike(){
-  const d = currentDish(); if(!d) return;
+function actPick(i){ if(i<0||i>=state.queue.length) return; state.queueIdx=i; renderToday(); }
+function actLikeFromQueue(i){ const d=state.queue[i]; if(d) actLike(d, false); }
+function actLike(d, openEditor){
+  d = d || currentDish();
+  if(!d) return;
   const r = dishToRecipe(d);
   state.menu.unshift(r);
   save(K.menu, state.menu);
-  state.queue.splice(state.queueIdx,1);
+  const qi = state.queue.indexOf(d);
+  if(qi>=0) state.queue.splice(qi,1);
   toast('已加入菜谱库：'+d.name);
-  advanceAfterRemove();
-  openRecipeEditor(r.id, true);
+  advanceAfterRemove(); renderToday();
+  if(openEditor!==false) openRecipeEditor(r.id, true);
 }
 
 // 菜品 -> 菜谱（自动按口味把「可去」的忌口调料标记为可不放）
@@ -749,7 +809,7 @@ function renderToday(){
     // 食材标签（大字体 + 标签设计）；「可去：X」独立显示在食材上方
     const ingTags = (d.ing||[]).map(i=>'<span class="ing-tag">'+esc(i)+'</span>').join('');
     const optHtml = opt.length ? '<div class="ing-opt-row">可去除：'+opt.join('·')+'</div>' : '';
-    const cover = dishCover(d.id);
+    const cover = d.cover || dishCover(d.id);
     const faceHtml = cover
       ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'" data-fallback-emoji="'+d.emoji+'" onerror="dishCoverFallback(this)">'
       : '<div class="emoji">'+d.emoji+'</div>';
@@ -771,11 +831,32 @@ function renderToday(){
       + '</div></div></div>';
   }
 
+  // 候选清单：从本轮队列里抽一批（排除当前主卡），供直接点选
+  const pickPool = state.queue.map((d,i)=>({d,i})).filter(o=>o.i!==state.queueIdx);
+  const pickShow = pickPool.slice(0,12);
+  const pickHtml = pickShow.length ? (
+    '<div class="pick-wrap"><div class="pick-head">🍽 更多候选（点菜名直接选定，或 ❤ 收进菜谱库）</div><div class="pick-grid">'
+    + pickShow.map(o=>{
+        const d=o.d;
+        const pcov = d.cover || dishCover(d.id);
+        const pface = pcov ? '<img class="pick-img" src="'+esc(pcov)+'" onerror="this.style.display=\'none\'">' : '<div class="pick-emoji">'+d.emoji+'</div>';
+        const ptags = (d.tags||[]).slice(0,3).map(t=>'<span class="badge">'+t+'</span>').join('');
+        return '<div class="pick-card">'
+          + '<div class="pick-face" onclick="actPick('+o.i+')">'+pface+'</div>'
+          + '<div class="pick-name" onclick="actPick('+o.i+')">'+esc(d.name)+'</div>'
+          + '<div class="pick-meta"><span class="badge '+d.type+'">'+d.type+'</span>'+ptags+'</div>'
+          + '<button class="pick-like" title="收进菜谱库" onclick="actLikeFromQueue('+o.i+')">❤</button>'
+          + '</div>';
+      }).join('')
+    + '</div><div class="pick-more"><button class="linkbtn" onclick="buildQueue();renderToday();">↻ 换一批候选</button></div></div>'
+  ) : '';
+
   body.innerHTML =
     '<div class="filterbar">'
     + '<button class="linkbtn" onclick="buildQueue();renderToday();">↻ 换一批</button>'
     + '<button class="linkbtn" style="margin-left:auto" onclick="openDishEditor(currentDish())">＋ 添加菜品到库</button></div>'
-    + stageHtml;
+    + stageHtml
+    + pickHtml;
 }
 
 function clearDisliked(){
@@ -1707,7 +1788,7 @@ tick(); setInterval(tick, 30000);
 
 ensureTagStore();
 buildQueue();
-switchTab('today');
+switchTab('checkin');
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
