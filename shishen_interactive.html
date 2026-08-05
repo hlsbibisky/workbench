@@ -19,6 +19,14 @@
     .active-tab { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .inactive-tab { color: #6b7280; }
     .inactive-tab:hover { color: #111827; background: rgba(255,255,255,0.5); }
+    /* ===== 手机适配增强（页面已用 Tailwind 响应式，此处补极小屏细节） ===== */
+    @media (max-width:640px){
+      nav.flex { gap:8px !important; padding:8px !important; }
+      .tab-btn { padding:8px 10px !important; font-size:12px !important; white-space:nowrap; }
+      #detail-panel { position:static !important; }
+      #family-canvas { height:320px !important; }
+      header h1 { font-size:22px !important; }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
