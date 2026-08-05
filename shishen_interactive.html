@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>十神全息关系互动图</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Noto Sans SC', sans-serif; }
+    .card-hover { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+    .pill { transition: all 0.2s ease; }
+    .pill:hover { transform: scale(1.05); }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .node-line { stroke-dasharray: 6; animation: dash 30s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -200; } }
+    .active-tab { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .inactive-tab { color: #6b7280; }
+    .inactive-tab:hover { color: #111827; background: rgba(255,255,255,0.5); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-10">
+      <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-3">十神全息关系思维导图</h1>
+      <p class="text-slate-500">梳理自我、他人与世界的能量连接 · 鼠标悬停即可查看对应关系</p>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="flex flex-wrap justify-center gap-2 mb-8 bg-slate-200/60 p-1.5 rounded-2xl max-w-2xl mx-auto">
+      <button data-tab="overview" class="tab-btn active-tab px-5 py-2.5 rounded-xl text-sm font-medium transition-all">十神总览</button>
+      <button data-tab="drive" class="tab-btn inactive-tab px-5 py-2.5 rounded-xl text-sm font-medium transition-all">驱动关系</button>
+      <button data-tab="family" class="tab-btn inactive-tab px-5 py-2.5 rounded-xl text-sm font-medium transition-all">亲子关系</button>
+      <button data-tab="explore" class="tab-btn inactive-tab px-5 py-2.5 rounded-xl text-sm font-medium transition-all">关系探索</button>
+    </nav>
+
+    <!-- Main content grid -->
+    <div class="grid lg:grid-cols-3 gap-6 items-start">
+      <!-- Left: dynamic view -->
+      <main class="lg:col-span-2 space-y-6">
+        <section id="view-overview" class="view-section">
+          <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4" id="overview-grid"></div>
+        </section>
+
+        <section id="view-drive" class="view-section hidden">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h2 class="text-xl font-bold mb-4">驱动类型 → 十神对应</h2>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" id="drive-grid"></div>
+          </div>
+        </section>
+
+        <section id="view-family" class="view-section hidden">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h2 class="text-xl font-bold mb-4">以「我」为中心的家庭关系结构</h2>
+            <div class="relative h-[420px] w-full flex items-center justify-center" id="family-canvas"></div>
+            <p class="text-center text-sm text-slate-400 mt-2">悬停节点查看该关系对应的十神</p>
+          </div>
+        </section>
+
+        <section id="view-explore" class="view-section hidden">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h2 class="text-xl font-bold mb-4">查询任意关系属于哪个十神</h2>
+            <div class="relative mb-6">
+              <input id="explore-input" type="text" placeholder="输入关系，例如：妈妈、我的工作、伴侣的爱…" 
+                class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              <svg class="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <div id="explore-results" class="space-y-3"></div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Right: detail panel -->
+      <aside class="lg:col-span-1">
+        <div id="detail-panel" class="bg-white rounded-2xl p-6 shadow-lg border border-slate-100 sticky top-6">
+          <div class="text-center text-slate-400 py-10">
+            <div class="text-5xl mb-3">✨</div>
+            <p>把鼠标移到左侧卡片或节点上<br />这里会显示详细解读</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const shishen = {
+      bijie: {
+        key: 'bijie',
+        name: '比劫',
+        title: '自我 / 同辈',
+        icon: '🤝',
+        color: 'red',
+        bg: 'bg-red-50',
+        border: 'border-red-200',
+        text: 'text-red-700',
+        ring: 'ring-red-200',
+        light: '#fee2e2',
+        items: ['自己', '朋友', '同事领导', '妈妈的情', '伴侣的钱', '爸爸的责任'],
+        desc: '比劫代表自我主体、同辈关系与平行能量。它体现一个人如何认识自己、如何在平等关系中找到位置，也与自主性、独立性、自我价值感密切相关。',
+        drive: '自我价值感驱动',
+        family: ['自己', '朋友', '同事领导']
+      },
+      shishang: {
+        key: 'shishang',
+        name: '食伤',
+        title: '表达 / 才华',
+        icon: '🎨',
+        color: 'amber',
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        text: 'text-amber-700',
+        ring: 'ring-amber-200',
+        light: '#fef3c7',
+        items: ['孩子（女）', '妈妈的钱', '爸爸的爱', '伴侣的责任', '我的情', '我的技术能力', '我的天赋才华', '我的感性情感'],
+        desc: '食伤是内在感受向外流动的通道，代表表达、创造、情感、才华与自由。它决定一个人如何释放情绪、展现天赋，以及如何与世界建立情感连接。',
+        drive: '情感驱动',
+        family: ['孩子（女）']
+      },
+      cai: {
+        key: 'cai',
+        name: '财',
+        title: '掌控 / 物质',
+        icon: '💰',
+        color: 'emerald',
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200',
+        text: 'text-emerald-700',
+        ring: 'ring-emerald-200',
+        light: '#d1fae5',
+        items: ['爸爸', '伴侣（男）', '爸爸的存在/陪伴', '伴侣的爱', '妈妈的责任', '我的钱'],
+        desc: '财代表物质、资源、掌控与现实利益，也象征父亲与男性伴侣。它反映一个人对现实世界的把握能力，以及与资源、金钱、实际责任的关系模式。',
+        drive: '物质驱动',
+        family: ['爸爸', '伴侣（男）']
+      },
+      guansha: {
+        key: 'guansha',
+        name: '官杀',
+        title: '约束 / 责任',
+        icon: '⚖️',
+        color: 'blue',
+        bg: 'bg-blue-50',
+        border: 'border-blue-200',
+        text: 'text-blue-700',
+        ring: 'ring-blue-200',
+        light: '#dbeafe',
+        items: ['伴侣（女）', '孩子（男）', '伴侣的存在/陪伴', '爸爸的情', '妈妈的爱', '我的责任', '我的工作'],
+        desc: '官杀代表规则、责任、约束、压力、事业与权威。它是社会规范在命盘中的投射，也象征女性伴侣与男性后代，体现一个人承担与服从的张力。',
+        drive: '责任感驱动',
+        family: ['伴侣（女）', '孩子（男）']
+      },
+      yin: {
+        key: 'yin',
+        name: '印',
+        title: '保护 / 思维',
+        icon: '📚',
+        color: 'purple',
+        bg: 'bg-purple-50',
+        border: 'border-purple-200',
+        text: 'text-purple-700',
+        ring: 'ring-purple-200',
+        light: '#f3e8ff',
+        items: ['妈妈', '妈妈的存在/陪伴', '爸爸的钱', '伴侣的情', '我的学历', '我的思维理性'],
+        desc: '印代表保护、思维、学习、精神与智慧。它象征母亲与内在安全感，决定一个人的认知框架、学习能力，以及从外界汲取精神养分的方式。',
+        drive: '精神驱动',
+        family: ['妈妈']
+      }
+    };
+
+    const drives = [
+      { name: '精神驱动', key: 'yin', desc: '追求意义、信仰、知识与内在安宁，由「印」主导。' },
+      { name: '情感驱动', key: 'shishang', desc: '追求表达、连结、创造与情绪流动，由「食伤」主导。' },
+      { name: '责任感驱动', key: 'guansha', desc: '追求规则、担当、社会角色与完成义务，由「官杀」主导。' },
+      { name: '自我价值感驱动', key: 'bijie', desc: '追求独立、认同、平等竞争与自我肯定，由「比劫」主导。' },
+      { name: '物质驱动', key: 'cai', desc: '追求资源、掌控、安全感与现实成果，由「财」主导。' }
+    ];
+
+    // Build relationship -> shishen map
+    const relationshipMap = {};
+    Object.values(shishen).forEach(s => {
+      s.items.forEach(item => { relationshipMap[item] = s.key; });
+    });
+    // Add normalized aliases
+    const aliases = {
+      '母亲': 'yin', '娘': 'yin', '母爱': 'yin',
+      '父亲': 'cai', '爹': 'cai', '父爱': 'cai',
+      '丈夫': 'cai', '老公': 'cai', '男朋友': 'cai',
+      '妻子': 'guansha', '老婆': 'guansha', '女朋友': 'guansha',
+      '女儿': 'shishang', '儿子': 'guansha',
+      '子女': 'shishang',
+      '自己': 'bijie', '自我': 'bijie', '本人': 'bijie',
+      '朋友': 'bijie', '同事': 'bijie', '领导': 'bijie',
+      '工作': 'guansha', '事业': 'guansha',
+      '学历': 'yin', '学习': 'yin', '知识': 'yin',
+      '感情': 'shishang', '情绪': 'shishang', '才华': 'shishang',
+      '金钱': 'cai', '财富': 'cai', '收入': 'cai',
+      '责任': 'guansha', '义务': 'guansha'
+    };
+    Object.assign(relationshipMap, aliases);
+
+    function renderDetail(s) {
+      const panel = document.getElementById('detail-panel');
+      const itemTags = s.items.map(i => `<span class="pill inline-block px-3 py-1 rounded-full text-sm ${s.bg} ${s.text} border ${s.border} mr-2 mb-2 cursor-default">${i}</span>`).join('');
+      panel.innerHTML = `
+        <div class="fade-in">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-4xl">${s.icon}</span>
+            <div>
+              <h3 class="text-2xl font-bold ${s.text}">${s.name}</h3>
+              <p class="text-slate-500 text-sm">${s.title}</p>
+            </div>
+          </div>
+          <div class="mb-5 p-4 rounded-xl ${s.bg} border ${s.border}">
+            <p class="text-slate-700 leading-relaxed">${s.desc}</p>
+          </div>
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">对应关系</h4>
+            <div class="flex flex-wrap">${itemTags}</div>
+          </div>
+          <div class="pt-4 border-t border-slate-100">
+            <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">核心驱动</h4>
+            <p class="text-lg font-medium text-slate-800">${s.drive}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function clearDetail() {
+      document.getElementById('detail-panel').innerHTML = `
+        <div class="text-center text-slate-400 py-10 fade-in">
+          <div class="text-5xl mb-3">✨</div>
+          <p>把鼠标移到左侧卡片或节点上<br />这里会显示详细解读</p>
+        </div>
+      `;
+    }
+
+    // Overview tab
+    function initOverview() {
+      const grid = document.getElementById('overview-grid');
+      grid.innerHTML = Object.values(shishen).map(s => `
+        <div class="card-hover bg-white rounded-2xl p-5 border-t-4 border-${s.color}-400 shadow-sm border border-slate-100 cursor-pointer"
+             data-key="${s.key}">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-2xl">${s.icon}</span>
+            <h3 class="text-lg font-bold ${s.text}">${s.name} <span class="text-slate-400 font-normal text-sm">(${s.title})</span></h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${s.items.slice(0, 5).map(i => `<span class="px-2.5 py-1 rounded-lg text-xs ${s.bg} ${s.text} border ${s.border}">${i}</span>`).join('')}
+            ${s.items.length > 5 ? `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-100 text-slate-500">+${s.items.length - 5}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.card-hover').forEach(card => {
+        card.addEventListener('mouseenter', () => renderDetail(shishen[card.dataset.key]));
+        card.addEventListener('mouseleave', () => clearDetail());
+      });
+    }
+
+    // Drive tab
+    function initDrive() {
+      const grid = document.getElementById('drive-grid');
+      grid.innerHTML = drives.map(d => {
+        const s = shishen[d.key];
+        return `
+          <div class="card-hover rounded-2xl p-5 border ${s.border} ${s.bg} cursor-pointer" data-key="${s.key}">
+            <h4 class="font-bold text-lg ${s.text} mb-1">${d.name}</h4>
+            <p class="text-sm text-slate-600 mb-3">${d.desc}</p>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${s.icon}</span>
+              <span class="font-bold ${s.text}">→ ${s.name}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.card-hover').forEach(card => {
+        card.addEventListener('mouseenter', () => renderDetail(shishen[card.dataset.key]));
+        card.addEventListener('mouseleave', () => clearDetail());
+      });
+    }
+
+    // Family tab - SVG radial diagram
+    function initFamily() {
+      const canvas = document.getElementById('family-canvas');
+      const cx = 280, cy = 200, r = 140;
+      const center = { label: '我', key: 'bijie' };
+      const nodes = [
+        { label: '妈妈', key: 'yin', angle: -90 },
+        { label: '爸爸', key: 'cai', angle: -30 },
+        { label: '孩子', key: 'shishang', angle: 30 },
+        { label: '伴侣', key: 'guansha', angle: 90 },
+        { label: '朋友/同事', key: 'bijie', angle: 150 },
+        { label: '工作/责任', key: 'guansha', angle: -150 }
+      ];
+
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('width', '560');
+      svg.setAttribute('height', '400');
+      svg.setAttribute('viewBox', '0 0 560 400');
+      svg.classList.add('w-full', 'h-full');
+
+      // Lines
+      nodes.forEach(n => {
+        const rad = (n.angle * Math.PI) / 180;
+        const x = cx + r * Math.cos(rad);
+        const y = cy + r * Math.sin(rad);
+        const s = shishen[n.key];
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#cbd5e1');
+        line.setAttribute('stroke-width', '2');
+        line.classList.add('node-line');
+        svg.appendChild(line);
+      });
+
+      // Center node
+      const centerGroup = createNode(cx, cy, center.label, center.key, true);
+      svg.appendChild(centerGroup);
+
+      // Outer nodes
+      nodes.forEach(n => {
+        const rad = (n.angle * Math.PI) / 180;
+        const x = cx + r * Math.cos(rad);
+        const y = cy + r * Math.sin(rad);
+        svg.appendChild(createNode(x, y, n.label, n.key, false));
+      });
+
+      canvas.innerHTML = '';
+      canvas.appendChild(svg);
+    }
+
+    function createNode(x, y, label, key, isCenter) {
+      const s = shishen[key];
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(svgNS, 'g');
+      g.style.cursor = 'pointer';
+      g.addEventListener('mouseenter', () => renderDetail(s));
+      g.addEventListener('mouseleave', () => clearDetail());
+
+      const circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', isCenter ? 46 : 40);
+      circle.setAttribute('fill', s.light);
+      circle.setAttribute('stroke', s.text.replace('text-', '').replace('-700', '-500'));
+      circle.setAttribute('stroke-width', isCenter ? '3' : '2');
+      circle.classList.add('transition-all');
+      g.appendChild(circle);
+
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('x', x);
+      text.setAttribute('y', y + 5);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', '#1f2937');
+      text.setAttribute('font-size', isCenter ? '16' : '14');
+      text.setAttribute('font-weight', 'bold');
+      text.textContent = label;
+      g.appendChild(text);
+
+      const sub = document.createElementNS(svgNS, 'text');
+      sub.setAttribute('x', x);
+      sub.setAttribute('y', y + 22);
+      sub.setAttribute('text-anchor', 'middle');
+      sub.setAttribute('fill', '#6b7280');
+      sub.setAttribute('font-size', '11');
+      sub.textContent = s.name;
+      g.appendChild(sub);
+
+      g.addEventListener('mouseenter', () => {
+        circle.setAttribute('r', isCenter ? 52 : 46);
+        circle.setAttribute('stroke-width', '4');
+      });
+      g.addEventListener('mouseleave', () => {
+        circle.setAttribute('r', isCenter ? 46 : 40);
+        circle.setAttribute('stroke-width', isCenter ? '3' : '2');
+      });
+
+      return g;
+    }
+
+    // Explore tab
+    function initExplore() {
+      const input = document.getElementById('explore-input');
+      const results = document.getElementById('explore-results');
+      const allRelations = Object.keys(relationshipMap);
+
+      function doSearch(q) {
+        if (!q.trim()) { results.innerHTML = ''; return; }
+        const qLower = q.toLowerCase();
+        const matched = allRelations.filter(r => r.toLowerCase().includes(qLower)).slice(0, 12);
+        if (matched.length === 0) {
+          results.innerHTML = `<div class="p-4 rounded-xl bg-slate-50 text-slate-500 text-center">没有找到「${q}」的对应关系，换个关键词试试？</div>`;
+          return;
+        }
+        results.innerHTML = matched.map(r => {
+          const key = relationshipMap[r];
+          const s = shishen[key];
+          return `
+            <div class="flex items-center justify-between p-4 rounded-xl border ${s.border} ${s.bg} card-hover cursor-default"
+                 onmouseenter="renderDetail(shishen['${key}'])" onmouseleave="clearDetail()">
+              <span class="font-medium text-slate-800">${r}</span>
+              <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-white border ${s.border} ${s.text} text-sm font-bold">
+                <span>${s.icon}</span> ${s.name}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      input.addEventListener('input', e => doSearch(e.target.value));
+
+      // Popular quick tags
+      const quick = document.createElement('div');
+      quick.className = 'flex flex-wrap gap-2 mb-5';
+      ['妈妈', '爸爸', '我的工作', '我的钱', '伴侣的爱', '自我价值'].forEach(tag => {
+        const btn = document.createElement('button');
+        btn.className = 'px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors';
+        btn.textContent = tag;
+        btn.addEventListener('click', () => { input.value = tag; doSearch(tag); });
+        quick.appendChild(btn);
+      });
+      input.parentElement.after(quick);
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active-tab');
+          b.classList.add('inactive-tab');
+        });
+        btn.classList.remove('inactive-tab');
+        btn.classList.add('active-tab');
+        document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+        document.getElementById('view-' + btn.dataset.tab).classList.remove('hidden');
+        clearDetail();
+      });
+    });
+
+    initOverview();
+    initDrive();
+    initFamily();
+    initExplore();
+  </script>
+</body>
+</html>
