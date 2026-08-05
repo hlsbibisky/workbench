@@ -232,6 +232,10 @@
       <div class="tpane" id="pane-ai">
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+            <label class="btn" style="font-size:12px;padding:6px 10px;cursor:pointer;">📝 上传字幕<input type="file" class="fileinp" accept=".srt,.vtt" onchange="onSubtitle(this.files[0])"></label>
+            <span id="subInfo" style="font-size:11px;color:var(--sub);">有字幕就用字幕，AI 评论更准</span>
+          </div>
           <textarea id="aiKey" placeholder="API Key（也可在「AI配置」里填写，仅存在本机）" style="margin-top:6px;"></textarea>
           <div class="aiopts">
             <input id="aiModel" placeholder="模型，如 gpt-4o-mini">
@@ -276,9 +280,9 @@
     <p style="font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 12px;">
       1. 点击「选择影片」加载本地视频，支持 mp4 / mkv / webm 等格式。<br><br>
       2. 右侧「AI 陪伴」面板显示 AI 和你自己的消息；下方标签可切换「时间轴 / AI生成 / 截图分析 / 观影记录」。<br><br>
-      3. 「AI生成」粘贴剧情文本，填 API Key，一键生成带时间点的 AI 评论。<br><br>
-      4. 「截图分析」上传电影截图，AI 会基于画面内容发表看法。<br><br>
-      5. 点击 🎤 可以语音输入，AI 用文字回复。<br><br>
+      3. 「AI生成」建议先「上传字幕」(.srt/.vtt)，AI 会基于真实时间轴写评论；没字幕也可粘贴剧情文本。填好 API Key 后一键生成。<br><br>
+      4. 播放时，到点的 AI 评论会自动出现在上方陪伴面板；你也可以直接在输入框打字或点 🎤 说话，AI 会结合当前播放位置真实回复（不再只是罐头话）。<br><br>
+      5. 「截图分析」上传电影截图，AI 会基于画面内容发表看法。<br><br>
       6. 「观影记录」里每部电影都有海报、标题、观看日期和进度；点记录可联网搜索海报或手动上传。
     </p>
     <div class="macts"><button class="btn primary" onclick="closeHelp()">知道了</button></div>
@@ -344,7 +348,8 @@ let state={
   file:null, url:null, currentId:null, recordId:null,
   meta:{title:'',info:'',plot:''},
   notes:[], shown:new Set(), visionTimer:null,
-  editingId:null, recPoster:null
+  editingId:null, recPoster:null,
+  subtitle:[], subtitleRaw:''  /* 字幕线索（上传 .srt/.vtt 后生效） */
 };
 
 function lsGet(k){ try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;} }
@@ -374,10 +379,12 @@ function loadMovie(id){
   let m=lsGet(movieKey(id))||{};
   state.meta=m.meta||{title:'',info:'',plot:''};
   state.notes=m.notes||[];
+  state.subtitle=m.subtitle||[];
+  state.subtitleRaw=m.subtitleRaw||'';
 }
 function saveMovie(){
   if(!state.currentId) return;
-  lsSet(movieKey(state.currentId),{meta:state.meta,notes:state.notes,updated:Date.now()});
+  lsSet(movieKey(state.currentId),{meta:state.meta,notes:state.notes,subtitle:state.subtitle,subtitleRaw:state.subtitleRaw,updated:Date.now()});
 }
 
 /* ================= UI ================= */
@@ -562,10 +569,15 @@ function loadFile(file){
   video.src=state.url;
   video.load();
   $('screen').classList.add('has-video');
-  state.currentId=Date.now()+'';
-  const title=file.name.replace(/\.[^.]+$/,'');
-  state.meta={title,info:'',plot:''};
-  state.notes=[]; state.shown.clear();
+  state.currentId=file.name+'_'+file.size;   /* 用文件名+大小做稳定 ID，重选同一部片可找回评论 */
+  const had=lsGet(movieKey(state.currentId));
+  if(had){
+    loadMovie(state.currentId); state.shown.clear();
+  }else{
+    const title=file.name.replace(/\.[^.]+$/,'');
+    state.meta={title,info:'',plot:''};
+    state.notes=[]; state.shown.clear();
+  }
   renderNotes(); clearAi();
   $('nowPlaying').textContent='正在观看：'+title;
   aiSay('系统','已加载影片：'+title);
@@ -641,9 +653,43 @@ function sendChat(){
   const inp=$('chatInp'), txt=inp.value.trim(); if(!txt) return;
   aiSay('我', txt);
   inp.value='';
-  setTimeout(()=>{
-    aiSay('AI','我在听。等你看完这一段，我们可以一起聊聊剧情。');
-  },600);
+  chatWithAI(txt);
+}
+/* 真实调用 AI 聊天（含「问这一幕」隐藏上下文） */
+async function chatWithAI(userText){
+  const cfg=loadCfg();
+  const key=cfg.key||$('aiKey').value.trim();
+  const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
+  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.openai.com/v1/chat/completions';
+  if(!key){
+    aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
+    return;
+  }
+  // 隐藏上下文：当前影片 + 播放位置 + 附近字幕（仅之前内容）
+  let ctx=`当前影片：${state.meta.title||'未命名'}`;
+  if(isFinite(video.duration)&&video.duration>0) ctx+=`；当前播放位置：${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+  const near=nearbySubtitle(video.currentTime);
+  if(near) ctx+=`；当前附近字幕（之前内容）：${near}`;
+  try{
+    const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
+    const res=await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:model,messages:[{role:'system',content:sys},{role:'user',content:userText}],temperature:0.8})
+    });
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    const txt=data.choices?.[0]?.message?.content?.trim()||'（AI 没有返回内容）';
+    aiSay('AI', txt);
+  }catch(e){
+    aiSay('AI','（调用 AI 失败：'+e.message+'）');
+  }
+}
+/* 取当前播放点之前的邻近字幕（供「问这一幕」用，稍后字幕上传后生效） */
+function nearbySubtitle(t){
+  if(!state.subtitle || !state.subtitle.length) return '';
+  const before=state.subtitle.filter(c=>c.start<=t).slice(-3);
+  return before.map(c=>`[${fmt(c.start)}] ${c.text}`).join('  ');
 }
 
 /* ================= 标签切换 ================= */
@@ -676,7 +722,7 @@ function saveAiCfg(){
 /* ================= AI 生成时间轴 ================= */
 async function genAiNotes(){
   const plot=$('plotText').value.trim();
-  if(!plot){ alert('请先粘贴剧情文本'); return; }
+  if(!plot && !state.subtitle.length){ alert('请先粘贴剧情文本，或上传字幕文件'); return; }
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
   const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
@@ -684,15 +730,23 @@ async function genAiNotes(){
   if(!key){ alert('请先在 AI配置 或右侧面板填写 API Key'); return; }
   const btn=$('genBtn'); const old=btn.textContent; btn.textContent='生成中…'; btn.disabled=true;
   try{
-    const prompt=`你是一位陪用户看电影的 AI 朋友。用户把一部电影的部分剧情/字幕发给你，请根据内容生成 5~10 条「观影时间轴评论」。
+    const dur=isFinite(video.duration)&&video.duration>0?fmt(video.duration):'';
+    let subExcerpt='';
+    if(state.subtitle.length){
+      subExcerpt=state.subtitle.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
+      if(subExcerpt.length>5000) subExcerpt=subExcerpt.slice(0,5000)+'\n…(字幕较长，已截断)';
+    }
+    const useSub=!!subExcerpt;
+    const prompt=`你是一位陪用户看电影的 AI 朋友。请生成 5~10 条「观影时间轴评论」。
 要求：
 1. 输出必须是合法 JSON 数组，不要 markdown 代码块。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
-3. time 使用 mm:ss，覆盖影片前 80% 的时长即可；text 要口语化、有陪伴感，像朋友一样吐槽或点评细节，不要剧透结局，每条 30~80 字。
+3. ${useSub?('time 必须直接采用下面「字幕证据」里出现该情节的真实时间点（格式 mm:ss）；字幕时间即电影真实时间，不要另造。'):(dur?('影片总时长约 '+dur+'，让时间点均匀分布在时长内（可到约 80% 处）'):'合理分布在前 90 分钟内')}；text 要口语化、有陪伴感，像朋友一样吐槽或点评细节。
 4. 评论要有趣、有情绪、有互动感，让用户感觉有人陪着一起看。
+5. 【防剧透】每条评论只可引用「该时间点之前」已描述或合理的情节，绝对不要提及该时间点之后的剧情或结局；更不要提前揭晓反转/凶手/结局。
+6. 每条 30~80 字。
 
-剧情文本如下：
-${plot}`;
+${useSub?('字幕证据（真实时间轴，优先据此写评论）：\n'+subExcerpt):('剧情文本如下：\n'+plot)}`;
     const res=await fetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
@@ -718,6 +772,49 @@ ${plot}`;
   }catch(e){
     alert('生成失败：'+e.message+'\n\n请检查 API Key、模型名和接口地址是否正确。');
   }finally{ btn.textContent=old; btn.disabled=false; }
+}
+
+/* ================= 字幕解析（字幕优先） ================= */
+function parseSRT(txt){
+  const out=[]; const blocks=txt.replace(/\r/g,'').split(/\n\s*\n/);
+  blocks.forEach(b=>{
+    const lines=b.trim().split('\n');
+    if(lines.length<2) return;
+    const idx=lines.findIndex(l=>/-->/.test(l));
+    if(idx<0) return;
+    const m=lines[idx].match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)/);
+    if(!m) return;
+    const start=+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000;
+    const text=lines.slice(idx+1).join(' ').trim();
+    if(text) out.push({start, text});
+  });
+  return out;
+}
+function parseVTT(txt){
+  const out=[]; const lines=txt.replace(/\r/g,'').split('\n');
+  for(let i=0;i<lines.length;i++){
+    const m=lines[i].match(/(\d+):(\d+):(\d+)[.](\d+)\s*-->\s*(\d+):(\d+):(\d+)/);
+    if(m){
+      const start=+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000;
+      let j=i+1, text='';
+      while(j<lines.length && lines[j].trim()!==''){ text+=(text?' ':'')+lines[j].trim(); j++; }
+      if(text) out.push({start, text}); i=j;
+    }
+  }
+  return out;
+}
+function onSubtitle(file){
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const txt=r.result;
+    const cues=/\.vtt$/i.test(file.name)?parseVTT(txt):parseSRT(txt);
+    if(!cues.length){ $('subInfo').textContent='字幕解析失败，请检查格式（.srt / .vtt）'; return; }
+    state.subtitle=cues; state.subtitleRaw=txt.slice(0,20000);
+    $('subInfo').textContent=`已加载 ${cues.length} 条字幕，AI 评论将基于真实时间轴`;
+    saveMovie();
+  };
+  r.readAsText(file);
 }
 
 /* ================= 截图分析 ================= */
