@@ -42,13 +42,13 @@
     font-weight:700; color:var(--accent); line-height:1.05;
   }
   .brand-tag, .brand-title{
-    display:grid; grid-template-columns:repeat(3, 28px);
+    display:block;
   }
-  .brand-tag{ font-size:14px; padding-bottom:5px; opacity:.88; }
-  .brand-title{ font-size:22px; letter-spacing:0; }
-  .brand-tag span, .brand-title span{ text-align:center; }
+  .brand-tag{ font-size:22px; padding-bottom:3px; }
+  .brand-title{ font-size:22px; }
+  /* HLS 与工作台同为横排，左对齐即 H↔工；LS 顺 H 跟在后面，不与作台对齐 */
   .brand .dot{
-    position:absolute; left:7px; top:19px;
+    position:absolute; left:7px; top:25px;
     width:9px; height:9px; border-radius:50%; background:var(--accent);
     box-shadow:0 0 0 4px rgba(184,113,78,.14);
   }
@@ -172,9 +172,8 @@
     .sidebar{ width:132px; flex:0 0 132px; padding:18px 10px; }
     .brand{ justify-content:flex-start; padding:2px 0 14px; }
     .brand-title{ font-size:17px; }
-    .brand-tag{ font-size:11px; padding-bottom:4px; }
-    .brand-tag, .brand-title{ grid-template-columns:repeat(3, 22px); }
-    .brand .dot{ left:4px; top:16px; width:7px; height:7px;
+    .brand-tag{ font-size:17px; padding-bottom:3px; }
+    .brand .dot{ left:4px; top:21px; width:7px; height:7px;
       box-shadow:0 0 0 3px rgba(184,113,78,.14); }
     .brand-en{ display:none; }
     .navlabel{ display:none; }
