@@ -201,6 +201,10 @@
     body.menu-open .sidebar{ transform:translateX(0); }
     body.menu-open .menu-mask{ display:block; }
     .brand{ padding:0 6px 10px; border-bottom:1px solid var(--line); margin-bottom:8px; }
+    .brand-stack{ font-size:17px; }
+    .brand-tag, .brand-title{ font-size:17px; padding-bottom:2px; letter-spacing:1px; }
+    .brand .dot{ left:7px; top:25px; width:7px; height:7px;
+      box-shadow:0 0 0 3px rgba(184,113,78,.14); }
     .brand-en{ display:none; }
     .navlabel{ display:block; font-size:11px; padding:8px 10px 4px; color:var(--sub); }
     #navCommon, #navOther{
@@ -222,7 +226,11 @@
     .topright .wb-icon-btn{
       padding:4px 8px; font-size:11.5px; border-radius:8px;
     }
-    #wbSaveBtn{ padding:4px 9px; font-size:11.5px; border-radius:8px; }
+    /* 手机端只显示图标，不显示文字 */
+    .wb-icon-btn .lbl{ display:none; }
+    .wb-icon-btn .icn{ font-size:15px; line-height:1; }
+    #wbSaveBtn{ padding:5px 9px; font-size:12px; border-radius:8px; }
+    #wbSaveBtn .icn{ font-size:15px; line-height:1; }
     .topright .clock{ padding:2px 8px; font-size:11px; display:none; /* 极窄屏空 */ }
     .topright .hi{ display:none; }
 
@@ -285,9 +293,9 @@
       </button>
       <div class="crumb" id="crumb"></div>
       <div class="topright">
-        <button class="wb-icon-btn" onclick="wbExport()" title="导出全部数据为 JSON 备份">⬇ 导出</button>
-        <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer">⬆ 导入<input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
-        <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地并同步云端">💾 保存</button>
+        <button class="wb-icon-btn" onclick="wbExport()" title="导出全部数据为 JSON 备份"><span class="icn">⬇</span><span class="lbl"> 导出</span></button>
+        <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer"><span class="icn">⬆</span><span class="lbl"> 导入</span><input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
+        <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地并同步云端"><span class="icn">💾</span><span class="lbl"> 保存</span></button>
         <span class="hi" id="hi"></span>
         <span id="today"></span>
       </div>
@@ -303,7 +311,31 @@
   </main>
 </div>
 
+<div class="menu-mask" id="wbMenuMask"></div>
+
 <script>
+/* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
+(function(){
+  function close(){ document.body.classList.remove('menu-open'); }
+  function open(){  document.body.classList.add('menu-open'); }
+  document.getElementById('wbMenuBtn').addEventListener('click', function(){
+    document.body.classList.toggle('menu-open');
+  });
+  document.getElementById('wbMenuMask').addEventListener('click', close);
+  /* 点侧栏里的 nav 项目后自动收起（但要等导航逻辑处理完再关） */
+  document.addEventListener('click', function(e){
+    var item = e.target.closest && e.target.closest('.navitem');
+    if(item && document.body.classList.contains('menu-open')){
+      /* 200ms 后关，让主页面有时间看见已切换到新模块 */
+      setTimeout(close, 220);
+    }
+  });
+  /* ESC 关闭 */
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape') close();
+  });
+})();
+
 /* =========================================================
    工作台框架 —— 模块 / 子模块配置
    后续接入具体内容时，只需在对应模块下增删 sub 项：
