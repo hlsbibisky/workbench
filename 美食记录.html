@@ -296,22 +296,47 @@
     background:#fff; font-family:inherit; font-size:14px; color:var(--ink); }
   .field input::placeholder, .field textarea::placeholder{ color:#bbb; }
   .field textarea{ resize:vertical; min-height:90px; }
-  /* 难度星级选择器 */
-  .star-pick{ display:inline-flex; gap:4px; font-size:26px; cursor:pointer; line-height:1; user-select:none; }
-  .star-pick .star{ color:#d9d2c7; transition:.12s; }
-  .star-pick .star.on{ color:#e8a33d; }
-  .star-pick .star:hover{ transform:scale(1.12); color:#e8a33d; }
-  .star-hint{ font-size:12px; color:var(--sub); margin-left:8px; }
-  .matrow{ display:grid; grid-template-columns:1fr 90px auto 34px; gap:8px; align-items:center; margin-bottom:8px; }
-  .matrow input{ padding:7px 9px; font-size:13px; }
-  .matrow .skip-tag{ font-size:12px; color:var(--accent); background:rgba(184,113,78,.1); padding:2px 9px; border-radius:8px; white-space:nowrap; }
-  .matrow .row-del{ border:none; background:none; cursor:pointer; color:var(--bad); font-size:15px; opacity:.5; padding:2px 4px; line-height:1; justify-self:end; }
-  .matrow .row-del:hover{ opacity:1; }
-  .emoji-grid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
-  .emoji-cell{ width:38px; height:38px; border:1px solid var(--line); background:#fff; border-radius:10px; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:.12s; padding:0; }
-  .emoji-cell:hover{ border-color:var(--accent); transform:scale(1.05); }
-  .emoji-cell.on{ border-color:var(--accent); background:rgba(184,113,78,.12); box-shadow:0 0 0 2px rgba(184,113,78,.25); }
-  .paste-hint{ font-size:12px; color:var(--sub); margin-left:8px; }
+  /* 简洁菜谱编辑器 / 查看器 */
+  .re-hero, .rv-hero{
+    width:100%; height:240px; border-radius:16px; object-fit:cover; display:block;
+    background:linear-gradient(145deg,#f3e6d6,#ede4d4); margin-bottom:18px;
+    box-shadow:0 6px 20px rgba(139,94,60,.12); border:1px solid var(--line);
+  }
+  .re-hero-placeholder{
+    width:100%; height:240px; border-radius:16px; border:2px dashed var(--line);
+    background:rgba(184,113,78,.04); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; color:var(--sub); cursor:pointer; margin-bottom:18px; transition:.14s;
+  }
+  .re-hero-placeholder:hover{ border-color:var(--accent); background:rgba(184,113,78,.08); color:var(--accent); }
+  .re-hero-placeholder .big{ font-size:56px; }
+  .re-hero-placeholder span{ font-size:14px; }
+  .re-row{ display:flex; gap:16px; }
+  .re-row .field{ flex:1; min-width:0; }
+  .re-mat-list{ display:flex; flex-direction:column; gap:8px; }
+  .re-mat-row{ display:flex; align-items:center; gap:8px; }
+  .re-mat-row input{ flex:1; padding:9px 11px; font-size:14px; border:1px solid var(--line); border-radius:10px; background:#fff; font-family:inherit; }
+  .re-mat-row input::placeholder{ color:#bbb; }
+  .re-mat-row .row-del{ border:none; background:none; cursor:pointer; color:var(--bad); font-size:16px; opacity:.5; padding:2px 6px; line-height:1; }
+  .re-mat-row .row-del:hover{ opacity:1; }
+  .re-add{ display:inline-flex; align-items:center; gap:4px; border:1px dashed var(--accent); background:rgba(184,113,78,.06);
+    color:var(--accent); border-radius:12px; padding:7px 13px; font-size:13px; cursor:pointer; font-family:inherit; margin-top:6px; }
+  .re-add:hover{ background:rgba(184,113,78,.12); }
+  .re-steps textarea{ min-height:160px; line-height:1.7; }
+
+  /* 简洁菜谱查看器 */
+  .recipe-simple{ background:var(--card); border-radius:18px; padding:8px 6px 20px; }
+  .rv-title{ text-align:center; font-size:30px; font-weight:700; color:var(--accent); letter-spacing:1px; margin:10px 0 16px; }
+  .rv-meta{ display:flex; justify-content:center; gap:24px; font-size:14px; color:var(--sub); margin-bottom:20px; }
+  .rv-meta b{ color:var(--ink); margin-right:4px; }
+  .rv-section{ margin-top:20px; }
+  .rv-section-title{ font-size:14px; font-weight:700; color:var(--accent); letter-spacing:.5px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .rv-mats{ display:flex; flex-wrap:wrap; gap:8px; }
+  .rv-mat{ background:#fff; border:1.5px dashed #e6d2b8; border-radius:12px; padding:8px 12px; font-size:14px; color:var(--ink); }
+  .rv-mat .qty{ color:var(--sub); font-size:12px; margin-left:5px; }
+  .rv-steps{ counter-reset:rvstep; }
+  .rv-step{ display:flex; gap:12px; margin-bottom:12px; line-height:1.75; font-size:14.5px; color:var(--ink); }
+  .rv-step::before{ counter-increment:rvstep; content:counter(rvstep); flex-shrink:0; width:26px; height:26px; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
   .modal-act{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
   .warnbox{ background:#fdf0ee; border:1px solid #eccfcb; color:var(--bad); border-radius:10px; padding:9px 12px; font-size:13px; margin-bottom:12px; }
 
@@ -802,14 +827,13 @@ function renderMenu(){
         return '<span class="rtag">'+esc(m.n)+'</span>';
       });
       if(r.materials.length > 5) tagItems.push('<span class="rtag" style="opacity:.55">+'+(r.materials.length-5)+'</span>');
-      const dur = dishDuration(r), diff = dishDifficulty(r);
       return '<div class="rcard">'
         + '<div class="rcover">'+coverHtml
           + '<span class="rtype-badge '+r.type+'">'+r.type+'</span>'
           + '</div>'
         + '<div class="rbody">'
         + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
-        + '<div class="rmeta-line">时长 <b>'+dur+'</b> min　·　难度 <span class="stars">'+stars(diff)+'</span></div>'
+        + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · 难度 '+diffLabel(r.difficulty)+'</div>'
         + '<div class="rtags">'+tagItems.join('')+'</div>'
         + '<div class="rbar">'
         +   '<button class="rbtn primary" onclick="openRecipeViewer(\''+r.id+'\')">📖 查看</button>'
@@ -1369,177 +1393,124 @@ function openRecipeEditor(id, isNewFromDish){
 function renderEditor(){
   const r = editBuf;
   const types = ['荤','素','汤','主食','零食'];
-  // 难度星级选择器
-  let starHtml = '';
-  for(let i=1;i<=5;i++){
-    starHtml += '<span class="star '+(i<=dishDifficulty(r)?'on':'')+'" data-v="'+i+'" onclick="setDiff('+i+')" title="'+i+' 星">★</span>';
-  }
-  const dur = dishDuration(r);
+  const diffs = [['简单',1],['中等',3],['困难',5]];
+  const curDiff = diffs.find(d=>d[1]===dishDifficulty(r)) || diffs[1];
+
+  // 顶部图片
+  const heroHtml = editBuf._cover
+    ? '<img class="re-hero" id="reHero" src="'+esc(editBuf._cover)+'" onclick="rePickCover()" title="点击更换图片">'
+    : '<div class="re-hero-placeholder" onclick="rePickCover()" title="点击上传图片"><div class="big">'+esc(editBuf.emoji||'🍽️')+'</div><span>点击上传菜品图片</span></div>';
+
+  // 食材行
   const matRows = r.materials.map((m,idx)=>
-    '<div class="matrow">'
-    + '<input value="'+esc(m.n)+'" placeholder="如：牛肉、土豆" oninput="editMat('+idx+',\'n\',this.value)">'
-    + '<input value="'+esc(m.qty)+'" placeholder="用量" oninput="editMat('+idx+',\'qty\',this.value)">'
-    + '<span class="skip-tag" title="做时可酌情增减或省略">可不放</span>'
-    + '<button class="row-del" onclick="delMat('+idx+')" title="删除本行">🗑</button>'
+    '<div class="re-mat-row">'
+    + '<input value="'+esc(m.n)+'" placeholder="如：牛肉" oninput="editMat('+idx+',this.value)">'
+    + '<button class="row-del" onclick="delMat('+idx+')" title="删除">✕</button>'
     + '</div>'
   ).join('');
+
   document.getElementById('modalBody').innerHTML =
-    '<h2>编辑菜谱</h2>'
-    + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填）</span></label>'
-    +   '<input id="f_name" placeholder="给你的菜起个名字，比如「妈妈的红烧肉」" value="'+esc(r.name)+'"></div>'
-    + '<div class="row" style="gap:12px">'
-    +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(editBuf.emoji,'pickEmoji')+'</div>'
-    +   '<div class="field" style="flex:1"><label>分类</label><select id="f_type">'+types.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    '<h2>'+(r.name?'编辑菜谱':'新建菜谱')+'</h2>'
+    + heroHtml
+    + '<input type="file" id="reCoverFile" accept="image/*" style="display:none" onchange="setRecCoverUpload(this.files[0])">'
+    + '<div class="field"><label>菜名</label>'
+    +   '<input id="f_name" placeholder="如：糖醋里脊" value="'+esc(r.name)+'"></div>'
+    + '<div class="re-row">'
+    +   '<div class="field"><label>分类</label><select id="f_type">'+types.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field"><label>难度</label><select id="f_diff">'+diffs.map(d=>'<option value="'+d[1]+'" '+(d[1]===curDiff[1]?'selected':'')+'>'+d[0]+'</option>').join('')+'</select></div>'
     + '</div>'
-    + '<div class="field"><label>封面图片 <span style="color:var(--sub);font-weight:400;font-size:12px">（上传本地照片或粘贴截图；不填则用图标）</span></label>'
-    +   '<div class="cover-preview" id="recCoverPreview">'+(editBuf._cover ? '<img src="'+esc(editBuf._cover)+'">' : '<span style="font-size:40px">'+editBuf.emoji+'</span>')+'</div>'
-    +   '<div class="cover-modes">'
-    +     '<button type="button" class="cover-mode '+(editBuf._cover?'':'active')+'" data-mode="icon" onclick="setRecCoverMode(\'icon\')">用图标</button>'
-    +     '<button type="button" class="cover-mode '+(editBuf._cover?'active':'')+'" data-mode="upload" onclick="setRecCoverMode(\'upload\')">上传/粘贴</button>'
-    +   '</div>'
-    +   '<div id="recCoverUp" class="ck-upload" style="margin-top:8px;'+(editBuf._cover?'':'display:none;')+'">'
-    +     '<input type="file" accept="image/*" onchange="setRecCoverUpload(this.files[0])"><span class="ck-upbtn">📁 选择照片</span>'
-    +     '<span class="paste-hint">或在此处 Ctrl+V 粘贴截图</span>'
-    +   '</div>'
-    + '</div>'
-    + '<div class="row" style="gap:12px">'
-    +   '<div class="field" style="width:160px"><label>烹饪时长(分)</label><input id="f_duration" type="number" value="'+dur+'" placeholder="20"></div>'
-    +   '<div class="field" style="flex:1"><label>难度（点击星星选择 1–5 星）</label>'
-    +     '<div class="star-pick" id="starPick">'+starHtml+'</div>'
-    +     '<span class="star-hint">当前：<b id="diffText">'+dishDifficulty(r)+'</b> 星</span></div>'
-    + '</div>'
-    + '<div class="field"><label>材料清单 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一种食材；「可不放」表示做时可酌情增减）</span></label>'
-    +   '<div id="matWrap">'+matRows+'</div>'
-    +   '<button class="btn btn-sm" onclick="addMat()">＋ 加一行材料</button></div>'
-    + '<div class="field"><label>做法步骤 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一步，从准备到完成）</span></label>'
-    +   '<textarea id="f_steps" placeholder="第一步：将主料洗净切好备用&#10;第二步：起锅烧油，放入葱姜爆香&#10;第三步：下入主料翻炒，加入调料&#10;第四步：收汁装盘即可">'+esc((r.steps||[]).join('\n'))+'</textarea></div>'
-    + '<div class="field"><label>小贴士 <span style="color:var(--sub);font-weight:400;font-size:12px">（每行一条，会显示在菜谱卡底部）</span></label>'
-    +   '<textarea id="f_tips" placeholder="番茄选熟透的，炒出来更鲜甜多汁。&#10;喜欢汤汁多的可以少收汁，拌饭超赞！">'+esc((r.tips||[]).join('\n'))+'</textarea></div>'
+    + '<div class="field"><label>食材清单（每行一种）</label>'
+    +   '<div class="re-mat-list" id="matWrap">'+matRows+'</div>'
+    +   '<button class="re-add" onclick="addMat()">＋ 添加食材</button></div>'
+    + '<div class="field re-steps"><label>制作方法</label>'
+    +   '<textarea id="f_steps" placeholder="第一步：准备材料&#10;第二步：开始烹饪&#10;第三步：完成装盘">'+esc((r.steps||[]).join('\n'))+'</textarea></div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
     +   '<button class="btn btn-primary" onclick="saveRecipe()">保存</button></div>';
 }
-function editMat(idx, field, val){ editBuf.materials[idx][field] = (field==='skip')? val : val; }
-function setDiff(i){
-  editBuf.difficulty = i;
-  document.querySelectorAll('#starPick .star').forEach(s=>{
-    const v = +s.dataset.v;
-    s.classList.toggle('on', v<=i);
-  });
-  const t = document.getElementById('diffText'); if(t) t.textContent = i;
-}
+function rePickCover(){ document.getElementById('reCoverFile').click(); }
+function editMat(idx, val){ editBuf.materials[idx].n = val; }
 function addMat(){ editBuf.materials.push({n:'',qty:'',skip:false,note:''}); renderEditor(); }
 function delMat(idx){ editBuf.materials.splice(idx,1); renderEditor(); }
 function saveRecipe(){
   const r = editBuf;
   r.name = document.getElementById('f_name').value.trim() || '未命名菜谱';
-  r.emoji = editBuf.emoji || '🍽️';
   r.type = document.getElementById('f_type').value;
+  r.difficulty = parseInt(document.getElementById('f_diff').value) || 3;
   r.image = editBuf._cover || '';
-  r.duration = parseInt(document.getElementById('f_duration').value)||0;
-  if(!r.difficulty) r.difficulty = 2;
   r.steps = document.getElementById('f_steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  r.tips = document.getElementById('f_tips').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  r.materials = r.materials.filter(m=>m.n && m.n.trim());
-  const av = avoidSet();
-  r.materials.forEach(m=>{ if(m.skip && !m.note) m.note='你忌口，可不放'; if(!av.has(m.n)) m.note=''; });
+  // 读取食材：只保留有名称的，保留原有 qty/skip/note
+  const inputs = document.querySelectorAll('#matWrap .re-mat-row input');
+  const newMats = [];
+  inputs.forEach((input, idx)=>{
+    const n = input.value.trim();
+    if(!n) return;
+    const old = r.materials[idx] || {qty:'',skip:false,note:''};
+    newMats.push({n:n, qty:old.qty||'', skip:!!old.skip, note:old.note||''});
+  });
+  r.materials = newMats;
+  if(!r.tips) r.tips = [];
   const exist = state.menu.find(x=>x.id===r.id);
   if(exist){ Object.assign(exist, r); } else { state.menu.unshift(r); }
   save(K.menu, state.menu);
   closeModal(); renderMenu(); toast('菜谱已保存');
 }
 
-// 菜谱编辑器：点选图标
-function pickEmoji(e){
-  editBuf.emoji = e;
-  document.querySelectorAll('#modalBody .emoji-cell').forEach(c=> c.classList.toggle('on', c.textContent===e));
-  const prev = document.getElementById('recCoverPreview');
-  if(prev && !editBuf._cover) prev.innerHTML = '<span style="font-size:40px">'+e+'</span>';
-}
-// 菜谱编辑器：封面三态（用图标 / 上传·粘贴）
-function setRecCoverMode(mode){
-  document.querySelectorAll('.cover-mode').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
-  const up = document.getElementById('recCoverUp');
-  if(up) up.style.display = (mode==='upload')?'inline-block':'none';
-  if(mode==='icon'){ editBuf._cover=''; updateRecCoverPreview(); }
-}
+// 菜谱编辑器：封面上传/粘贴
 function setRecCoverUpload(file){
   if(!file) return;
   if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){ editBuf._cover = dataUrl; updateRecCoverPreview(); });
-}
-function updateRecCoverPreview(){
-  const box = document.getElementById('recCoverPreview');
-  if(!box) return;
-  if(editBuf._cover){ box.innerHTML = '<img src="'+esc(editBuf._cover)+'">'; }
-  else { box.innerHTML = '<span style="font-size:40px">'+editBuf.emoji+'</span>'; }
+  compressImage(file, function(dataUrl){
+    editBuf._cover = dataUrl;
+    renderEditor();
+  });
 }
 
-/* ============ 菜谱查看器：手绘菜谱卡 ============ */
+/* ============ 菜谱查看器：简洁版 ============ */
+function diffLabel(v){
+  const n = parseInt(v)||3;
+  if(n<=2) return '简单';
+  if(n===3) return '中等';
+  return '困难';
+}
 function openRecipeViewer(id){
   const r = state.menu.find(x=>x.id===id); if(!r) return;
   const av = avoidSet();
   const warns = [];
 
-  // 顶部大图（圆形）
-  let heroHtml;
-  if(r.image){
-    heroHtml = '<img class="rc-hero" src="'+esc(r.image)+'" alt="'+esc(r.name)+'" onerror="this.outerHTML=\'<div class=\\\'rc-hero emoji-hero\\\'>'+esc(r.emoji)+'</div>\'">';
-  } else {
-    heroHtml = '<div class="rc-hero emoji-hero">'+esc(r.emoji||'🍽️')+'</div>';
-  }
+  const heroHtml = r.image
+    ? '<img class="rv-hero" src="'+esc(r.image)+'" alt="'+esc(r.name)+'" onerror="this.style.display=\'none\'">'
+    : '<div class="rv-hero" style="display:flex;align-items:center;justify-content:center;font-size:90px;background:linear-gradient(145deg,#f3e6d6,#ede4d4)">'+(r.emoji||'🍽️')+'</div>';
 
-  // 食材网格
   const matItems = r.materials.map(m=>{
     const isAvoid = av.has(m.n);
     if(isAvoid && !m.skip) warns.push(m.n);
-    const iconMap = {'牛肉':'🥩','猪肉':'🍖','羊肉':'🍢','鸡肉':'🍗','鱼肉':'🐟','虾':'🦐','五花肉':'🥓',
-      '土豆':'🥔','番茄':'🍅','西红柿':'🍅','豆腐':'🧈','茄子':'🍆','青椒':'🌶️','青菜':'🥬','蘑菇':'🍄','鸡蛋':'🥚','小葱':'🌿','葱':'🌿',
-      '面条':'🍜','米饭':'🍚','牛奶':'🥛','姜':'🫚','蒜':'🧄','辣椒':'🌶️','食用油':'🍶','油':'🍶','盐':'🧂','糖':'🍬','白糖':'🍬','冰糖':'🧊','生抽':'🍾','老抽':'🍾','料酒':'🍶'};
-    const icon = iconMap[m.n] || '🥗';
-    const skipBadge = m.skip ? '<span class="mi-badge">可不放</span>' : '';
-    const avoidBadge = (!m.skip && isAvoid) ? '<span class="mi-badge">忌口</span>' : '';
-    return '<div class="rc-mat-item">'
-      + '<span class="mi-icon">'+icon+'</span>'
-      + '<div class="mi-main"><span class="mi-name">'+esc(m.n)+skipBadge+avoidBadge+'</span>'
-      + (m.qty ? '<span class="mi-qty">'+esc(m.qty)+'</span>' : '')+'</div></div>';
+    return '<span class="rv-mat">'+esc(m.n)+(m.qty?'<span class="qty">'+esc(m.qty)+'</span>':'')+'</span>';
   }).join('');
 
-  // 步骤卡片
   const stepItems = (r.steps&&r.steps.length)
-    ? r.steps.map((s,i)=>{
-        return '<div class="rc-step">'
-          + '<div class="rc-step-header"><span class="rc-step-num">'+(i+1)+'</span><span class="rc-step-title">步骤 '+(i+1)+'</span></div>'
-          + '<p class="rc-step-text">'+esc(s)+'</p></div>';
-      }).join('')
-    : '<div style="color:var(--sub);padding:10px 0">暂无步骤</div>';
-
-  // 小贴士
-  const tips = (r.tips || []).filter(Boolean);
-  const tipsHtml = tips.length
-    ? '<div class="rc-tips"><div class="rc-tips-title">💡 小贴士</div>'
-      + tips.map(t=>'<div class="rc-tip-item">'+esc(t)+'</div>').join('')
-      + '</div>'
-    : '';
+    ? r.steps.map(s=>'<div class="rv-step">'+esc(s)+'</div>').join('')
+    : '<div style="color:var(--sub);padding:6px 0">暂无制作步骤</div>';
 
   document.getElementById('modalBody').innerHTML =
-    '<div class="recipe-card">'
-    + '<div class="rc-title">'+esc(r.name)+'</div>'
+    '<div class="recipe-simple">'
     + heroHtml
-    + '<div class="rc-meta">'
-    +   '<span><b>'+dishDuration(r)+'</b> 分钟</span>'
-    +   '<span><b>'+dishDifficulty(r)+'</b> 星难度</span>'
-    +   '<span><b>'+r.materials.length+'</b> 种食材</span>'
+    + '<div class="rv-title">'+esc(r.name)+'</div>'
+    + '<div class="rv-meta">'
+    +   '<span><b>分类</b>'+esc(r.type||'—')+'</span>'
+    +   '<span><b>难度</b>'+diffLabel(r.difficulty)+'</span>'
     + '</div>'
-    + (warns.length ? '<div class="warnbox">⚠ 含你忌口的：'+warns.join('、')+'。建议把它们标记为「可不放」，或做时省略。</div>' : '')
-    + '<div class="rc-section-title">🥬 食材清单</div>'
-    + '<div class="rc-mat-grid">'+matItems+'</div>'
-    + '<div class="rc-section-title">👨‍🍳 制作步骤</div>'
-    + '<div class="rc-steps">'+stepItems+'</div>'
-    + tipsHtml
+    + (warns.length ? '<div class="warnbox">⚠ 含你忌口的：'+warns.join('、')+'。建议做时省略。</div>' : '')
+    + '<div class="rv-section">'
+    +   '<div class="rv-section-title">🥬 食材清单</div>'
+    +   '<div class="rv-mats">'+(matItems || '<span style="color:var(--sub)">暂无食材</span>')+'</div></div>'
+    + '<div class="rv-section">'
+    +   '<div class="rv-section-title">👨‍🍳 制作方法</div>'
+    +   '<div class="rv-steps">'+stepItems+'</div></div>'
     + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openRecipeEditor(\''+r.id+'\')">✎ 编辑</button>'
     +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
   showModal();
 }
+
 
 /* ============ 弹窗：菜品库编辑（补充菜品） ============ */
 let openDishSeed = null; // 记录「添加菜品到库」打开时来源的那道菜（用于保存时判断更新/新增）
@@ -1661,7 +1632,7 @@ document.addEventListener('paste', function(e){
       const f = cd.items[i].getAsFile();
       if(!f) return;
       compressImage(f, function(dataUrl){
-        if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; updateRecCoverPreview(); }
+        if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; renderEditor(); }
         else if(activeCoverTarget==='dish'){ dishEditorCover = dataUrl; updateCoverPreview(); }
       });
       e.preventDefault();
