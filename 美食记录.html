@@ -29,21 +29,16 @@
   .topright{ font-size:13px; color:var(--sub); display:flex; gap:14px; align-items:center; }
   .topright .clock{ background:var(--mark); padding:3px 11px; border-radius:20px; color:var(--ink); font-variant-numeric:tabular-nums; }
 
-  .content{ padding:22px 30px 60px; max-width:1080px; margin:0 auto; }
+  .content{ padding:22px 30px 20px; max-width:1080px; margin:0 auto; }
   .modtitle{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:22px; font-weight:700; letter-spacing:1px; margin:0 0 4px; }
   .modtitle small{ font-size:13px; color:var(--sub); font-weight:400; letter-spacing:0; }
   .databtn{ flex-shrink:0; background:rgba(184,113,78,.1); color:var(--accent); border:1px solid var(--line); border-radius:18px; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; transition:.14s; }
   .databtn:hover{ background:rgba(184,113,78,.2); }
-  .syncbar{ display:flex; align-items:center; gap:14px; padding:8px 16px; margin:0 0 14px; background:rgba(184,113,78,.06); border:1px solid var(--line); border-radius:12px; font-size:13px; }
+  .syncbar{ display:flex; align-items:center; gap:14px; padding:0; margin:0; background:transparent; border:none; border-radius:0; font-size:13px; }
   .syncbar-label{ color:var(--accent); font-weight:600; }
   .syncbar-time{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .syncbar .databtn{ margin-left:auto; }
   .moddesc{ color:var(--sub); font-size:13px; margin-bottom:16px; }
-  .storage-warn{ display:none; align-items:center; gap:10px; margin:0 0 12px; padding:10px 14px; background:#fdf0ee; border:1px solid #eccfcb; border-radius:10px; color:#a23; font-size:13px; line-height:1.5; }
-  .storage-warn.show{ display:flex; }
-  .storage-warn.warn{ background:#fbeed7; border-color:#f1dcb4; color:#8a5d18; }
-  .storage-warn button{ background:#fff; border:1px solid currentColor; color:inherit; padding:4px 10px; border-radius:8px; cursor:pointer; font-size:12px; font-family:inherit; }
-  .storage-warn button:hover{ opacity:.85; }
 
   /* 子模块 tab */
   .subtabs{ display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
@@ -107,7 +102,7 @@
 
   /* ===== 今天吃什么 舞台（箭头在中间水平两侧）===== */
   .filterbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; font-size:13px; color:var(--sub); }
-  .stage-wrap{ position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:30px 70px 26px; }
+  .stage-wrap{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:10px; padding:30px 70px 26px; min-height:calc(100vh - 210px); }
   .stage-arrow{
     position:absolute; top:50%; transform:translateY(-50%);
     width:48px; height:48px; border-radius:50%; border:2px solid var(--line);
@@ -382,7 +377,7 @@
     .grid{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
     .rcard .rcover{ height:140px; }
     .rcard .rname{ font-size:16px; }
-    .stage-wrap{ padding:18px 46px 16px; }
+    .stage-wrap{ padding:18px 46px 16px; min-height:calc(100vh - 200px); }
     .stage-arrow{ width:40px; height:40px; font-size:20px; line-height:36px; }
     .stage .emoji{ font-size:62px; }
     .stage .dish-cover-img{ width:100px; height:100px; border-radius:20px; }
@@ -462,8 +457,6 @@
   </div>
 
   <div class="content">
-    <div id="storageWarn" class="storage-warn"></div>
-
     <div class="subtabs">
       <button class="subtab active" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
       <button class="subtab" data-tab="menu" onclick="switchTab('menu')">菜谱库</button>
@@ -569,20 +562,8 @@ let activeCoverTarget = null;
 
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
-  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); updateStorageBar(); return true; }
-  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); updateStorageBar(); return false; }
-}
-function updateStorageBar(){
-  let size=0; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) size += (localStorage.getItem(k)||'').length; }
-  const mb = size/1024/1024;
-  const el = document.getElementById('storageWarn'); if(!el) return;
-  if(mb>4){
-    el.className='storage-warn show';
-    el.innerHTML='<span>⚠️ 浏览器存储已接近上限（'+mb.toFixed(2)+'MB），新记录可能无法保存。</span><button onclick="compressHistoryPhotos()">压缩照片</button>';
-  } else if(mb>2.5){
-    el.className='storage-warn warn show';
-    el.innerHTML='<span>💡 浏览器存储占用 '+mb.toFixed(2)+'MB，建议压缩历史照片以释放空间。</span><button onclick="compressHistoryPhotos()">压缩照片</button>';
-  } else { el.className='storage-warn'; el.innerHTML=''; }
+  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
+  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); return false; }
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -1755,7 +1736,6 @@ tick(); setInterval(tick, 30000);
 ensureTagStore();
 buildQueue();
 switchTab('today');
-updateStorageBar();
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
