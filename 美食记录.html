@@ -499,6 +499,7 @@
     <div class="syncbar">
       <span class="syncbar-label">☁ 数据同步</span>
       <span class="syncbar-time" id="syncbarTime">--</span>
+      <button class="btn btn-sm databtn" onclick="openDataMgr()">管理</button>
     </div>
   </div>
 
@@ -633,7 +634,31 @@ let activeCoverTarget = null;
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
   try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
-  catch(e){ toast('保存失败：浏览器本地存储已满，请删除部分图片或备份后清理'); console.error(e); return false; }
+  catch(e){ console.error(e); showStorageAlert(); return false; }
+}
+function storageDiagnostics(){
+  const list=[]; let total=0;
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i); if(!k || k.indexOf('food_')!==0) continue;
+    const s=(localStorage.getItem(k)||'').length; total+=s; list.push({k,s});
+  }
+  list.sort((a,b)=>b.s-a.s);
+  return {list, total};
+}
+function showStorageAlert(){
+  const d=storageDiagnostics();
+  const rows=d.list.slice(0,8).map(x=>'<tr><td style="padding:5px 8px">'+esc(x.k)+'</td><td style="padding:5px 8px;text-align:right;font-variant-numeric:tabular-nums">'+Math.round(x.s/1024)+' KB</td></tr>').join('');
+  document.getElementById('modalBody').innerHTML =
+    '<h2>保存失败：本地存储已满</h2>'
+    + '<p style="margin:0 0 12px;line-height:1.6">你的浏览器本地存储已经达到上限，新的菜谱/图片写不进去。常见原因是<strong>打卡照片</strong>或<strong>菜谱封面</strong>太大。</p>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 16px;background:#fff;border-radius:10px;overflow:hidden"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">数据项</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin-bottom:14px">总计约 <b>'+Math.round(d.total/1024)+' KB</b>。可先「压缩封面/照片」或「导出备份后清理」。</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    +   '<button class="btn btn-primary" onclick="openDataMgr();">打开数据管理</button>'
+    +   '<button class="btn" onclick="closeModal()">稍后再说</button>'
+    + '</div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
+  showModal();
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -1543,7 +1568,7 @@ function setRecCoverUpload(file){
   compressImage(file, function(dataUrl){
     editBuf._cover = dataUrl;
     renderEditor();
-  });
+  }, {maxWidth:800, maxHeight:800, quality:0.72});
 }
 
 /* ============ 菜谱查看器：简洁版 ============ */
@@ -1792,19 +1817,31 @@ switchTab('checkin');
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
+  const d=storageDiagnostics();
+  const rows=d.list.map(x=>'<tr><td style="padding:5px 8px">'+esc(x.k)+'</td><td style="padding:5px 8px;text-align:right;font-variant-numeric:tabular-nums">'+Math.round(x.s/1024)+' KB</td></tr>').join('');
   const ck = load(K.checkin, []);
   let photoBytes = 0, photoCount = 0;
   ck.forEach(c=>{ (c.photos||[]).forEach(p=>{ if(p){ photoBytes += p.length; photoCount++; } }); });
-  const photoInfo = photoCount > 0 ? '<p style="color:var(--sub);font-size:12.5px;margin:6px 0 12px">当前打卡照片共 <b>'+photoCount+'</b> 张，约 <b>'+Math.round(photoBytes/1024)+'KB</b>。如果保存时提示「本地存储已满」，可点下方「压缩历史照片」减少占用。</p>'
-    + '<div style="margin-bottom:14px"><button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button></div>' : '';
+  const menuCoverBytes = (state.menu||[]).reduce((a,r)=>a+((r.image||'').length),0);
+  const dishCoverBytes = Object.values(state.dishCover||{}).reduce((a,v)=>a+(v?v.length:0),0);
   document.getElementById('modalBody').innerHTML =
-    '<h2>数据备份与同步</h2>'
-    + '<p class="tip" style="margin-bottom:12px">浏览器里的记录存在本机，换设备 / 换浏览器会丢失。点「导出」生成备份文件，到另一台设备点「导入」恢复，即可实现手动同步。</p>'
+    '<h2>数据管理与备份</h2>'
+    + '<p class="tip" style="margin-bottom:12px">浏览器里的记录存在本机，换设备 / 换浏览器会丢失。先「导出」备份，再清理大图片，最后重新保存即可。</p>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
     +   '<button class="btn btn-primary" onclick="exportFood()">⬇ 导出全部美食数据</button>'
     +   '<label class="btn" style="cursor:pointer">⬆ 导入备份文件<input type="file" accept="application/json" style="display:none" onchange="importFood(this.files[0])"></label>'
     + '</div>'
-    + photoInfo
+    + '<h3 style="font-size:15px;margin:16px 0 8px">存储占用</h3>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b> · 菜谱封面约 <b>'+Math.round(menuCoverBytes/1024)+' KB</b> · 菜品封面约 <b>'+Math.round(dishCoverBytes/1024)+' KB</b> · 打卡照片约 <b>'+Math.round(photoBytes/1024)+' KB</b> ('+photoCount+'张)</p>'
+    + '<div style="max-height:220px;overflow:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:10px;background:#fff">'
+    +   '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">key</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    + '</div>'
+    + '<h3 style="font-size:15px;margin:16px 0 8px">清理工具</h3>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    +   (photoCount>0 ? '<button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button>' : '')
+    +   (state.menu.some(r=>r.image) ? '<button class="btn" onclick="compressMenuCovers();closeModal();">🗜 压缩所有菜谱封面</button>' : '')
+    +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面</button>'
+    + '</div>'
     + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
@@ -1866,6 +1903,64 @@ function compressHistoryPhotos(){
     img.src = t.src;
   }
   next();
+}
+// 批量压缩菜谱库封面，减少 localStorage 占用
+function compressMenuCovers(){
+  const tasks=[];
+  (state.menu||[]).forEach((r,ri)=>{ if(r.image && r.image.indexOf('data:image')===0) tasks.push({ri,src:r.image}); });
+  if(tasks.length===0){ toast('没有可压缩的菜谱封面'); return; }
+  let done=0, before=0, after=0;
+  tasks.forEach(t=>before += t.src.length);
+  const progress=document.createElement('div');
+  progress.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
+  progress.textContent='正在压缩 0/'+tasks.length+' …';
+  document.body.appendChild(progress);
+  let i=0;
+  function next(){
+    if(i>=tasks.length){
+      if(save(K.menu, state.menu)){
+        progress.textContent='完成：'+tasks.length+' 张封面，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
+        setTimeout(()=>progress.remove(),1800);
+        renderMenu();
+      } else {
+        progress.textContent='压缩完成但保存失败，请导出备份后清理';
+        setTimeout(()=>progress.remove(),3000);
+      }
+      return;
+    }
+    const t=tasks[i++];
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      const scale=Math.min(1, 800/w, 800/h);
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.72);
+      state.menu[t.ri].image=dataUrl;
+      after += dataUrl.length; done++;
+      progress.textContent='正在压缩 '+done+'/'+tasks.length+' …';
+      setTimeout(next,15);
+    };
+    img.onerror=function(){ done++; setTimeout(next,15); };
+    img.src=t.src;
+  }
+  next();
+}
+// 清理 dishCover 中未被任何 userDishes 引用的封面（历史残留）
+function cleanUnusedDishCovers(){
+  const usedIds = new Set((state.userDishes||[]).map(u=>u.id));
+  let removed=0, saved=0;
+  Object.keys(state.dishCover||{}).forEach(id=>{
+    if(!usedIds.has(id)){ saved += (state.dishCover[id]||'').length; delete state.dishCover[id]; removed++; }
+  });
+  if(removed===0){ toast('没有可清理的残留封面'); return; }
+  if(save(K.dishCover, state.dishCover)){
+    toast('已清理 '+removed+' 个残留封面，释放 '+Math.round(saved/1024)+'KB');
+  }
 }
 function importFood(file){
   if(!file) return;
