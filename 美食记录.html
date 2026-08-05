@@ -833,7 +833,7 @@ function renderMenu(){
           + '</div>'
         + '<div class="rbody">'
         + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
-        + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · 难度 '+diffLabel(r.difficulty)+'</div>'
+        + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · '+diffLabel(r.difficulty)+'</div>'
         + '<div class="rtags">'+tagItems.join('')+'</div>'
         + '<div class="rbar">'
         +   '<button class="rbtn primary" onclick="openRecipeViewer(\''+r.id+'\')">📖 查看</button>'
@@ -1393,7 +1393,7 @@ function openRecipeEditor(id, isNewFromDish){
 function renderEditor(){
   const r = editBuf;
   const types = ['荤','素','汤','主食','零食'];
-  const diffs = [['简单',1],['中等',3],['困难',5]];
+  const diffs = [['简单',1],['复杂',3],['困难',5]];
   const curDiff = diffs.find(d=>d[1]===dishDifficulty(r)) || diffs[1];
 
   // 顶部图片
@@ -1469,7 +1469,7 @@ function setRecCoverUpload(file){
 function diffLabel(v){
   const n = parseInt(v)||3;
   if(n<=2) return '简单';
-  if(n===3) return '中等';
+  if(n===3) return '复杂';
   return '困难';
 }
 function openRecipeViewer(id){
