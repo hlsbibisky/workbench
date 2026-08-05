@@ -689,6 +689,114 @@ function compressImage(file, callback, opts){
   reader.readAsDataURL(file);
 }
 
+/* ============ IndexedDB 图片存储层（突破 localStorage 5MB 上限） ============ */
+// 菜谱封面 / 打卡照片 / 菜品封面 改存 IndexedDB，localStorage 只留 idb://<id> 引用。
+// 容量从 5MB 提升到数百 MB，菜谱图越增越多也不会触顶。
+// 降级：浏览器禁用 IndexedDB（如本地 file:// 打开）时自动退回原 base64，功能不受影响。
+const IDB_NAME='food_img_db', IDB_STORE='images';
+let __idb=null, __idbOk=true;
+function idbConn(){
+  if(__idb) return Promise.resolve(__idb);
+  if(!__idbOk) return Promise.reject(new Error('idb-disabled'));
+  return new Promise((res,rej)=>{
+    try{
+      if(typeof indexedDB==='undefined'){ __idbOk=false; return rej(new Error('no-indexedDB')); }
+      const req=indexedDB.open(IDB_NAME,1);
+      req.onupgradeneeded=()=>{ try{ req.result.createObjectStore(IDB_STORE); }catch(e){} };
+      req.onsuccess=()=>{ __idb=req.result; res(__idb); };
+      req.onerror=()=>{ __idbOk=false; rej(req.error); };
+    }catch(e){ __idbOk=false; rej(e); }
+  });
+}
+function idbGenId(){ return 'img_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+async function idbPut(dataUrl){
+  const db=await idbConn();
+  const id=idbGenId();
+  await new Promise((res,rej)=>{ const t=db.transaction(IDB_STORE,'readwrite'); t.objectStore(IDB_STORE).put(dataUrl,id); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+  return 'idb://'+id;
+}
+async function idbGet(ref){
+  const id=ref.slice(6); // 'idb://'.length === 6
+  const db=await idbConn();
+  return await new Promise((res,rej)=>{ const t=db.transaction(IDB_STORE,'readonly'); const r=t.objectStore(IDB_STORE).get(id); r.onsuccess=()=>res(r.result||''); r.onerror=()=>rej(r.error); });
+}
+async function idbDel(ref){
+  const id=ref.slice(6);
+  try{ const db=await idbConn(); await new Promise(res=>{ const t=db.transaction(IDB_STORE,'readwrite'); t.objectStore(IDB_STORE).delete(id); t.oncomplete=()=>res(); t.onerror=()=>res(); }); }catch(e){}
+}
+function isImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
+// 把对象内所有 data:image 字符串转存 IndexedDB，替换成 idb:// 引用（就地修改）
+async function persistImages(root){
+  async function resolveAndStore(v){
+    if(typeof v==='string' && v.indexOf('data:image')===0){
+      try{ return await idbPut(v); }catch(e){ console.warn('IndexedDB 不可用，图片退回 base64 存储', e); return v; }
+    }
+    if(Array.isArray(v)){ await walk(v); return v; }
+    if(v && typeof v==='object'){ await walk(v); return v; }
+    return v;
+  }
+  async function walk(node){
+    if(Array.isArray(node)){ for(let i=0;i<node.length;i++) node[i]=await resolveAndStore(node[i]); }
+    else if(node && typeof node==='object'){ for(const k of Object.keys(node)) node[k]=await resolveAndStore(node[k]); }
+  }
+  await walk(root);
+  return root;
+}
+// 渲染辅助：图片若是 idb:// 引用，先输出占位 data-idb，再由 hydrateImgs 异步填充真实 src
+function imgTag(src, cls, extra){
+  cls=cls||''; extra=extra||'';
+  if(isImgRef(src)) return '<img class="'+cls+'" '+extra+' data-idb="'+esc(src)+'">';
+  return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">';
+}
+function hydrateImgs(root){
+  (root||document).querySelectorAll('img[data-idb]').forEach(async el=>{
+    const d=await resolveImg(el.getAttribute('data-idb'));
+    if(d) el.src=d; else { el.style.visibility='hidden'; }
+  });
+}
+async function resolveImg(src){
+  if(isImgRef(src)){ try{ return await idbGet(src); }catch(e){ return ''; } }
+  return src;
+}
+// 把对象内 idb:// 引用还原为真实 base64（用于导出 / 云同步，保证携带图片）
+async function hydrateStateImages(obj){
+  async function resolveVal(v){
+    if(typeof v==='string' && isImgRef(v)){ try{ return await idbGet(v); }catch(e){ return v; } }
+    if(Array.isArray(v)){ await walk(v); return v; }
+    if(v && typeof v==='object'){ await walk(v); return v; }
+    return v;
+  }
+  async function walk(node){
+    if(Array.isArray(node)){ for(let i=0;i<node.length;i++) node[i]=await resolveVal(node[i]); }
+    else if(node && typeof node==='object'){ for(const k of Object.keys(node)) node[k]=await resolveVal(node[k]); }
+  }
+  await walk(obj);
+  return obj;
+}
+// 收集待导出的美食数据（图片还原成 base64，self-contained）
+async function collectFoodForExport(){
+  const snap={
+    [K.taste]:state.taste, [K.menu]:state.menu, [K.userDishes]:state.userDishes,
+    [K.disliked]:state.disliked, [K.checkin]:state.checkin, [K.dishCover]:state.dishCover,
+    [K_SYNC]:syncCfg
+  };
+  await hydrateStateImages(snap);
+  const out={};
+  Object.keys(snap).forEach(k=>{ if(snap[k]!==undefined) out[k]=JSON.stringify(snap[k]); });
+  return out;
+}
+// 启动时把 localStorage 里遗留的 base64 图片迁到 IndexedDB（旧数据兼容，不丢）
+async function migrateImagesToIdb(){
+  try{
+    let touched=false;
+    const hasBase64Img=o=>{ let s=false; (function w(n){ if(Array.isArray(n)) n.forEach(w); else if(n&&typeof n==='object') Object.keys(n).forEach(k=>w(n[k])); else if(typeof n==='string'&&n.indexOf('data:image')===0) s=true; })(o); return s; };
+    if(hasBase64Img(state.menu)){ await persistImages(state.menu); save(K.menu,state.menu); touched=true; }
+    if(hasBase64Img(state.checkin)){ await persistImages(state.checkin); save(K.checkin,state.checkin); touched=true; }
+    if(hasBase64Img(state.dishCover)){ await persistImages(state.dishCover); save(K.dishCover,state.dishCover); touched=true; }
+    if(touched) console.log('历史图片已迁移至 IndexedDB');
+  }catch(e){ console.warn('图片迁移失败，继续使用原存储', e); }
+}
+
 const state = {
   taste: load(K.taste, clone(TASTE_DEFAULT)),
   menu: load(K.menu, []),
@@ -836,7 +944,7 @@ function renderToday(){
     const optHtml = opt.length ? '<div class="ing-opt-row">可去除：'+opt.join('·')+'</div>' : '';
     const cover = d.cover || dishCover(d.id);
     const faceHtml = cover
-      ? '<img class="dish-cover-img" src="'+esc(cover)+'" alt="'+esc(d.name)+'" data-fallback-emoji="'+d.emoji+'" onerror="dishCoverFallback(this)">'
+      ? imgTag(cover, 'dish-cover-img', 'alt="'+esc(d.name)+'" data-fallback-emoji="'+d.emoji+'" onerror="dishCoverFallback(this)"')
       : '<div class="emoji">'+d.emoji+'</div>';
     // 箭头放在卡片中间水平两侧，纯图标无文字
     stageHtml =
@@ -864,7 +972,7 @@ function renderToday(){
     + pickShow.map(o=>{
         const d=o.d;
         const pcov = d.cover || dishCover(d.id);
-        const pface = pcov ? '<img class="pick-img" src="'+esc(pcov)+'" onerror="this.style.display=\'none\'">' : '<div class="pick-emoji">'+d.emoji+'</div>';
+        const pface = pcov ? imgTag(pcov, 'pick-img', 'onerror="this.style.display=\'none\'"') : '<div class="pick-emoji">'+d.emoji+'</div>';
         const ptags = (d.tags||[]).slice(0,3).map(t=>'<span class="badge">'+t+'</span>').join('');
         return '<div class="pick-card">'
           + '<div class="pick-face" onclick="actPick('+o.i+')">'+pface+'</div>'
@@ -882,6 +990,7 @@ function renderToday(){
     + '<button class="linkbtn" style="margin-left:auto" onclick="openDishEditor(currentDish())">＋ 添加菜品到库</button></div>'
     + stageHtml
     + pickHtml;
+  hydrateImgs(body);
 }
 
 function clearDisliked(){
@@ -924,7 +1033,7 @@ function renderMenu(){
       // 封面
       const imgSrc = r.image || '';
       const coverHtml = imgSrc
-        ? '<img src="'+esc(imgSrc)+'" alt="'+esc(r.name)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+        ? imgTag(imgSrc, 'rcover-img', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"')
           + '<div class="remoji-fallback" style="display:none">'+esc(r.emoji)+'</div>'
         : '<div class="remoji-fallback">'+esc(r.emoji)+'</div>';
       // 食材标签（最多5个）
@@ -955,6 +1064,7 @@ function renderMenu(){
       + (state.menuCat!=='all' ? '（'+state.menu.length+' 份中筛选）' : '') + '</div>'
     + '<button class="btn btn-primary" onclick="openRecipeEditor(null)">＋ 新建菜谱</button>'
     + '</div>' + inner;
+  hydrateImgs(body);
 }
 
 function setMenuCat(t){
@@ -1232,7 +1342,7 @@ function renderCheckin(){
           const cls = 'ck-item';
           const cov = it.cover || '';
           const coverHtml = cov
-            ? '<img class="ck-item-thumb" src="'+esc(cov)+'" alt="">'
+            ? imgTag(cov, 'ck-item-thumb', 'alt=""')
             : '<span class="ck-item-emoji">'+(it.emoji||'🍽️')+'</span>';
           const ing = it.ing || [];
           const steps = it.steps || [];
@@ -1258,7 +1368,7 @@ function renderCheckin(){
     // 照片
     const photosHtml = c.photos.length > 0
       ? '<div class="ck-photos">' + c.photos.map((p,i) =>
-          '<img class="ck-photo" src="'+esc(p)+'" alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+esc(p)+'\')" title="点击查看大图">'
+          imgTag(p, 'ck-photo', 'alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+esc(p)+'\')" title="点击查看大图"')
         ).join('') + '</div>'
       : '';
 
@@ -1313,6 +1423,7 @@ function renderCheckin(){
     +   '<div class="ck-stat">已记录 <b>'+totalItems+'</b> 道菜</div>'
     + '</div>'
     + cards;
+  hydrateImgs(body);
 }
 
 // 添加今天的打卡
@@ -1416,10 +1527,11 @@ function clearCkPhotos(ckId){
 }
 
 // 查看大图
-function viewPhoto(src){
+async function viewPhoto(src){
   const modal = document.getElementById('modal');
+  const real = await resolveImg(src);
   const body = document.getElementById('modalBody');
-  body.innerHTML = '<div style="text-align:center"><img src="'+src+'" style="max-width:100%;max-height:75vh;border-radius:12px;margin-top:8px;"></div>'
+  body.innerHTML = '<div style="text-align:center"><img src="'+esc(real)+'" style="max-width:100%;max-height:75vh;border-radius:12px;margin-top:8px;"></div>'
     + '<div style="text-align:right;margin-top:12px"><button class="btn btn-sm" onclick="closeModal()">关闭</button></div>';
   modal.classList.remove('hidden');
 }
@@ -1504,7 +1616,7 @@ function renderEditor(){
 
   // 顶部图片
   const heroHtml = editBuf._cover
-    ? '<img class="re-hero" id="reHero" src="'+esc(editBuf._cover)+'" onclick="rePickCover()" title="点击更换图片">'
+    ? imgTag(editBuf._cover, 're-hero', 'id="reHero" onclick="rePickCover()" title="点击更换图片"')
     : '<div class="re-hero-placeholder" onclick="rePickCover()" title="点击上传图片"><div class="big">'+esc(editBuf.emoji||'🍽️')+'</div><span>点击上传菜品图片</span></div>';
 
   // 食材行
@@ -1532,6 +1644,7 @@ function renderEditor(){
     +   '<textarea id="f_steps" placeholder="第一步：准备材料&#10;第二步：开始烹饪&#10;第三步：完成装盘">'+esc((r.steps||[]).join('\n'))+'</textarea></div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
     +   '<button class="btn btn-primary" onclick="saveRecipe()">保存</button></div>';
+  hydrateImgs(document.getElementById('modalBody'));
 }
 function rePickCover(){ document.getElementById('reCoverFile').click(); }
 function editMat(idx, val){ editBuf.materials[idx].n = val; }
@@ -1584,7 +1697,7 @@ function openRecipeViewer(id){
   const warns = [];
 
   const heroHtml = r.image
-    ? '<img class="rv-hero" src="'+esc(r.image)+'" alt="'+esc(r.name)+'" onerror="this.style.display=\'none\'">'
+    ? imgTag(r.image, 'rv-hero', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\'"')
     : '<div class="rv-hero" style="display:flex;align-items:center;justify-content:center;font-size:90px;background:linear-gradient(145deg,#f3e6d6,#ede4d4)">'+(r.emoji||'🍽️')+'</div>';
 
   const matItems = r.materials.map(m=>{
@@ -1724,7 +1837,7 @@ function saveDish(){
 }
 
 /* ============ 工具 ============ */
-function showModal(){ document.getElementById('modal').classList.remove('hidden'); }
+function showModal(){ document.getElementById('modal').classList.remove('hidden'); const b=document.getElementById('modalBody'); if(b) setTimeout(()=>hydrateImgs(b),0); }
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
 
