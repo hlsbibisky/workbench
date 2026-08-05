@@ -775,6 +775,7 @@ async function hydrateStateImages(obj){
 }
 // 收集待导出的美食数据（图片还原成 base64，self-contained）
 async function collectFoodForExport(){
+  if(!syncCfg) loadSyncCfg();
   const snap={
     [K.taste]:state.taste, [K.menu]:state.menu, [K.userDishes]:state.userDishes,
     [K.disliked]:state.disliked, [K.checkin]:state.checkin, [K.dishCover]:state.dishCover,
@@ -899,11 +900,12 @@ function actDislike(){
 }
 function actPick(i){ if(i<0||i>=state.queue.length) return; state.queueIdx=i; renderToday(); }
 function actLikeFromQueue(i){ const d=state.queue[i]; if(d) actLike(d, false); }
-function actLike(d, openEditor){
+async function actLike(d, openEditor){
   d = d || currentDish();
   if(!d) return;
   const r = dishToRecipe(d);
   state.menu.unshift(r);
+  await persistImages(state.menu);
   save(K.menu, state.menu);
   const qi = state.queue.indexOf(d);
   if(qi>=0) state.queue.splice(qi,1);
@@ -921,7 +923,7 @@ function dishToRecipe(d){
     const conflict = !s.must && av.has(s.n);
     materials.push({ n:s.n, qty:'少许', skip: conflict, note: conflict?'你忌口，可不放':'' });
   });
-  return { id:rid(), name:d.name, emoji:d.emoji, type:d.type, image:'',
+  return { id:rid(), name:d.name, emoji:d.emoji, type:d.type, image:d.cover||'',
            duration:(d.prep||10)+(d.cook||10), difficulty:2,
            materials, steps:(d.steps||[]).slice(), fromDish:d.id, created:Date.now() };
 }
@@ -1468,9 +1470,10 @@ function renderCkPicker(){
   if(data.length===0){ box.innerHTML = '<div style="color:var(--sub);padding:12px;text-align:center">没有匹配的菜品'+(q?'：'+q:'')+'</div>'; return; }
   box.innerHTML = data.map(x=>{
     const cov = x.cover || '';
-    const thumb = cov ? '<img src="'+esc(cov)+'" style="width:30px;height:30px;object-fit:cover;border-radius:7px;">' : '<span style="font-size:22px">'+x.emoji+'</span>';
+    const thumb = cov ? imgTag(cov,'','style="width:30px;height:30px;object-fit:cover;border-radius:7px;"') : '<span style="font-size:22px">'+x.emoji+'</span>';
     return '<div class="ck-pick-item" onclick="pickCkDish(\''+jq(x.name)+'\')">'+thumb+'<span style="margin-left:8px">'+esc(x.name)+'</span><span style="margin-left:auto;color:var(--sub);font-size:12px">'+x.type+'</span></div>';
   }).join('');
+  hydrateImgs(box);
 }
 function pickCkDish(name){
   const data = window.__ckPicker.all||[];
@@ -1650,7 +1653,7 @@ function rePickCover(){ document.getElementById('reCoverFile').click(); }
 function editMat(idx, val){ editBuf.materials[idx].n = val; }
 function addMat(){ editBuf.materials.push({n:'',qty:'',skip:false,note:''}); renderEditor(); }
 function delMat(idx){ editBuf.materials.splice(idx,1); renderEditor(); }
-function saveRecipe(){
+async function saveRecipe(){
   const r = editBuf;
   r.name = document.getElementById('f_name').value.trim() || '未命名菜谱';
   r.type = document.getElementById('f_type').value;
@@ -1670,6 +1673,7 @@ function saveRecipe(){
   if(!r.tips) r.tips = [];
   const exist = state.menu.find(x=>x.id===r.id);
   if(exist){ Object.assign(exist, r); } else { state.menu.unshift(r); }
+  await persistImages(state.menu);   // 新封面图转存 IndexedDB，localStorage 仅留引用
   save(K.menu, state.menu);
   closeModal(); renderMenu(); toast('菜谱已保存');
 }
@@ -1762,7 +1766,7 @@ function openDishEditor(d){
     + '<div class="field"><label>标签（偏好匹配用，逗号分隔，如：土豆,咸鲜）</label><input id="d_tags" placeholder="土豆, 咸鲜" value="'+esc(tags)+'"></div>'
     + '<div class="field"><label>步骤（每行一步）</label><textarea id="d_steps" placeholder="第一步：杏鲍菇洗净切条&#10;第二步：拉油至表面微皱&#10;第三步：爆蒜煸炒调味即可">'+esc(steps)+'</textarea></div>'
     + '<div class="field"><label>封面显示 <span style="color:var(--sub);font-weight:400;font-size:12px">（上传照片或粘贴截图；不填则用图标）</span></label>'
-    +   '<div class="cover-preview" id="coverPreview">'+(dishEditorCover ? '<img src="'+esc(dishEditorCover)+'">' : (dishEditorEmoji? '<span style="font-size:40px">'+dishEditorEmoji+'</span>':'🍽️'))+'</div>'
+    +   '<div class="cover-preview" id="coverPreview">'+(dishEditorCover ? imgTag(dishEditorCover,'','') : (dishEditorEmoji? '<span style="font-size:40px">'+dishEditorEmoji+'</span>':'🍽️'))+'</div>'
     +   '<div class="cover-modes">'
     +     '<button type="button" class="cover-mode '+(dishEditorCover?'':'active')+'" data-mode="icon" onclick="setCoverMode(\'icon\')">用图标</button>'
     +     '<button type="button" class="cover-mode '+(dishEditorCover?'active':'')+'" data-mode="upload" onclick="setCoverMode(\'upload\')">上传/粘贴</button>'
@@ -1792,7 +1796,8 @@ function updateCoverPreview(){
   const box = document.getElementById('coverPreview');
   if(!box) return;
   if(dishEditorCover){
-    box.innerHTML = '<img src="'+esc(dishEditorCover)+'">';
+    box.innerHTML = imgTag(dishEditorCover,'','');
+    hydrateImgs(box);
   } else {
     box.innerHTML = '<span style="font-size:40px">'+(dishEditorEmoji||'🍽️')+'</span>';
   }
@@ -1804,7 +1809,7 @@ function pickDishEmoji(e){
   const prev = document.getElementById('coverPreview');
   if(prev && !dishEditorCover) prev.innerHTML = '<span style="font-size:40px">'+e+'</span>';
 }
-function saveDish(){
+async function saveDish(){
   const name = document.getElementById('d_name').value.trim();
   if(!name){ toast('请填写菜名'); return; }
   const d = {
@@ -1830,7 +1835,9 @@ function saveDish(){
     state.userDishes.push(d);
     state.dishCover[d.id] = dishEditorCover;
   }
+  await persistImages(state.dishCover);   // 菜品封面图转存 IndexedDB
   save(K.userDishes, state.userDishes);
+  save(K.dishCover, state.dishCover);
   closeModal(); buildQueue();
   toast('已加入菜品库：'+name);
   if(state.tab==='today') renderToday();
@@ -1925,8 +1932,7 @@ function tick(){
 tick(); setInterval(tick, 30000);
 
 ensureTagStore();
-buildQueue();
-switchTab('checkin');
+migrateImagesToIdb().then(function(){ buildQueue(); switchTab('checkin'); });
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
@@ -1959,15 +1965,14 @@ function openDataMgr(){
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
 }
-function exportFood(){
-  const keys = Object.keys(localStorage).filter(k=>k.indexOf('food_')===0);
-  const data = {}; keys.forEach(k=>{ data[k]=localStorage.getItem(k); });
+async function exportFood(){
+  const data = await collectFoodForExport();  // 图片还原为 base64，导出文件自包含
   const blob = new Blob([JSON.stringify({app:'food_record', exportedAt:new Date().toISOString(), data}, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = '美食记录备份_'+todayStr()+'.json';
   document.body.appendChild(a); a.click(); a.remove();
-  toast('已导出 '+keys.length+' 项数据');
+  toast('已导出 '+Object.keys(data).length+' 项数据');
 }
 
 // 批量压缩历史打卡照片，减少 localStorage 占用
@@ -1985,14 +1990,16 @@ function compressHistoryPhotos(){
   let i = 0;
   function next(){
     if(i >= tasks.length){
-      if(save(K.checkin, ck)){
-        progress.textContent = '完成：'+tasks.length+' 张照片，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
-        setTimeout(()=>progress.remove(), 1800);
-        renderCheckin();
-      } else {
-        progress.textContent = '压缩完成但保存失败，请导出备份后清理';
-        setTimeout(()=>progress.remove(), 3000);
-      }
+      persistImages(ck).then(function(){
+        if(save(K.checkin, ck)){
+          progress.textContent = '完成：'+tasks.length+' 张照片，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
+          setTimeout(()=>progress.remove(), 1800);
+          renderCheckin();
+        } else {
+          progress.textContent = '压缩完成但保存失败，请导出备份后清理';
+          setTimeout(()=>progress.remove(), 3000);
+        }
+      });
       return;
     }
     const t = tasks[i++];
@@ -2124,7 +2131,8 @@ async function cloudPush(){
   if(!syncCfg || !syncCfg.connected || syncBusy) return;
   syncBusy = true;
   try{
-    const payload = JSON.stringify({ updatedAt:new Date().toISOString(), data:foodDataCollect() });
+    const data = await collectFoodForExport();  // 图片还原为 base64 随同步带上
+    const payload = JSON.stringify({ updatedAt:new Date().toISOString(), data });
     if(syncCfg.provider==='github'){ await ghPush(payload); }
     else if(syncCfg.provider==='supabase'){ await supaPush(payload); }
     toast('已同步到云端');
