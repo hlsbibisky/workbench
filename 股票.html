@@ -127,6 +127,10 @@
     .jbtn{ flex:1 1 auto; }
     .jlist .jitem .jact{ position:static; margin-top:8px; justify-content:flex-end; }
     .wlitem{ flex-wrap:wrap; }
+    /* 表格在窄屏横向滚动，避免列挤压 / 溢出 iframe 被裁切 */
+    table{ display:block; width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    th,td{ white-space:nowrap; font-size:12px; padding:7px 8px; }
+    canvas{ max-width:100%; }
   }
   .rev-canvas{width:100%;display:block;border-radius:8px;}
   .rev-pie{height:280px;}
