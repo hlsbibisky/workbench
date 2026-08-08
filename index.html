@@ -387,17 +387,16 @@ const MODULES = {
       {id:'cycle', name:'十神关系图', type:'iframe', src:'shishen_cycle.html', status:'online'},
     ]
   },
-  qigua: {
-    title:'六爻起卦', note:'铜钱起卦 · 解卦', group:'common',
-    sub:[ {id:'qigua', name:'六爻起卦', type:'iframe', src:'起卦.html', status:'online'} ]
-  },
   cinema: {
     title:'放映室', note:'本地观影 · AI陪伴', group:'other',
     sub:[ {id:'player', name:'放映室', type:'iframe', srcdoc:SCREENING_SRC, status:'online'} ]
   },
   tools: {
     title:'工具', note:'效率 · 小工具', group:'other',
-    sub:[ {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'} ]
+    sub:[
+      {id:'qigua', name:'六爻起卦', type:'iframe', src:'起卦.html', status:'online'},
+      {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'}
+    ]
   },
 };
 
@@ -421,7 +420,7 @@ function tick(){
 tick(); setInterval(tick, 1000*20);
 
 /* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
-const NAV_ORDER = ['inner','week','daily','stock','drive','qigua','cinema','tools'];
+const NAV_ORDER = ['inner','week','daily','stock','drive','cinema','tools'];
 NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
   if(!m) return;
