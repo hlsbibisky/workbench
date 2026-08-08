@@ -17,108 +17,118 @@
     font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;
     overscroll-behavior:none;}
   ::selection{background:var(--mark);}
-  .app{max-width:560px;margin:0 auto;padding:16px 16px 80px;min-height:100dvh;}
 
-  h1{text-align:center;font-size:22px;letter-spacing:4px;color:var(--accent);margin:20px 0 6px;}
-  .lead{text-align:center;font-size:13px;color:var(--sub);margin:0 0 22px;}
+  /* ===== 桌面横版布局 ===== */
+  .app{display:grid;grid-template-columns:400px 1fr;gap:0;min-height:100dvh;
+    max-width:1400px;margin:0 auto;}
 
-  .steps{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:24px;}
-  .step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;max-width:120px;}
-  .step-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-size:15px;font-weight:600;border:2px solid var(--line);color:var(--sub);background:var(--card);transition:.3s;}
+  /* 左侧面板 */
+  .panel-left{padding:24px 20px;border-right:1px solid var(--line);background:var(--card);
+    display:flex;flex-direction:column;overflow-y:auto;}
+  /* 右侧面板 */
+  .panel-right{padding:24px 28px;overflow-y:auto;background:var(--bg);}
+
+  h1{text-align:center;font-size:22px;letter-spacing:4px;color:var(--accent);margin:0 0 4px;}
+  .lead{text-align:center;font-size:13px;color:var(--sub);margin:0 0 18px;}
+
+  .steps{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:18px;}
+  .step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;max-width:100px;}
+  .step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:600;border:2px solid var(--line);color:var(--sub);background:var(--card);transition:.3s;}
   .step.active .step-dot{border-color:var(--accent);color:var(--accent);background:var(--mark);}
   .step.done .step-dot{border-color:var(--accent);color:#fff;background:var(--accent);}
-  .step-label{font-size:12px;color:var(--sub);letter-spacing:1px;}
+  .step-label{font-size:11px;color:var(--sub);letter-spacing:1px;}
   .step.active .step-label,.step.done .step-label{color:var(--ink);font-weight:500;}
-  .step-line{width:30px;height:2px;background:var(--line);margin:0 -4px;margin-bottom:22px;}
+  .step-line{width:24px;height:2px;background:var(--line);margin:0 -2px;margin-bottom:18px;}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:20px 18px;margin-bottom:18px;box-shadow:var(--shadow);}
-  .card-title{font-size:16px;font-weight:600;color:var(--accent);margin:0 0 14px;
-    display:flex;align-items:center;gap:8px;}
+    padding:16px 16px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .card-title{font-size:15px;font-weight:600;color:var(--accent);margin:0 0 10px;
+    display:flex;align-items:center;gap:6px;}
 
-  .q-input{width:100%;min-height:90px;padding:12px 14px;border:1px solid var(--line);
-    border-radius:12px;font-family:inherit;font-size:15px;color:var(--ink);resize:vertical;
+  .q-input{width:100%;min-height:80px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:10px;font-family:inherit;font-size:14px;color:var(--ink);resize:vertical;
     background:#fff;line-height:1.6;transition:.2s;}
   .q-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,113,78,.12);}
   .q-input::placeholder{color:var(--sub);}
-  .q-count{text-align:right;font-size:12px;color:var(--sub);margin-top:6px;}
-  .quick-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
-  .tag{font-size:13px;padding:6px 14px;border:1px solid var(--line);border-radius:20px;
+  .q-count{text-align:right;font-size:11px;color:var(--sub);margin-top:4px;}
+  .quick-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .tag{font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:16px;
     background:#fff;color:var(--sub);cursor:pointer;transition:.15s;white-space:nowrap;}
   .tag:hover{border-color:var(--accent);color:var(--accent);}
 
-  .mode-select{display:flex;gap:12px;}
-  .mode-btn{flex:1;padding:16px 12px;border:2px solid var(--line);border-radius:14px;
+  .mode-select{display:flex;gap:8px;}
+  .mode-btn{flex:1;padding:12px 8px;border:2px solid var(--line);border-radius:12px;
     background:var(--card);cursor:pointer;text-align:center;transition:.2s;font-family:inherit;}
   .mode-btn:hover{border-color:var(--accent);}
   .mode-btn.selected{border-color:var(--accent);background:var(--mark);}
-  .mode-icon{font-size:28px;margin-bottom:6px;}
-  .mode-name{font-size:15px;font-weight:600;color:var(--ink);}
-  .mode-desc{font-size:12px;color:var(--sub);margin-top:4px;}
+  .mode-icon{font-size:24px;margin-bottom:4px;}
+  .mode-name{font-size:14px;font-weight:600;color:var(--ink);}
+  .mode-desc{font-size:11px;color:var(--sub);margin-top:2px;}
 
-  .btn-primary{display:block;width:100%;padding:14px;border:none;border-radius:12px;
-    background:var(--accent);color:#fff;font-size:16px;font-weight:600;letter-spacing:2px;
+  .btn-primary{display:block;width:100%;padding:12px;border:none;border-radius:10px;
+    background:var(--accent);color:#fff;font-size:15px;font-weight:600;letter-spacing:2px;
     cursor:pointer;font-family:inherit;transition:.15s;}
   .btn-primary:hover{filter:brightness(1.06);}
   .btn-primary:disabled{opacity:.45;cursor:not-allowed;}
 
-  .coins-area{text-align:center;padding:10px 0 20px;}
-  .coins{display:flex;justify-content:center;gap:20px;margin:20px 0;}
-  .coin{width:76px;height:100px;position:relative;cursor:pointer;perspective:400px;transition:transform .15s;}
-  .coin-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .6s ease-in-out;}
-  .coin.flipping .coin-inner{animation:coinFlip .6s ease-in-out;}
-  @keyframes coinFlip{
-    0%{transform:rotateY(0deg) rotateX(0deg);}
-    25%{transform:rotateY(360deg) rotateX(180deg) translateY(-40px);}
-    50%{transform:rotateY(720deg) rotateX(360deg) translateY(-10px);}
-    75%{transform:rotateY(1080deg) rotateX(270deg) translateY(-20px);}
-    100%{transform:rotateY(1440deg) rotateX(360deg) translateY(0);}
+  /* ===== 铜钱区域（SVG逼真铜钱） ===== */
+  .coins-area{text-align:center;padding:8px 0 16px;}
+  .coins{display:flex;justify-content:center;gap:24px;margin:16px 0;align-items:flex-end;}
+  .coin-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .coin{width:90px;height:90px;position:relative;cursor:pointer;perspective:600px;transition:transform .15s;}
+  .coin-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.25,.46,.45,.94);}
+  .coin.flipping .coin-inner{animation:coinFlip3d .7s ease-in-out;}
+  @keyframes coinFlip3d{
+    0%{transform:rotateY(0deg) rotateX(0deg) scale(1);}
+    20%{transform:rotateY(180deg) rotateX(60deg) translateY(-30px) scale(1.08);}
+    40%{transform:rotateY(450deg) rotateX(120deg) translateY(-50px) scale(1.05);}
+    60%{transform:rotateY(720deg) rotateX(200deg) translateY(-20px) scale(1.02);}
+    80%{transform:rotateY(1000deg) rotateX(300deg) translateY(-10px) scale(1);}
+    100%{transform:rotateY(1440deg) rotateX(360deg) translateY(0) scale(1);}
   }
   .coin-face{position:absolute;width:100%;height:100%;border-radius:50%;
     backface-visibility:hidden;display:flex;align-items:center;justify-content:center;
-    font-size:38px;font-weight:700;box-shadow:inset 0 2px 4px rgba(255,255,255,.3),inset 0 -2px 4px rgba(0,0,0,.15),0 3px 10px rgba(0,0,0,.18);
-    border:3px solid #8B6914;}
-  .coin-head{background:linear-gradient(145deg,#d4a84b,#b8922d);color:#5a4a1a;}
-  .coin-tail{background:linear-gradient(145deg,#c9a04a,#a88320);color:#4a3a0a;transform:rotateY(180deg);}
-  .coin-text{font-size:11px;letter-spacing:1px;}
-  .coin-result{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);
-    font-size:12px;color:var(--sub);white-space:nowrap;opacity:0;transition:.3s;}
-  .coin.show-result .coin-result{opacity:1;}
+    transition:opacity .3s;}
+  .coin-face svg{width:88%;height:88%;drop-shadow:0 4px 12px rgba(0,0,0,.35);}
+  .coin-tail{transform:rotateY(180deg);}
+  .coin-label{font-size:12px;color:var(--sub);font-weight:500;letter-spacing:2px;
+    height:20px;display:flex;align-items:center;justify-content:center;}
 
-  .throw-hint{text-align:center;font-size:15px;color:var(--sub);margin:16px 0 10px;}
-  .throw-progress{text-align:center;font-size:14px;color:var(--accent);font-weight:500;margin:8px 0;}
+  .throw-hint{text-align:center;font-size:14px;color:var(--sub);margin:12px 0 8px;}
+  .throw-progress{text-align:center;font-size:13px;color:var(--accent);font-weight:500;margin:6px 0;}
 
-  .gua-forming{margin-top:16px;}
-  .forming-title{text-align:center;font-size:15px;color:var(--sub);margin-bottom:12px;letter-spacing:2px;}
-  .yao-row{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(236,229,218,.5);}
+  .gua-forming{margin-top:12px;}
+  .forming-title{text-align:center;font-size:13px;color:var(--sub);margin-bottom:8px;letter-spacing:2px;}
+  .yao-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(236,229,218,.5);}
   .yao-row:last-child{border-bottom:none;}
-  .yao-name{width:36px;font-size:13px;color:var(--sub);text-align:right;flex-shrink:0;}
-  .yao-lines{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:28px;}
-  .yao-line{height:5px;background:var(--ink);border-radius:3px;transition:.3s;}
-  .yao-line.yang{width:72px;}
-  .yao-line.yin{width:32px;}
-  .yao-line.yin-gap{width:14px;}
-  .yao-type{width:46px;font-size:12px;color:var(--sub);text-align:left;flex-shrink:0;}
+  .yao-name{width:32px;font-size:12px;color:var(--sub);text-align:right;flex-shrink:0;}
+  .yao-lines{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;height:24px;}
+  .yao-line{height:4px;background:var(--ink);border-radius:2px;transition:.3s;}
+  .yao-line.yang{width:64px;}
+  .yao-line.yin{width:28px;}
+  .yao-line.yin-gap{width:12px;}
+  .yao-type{width:42px;font-size:11px;color:var(--sub);text-align:left;flex-shrink:0;}
   .yao-type.old-yang{color:var(--red);}
   .yao-type.old-yin{color:var(--green);}
 
-  .result-header{text-align:center;padding:16px 0 8px;}
-  .result-gua-name{font-size:42px;font-weight:700;color:var(--accent);letter-spacing:8px;margin:4px 0 2px;}
+  /* ===== 右侧结果区 ===== */
+  .result-header{text-align:center;padding:12px 0 6px;}
+  .result-gua-name{font-size:48px;font-weight:700;color:var(--accent);letter-spacing:10px;margin:4px 0 2px;}
   .result-gua-change{font-size:17px;color:var(--sub);letter-spacing:2px;}
   .result-gua-change span{color:var(--ink);font-weight:600;}
 
-  .info-grid{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:14px;margin:14px 0;}
+  .info-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px;margin:12px 0;}
   .info-key{color:var(--sub);font-size:13px;}
   .info-val{color:var(--ink);font-weight:500;}
 
   .zhuang-table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0;}
-  .zhuang-table th{color:var(--sub);font-weight:500;font-size:12px;padding:8px 6px;
+  .zhuang-table th{color:var(--sub);font-weight:500;font-size:12px;padding:7px 6px;
     border-bottom:2px solid var(--line);text-align:center;letter-spacing:1px;}
-  .zhuang-table td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;}
+  .zhuang-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;}
   .zhuang-table tr:last-child td{border-bottom:none;}
-  .table-section-title{grid-column:1/-1;font-size:14px;font-weight:600;color:var(--accent);
-    padding:14px 0 6px;letter-spacing:1px;}
+  .table-section-title{font-size:14px;font-weight:600;color:var(--accent);
+    padding:12px 0 6px;letter-spacing:1px;}
 
   .td-yao{display:flex;align-items:center;justify-content:center;gap:4px;height:26px;}
   .td-yao .yl{height:4px;background:var(--ink);border-radius:2px;}
@@ -128,69 +138,80 @@
   .dong-mark{color:var(--red);font-weight:700;font-size:12px;margin-left:2px;}
 
   .verdict-card{background:linear-gradient(135deg,#fef9f3,#fdf3e8);border:1px solid var(--line);
-    border-radius:14px;padding:18px 16px;margin:16px 0;}
-  .verdict-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;}
+    border-radius:14px;padding:16px 14px;margin:14px 0;}
+  .verdict-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;}
   .verdict-conclusion{font-size:15px;color:var(--ink);line-height:1.7;}
-  .verdict-basis{font-size:13px;color:var(--sub);margin-top:10px;line-height:1.7;}
+  .verdict-basis{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.7;}
 
-  .ci-section{margin:18px 0;}
-  .ci-title{font-size:16px;font-weight:600;color:var(--accent);margin:0 0 10px;display:flex;align-items:center;gap:6px;}
-  .ci-ori{font-size:15px;font-weight:600;color:var(--ink);margin:8px 0 4px;padding:10px 14px;background:var(--mark);border-radius:10px;}
-  .ci-xiang{font-size:13px;color:var(--sub);margin:4px 0 8px;font-style:italic;}
+  .ci-section{margin:16px 0;}
+  .ci-title{font-size:15px;font-weight:600;color:var(--accent);margin:0 0 8px;display:flex;align-items:center;gap:6px;}
+  .ci-ori{font-size:15px;font-weight:600;color:var(--ink);margin:6px 0 4px;padding:10px 14px;background:var(--mark);border-radius:10px;}
+  .ci-xiang{font-size:13px;color:var(--sub);margin:4px 0 6px;font-style:italic;}
   .ci-explain{font-size:14px;color:var(--ink);line-height:1.8;}
 
-  .yao-item{padding:12px 0;border-bottom:1px solid var(--line);}
+  .yao-item{padding:10px 0;border-bottom:1px solid var(--line);}
   .yao-item:last-child{border-bottom:none;}
-  .yao-item-header{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:6px;}
-  .yao-ci{font-size:14px;color:var(--ink);margin:4px 0;}
+  .yao-item-header{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:4px;}
+  .yao-ci{font-size:14px;color:var(--ink);margin:3px 0;}
   .yao-explain{font-size:13px;color:var(--sub);line-height:1.7;}
 
-  .copy-prompt{background:var(--ink);color:#f0ead6;padding:16px 14px;border-radius:12px;
+  .copy-prompt{background:var(--ink);color:#f0ead6;padding:14px 14px;border-radius:12px;
     font-size:12px;line-height:1.8;white-space:pre-wrap;word-break:break-all;
-    max-height:300px;overflow-y:auto;font-family:inherit;}
-  .copy-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;
-    margin-top:10px;border:1px solid var(--accent);color:var(--accent);background:transparent;
+    max-height:280px;overflow-y:auto;font-family:inherit;}
+  .copy-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;
+    margin-top:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;
     border-radius:10px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:500;transition:.15s;}
   .copy-btn:hover{background:var(--mark);}
   .copy-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-    background:rgba(58,54,49,.85);color:#fff;padding:14px 28px;border-radius:12px;
-    font-size:15px;z-index:999;pointer-events:none;opacity:0;transition:.3s;}
+    background:rgba(58,54,49,.88);color:#fff;padding:14px 28px;border-radius:12px;
+    font-size:15px;z-index:9999;pointer-events:none;opacity:0;transition:.3s;
+    box-shadow:0 8px 30px rgba(0,0,0,.2);}
   .copy-toast.show{opacity:1;}
 
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* 底部操作栏 */
   .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);
-    border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;z-index:100;
-    max-width:560px;margin:0 auto;}
-  .bottom-bar button{flex:1;padding:12px;border-radius:10px;font-size:14px;cursor:pointer;
+    border-top:1px solid var(--line);padding:10px 20px;display:flex;gap:10px;z-index:100;
+    max-width:1400px;margin:0 auto;}
+  .bottom-bar button{flex:1;padding:10px;border-radius:10px;font-size:14px;cursor:pointer;
     font-family:inherit;font-weight:500;transition:.15s;}
   .bb-ghost{border:1px solid var(--line);background:var(--card);color:var(--sub);}
   .bb-ghost:hover{border-color:var(--accent);color:var(--accent);}
   .bb-main{border:none;background:var(--accent);color:#fff;}
   .bb-main:hover{filter:brightness(1.05);}
 
-  .page{display:none;}
-  .page.active{display:block;}
+  /* 结果页：右侧全宽展示 */
+  #page-result.page.active{display:block;}
 
-  @media(max-width:480px){
-    .app{padding:12px 12px 80px;}
-    h1{font-size:19px;}
-    .coin{width:66px;height:86px;}
-    .coin-face{font-size:32px;}
-    .result-gua-name{font-size:34px;letter-spacing:6px;}
+  /* ===== 响应式：平板/手机回退为单栏 ===== */
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr;gap:0;}
+    .panel-left{border-right:none;border-bottom:1px solid var(--line);max-width:none;}
+    .panel-right{padding:16px 16px 80px;}
+    .result-gua-name{font-size:36px;letter-spacing:6px;}
+    .coins{gap:18px;}
+    .coin{width:78px;height:78px;}
+  }
+  @media(max-width:520px){
+    .panel-left{padding:14px 12px 70px;}
+    .coin{width:68px;height:68px;}
+    .result-gua-name{font-size:30px;letter-spacing:4px;}
     .zhuang-table{font-size:12px;}
-    .zhuang-table td,.zhuang-table th{padding:7px 4px;}
+    .zhuang-table td,.zhuang-table th{padding:6px 4px;}
+    .info-grid{font-size:13px;}
   }
-  @media(max-width:380px){
-    .coin{width:58px;height:76px;}
-    .coin-face{font-size:28px;}
-    .coins{gap:14px;}
-  }
-  .yao-placeholder{color:#ddd;font-size:12px;}
+  .yao-placeholder{color:#ccc;font-size:11px;}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- ===== 页面1：输入问题 ===== -->
+<!-- ===== 左侧面板 ===== -->
+<div class="panel-left">
+
+<!-- 页面1：输入问题 -->
 <div class="page active" id="page-input">
   <h1>⚊ 六爻起卦</h1>
   <p class="lead">诚心默念，一卦一问</p>
@@ -220,7 +241,7 @@
     <div class="card-title">◎ 选择起卦方式</div>
     <div class="mode-select">
       <div class="mode-btn selected" id="modeManual" onclick="selectMode('manual')">
-        <div class="mode-icon">🪙</div><div class="mode-name">逐爻投掷</div><div class="mode-desc">手动投掷铜钱六次</div>
+        <div class="mode-icon">🪙</div><div class="mode-name">逐爻投掷</div><div class="mode-desc">手动投掷六次</div>
       </div>
       <div class="mode-btn" id="modeAuto" onclick="selectMode('auto')">
         <div class="mode-icon">⚡</div><div class="mode-name">一键起卦</div><div class="mode-desc">自动生成六爻</div>
@@ -228,15 +249,15 @@
     </div>
   </div>
 
-  <button class="btn-primary" id="startBtn" onclick="startDivination()" style="margin-top:8px;">▶ 开始起卦</button>
-  <p style="text-align:center;font-size:12px;color:var(--sub);margin-top:10px;">
-    建议：问题具体且可行动，如「是否推进 X 项目？」
+  <button class="btn-primary" id="startBtn" onclick="startDivination()" style="margin-top:6px;">▶ 开始起卦</button>
+  <p style="text-align:center;font-size:11px;color:var(--sub);margin-top:8px;">
+    问题越具体，卦象参考价值越高
   </p>
 </div>
 
-<!-- ===== 页面2：投掷铜钱 ===== -->
+<!-- 页面2：投掷铜钱 -->
 <div class="page" id="page-throw">
-  <h1 style="font-size:19px;margin:16px 0 4px;">⚊ 六爻起卦</h1>
+  <h1 style="font-size:18px;margin:12px 0 2px;">⚊ 六爻起卦</h1>
   <div class="steps">
     <div class="step done" id="st1b"><div class="step-dot">✓</div><div class="step-label">输入问题</div></div>
     <div class="step-line"></div>
@@ -246,36 +267,95 @@
   </div>
 
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <span style="font-size:15px;color:var(--ink);" id="throwQuestion">?</span>
-      <button style="border:none;background:none;color:var(--sub);cursor:pointer;font-size:18px;"
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+      <span style="font-size:14px;color:var(--ink);" id="throwQuestion">?</span>
+      <button style="border:none;background:none;color:var(--sub);cursor:pointer;font-size:16px;"
               onclick="editQuestion()" title="修改问题">✎</button>
     </div>
   </div>
 
   <div class="card">
     <div class="coins-area">
-      <div style="text-align:center;font-size:17px;font-weight:600;color:var(--accent);letter-spacing:2px;" id="coinsTitle">投掷铜钱</div>
+      <div style="text-align:center;font-size:16px;font-weight:600;color:var(--accent);letter-spacing:2px;" id="coinsTitle">投掷铜钱</div>
       <div class="coins">
-        <div class="coin" id="coin0"><div class="coin-inner">
-          <div class="coin-face coin-head"><div class="coin-text">字</div></div>
-          <div class="coin-face coin-tail"><div class="coin-text">背</div></div>
-          <div class="coin-result" id="cr0"></div>
-        </div></div>
-        <div class="coin" id="coin1"><div class="coin-inner">
-          <div class="coin-face coin-head"><div class="coin-text">字</div></div>
-          <div class="coin-face coin-tail"><div class="coin-text">背</div></div>
-          <div class="coin-result" id="cr1"></div>
-        </div></div>
-        <div class="coin" id="coin2"><div class="coin-inner">
-          <div class="coin-face coin-head"><div class="coin-text">字</div></div>
-          <div class="coin-face coin-tail"><div class="coin-text">背</div></div>
-          <div class="coin-result" id="cr2"></div>
-        </div></div>
+        <!-- 铜钱0：正面（字面） -->
+        <div class="coin-wrap">
+          <div class="coin" id="coin0"><div class="coin-inner">
+            <div class="coin-face coin-head">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs><radialGradient id="cg" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#e8c86a"/><stop offset="55%" stop-color="#c9a035"/><stop offset="100%" stop-color="#9a7820"/></radialGradient></defs>
+                <circle cx="50" cy="50" r="47" fill="url(#cg)" stroke="#8B6914" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#a68320" stroke-width=".5" opacity=".5"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#8B6914"/>
+                <text x="50" y="27" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">通</text>
+                <text x="50" y="79" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">宝</text>
+              </svg>
+            </div>
+            <div class="coin-face coin-tail">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs><radialGradient id="cb" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#d4a84b"/><stop offset="55%" stop-color="#b8922d"/><stop offset="100%" stop-color="#8a6a18"/></radialGradient></defs>
+                <circle cx="50" cy="50" r="47" fill="url(#cb)" stroke="#7a5a10" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#9a7820" stroke-width=".5" opacity=".4"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#7a5a10"/>
+                <text x="50" y="36" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">乾</text>
+                <text x="50" y="72" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">隆</text>
+              </svg>
+            </div>
+          </div></div>
+          <div class="coin-label" id="cr0"></div>
+        </div>
+        <!-- 铜钱1 -->
+        <div class="coin-wrap">
+          <div class="coin" id="coin1"><div class="coin-inner">
+            <div class="coin-face coin-head">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="47" fill="url(#cg)" stroke="#8B6914" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#a68320" stroke-width=".5" opacity=".5"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#8B6914"/>
+                <text x="50" y="27" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">通</text>
+                <text x="50" y="79" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">宝</text>
+              </svg>
+            </div>
+            <div class="coin-face coin-tail">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="47" fill="url(#cb)" stroke="#7a5a10" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#9a7820" stroke-width=".5" opacity=".4"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#7a5a10"/>
+                <text x="50" y="36" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">乾</text>
+                <text x="50" y="72" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">隆</text>
+              </svg>
+            </div>
+          </div></div>
+          <div class="coin-label" id="cr1"></div>
+        </div>
+        <!-- 铜钱2 -->
+        <div class="coin-wrap">
+          <div class="coin" id="coin2"><div class="coin-inner">
+            <div class="coin-face coin-head">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="47" fill="url(#cg)" stroke="#8B6914" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#a68320" stroke-width=".5" opacity=".5"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#8B6914"/>
+                <text x="50" y="27" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">通</text>
+                <text x="50" y="79" text-anchor="middle" fill="#6b520e" font-size="11" font-weight="700" font-family="KaiTi,STKaiti,serif">宝</text>
+              </svg>
+            </div>
+            <div class="coin-face coin-tail">
+              <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="47" fill="url(#cb)" stroke="#7a5a10" stroke-width="2"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#9a7820" stroke-width=".5" opacity=".4"/>
+                <rect x="41" y="41" width="18" height="18" rx="1" fill="#7a5a10"/>
+                <text x="50" y="36" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">乾</text>
+                <text x="50" y="72" text-anchor="middle" fill="#5a4208" font-size="10" font-weight="700" font-family="KaiTi,STKaiti,serif">隆</text>
+              </svg>
+            </div>
+          </div></div>
+          <div class="coin-label" id="cr2"></div>
+        </div>
       </div>
       <div class="throw-hint" id="throwHint">点击下方按钮投掷铜钱</div>
       <div class="throw-progress" id="throwProgress"></div>
-      <button class="btn-primary" id="throwBtn" onclick="throwCoins()" style="margin-top:16px;max-width:280px;margin-left:auto;margin-right:auto;">
+      <button class="btn-primary" id="throwBtn" onclick="throwCoins()" style="margin-top:14px;max-width:260px;margin-left:auto;margin-right:auto;">
         第 <span id="throwCount">1</span> 次投掷
       </button>
     </div>
@@ -285,11 +365,20 @@
       <div id="formingArea"></div>
     </div>
   </div>
+</div><!-- end panel-left -->
+
+<!-- ===== 右侧面板（结果页） ===== -->
+<div class="panel-right">
+
+<div class="page active" id="page-result-placeholder">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:400px;color:var(--sub);font-size:15px;flex-direction:column;gap:12px;">
+    <div style="font-size:48px;">🪙</div>
+    <div>完成左侧起卦后，结果将在此处显示</div>
+  </div>
 </div>
 
-<!-- ===== 页面3：结果 ===== -->
+<!-- 页面3：结果 -->
 <div class="page" id="page-result">
-  <h1 style="font-size:19px;margin:16px 0 4px;">⚊ 卦象结果</h1>
   <div class="result-header">
     <div class="result-gua-name" id="resGuaName"></div>
     <div class="result-gua-change" id="resGuaChange"></div>
@@ -319,13 +408,15 @@
   </div>
 </div>
 
+</div><!-- end panel-right -->
+
+</div><!-- end app -->
+
 <div class="copy-toast" id="toast">已复制到剪贴板</div>
 
 <div class="bottom-bar" id="bottomBar" style="display:none;">
   <button class="bb-ghost" onclick="resetAll()">↻ 再来一卦</button>
   <button class="bb-main" onclick="scrollToTop()">▲ 回顶部</button>
-</div>
-
 </div>
 
 <script>
@@ -387,12 +478,12 @@ function getLiujin(gong, na){
   const gw = BAGUA_WU[gong];
   const w = ZHI_WU[na];
   if(w === gw) return '兄弟';
-  const sheng={'木':'火','火':'土','土':'金','金':'水','水':'木'}; // 我生者
-  const ke={'木':'土','土':'水','水':'火','火':'金','金':'木'};     // 我克者
-  if(sheng[gw]===w) return '子孙';   // 我生
-  if(ke[gw]===w) return '妻财';       // 我克
-  if(sheng[w]===gw) return '父母';    // 生我
-  if(ke[w]===gw) return '官鬼';       // 克我
+  const sheng={'木':'火','火':'土','土':'金','金':'水','水':'木'};
+  const ke={'木':'土','土':'水','水':'火','火':'金','金':'木'};
+  if(sheng[gw]===w) return '子孙';
+  if(ke[gw]===w) return '妻财';
+  if(sheng[w]===gw) return '父母';
+  if(ke[w]===gw) return '官鬼';
   return '兄弟';
 }
 
@@ -425,7 +516,7 @@ function getGanZhi(date){
   const md = (date.getMonth()+1)*100 + date.getDate();
   for(const [jm,jd,z] of jie){ if(md >= jm*100+jd) mZhi = z; else break; }
   const yGanIdx = TIANGAN.indexOf(yGan);
-  const yinGan = (yGanIdx*2 + 2) % 10; // 寅月天干
+  const yinGan = (yGanIdx*2 + 2) % 10;
   const mGanIdx = (yinGan + (DIZHI.indexOf(mZhi) - 2)) % 10;
   const mGan = TIANGAN[(mGanIdx+10)%10];
   // 日柱（以 1970-01-01 庚午为锚）
@@ -455,6 +546,7 @@ const SHEN_ORDER = ['青龙','朱雀','勾陈','螣蛇','白虎','玄武'];
 // ============================================================
 //  卦辞爻辞数据（纯文本，每行一卦，字段用 | 分隔）
 //  格式: 名|宫|卦辞原文|象曰|解读|爻1辞|爻1解|...|爻6辞|爻6解
+//  出处：《周易》通行本（王弼注本）
 // ============================================================
 const RAW = `
 乾|乾|元亨利贞。|天行健，君子以自强不息。|刚健中正，万事亨通，利于坚守正道。大吉之卦，宜积极进取。|潜龙勿用。|时机未到，宜潜藏修养，不可轻举妄动。|见龙在田，利见大人。|才华初显，宜拜见贵人，求得指引。|君子终日乾乾，夕惕若厉，无咎。|终日勤奋警惕，虽处险境亦无灾祸。|或跃在渊，无咎。|进退有据，相机而动，无咎。|飞龙在天，利见大人。|乘时而起，大有作为，宜见贵人。|亢龙有悔。|物极必反，盛极当知退，否则有悔。
@@ -494,16 +586,16 @@ const RAW = `
 晋|离|康侯用锡马蕃庶昼日三接。|明出地上晋，君子以自昭明德。|晋升前进，如日东升。前途光明。|晋如摧如贞吉罔孚裕无咎。|进受挫，守正吉，宽裕无咎。|晋如愁如贞吉受兹介福于其王母。|进而忧，终受福于尊长。|众允悔亡。|众所信允，悔亡。|晋如鼫鼠贞厉。|才不胜任而进，危。|悔亡失得勿恤往吉无不利。|忘得失而进，吉无不利。|晋其角维用伐邑厉吉无咎贞吝。|进至极，用伐小邑，吉而有吝。
 明夷|坎|利艰贞。|明入地中明夷，君子以莅众用晦而明。|光明受伤，韬光养晦。处暗守正待明。|明夷于飞垂其翼君子于行三日不食有攸往主人有言。|伤而远行，困顿有言。|明夷于左股用拯马壮吉。|伤左股，得救则吉。|明夷于南狩得其大首不可疾贞。|向南猎获首恶，不可急。|入于左腹获明夷之心于出门庭。|察其本心，得出门庭。|箕子之贞明夷。|箕子佯狂守正，明伤而德全。|不明晦初登于天后入于地。|晦暗至极，由高坠地。
 家人|巽|利女贞。|风自火出家人，君子以言有物而行有恒。|家庭伦理，家和事兴。女子守正则吉。|闲有家悔亡。|家规初立，悔亡。|无攸遂在中馈贞吉。|主中馈守正吉。|家人嗃嗃悔厉吉妇子嘻嘻终吝。|治家严吉，放纵终吝。|富家大吉。|家业丰，大吉。|王假有家勿恤吉。|王者之家，无忧吉。|有孚威如终吉。|诚威并施，终吉。
-睽|艮|小事吉。|上火下泽睽，君子以同而异。|乖离对立，求同存异。小事可成，大事难谐。|悔亡丧马勿逐自复见恶人无咎。|悔亡失马自回，遇恶人无咎。|遇主于巷无咎。|巷中遇主，无咎。|见舆曳其牛掣其人天且劓无初有终。|见曳掣之困，初难终成。|睽孤遇元夫交孚厉无咎。|孤睽遇贤，交信无咎。|悔亡厥宗噬肤往何咎。|悔亡归宗，往无咎。|睽孤见豕负涂载鬼一车先张之弧后说之弧匪寇婚媾往遇雨则吉。|虚惊疑鬼，雨解则吉。
+睢|艮|小事吉。|上火下泽睢，君子以同而异。|乖离对立，求同存异。小事可成，大事难谐。|悔亡丧马勿逐自复见恶人无咎。|悔亡失马自回，遇恶人无咎。|遇主于巷无咎。|巷中遇主，无咎。|见舆曳其牛掣其人天且劓无初有终。|见曳掣之困，初难终成。|睢孤遇元夫交孚厉无咎。|孤睢遇贤，交信无咎。|悔亡厥宗噬肤往何咎。|悔亡归宗，往无咎。|睢孤见豕负涂载鬼一车先张之弧后说之弧匪寇婚媾往遇雨则吉。|虚惊疑鬼，雨解则吉。
 蹇|坎|利西南不利东北利见大人贞吉。|山上有水蹇，君子以反身修德。|蹇难跋涉，山高水阻。宜反身修德，待援。|往蹇来誉。|往难来誉，知退。|王臣蹇蹇匪躬之故。|臣蹇匪躬，尽忠。|往蹇来反。|往难来归，返正。|往蹇来连。|往难来联，合力。|大蹇朋来。|大难友至，患难见情。|往蹇来硕吉利见大人。|难后得硕，见贵吉。
 解|震|利西南无所往其来复吉有攸往夙吉。|雷雨作解，君子以赦过宥罪。|险难消解，雷雨作解。宜速行其志。|无咎。|平顺无咎。|田获三狐得黄矢贞吉。|田猎得狐获矢，守正吉。|负且乘致寇至贞吝。|负重乘车招寇，吝。|解而拇朋至斯孚。|解拇之束，友至信。|君子维有解吉有孚于小人。|君子能解，感小人。|公用射隼于高墉之上获之无不利。|射隼高墉，一举无不利。
 损|艮|有孚元吉无咎可贞利有攸往曷之用二簋可用享。|山下有泽损，君子以惩忿窒欲。|减损之道，损下益上。有孚则吉，舍得见智。|已事遄往无咎酌损之。|事毕速往，酌损无咎。|利贞征凶弗损益之。|守正利，征凶，勿损反益。|三人行则损一人一人行则得其友。|三损其一，独行得友。|损其疾使遄有喜无咎。|损疾速愈，喜无咎。|或益之十朋之龟弗克违元吉。|意外之益，大吉。|弗损益之无咎贞吉利有攸往得臣无家。|不损反益，吉，得臣忘家。
 益|巽|利有攸往利涉大川。|风雷益，君子以见善则迁有过则改。|增益之道，风雷相助。与时偕行，利有攸往。|利用为大作元吉无咎。|大有作为，元吉无咎。|或益之十朋之龟弗克违永贞吉王用享于帝吉。|天赐之益，永正吉。|益之用凶事无咎有孚中行告公用圭。|于凶事用益，有孚中行。|从之利用为依迁国。|从善可依，利于迁国。|有孚惠心勿问元吉有孚惠我德。|诚心惠民，元吉。|莫益之或击之立心勿恒凶。|无人助反遭击，心不恒凶。
 夬|乾|扬于王庭孚号有厉告自邑不利即戎利有攸往。|泽上于天夬，君子以施禄及下居德则忌。|决断除去，刚决柔。当机立断，宜明不宜暗。|壮于前趾往不胜为咎。|初壮而往，不胜为咎。|惕号莫夜有戎勿恤。|警惕号令，夜戎勿忧。|壮于頯有凶君子夬夬独行遇雨若濡有愠无咎。|壮颊有凶，夬然独行遇雨无咎。|臀无肤其行次且牵羊悔亡闻言不信。|行艰无肤，牵羊悔亡。|苋陆夬夬中行无咎。|决去小人，中行无咎。|无号终有凶。|不号终凶，失警。
 姤|乾|女壮勿用取女。|天下风姤，后以施命诰四方。|不期而遇，阴长侵阳。宜防意外，勿轻进。|系于金柅贞吉有攸往见凶羸豕孚蹢躅。|系于制动，守正吉，往凶。|包有鱼无咎不利宾。|厨有鱼，无咎，不宜分宾。|臀无肤其行次且厉无大咎。|行艰无肤，厉不大咎。|包无鱼起凶。|厨无鱼，起凶。|以杞包瓜含章陨自天。|含章待时，自天而陨。|姤其角吝无咎。|角遇相吝，无咎。
-萃|兑|亨王假有庙利见大人亨利贞用大牲吉利有攸往。|泽上于地萃，君子以除戎器戒不虞。|荟萃聚集，万物汇归。宜聚人聚众。|有孚不终乃乱乃萃若号一握一笑勿恤往无咎。|诚不终而乱聚，笑解无咎。|引吉无咎孚乃利用禴。|引来则吉，诚可祭。|萃如嗟如无攸利往无咎小吝。|嗟叹而聚，往无咎小吝。|大吉无咎。|大吉无咎。|萃有位无咎匪孚元永贞。|居位而聚，匪孚守永正。|赍咨涕洟无咎。|叹息流涕，忧而免咎。
+萃|兑|亨王假有庙利见大人亨利贞用大牲吉利有攸往。|泽上地萃，君子以除戎器戒不虞。|荟萃聚集，万物汇归。宜聚人聚众。|有孚不终乃乱乃萃若号一握一笑勿恤往无咎。|诚不终而乱聚，笑解无咎。|引吉无咎孚乃利用禴。|引来则吉，诚可祭。|萃如嗟如无攸利往无咎小吝。|嗟叹而聚，往无咎小吝。|大吉无咎。|大吉无咎。|萃有位无咎匪孚元永贞。|居位而聚，匪孚守永正。|赍咨涕洟无咎。|叹息流涕，忧而免咎。
 升|巽|元亨用见大人勿恤南征吉。|地中生木升，君子以顺德积小以高大。|上升渐进，木生于地。积小成大，前途升。|允升大吉。|信而升，大吉。|孚乃利用禴无咎。|诚可祭，无咎。|升虚邑。|升入空邑，无阻。|王用亨于岐吉无咎。|王祭岐山，吉无咎。|贞吉升阶。|守正升阶，渐高。|冥升利于不息之贞。|暗升不已，利于恒正。
-困|兑|亨贞大人吉无咎有言不信。|泽无水困，君子以致命遂志。|困穷之境，泽中无水。守正遂志可脱困。|臀困于株木入于幽谷三岁不觌。|困于株木幽谷，久不见。|困于酒食朱绂方来利用享祀征凶无咎。|困于酒食，朱绂方来，祭吉。|困于石据于蒺藜入于其宫不见其妻凶。|困石据藜，失妻凶。|来徐徐困于金车吝有终。|缓来困车，吝有终。|劓刖困于赤绂乃徐有说利用祭祀。|刑伤困绂，徐脱利祭。|困于葛藟于臲卼曰动悔有悔征吉。|困藤危石，动悔而征吉。
+困|兑|亨贞大人吉无咎有言不信。|泽无水困，君子以致命遂志。|困穷之境，泽中无水。守正遂志可脱困。|臀困于株木入于幽谷三岁不觌。|困于株木幽谷，久不见。|困于酒食朱绂方来利用享祀征凶无咎。|困于酒食，朱绂方来，祭吉。|困于石据于蒺藜入其宫不见其妻凶。|困石据藜，失妻凶。|来徐徐困于金车吝有终。|缓来困车，吝有终。|劓刖困于赤绂乃徐有说利用祭祀。|刑伤困绂，徐脱利祭。|困于葛藟于臲卼曰动悔有悔征吉。|困藤危石，动悔而征吉。
 井|坎|改邑不改井无丧无得往来井井汔至亦未繘井羸其瓶凶。|木上有水井，君子以劳民劝相。|井养不穷，源泉滋养。宜修德惠民。|井泥不食旧井无禽。|井泥不食，废井无禽。|井谷射鲋瓮敝漏。|射鲋漏瓮，小失。|井渫不食为我心恻可用汲王明并受其福。|井洁不食，王明可汲受福。|井甃无咎。|修井壁，无咎。|井冽寒泉食。|洁泉可食，美。|井收勿幕有孚元吉。|井成不盖，孚信大吉。
 革|兑|己日乃孚元亨利贞悔亡。|泽中有火革，君子以治历明时。|变革更新，泽火相革。顺天应人，除旧布新。|巩用黄牛之革。|用牛革固之，暂不变。|己日乃革之征吉无咎。|时机至而革，征吉。|征凶贞吉革言三就。|躁革凶，言审则吉。|悔亡有孚改命吉。|悔亡诚至，改命吉。|大人虎变未占有孚。|大人变革如虎，不卜而信。|君子豹变小人革面征凶居贞吉。|君子如豹变，小人革面，居正吉。
 鼎|离|元吉亨。|木上有火鼎，君子以正位凝命。|鼎新之象，烹饪养贤。革故鼎新，权威稳立。|鼎颠趾利出否得妾以其子无咎。|鼎倾趾，出废得嗣，无咎。|鼎有实我仇有疾不我能即吉。|鼎有实，仇疾不能近，吉。|鼎耳革其行塞雉膏不食方雨亏悔终吉。|耳革行塞，雨至悔消终吉。|鼎折足覆公餗其形渥凶。|足折覆食，不胜其任凶。|鼎黄耳金铉利贞。|黄耳金铉，守正利。|鼎玉铉大吉无不利。|玉铉大吉，无不利。
@@ -519,7 +611,7 @@ const RAW = `
 节|坎|亨苦节不可贞。|泽上有水节，君子以制数度议德行。|节制有度，泽上有水。节而适中，苦节不可。|不出户庭无咎。|不出户庭，无咎。|不出门庭凶。|不出门庭，凶。|不节若则嗟若无咎。|不节而嗟，无咎。|安节亨。|安于节，亨。|甘节吉往有尚。|甘美于节，往有赏。|苦节贞凶悔亡。|苦节正凶，悔亡。
 中孚|巽|豚鱼吉利涉大川利贞。|泽上有风中孚，君子以议狱缓死。|中心诚信，豚鱼可感。诚信为本，利涉。|虞吉有它不燕。|安虞吉，有他便不安。|鸣鹤在阴其子和之我有好爵吾与尔靡之。|鹤鸣子和，好爵共靡。|得敌或鼓或罢或泣或歌。|得敌情变，鼓罢泣歌。|月几望马匹亡无咎。|月近望失马，无咎。|有孚挛如无咎。|诚信相系，无咎。|翰音登于天贞凶。|虚声登天，正凶。
 小过|兑|亨利贞可小事不可大事飞鸟遗之音不宜上宜下大吉。|山上有雷小过，君子以行过乎恭丧过乎哀用过乎俭。|小有过越，飞鸟遗音。宜下不宜上，小事可。|飞鸟以凶。|飞鸟高过，凶。|过其祖遇其妣不及其君遇其臣无咎。|过祖遇妣，不及君遇臣，无咎。|弗过防之从或戕之凶。|不过而防，从戕凶。|无咎弗过遇之往厉必戒勿用永贞。|无咎不过而遇，往危宜戒。|密云不雨自我西郊公弋取彼在穴。|密云西郊，弋取穴物。|弗遇过之飞鸟离之凶是谓灾眚。|过而不遇，飞鸟离灾，凶。
-既济|坎|亨小利贞初吉终乱。|水在火上既济，君子以思患而预防之。|事已成就，水火相交。初吉终乱，宜预患。|曳其轮濡其尾无咎。|曳轮濡尾，无咎。|妇丧其茀勿逐七日得。|妇丧茀不逐，七日得。|高宗伐鬼方三年克之小人勿用。|伐鬼方三年克，勿用小人。|繻有衣袽终日戒。|衣袽防漏，终日戒。|东邻杀牛不如西邻之禴祭实受其福。|诚祭胜奢，实受福。|濡其首厉。|濡首有危，大意失。
+既济|坎|亨小利贞初吉终乱。|水在火上既济，君子以思患而预防之。|事已成就，水火相交。初吉终乱，宜预患。|曳其轮濡其尾无咎。|曳轮濡尾，无咎。|妇丧其茀勿逐七日得。|妇丧茀不逐七日得。|高宗伐鬼方三年克之小人勿用。|伐鬼方三年克，勿用小人。|繻有衣袽终日戒。|衣袽防漏，终日戒。|东邻杀牛不如西邻之禴祭实受其福。|诚祭胜奢，实受其福。|濡其首厉。|濡首有危，大意失。
 未济|离|亨小狐汔济濡其尾无攸利。|火在水上未济，君子以慎辨物居方。|事未竟成，火水相违。谨慎待成，前途可期。|濡其尾吝。|濡尾初困，吝。|曳其轮贞吉。|曳轮守正吉。|未济征凶利涉大川。|未济征凶，利涉大川。|贞吉悔亡震用伐鬼方三年有赏于大国。|正吉伐鬼方，三年赏。|贞吉无悔君子之光有孚吉。|正吉君子之光，孚吉。|饮酒无咎濡其首有孚失是。|饮酒无咎，濡首失是。
 `;
 
@@ -556,8 +648,18 @@ function selectMode(m){
 }
 
 function showPage(id){
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  // 左侧页面切换
+  document.querySelectorAll('.panel-left .page').forEach(p => p.classList.remove('active'));
+  const leftPage = document.getElementById('page-'+id);
+  if(leftPage) leftPage.classList.add('active');
+  // 右侧：只有 result 页才切换
+  if(id === 'result'){
+    document.getElementById('page-result-placeholder').style.display = 'none';
+    document.getElementById('page-result').classList.add('active');
+  } else {
+    document.getElementById('page-result-placeholder').style.display = '';
+    document.getElementById('page-result').classList.remove('active');
+  }
   document.getElementById('bottomBar').style.display = (id==='result') ? 'flex' : 'none';
 }
 
@@ -590,9 +692,9 @@ function throwCoins(){
     setTimeout(()=>{
       coin.classList.remove('flipping');
       coin.querySelector('.coin-inner').style.transform = result[i] ? 'rotateY(0deg)' : 'rotateY(180deg)';
-      coin.classList.add('show-result');
       document.getElementById('cr'+i).textContent = result[i] ? '字' : '背';
-    }, 650);
+      document.getElementById('cr'+i).style.opacity = '1';
+    }, 720);
   }
 
   setTimeout(()=>{
@@ -610,12 +712,12 @@ function throwCoins(){
       document.getElementById('throwProgress').textContent = '正在生成第 ' + (appState.currentThrow+1) + ' 爻…';
       setTimeout(()=>{
         for(let i=0;i<3;i++){
-          document.getElementById('coin'+i).classList.remove('show-result');
           document.getElementById('cr'+i).textContent = '';
+          document.getElementById('cr'+i).style.opacity = '0';
         }
       }, 1200);
     }
-  }, 750);
+  }, 780);
 }
 
 function updateFormingRow(idx, result){
@@ -653,9 +755,10 @@ function updateThrowUI(){
   document.getElementById('throwProgress').textContent = '';
   for(let i=0;i<3;i++){
     const c = document.getElementById('coin'+i);
-    c.classList.remove('show-result','flipping');
+    c.classList.remove('flipping');
     c.querySelector('.coin-inner').style.transform = '';
     document.getElementById('cr'+i).textContent = '';
+    document.getElementById('cr'+i).style.opacity = '0';
   }
 }
 
@@ -663,8 +766,8 @@ function editQuestion(){ showPage('input'); }
 
 // ---- 计算结果 ----
 function computeAndShowResult(){
-  const yaos = [];       // 0阴 1阳
-  const dongYaos = [];   // 动爻索引 0初…5上
+  const yaos = [];
+  const dongYaos = [];
   for(let i=0;i<6;i++){
     const t = appState.throws[i];
     const count = t.filter(Boolean).length;
@@ -869,11 +972,11 @@ function renderAIPrompt(r){
 '主卦属于' + r.gong + '宫本宫卦\n\n' +
 '主卦装卦信息：\n' + benTable + bianTable + '\n\n' +
 '你是六爻解卦助手。仅依据《古筮真诠（总论篇、易理篇）》进行解读与推断：不创造书中没有的规则，不以个人体系替代原书观点。所有结论都要能追溯到书中章节或规则。\n\n' +
-'目标\n- 让新手一眼看懂“结论是什么、为什么、要补什么”。\n- 将解卦过程结构化、可复核、可复现。\n- 用清晰的逻辑链条解释结论来源。\n\n' +
+'目标\n- 让新手一眼看懂"结论是什么、为什么、要补什么"。\n- 将解卦过程结构化、可复核、可复现。\n- 用清晰的逻辑链条解释结论来源。\n\n' +
 '输入要求（尽量完整）\n- 所问事项与背景（具体到时间/对象/范围）\n- 起卦方式与时间（年/月/日/时）\n- 卦象信息：本卦、变卦、动爻、世应、六亲（若有月建/日辰/旬空/六神也提供）\n- 若为代占或意念不明，说明占卜意念来源\n\n' +
-'工作流程\n1. 信息校验：标注缺失项与冲突项。\n2. 取用神：说明取用神依据（书中规则/章节）。\n3. 定旺衰：结合日月、动变与相关规则判断旺衰。\n4. 看动变：分析动爻、变爻、化进化退、暗动等影响。\n5. 看冲合：六冲、六合、三合等格局影响。\n6. 看特殊格局：伏吟、反吟、句空、三墓、三绊等。\n7. 断应期：给出应期推断与依据。\n8. 汇总结论：区分“可断结论”与“待证结论”。\n\n' +
-'输出格式（新手友好）\n1. 结论卡片（必须先给）\n   - 结论：明确回答“成/不成/利/不利/吉/凶/有/无/快/慢”等\n   - 置信度：高/中/低（并说明是信息不足还是卦象不明）\n   - 时间提示：若可断应期，用“xx时间段”；不可断则写“无法断定”\n2. 一句话原因（100 字内，面向新手）\n3. 趋避建议（可执行、简短；仅基于书中规则推导，不引入外部常识）\n4. 依据链路（按顺序列出：取用神/旺衰/动变/冲合/特殊格局/应期）\n5. 证据引用（短引用 + 对应章节/关键词）\n6. 不确定项与缺失信息（必要时提出补充问题）\n\n' +
-'约束\n- 不脱离原书体系，不引入其他流派规则\n- 原文引用不超过 100 字；仅在必要处引用\n- 明确区分已知事实、推断与假设\n- 若信息不足或规则不覆盖，明确说明“无法断定”';
+'工作流程\n1. 信息校验：标注缺失项与冲突项。\n2. 取用神：说明取用神依据（书中规则/章节）。\n3. 定旺衰：结合日月、动变与相关规则判断旺衰。\n4. 看动变：分析动爻、变爻、化进化退、暗动等影响。\n5. 看冲合：六冲、六合、三合等格局影响。\n6. 看特殊格局：伏吟、反吟、句空、三墓、三绊等。\n7. 断应期：给出应期推断与依据。\n8. 汇总结论：区分"可断结论"与"待证结论"。\n\n' +
+'输出格式（新手友好）\n1. 结论卡片（必须先给）\n   - 结论：明确回答"成/不成/利/不利/吉/凶/有/无/快/慢"等\n   - 置信度：高/中/低（并说明是信息不足还是卦象不明）\n   - 时间提示：若可断应期，用"xx时间段"；不可断则写"无法断定"\n2. 一句话原因（100 字内，面向新手）\n3. 趋避建议（可执行、简短；仅基于书中规则推导，不引入外部常识）\n4. 依据链路（按顺序列出：取用神/旺衰/动变/冲合/特殊格局/应期）\n5. 证据引用（短引用 + 对应章节/关键词）\n6. 不确定项与缺失信息（必要时提出补充问题）\n\n' +
+'约束\n- 不脱离原书体系，不引入其他流派规则\n- 原文引用不超过 100 字；仅在必要处引用\n- 明确区分已知事实、推断与假设\n- 若信息不足或规则不覆盖，明确说明"无法断定"';
 
   document.getElementById('aiPrompt').textContent = prompt;
 }
@@ -901,7 +1004,7 @@ function resetAll(){
     e.textContent = e.closest('.step').querySelector('.step-label').textContent==='输入问题' ? '✎' :
                     e.closest('.step').querySelector('.step-label').textContent==='投掷铜钱' ? '🪙' : '◎';
   });
-  window.scrollTo(0,0);
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function scrollToTop(){ window.scrollTo({top:0,behavior:'smooth'}); }
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
