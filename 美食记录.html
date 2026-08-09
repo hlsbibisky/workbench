@@ -506,9 +506,9 @@
   <div class="content">
     <div class="subtabs">
       <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
-      <button class="subtab" data-tab="menu" onclick="switchTab('menu')">菜谱库</button>
+      <button class="subtab" data-tab="menu" onclick="switchTab('menu')"><span class="pip"></span>菜品库</button>
       <button class="subtab" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
-      <button class="subtab" data-tab="taste" onclick="switchTab('taste')">我的口味</button>
+      <button class="subtab" data-tab="taste" onclick="switchTab('taste')"><span class="pip"></span>我的口味</button>
     </div>
 
     <div class="modbody" id="modbody"></div>
@@ -909,7 +909,7 @@ async function actLike(d, openEditor){
   save(K.menu, state.menu);
   const qi = state.queue.indexOf(d);
   if(qi>=0) state.queue.splice(qi,1);
-  toast('已加入菜谱库：'+d.name);
+  toast('已加入菜品库：'+d.name);
   advanceAfterRemove(); renderToday();
   if(openEditor!==false) openRecipeEditor(r.id, true);
 }
@@ -970,7 +970,7 @@ function renderToday(){
   const pickPool = state.queue.map((d,i)=>({d,i})).filter(o=>o.i!==state.queueIdx);
   const pickShow = pickPool.slice(0,12);
   const pickHtml = pickShow.length ? (
-    '<div class="pick-wrap"><div class="pick-head">🍽 更多候选（点菜名直接选定，或 ❤ 收进菜谱库）</div><div class="pick-grid">'
+    '<div class="pick-wrap"><div class="pick-head">🍽 更多候选（点菜名直接选定，或 ❤ 收进菜品库）</div><div class="pick-grid">'
     + pickShow.map(o=>{
         const d=o.d;
         const pcov = d.cover || dishCover(d.id);
@@ -980,7 +980,7 @@ function renderToday(){
           + '<div class="pick-face" onclick="actPick('+o.i+')">'+pface+'</div>'
           + '<div class="pick-name" onclick="actPick('+o.i+')">'+esc(d.name)+'</div>'
           + '<div class="pick-meta"><span class="badge '+d.type+'">'+d.type+'</span>'+ptags+'</div>'
-          + '<button class="pick-like" title="收进菜谱库" onclick="actLikeFromQueue('+o.i+')">❤</button>'
+          + '<button class="pick-like" title="收进菜品库" onclick="actLikeFromQueue('+o.i+')">❤</button>'
           + '</div>';
       }).join('')
     + '</div><div class="pick-more"><button class="linkbtn" onclick="buildQueue();renderToday();">↻ 换一批候选</button></div></div>'
@@ -1025,8 +1025,8 @@ function renderMenu(){
 
   let inner;
   if(state.menu.length === 0){
-    inner = '<div class="empty"><p>你的菜谱库还是空的。</p>'
-      + '<p>去「今天吃什么」点 <b>❤ 喜欢·入菜谱</b>，或自己新建一份。</p></div>';
+    inner = '<div class="empty"><p>你的菜品库还是空的。</p>'
+      + '<p>去「今天吃什么」点 <b>❤ 喜欢·入菜品库</b>，或自己新建一份。</p></div>';
   } else if(list.length === 0){
     inner = '<div class="empty"><p>该分类下还没有菜谱。</p>'
       + '<p>点右侧「＋ 新建菜谱」并选分类为「'+state.menuCat+'」即可。</p></div>';
@@ -1455,7 +1455,7 @@ function openCkPicker(ckId){
   const menu = state.menu.map(r=>({src:'recipe', name:r.name, emoji:r.emoji, type:r.type, ing:r.materials.map(m=>m.n), seasonings:[], steps:r.steps||[], cover:r.image||''}));
   window.__ckPicker = { ckId, all: menu };
   document.getElementById('modalBody').innerHTML =
-    '<h2>从菜谱库选择</h2>'
+    '<h2>从菜品库选择</h2>'
     + '<input id="ckPickSearch" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;" placeholder="搜索菜名…" oninput="renderCkPicker()">'
     + '<div id="ckPickList" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button></div>';
