@@ -8,9 +8,10 @@
   :root{ --bg:#f7f4ee; --accent:#b8714e; --line:#e7ddcd; --mark:#f0e9dd; --sub:#8a7d6b; --noted:#c0392b; }
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:#2c241b; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
-  .topbar{ display:flex; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); background:#fbf8f2; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--line); background:#fbf8f2; gap:8px; flex-wrap:wrap; }
   .brand{ font-weight:700; font-size:16px; }
   .brand small{ font-weight:400; color:var(--sub); font-size:11px; margin-left:6px; }
+  .topacts{ display:flex; gap:6px; flex:none; }
   .topbtn{ border:1px solid var(--line); background:#fff; border-radius:8px; height:32px; padding:0 10px; cursor:pointer; color:var(--accent); font-size:13px; display:flex; align-items:center; gap:4px; }
   .topbtn:hover{ border-color:var(--accent); }
   .topbtn .ic{ font-size:14px; }
@@ -20,8 +21,6 @@
   .wk-nav{ border:1px solid var(--line); background:#fff; border-radius:8px; width:34px; height:34px; cursor:pointer; color:var(--accent); font-size:16px; flex:none; }
   .wk-label{ font-size:13px; color:var(--sub); margin-right:4px; }
   .days{ display:flex; gap:6px; flex:1; min-width:0; }
-  .wk-extras{ display:flex; gap:6px; flex:none; margin-left:4px; }
-  .wk-extras .topbtn{ font-size:12px; padding:0 9px; height:30px; border-radius:8px; }
   .day{ flex:1; min-width:54px; text-align:center; padding:8px 4px; border:1px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; transition:.15s; }
   .day .wd{ font-size:12px; color:var(--sub); }
   .day .dt{ font-size:13px; font-weight:600; margin-top:2px; }
@@ -106,6 +105,10 @@
 </script>
   <div class="topbar">
     <div class="brand">周计划 <small>工作台</small></div>
+    <div class="topacts">
+      <button class="topbtn" onclick="startNewWeek()"><span class="ic">🔄</span>新一周</button>
+      <button class="topbtn" onclick="openHistory()"><span class="ic">📚</span>历史</button>
+    </div>
   </div>
 
   <div class="content">
@@ -114,10 +117,6 @@
       <span class="wk-label" id="wkRange"></span>
       <div class="days" id="days"></div>
       <button class="wk-nav" onclick="shiftWeek(1)">›</button>
-      <div class="wk-extras">
-        <button class="topbtn" onclick="startNewWeek()"><span class="ic">🔄</span>新一周</button>
-        <button class="topbtn" onclick="openHistory()"><span class="ic">📚</span>历史</button>
-      </div>
     </div>
 
     <div id="cats"></div>
@@ -135,8 +134,6 @@
       <div class="drawer-body" id="histBody"></div>
     </div>
   </div>
-
-  <!-- 数据导入/导出 -->
 
   <!-- toast -->
   <div class="toast" id="toast">
@@ -368,56 +365,6 @@ function openHistory(){
   document.getElementById('histOverlay').classList.add('show');
 }
 function closeHistory(){ document.getElementById('histOverlay').classList.remove('show'); }
-
-/* ---------- 数据导入/导出 ---------- */
-function openData(){
-  document.getElementById('dataText').value=JSON.stringify(state, null, 2);
-  document.getElementById('dataMsg').textContent='';
-  document.getElementById('dataOverlay').classList.add('show');
-}
-function closeData(){ document.getElementById('dataOverlay').classList.remove('show'); }
-function copyData(){
-  const ta=document.getElementById('dataText'); ta.select();
-  try{ navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-  document.getElementById('dataMsg').textContent='已复制当前数据到剪贴板';
-}
-function parseData(){
-  const v=document.getElementById('dataText').value.trim();
-  if(!v) return null;
-  try{ const o=JSON.parse(v); return o; }catch(e){ return {error:'JSON 格式不正确'}; }
-}
-function importAsCurrent(){
-  const o=parseData(); if(!o) return;
-  if(o.error){ document.getElementById('dataMsg').textContent='× '+o.error; return; }
-  const tasks=Array.isArray(o.tasks)? o.tasks : [];
-  const cats=Array.isArray(o.cats)? o.cats : [];
-  const history=Array.isArray(o.history)? o.history : [];
-  state={ weekKey: weekKeyOf(new Date()), cats, tasks, history: history.concat(state.history) };
-  save(); renderAll(); closeData();
-  showToast('已导入为本周任务（'+tasks.length+' 条）');
-}
-function importAsHistory(){
-  const o=parseData(); if(!o) return;
-  if(o.error){ document.getElementById('dataMsg').textContent='× '+o.error; return; }
-  const tasks=Array.isArray(o.tasks)? o.tasks : [];
-  if(!tasks.length){ document.getElementById('dataMsg').textContent='× 导入的数据里没有任务，无法生成历史'; return; }
-  // 用导入数据里的 weekKey（若有）否则取上一个周一
-  let wk = (typeof o.weekKey==='string')? o.weekKey : weekKeyOf(new Date(Date.now()-7*86400000));
-  const start=new Date(wk); const end=new Date(start); end.setDate(start.getDate()+6);
-  const catMap={}; (Array.isArray(o.cats)?o.cats:[]).forEach(c=>catMap[c.id]=c.name);
-  const byCat={};
-  tasks.forEach(t=>{
-    const cn=catMap[t.catId]||'未分类';
-    if(!byCat[cn]) byCat[cn]={catName:cn, items:[], total:0, done:0};
-    byCat[cn].total++; if(t.done) byCat[cn].done++;
-    byCat[cn].items.push({text:t.text, count:t.count||0, done:!!t.done});
-  });
-  const summary=Object.keys(byCat).map(cn=>byCat[cn]);
-  const totals={ total:tasks.length, done: tasks.filter(t=>t.done).length };
-  state.history.unshift({ weekKey:wk, weekStart:wk, weekEnd:weekKeyOf(end), summary, totals });
-  save(); closeData(); openHistory();
-  showToast('已生成一条上周历史（'+totals.total+' 项）');
-}
 
 /* ---------- toast ---------- */
 let toastTimer=null;
