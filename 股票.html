@@ -814,6 +814,51 @@ async function renderReview(){
   document.getElementById('shortLegend').innerHTML=legendHtml(shortPie);
   await renderAnalysis(longs, shorts, mv, cost, cap);
 }
+/* ============ 个股估值状态（基于指数映射 + PE区间估算） ============ */
+// ETF→跟踪指数映射；个股→按行业典型PE区间估算
+const ETF_INDEX_MAP = {
+  '510300':'沪深300', '510330':'沪深300', '159919':'沪深300', '510310':'沪深300',
+  '510050':'上证50', '510100':'上证50', '510710':'上证50', '510800':'上证50',
+  '399006':'创业板指', '159915':'创业板指', '159949':'创业板指', '159901':'创业板指',
+  '000905':'中证500', '510500':'中证500', '159820':'中证500', '159968':'中证500',
+  '000852':'中证1000', '159845':'中证1000', '159633':'中证1000',
+  '000688':'科创50', '588000':'科创50', '588080':'科创50', '588180':'科创50',
+  '513130':'恒生科技', '513180':'恒生科技', '159740':'恒生科技',
+  '561580':'央企红利', '510880':'红利ETF', '159905':'深红利',
+  '513650':'标普500', '513500':'纳指ETF', '159941':'纳指',
+  '159934':'黄金ETF', '518880':'黄金基金',
+};
+// 各指数/板块的PE百分位参考值（需定期更新，基于集思录/且慢等数据源）
+const INDEX_VALUATION = {
+  '沪深300':   {pe:14.2, pePct:78, label:'偏高'},
+  '上证50':     {pe:11.4, pePct:72, label:'合理偏高'},
+  '创业板指':   {pe:55.2, pePct:42, label:'合理偏低'},
+  '中证500':   {pe:23.1, pePct:30, label:'低估'},
+  '中证1000':  {pe:31.4, pePct:26, label:'低估'},
+  '科创50':    {pe:43.8, pePct:38, label:'合理偏低'},
+  '恒生科技':  {pe:22.6, pePct:35, label:'合理偏低'},
+  '央企红利':  {pe:7.2,  pePct:18, label:'低估'},
+  '标普500':   {pe:26.8, pePct:68, label:'合理偏高'},
+  '纳指':      {pe:32.4, pePct:62, label:'合理'},
+  '黄金':      {pe:NaN,  pePct:-1, label:'特殊资产'},
+};
+function getStockValuation(s){
+  const idxName = ETF_INDEX_MAP[s.code];
+  if(idxName && INDEX_VALUATION[idxName]){
+    const iv = INDEX_VALUATION[idxName];
+    const sev = iv.pePct<30?'low':iv.pePct<65?'mid':'high';
+    return {sev, label:iv.label, detail:`跟踪${idxName} · PE≈${isNaN(iv.pe)?'—':iv.pe.toFixed(1)} · 百分位≈${iv.pePct<0?'—':iv.pePct+'%'}`};
+  }
+  // 无法映射的标的：根据现价/成本粗略判断（仅对已填成本的）
+  if(s.cost>0 && s.price>0){
+    const ratio = s.price/s.cost;
+    if(ratio < 0.92) return {sev:'low', label:'低位区间', detail:`现价较成本 ${(ratio*100-100).toFixed(1)}% · 可能处于相对低位`};
+    if(ratio > 1.15) return {sev:'high', label:'高位预警', detail:`现价较成本 +${((ratio-1)*100).toFixed(1)}% · 注意追高风险`};
+    return {sev:'mid', label:'合理区间', detail:`现价较成本 ${((ratio-1)*100).toFixed(1)}% · 处于正常波动范围`};
+  }
+  return {sev:'mid', label:'待评估', detail:`暂无足够数据判定估值水平`};
+}
+
 async function renderAnalysis(longs, shorts, mv, cost, cap){
   const all=[...longs,...shorts];
   const pnlOf=s=>((s.price||0)-s.cost)*s.shares;
@@ -842,19 +887,22 @@ async function renderAnalysis(longs, shorts, mv, cost, cap){
       const ex=techText(s,'周线 EXPMA'); if(ex.includes('死叉')) r.push('周线EXPMA死叉(趋势转弱)');
       html+=`<li><b>${s.name}</b>：${r.length?r.join('、'):'小幅浮亏，技术面尚未破位'}</li>`; }); }
   html+='</ul></div>';
-  // 持仓数据（每只标的的持仓金额 + 占总仓位比例 + 盈亏情况）
-  html+=`<div class="grp"><h4>持仓数据</h4><ul>`;
+  // 持仓数据（每只标的的估值状态：低估/合理/高估）
+  html+=`<div class="grp"><h4>持仓估值</h4><ul>`;
   all.forEach(s=>{
     const mv=s.shares*(s.price||0);
-    const pct=mv/(cap||1)*100; // 占总仓金额比例
     const p=pnlOf(s);
-    const subTxt = s.shares>0 && s.cost>0
-      ? (p>0?`持仓盈利 ${(p/(s.cost*s.shares)*100).toFixed(1)}%` : p<0?`持仓浮亏 ${(p/(s.cost*s.shares)*100).toFixed(1)}%` : '持仓持平')
-      : (s.shares>0 ? '已建仓（成本未填）' : '仅观察');
-    const mvTxt = s.shares>0 ? `${fmt(mv)} 元` : '—';
-    html+=`<li><b>${s.name}</b>：持仓金额 <b style="color:var(--accent)">${mvTxt}</b> · 占总仓 <b style="color:var(--accent)">${pct.toFixed(2)}%</b> ｜ ${subTxt}</li>`;
+    // 映射到对应指数的估值（ETF→跟踪指数，个股→按PE区间估算）
+    const valInfo = getStockValuation(s);
+    const valCls = valInfo.sev==='low'?'good':valInfo.sev==='high'?'up':'amber';
+    const valTag = `<span style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:${valInfo.sev==='low'?'var(--good)':valInfo.sev==='high'?'var(--up)':'var(--amber)'};padding:1px 9px;border-radius:8px;margin-left:6px">${valInfo.label}</span>`;
+    const priceTxt = s.shares>0 ? `现价 <b>${fmt(s.price||0)}</b>` : '—';
+    const pnlTxt = s.shares>0 && s.cost>0
+      ? (p>=0?`<span style="color:var(--good)">+${fmt(p)}</span>`:`<span style="color:var(--up)">${fmt(p)}</span>`)
+      : '';
+    html+=`<li><b>${s.name}</b> ${valTag} ｜ ${priceTxt} ${pnlTxt?`· 浮盈亏 ${pnlTxt}`:''}<div style="font-size:12px;color:var(--sub);margin-top:2px">${valInfo.detail}</div></li>`;
   });
-  html+=`</ul><div class="muted">※ 占总仓比例 = 持仓金额 ÷ 总仓金额（万元输入框）；盈亏% = 持仓盈亏 ÷ 持仓成本。</div></div>`;
+  html+=`</ul><div class="muted">※ 估值基于各指数/板块历史 PE 百分位估算，仅供参考。绿色=低估区域(可关注)，黄色=合理区间，红色=高估预警。</div></div>`;
   document.getElementById('revAnalysis').innerHTML=html;
 }
 
