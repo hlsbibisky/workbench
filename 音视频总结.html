@@ -396,6 +396,7 @@ async function checkSvc(){
     $('#d_wh').className = 'dot ' + (d.whisper?'on':'off');
     $('#d_tt').className = 'dot ' + (d.edge_tts?'on':'off');
     hideBanner();
+    setSvcUp(true);
     return true;
   }catch(e){
     $('#d_ff').className='dot off'; $('#d_wh').className='dot off'; $('#d_tt').className='dot off';
@@ -404,7 +405,17 @@ async function checkSvc(){
     }else{
       showBanner('warn','本地总结服务未运行。请双击运行 <code>media_summary\\启动音视频总结服务.bat</code> 后刷新本页。');
     }
+    setSvcUp(false);
     return false;
+  }
+}
+// 服务状态直接反映到「开始处理」按钮：连不上就置灰+说明原因，杜绝“点了没反应”
+function setSvcUp(up){
+  const b = $('#uploadBtn');
+  if(up){ b.disabled=false; b.textContent='开始处理'; }
+  else{
+    b.disabled=true;
+    b.textContent = (location.protocol==='https:') ? '需本地打开工作台' : '服务未启动';
   }
 }
 function showBanner(type, html){ const b=$('#banner'); b.className='banner show '+type; b.innerHTML=html; }
@@ -473,7 +484,10 @@ $$('#segEngine button').forEach(b=> b.classList.toggle('active', b.dataset.v===C
 /* ============ 上传提交 ============ */
 $('#uploadBtn').addEventListener('click', async ()=>{
   if(pending.length===0){ toast('请先选择文件'); return; }
-  const ok = await checkSvc(); if(!ok) return;
+  const ok = await checkSvc(); if(!ok){
+    toast(location.protocol==='https:' ? '请改用本地双击打开工作台（线上版无法访问本地引擎）' : '请先双击「启动音视频总结服务.bat」，再刷新本页');
+    return;
+  }
 
   const title = $('#titleInput').value.trim();
   const engine = CFG.engine;
@@ -707,6 +721,7 @@ $('#setVoice2').innerHTML = VOICES.map(v=>`<option value="${v.id}">${v.name}</op
 
 /* ============ 初始化 ============ */
 checkSvc();
+setInterval(checkSvc, 6000);   // 服务启动后按钮自动恢复可用
 loadTasks();
 setInterval(loadTasks, 8000);
 </script>
