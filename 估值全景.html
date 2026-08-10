@@ -135,7 +135,6 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="embed-hint" id="embedHint">💡 此页面嵌入工作台中查看效果最佳</div>
 
   <div class="topbar">
     <div class="topbar-left">
@@ -179,9 +178,6 @@
 </div>
 
 <script>
-/* ============ 嵌入检测 ============ */
-if(window.self !== window.top){ document.getElementById('embedHint').style.display='block'; }
-
 /* ============ 当前标签与排序状态 ============ */
 let curTab = 'index';
 let sortCol = 'pePct';
@@ -200,23 +196,51 @@ const INDICES = [
   {code:'000985', name:'中证全指',       type:'全市场',   sector:'A股整体'},
 ];
 
-/* ============ 行业定义 ============ */
+/* ============ 行业定义（覆盖申万一级主要板块） ============ */
 const INDUSTRIES = [
+  // 金融
   {name:'银行',      code:'BK0475', type:'金融',     pbImportant:true},
   {name:'证券',      code:'BK0473', type:'金融',     pbImportant:true},
   {name:'保险',      code:'BK0474', type:'金融',     pbImportant:true},
+  // 科技
   {name:'半导体',    code:'BK1039', type:'科技',     pbImportant:false},
-  {name:'游戏',      code:'BK0560', type:'传媒',     pbImportant:false},
-  {name:'旅游',      code:'BK0435', type:'消费',     pbImportant:false},
-  {name:'商业航天',  code:'BK0958', type:'军工',     pbImportant:false},
+  {name:'计算机',    code:'BK0436', type:'科技',     pbImportant:false},
+  {name:'通信',      code:'BK0442', type:'科技',     pbImportant:false},
+  {name:'电子元件',  code:'BK1045', type:'科技',     pbImportant:false},
+  // 医疗
   {name:'医药生物',  code:'BK0050', type:'医疗',     pbImportant:false},
+  {name:'医疗器械',  code:'BK0089', type:'医疗',     pbImportant:false},
+  // 消费
   {name:'白酒',      code:'BK1049', type:'消费',     pbImportant:false},
-  {name:'新能源车',  code:'BK0953', type:'制造',     pbImportant:false},
-  {name:'房地产',    code:'BK0465', type:'周期',     pbImportant:true},
-  {name:'煤炭',      code:'BK0479', type:'资源',     pbImportant:true},
-  {name:'电力',      code:'BK0451', type:'公用',     pbImportant:false},
-  {name:'军工',      code:'BK0476', type:'国防',     pbImportant:false},
+  {name:'食品饮料',  code:'BK0400', type:'消费',     pbImportant:false},
   {name:'家电',      code:'BK0438', type:'消费',     pbImportant:false},
+  {name:'纺织服饰',  code:'BK0441', type:'消费',     pbImportant:false},
+  {name:'商贸零售',  code:'BK0455', type:'消费',     pbImportant:false},
+  {name:'旅游酒店',  code:'BK0435', type:'消费',     pbImportant:false},
+  {name:'游戏传媒',  code:'BK0560', type:'传媒',     pbImportant:false},
+  // 制造 & 新能源
+  {name:'新能源车',  code:'BK0953', type:'制造',     pbImportant:false},
+  {name:'光伏设备',  code:'BK0955', type:'制造',     pbImportant:false},
+  {name:'风电设备',  code:'BK0956', type:'制造',     pbImportant:false},
+  {name:'汽车整车',  code:'BK0440', type:'制造',     pbImportant:false},
+  {name:'机械设备',  code:'BK0398', type:'制造',     pbImportant:false},
+  // 周期 & 资源
+  {name:'房地产',    code:'BK0465', type:'周期',     pbImportant:true},
+  {name:'建筑装饰',  code:'BK0466', type:'周期',     pbImportant:false},
+  {name:'建筑材料',  code:'BK0467', type:'周期',     pbImportant:false},
+  {name:'钢铁',      code:'BK0468', type:'周期',     pbImportant:false},
+  {name:'有色金属',  code:'BK0469', type:'资源',     pbImportant:false},
+  {name:'煤炭',      code:'BK0479', type:'资源',     pbImportant:true},
+  {name:'石油石化',  code:'BK0470', type:'资源',     pbImportant:false},
+  {name:'基础化工',  code:'BK0471', type:'化工',     pbImportant:false},
+  {name:'轻工制造',  code:'BK0472', type:'制造',     pbImportant:false},
+  // 公用 & 其他
+  {name:'电力',      code:'BK0451', type:'公用',     pbImportant:false},
+  {name:'环保',      code:'BK0453', type:'公用',     pbImportant:false},
+  {name:'交通运输',  code:'BK0452', type:'交运',     pbImportant:false},
+  {name:'农林牧渔',  code:'BK0457', type:'农业',     pbImportant:false},
+  {name:'国防军工',  code:'BK0476', type:'国防',     pbImportant:false},
+  {name:'商业航天',  code:'BK0958', type:'军工',     pbImportant:false},
 ];
 
 /* ============ 内置默认数据 —— 指数（2026-08 参考，定期更新） ============ */
@@ -241,21 +265,49 @@ const FALLBACK_INDUSTRY = {
   time: '2026-08-10',
   src: '内置参考数据',
   items: [
+    // 金融
     {name:'银行',      pe:5.60,  pePct:12, pb:0.58,  pbPct:8,  dy:5.20},
     {name:'证券',      pe:18.40, pePct:35, pb:1.42,  pbPct:22, dy:1.80},
     {name:'保险',      pe:12.80, pePct:28, pb:1.18,  pbPct:18, dy:3.40},
+    // 科技
     {name:'半导体',    pe:58.60, pePct:52, pb:4.20,  pbPct:48, dy:0.60},
-    {name:'游戏',      pe:24.50, pePct:38, pb:2.85,  pbPct:35, dy:1.20},
-    {name:'旅游',      pe:22.80, pePct:42, pb:2.40,  pbPct:30, dy:1.50},
-    {name:'商业航天',  pe:68.40, pePct:62, pb:4.80,  pbPct:55, dy:0.40},
+    {name:'计算机',    pe:45.20, pePct:42, pb:3.50,  pbPct:38, dy:0.80},
+    {name:'通信',      pe:22.60, pePct:32, pb:2.05,  pbPct:25, dy:1.70},
+    {name:'电子元件',  pe:33.80, pePct:38, pb:2.85,  pbPct:32, dy:1.30},
+    // 医疗
     {name:'医药生物',  pe:29.60, pePct:22, pb:3.15,  pbPct:15, dy:2.00},
+    {name:'医疗器械',  pe:26.40, pePct:18, pb:3.65,  pbPct:12, dy:1.60},
+    // 消费
     {name:'白酒',      pe:22.40, pePct:32, pb:5.60,  pbPct:28, dy:2.80},
-    {name:'新能源车',  pe:26.80, pePct:28, pb:2.45,  pbPct:20, dy:1.60},
-    {name:'房地产',    pe:0,    pePct:0,  pb:0.58,  pbPct:5,  dy:0},
-    {name:'煤炭',      pe:9.80,  pePct:18, pb:0.95,  pbPct:12, dy:6.20},
-    {name:'电力',      pe:18.20, pePct:45, pb:1.55,  pbPct:32, dy:2.60},
-    {name:'军工',      pe:42.50, pePct:48, pb:3.25,  pbPct:40, dy:0.90},
+    {name:'食品饮料',  pe:24.80, pePct:28, pb:4.20,  pbPct:24, dy:2.20},
     {name:'家电',      pe:14.60, pePct:35, pb:3.10,  pbPct:30, dy:3.00},
+    {name:'纺织服饰',  pe:17.20, pePct:25, pb:1.75,  pbPct:18, dy:2.80},
+    {name:'商贸零售',  pe:18.60, pePct:30, pb:1.62,  pbPct:22, dy:2.00},
+    {name:'旅游酒店',  pe:22.80, pePct:42, pb:2.40,  pbPct:30, dy:1.50},
+    {name:'游戏传媒',  pe:24.50, pePct:38, pb:2.85,  pbPct:35, dy:1.20},
+    // 制造 & 新能源
+    {name:'新能源车',  pe:26.80, pePct:28, pb:2.45,  pbPct:20, dy:1.60},
+    {name:'光伏设备',  pe:18.40, pePct:15, pb:1.95,  pbPct:12, dy:1.80},
+    {name:'风电设备',  pe:22.20, pePct:22, pb:1.82,  pbPct:16, dy:1.90},
+    {name:'汽车整车',  pe:19.60, pePct:32, pb:2.25,  pbPct:26, dy:2.10},
+    {name:'机械设备',  pe:24.40, pePct:30, pb:2.08,  pbPct:24, dy:1.70},
+    // 周期 & 资源
+    {name:'房地产',    pe:0,     pePct:0,  pb:0.58,  pbPct:5,  dy:0},
+    {name:'建筑装饰',  pe:14.20, pePct:28, pb:0.92,  pbPct:8,  dy:1.80},
+    {name:'建筑材料',  pe:16.80, pePct:25, pb:1.55,  pbPct:18, dy:2.40},
+    {name:'钢铁',      pe:12.40, pePct:18, pb:0.88,  pbPct:8,  dy:3.20},
+    {name:'有色金属',  pe:18.60, pePct:35, pb:2.15,  pbPct:28, dy:1.80},
+    {name:'煤炭',      pe:9.80,  pePct:18, pb:0.95,  pbPct:12, dy:6.20},
+    {name:'石油石化',  pe:13.20, pePct:32, pb:1.12,  pbPct:22, dy:3.50},
+    {name:'基础化工',  pe:21.40, pePct:35, pb:1.85,  pbPct:26, dy:1.90},
+    {name:'轻工制造',  pe:19.80, pePct:28, pb:2.02,  pbPct:22, dy:2.20},
+    // 公用 & 其他
+    {name:'电力',      pe:18.20, pePct:45, pb:1.55,  pbPct:32, dy:2.60},
+    {name:'环保',      pe:24.60, pePct:32, pb:1.78,  pbPct:22, dy:1.40},
+    {name:'交通运输',  pe:14.80, pePct:28, pb:1.25,  pbPct:18, dy:2.40},
+    {name:'农林牧渔',  pe:26.20, pePct:35, pb:2.35,  pbPct:26, dy:1.20},
+    {name:'国防军工',  pe:42.50, pePct:48, pb:3.25,  pbPct:40, dy:0.90},
+    {name:'商业航天',  pe:68.40, pePct:62, pb:4.80,  pbPct:55, dy:0.40},
   ]
 };
 
@@ -474,14 +526,29 @@ function parseEMData(list){
 
   function estPct(name, pe){
     const rng = {
+      // 指数
       '上证指数':{lo:10,hi:22},'深证成指':{lo:12,hi:30},'沪深300':{lo:8,hi:22},'上证50':{lo:7,hi:17},
       '创业板指':{lo:25,hi:85},'中证500':{lo:15,hi:38},'中证1000':{lo:18,hi:48},'科创50':{lo:28,hi:78},
       '中证全指':{lo:12,hi:26},
+      // 金融
       '银行':{lo:4.5,hi:9},'证券':{lo:12,hi:35},'保险':{lo:8,hi:22},
-      '半导体':{lo:30,hi:95},'游戏':{lo:15,hi:45},'旅游':{lo:16,hi:40},
-      '商业航天':{lo:35,hi:100},'医药生物':{lo:20,hi:45},'白酒':{lo:15,hi:40},
-      '新能源车':{lo:16,hi:50},'房地产':{lo:6,hi:16},'煤炭':{lo:6,hi:15},
-      '电力':{lo:12,hi:28},'军工':{lo:30,hi:75},'家电':{lo:10,hi:25},
+      // 科技
+      '半导体':{lo:30,hi:95},'计算机':{lo:25,hi:70},'通信':{lo:16,hi:40},'电子元件':{lo:22,hi:55},
+      // 医疗
+      '医药生物':{lo:20,hi:45},'医疗器械':{lo:18,hi:42},
+      // 消费
+      '白酒':{lo:15,hi:40},'食品饮料':{lo:17,hi:38},'家电':{lo:10,hi:25},
+      '纺织服饰':{lo:13,hi:32},'商贸零售':{lo:14,hi:32},'旅游酒店':{lo:16,hi:40},'游戏传媒':{lo:15,hi:45},
+      // 制造 & 新能源
+      '新能源车':{lo:16,hi:50},'光伏设备':{lo:12,hi:38},'风电设备':{lo:15,hi:40},
+      '汽车整车':{lo:14,hi:35},'机械设备':{lo:16,hi:40},
+      // 周期 & 资源
+      '房地产':{lo:6,hi:16},'建筑装饰':{lo:10,hi:24},'建筑材料':{lo:12,hi:28},
+      '钢铁':{lo:8,hi:22},'有色金属':{lo:14,hi:40},'煤炭':{lo:6,hi:15},'石油石化':{lo:10,hi:24},
+      '基础化工':{lo:15,hi:38},'轻工制造':{lo:14,hi:32},
+      // 公用 & 其他
+      '电力':{lo:12,hi:28},'环保':{lo:18,hi:40},'交通运输':{lo:11,hi:26},
+      '农林牧渔':{lo:18,hi:45},'国防军工':{lo:30,hi:75},'商业航天':{lo:35,hi:100},
     };
     const r = rng[name] || {lo:10,hi:50};
     if(pe <= r.lo) return 5;
@@ -491,14 +558,29 @@ function parseEMData(list){
 
   function estPbPct(name, pb){
     const rng = {
+      // 指数
       '上证指数':{lo:1.1,hi:2.0},'深证成指':{lo:1.6,hi:3.2},'沪深300':{lo:1.0,hi:1.9},'上证50':{lo:0.9,hi:1.7},
       '创业板指':{lo:4,hi:9},'中证500':{lo:1.3,hi:2.8},'中证1000':{lo:1.6,hi:3.5},'科创50':{lo:2.8,hi:5.5},
       '中证全指':{lo:1.2,hi:2.2},
+      // 金融
       '银行':{lo:0.45,hi:0.95},'证券':{lo:1.0,hi:2.5},'保险':{lo:0.85,hi:2.0},
-      '半导体':{lo:2.8,hi:6.5},'游戏':{lo:1.8,hi:4.5},'旅游':{lo:1.6,hi:3.5},
-      '商业航天':{lo:3,hi:7},'医药生物':{lo:2.2,hi:4.5},'白酒':{lo:3.5,hi:8},
-      '新能源车':{lo:1.8,hi:4},'房地产':{lo:0.6,hi:1.5},'煤炭':{lo:0.7,hi:1.5},
-      '电力':{lo:1.1,hi:2.2},'军工':{lo:2.2,hi:5},'家电':{lo:2,hi:4.5},
+      // 科技
+      '半导体':{lo:2.8,hi:6.5},'计算机':{lo:2.5,hi:5.5},'通信':{lo:1.4,hi:3.0},'电子元件':{lo:2.0,hi:4.8},
+      // 医疗
+      '医药生物':{lo:2.2,hi:4.5},'医疗器械':{lo:2.5,hi:5.2},
+      // 消费
+      '白酒':{lo:3.5,hi:8},'食品饮料':{lo:2.8,hi:6},'家电':{lo:2,hi:4.5},
+      '纺织服饰':{lo:1.4,hi:3.0},'商贸零售':{lo:1.3,hi:2.6},'旅游酒店':{lo:1.6,hi:3.5},'游戏传媒':{lo:1.8,hi:4.5},
+      // 制造 & 新能源
+      '新能源车':{lo:1.8,hi:4},'光伏设备':{lo:1.4,hi:3.5},'风电设备':{lo:1.3,hi:3.0},
+      '汽车整车':{lo:1.6,hi:3.2},'机械设备':{lo:1.5,hi:3.2},
+      // 周期 & 资源
+      '房地产':{lo:0.6,hi:1.5},'建筑装饰':{lo:0.7,hi:1.4},'建筑材料':{lo:1.2,hi:2.6},
+      '钢铁':{lo:0.7,hi:1.8},'有色金属':{lo:1.6,hi:4.0},'煤炭':{lo:0.7,hi:1.5},'石油石化':{lo:0.85,hi:1.8},
+      '基础化工':{lo:1.5,hi:3.2},'轻工制造':{lo:1.6,hi:3.2},
+      // 公用 & 其他
+      '电力':{lo:1.1,hi:2.2},'环保':{lo:1.5,hi:3.0},'交通运输':{lo:1.0,hi:2.0},
+      '农林牧渔':{lo:1.8,hi:3.8},'国防军工':{lo:2.2,hi:5},'商业航天':{lo:3,hi:7},
     };
     const r = rng[name] || {lo:1,hi:5};
     if(pb <= r.lo) return 5;
