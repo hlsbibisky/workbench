@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A股主要指数估值</title>
+<title>估值全景</title>
 <style>
   :root{
     --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
@@ -11,16 +11,21 @@
     --up:#c0392b; --down:#2e9e5b; --amber:#e0a52e;
     --lowBg:#e8f5e9; --midBg:#fff8e1; --highBg:#fce4ec;
     --shadow:0 2px 12px rgba(184,113,78,.08);
+    --mark:rgba(184,113,78,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--ink);
     font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
     line-height:1.6;padding:20px 16px 60px;min-height:100vh;}
-  .wrap{max-width:1100px;margin:0 auto;}
+  .wrap{max-width:1200px;margin:0 auto;}
+
+  /* 嵌入提示 */
+  .embed-hint{display:none;background:var(--mark);border:1.5px solid #e7d3bf;
+    border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:13px;color:var(--sub);}
 
   /* 顶栏 */
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;
-    padding-bottom:18px;border-bottom:2px solid var(--line);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;
+    padding-bottom:16px;border-bottom:2px solid var(--line);}
   .topbar-left h1{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:1px;}
   .topbar-left .sub{font-size:13px;color:var(--sub);margin-top:4px;}
   .topbar-right{display:flex;gap:10px;align-items:center;}
@@ -30,9 +35,18 @@
   .btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);
     box-shadow:var(--shadow);}
   .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+  /* 标签栏 */
+  .tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--line);}
+  .tab{padding:10px 24px;font-size:15px;font-weight:600;color:var(--sub);
+    cursor:pointer;border-bottom:3px solid transparent;transition:.2s;background:none;
+    letter-spacing:.5px;}
+  .tab:hover{color:var(--accent);background:var(--mark);}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 
   /* 概览卡片 */
-  .overview{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .overview{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
   .oc{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:20px;text-align:center;
     transition:.2s;}
   .oc:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
@@ -48,10 +62,17 @@
     box-shadow:var(--shadow);}
   table{width:100%;border-collapse:collapse;}
   thead{background:linear-gradient(180deg,#faf7f2,var(--card));}
-  th{padding:14px 16px;text-align:left;font-weight:700;color:var(--sub);
+  th{padding:14px 14px;text-align:left;font-weight:700;color:var(--sub);
     font-size:13px;border-bottom:2px solid var(--line);letter-spacing:.3px;
-    white-space:nowrap;position:sticky;top:0;background:linear-gradient(180deg,#faf7f2,var(--card));z-index:2;}
-  td{padding:16px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:15px;}
+    white-space:nowrap;position:sticky;top:0;z-index:2;
+    background:linear-gradient(180deg,#faf7f2,var(--card));
+    cursor:pointer;user-select:none;transition:background .15s;}
+  th:hover{background:var(--mark);}
+  th .th-inner{display:inline-flex;align-items:center;gap:4px;}
+  .sort-arrow{font-size:11px;color:var(--sub);opacity:.4;transition:opacity .15s;}
+  th.sort-asc .sort-arrow{opacity:1;color:var(--accent);transform:rotate(0deg);}
+  th.sort-desc .sort-arrow{opacity:1;color:var(--accent);transform:rotate(180deg);}
+  td{padding:14px 14px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:15px;}
   tr:last-child td{border-bottom:none;}
   tr:hover{background:var(--mark);}
   .idx-cell{font-weight:700;font-size:16px;color:var(--ink);white-space:nowrap;}
@@ -62,7 +83,7 @@
   .pct-wrap{display:inline-flex;align-items:center;gap:8px;}
   .pct-bar{width:72px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;}
   .pct-fill{height:100%;border-radius:4px;transition:width .6s ease;}
-  .pct-num{font-size:15px;font-weight:700;min-width:48px;text-align:center;
+  .pct-num{font-size:14.5px;font-weight:700;min-width:48px;text-align:center;
     padding:3px 10px;border-radius:8px;}
   .pct-low{background:var(--lowBg);color:var(--down);}
   .pct-mid{background:var(--midBg);color:var(--amber);}
@@ -100,6 +121,7 @@
     .pe-num{font-size:19px;}
     .adv{max-width:140px;font-size:12.5px;}
     .hide-sm{display:none;}
+    .tab{padding:8px 16px;font-size:14px;}
   }
   @media(max-width:560px){
     .overview{grid-template-columns:repeat(2,1fr);}
@@ -109,10 +131,6 @@
     .pe-num{font-size:17px;}
     .hide-xs{display:none;}
   }
-
-  /* 嵌入检测 */
-  .embed-hint{display:none;background:var(--mark);border:1.5px solid #e7d3bf;
-    border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--sub);}
 </style>
 </head>
 <body>
@@ -121,7 +139,7 @@
 
   <div class="topbar">
     <div class="topbar-left">
-      <h1>📊 A股主要指数估值</h1>
+      <h1 id="pageTitle">A股主要指数估值</h1>
       <div class="sub" id="updateTime">数据更新中…</div>
     </div>
     <div class="topbar-right">
@@ -130,21 +148,17 @@
     </div>
   </div>
 
+  <!-- 标签栏 -->
+  <div class="tab-bar" id="tabBar">
+    <div class="tab active" data-tab="index" onclick="switchTab('index')">📊 A股主要指数</div>
+    <div class="tab" data-tab="industry" onclick="switchTab('industry')">🏭 行业板块估值</div>
+  </div>
+
   <div class="overview" id="overview"></div>
 
   <div class="tbl-wrap">
     <table>
-      <thead>
-        <tr>
-          <th>指数名称</th>
-          <th>PE(TTM)</th>
-          <th>PE 百分位</th>
-          <th>PB</th>
-          <th>股息率</th>
-          <th>评级</th>
-          <th class="hide-xs">操作建议</th>
-        </tr>
-      </thead>
+      <thead id="thead"></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -154,9 +168,10 @@
   <div class="foot">
     <h4>📌 说明</h4>
     <p><strong>PE百分位：</strong>当前PE在历史数据中的位置。0%=历史最低（最便宜），100%=历史最高（最贵）。</p>
+    <p><strong>PB百分位：</strong>当前PB在历史数据中的位置。对金融、周期性行业尤为重要。</p>
     <p><strong>数据来源：</strong>中证指数 / 国证指数 / 东方财富；统计周期近10年。内置参考数据定期手动更新。</p>
     <div class="legend">
-      <i><span class="dot" style="background:var(--down)"></span> 低估 (PE位 &lt;35%) — 定投好时机</i>
+      <i><span class="dot" style="background:var(--down)"></span> 低估 (&lt;35%) — 定投好时机</i>
       <i><span class="dot" style="background:var(--amber)"></span> 合理 (35%–75%) — 正常持有</i>
       <i><span class="dot" style="background:var(--up)"></span> 高估 (&gt;75%) — 谨慎观望</i>
     </div>
@@ -167,77 +182,209 @@
 /* ============ 嵌入检测 ============ */
 if(window.self !== window.top){ document.getElementById('embedHint').style.display='block'; }
 
-/* ============ 指数定义 ============ */
+/* ============ 当前标签与排序状态 ============ */
+let curTab = 'index';
+let sortCol = 'pePct';
+let sortDir = 'asc'; // 'asc' | 'desc'
+
+/* ============ 指数定义（主要宽基） ============ */
 const INDICES = [
-  {code:'000300', name:'沪深300',     type:'大盘宽基', sector:'A股核心'},
-  {code:'000016', name:'上证50',       type:'超大盘',   sector:'蓝筹权重'},
-  {code:'399006', name:'创业板指',     type:'成长宽基', sector:'创业板'},
-  {code:'000905', name:'中证500',       type:'中盘宽基', sector:'中盘成长'},
-  {code:'000852', name:'中证1000',     type:'小盘宽基', sector:'小盘股'},
-  {code:'000688', name:'科创50',       type:'科技宽基', sector:'硬科技'},
-  {code:'399303', name:'国证1000',     type:'全市场',   sector:'除金融外'},
-  {code:'000985', name:'中证全指',     type:'全市场',   sector:'A股整体'},
+  {code:'000001', name:'上证指数',       type:'综合指数', sector:'上海市场'},
+  {code:'399001', name:'深证成指',       type:'综合指数', sector:'深圳市场'},
+  {code:'000300', name:'沪深300',        type:'大盘宽基', sector:'A股核心'},
+  {code:'000016', name:'上证50',         type:'超大盘',   sector:'蓝筹权重'},
+  {code:'399006', name:'创业板指',       type:'成长宽基', sector:'创业板'},
+  {code:'000905', name:'中证500',         type:'中盘宽基', sector:'中盘成长'},
+  {code:'000852', name:'中证1000',       type:'小盘宽基', sector:'小盘股'},
+  {code:'000688', name:'科创50',         type:'科技宽基', sector:'硬科技'},
+  {code:'000985', name:'中证全指',       type:'全市场',   sector:'A股整体'},
 ];
 
-/* ============ 内置默认数据（2026-08 参考，定期更新） ============ */
-const FALLBACK = {
+/* ============ 行业定义 ============ */
+const INDUSTRIES = [
+  {name:'银行',      code:'BK0475', type:'金融',     pbImportant:true},
+  {name:'证券',      code:'BK0473', type:'金融',     pbImportant:true},
+  {name:'保险',      code:'BK0474', type:'金融',     pbImportant:true},
+  {name:'半导体',    code:'BK1039', type:'科技',     pbImportant:false},
+  {name:'游戏',      code:'BK0560', type:'传媒',     pbImportant:false},
+  {name:'旅游',      code:'BK0435', type:'消费',     pbImportant:false},
+  {name:'商业航天',  code:'BK0958', type:'军工',     pbImportant:false},
+  {name:'医药生物',  code:'BK0050', type:'医疗',     pbImportant:false},
+  {name:'白酒',      code:'BK1049', type:'消费',     pbImportant:false},
+  {name:'新能源车',  code:'BK0953', type:'制造',     pbImportant:false},
+  {name:'房地产',    code:'BK0465', type:'周期',     pbImportant:true},
+  {name:'煤炭',      code:'BK0479', type:'资源',     pbImportant:true},
+  {name:'电力',      code:'BK0451', type:'公用',     pbImportant:false},
+  {name:'军工',      code:'BK0476', type:'国防',     pbImportant:false},
+  {name:'家电',      code:'BK0438', type:'消费',     pbImportant:false},
+];
+
+/* ============ 内置默认数据 —— 指数（2026-08 参考，定期更新） ============ */
+const FALLBACK_INDEX = {
   time: '2026-08-10',
   src: '内置参考数据',
   items: [
-    {name:'沪深300',   pe:14.20, pePct:78, pb:1.38, dy:2.90},
-    {name:'上证50',     pe:11.40, pePct:72, pb:1.26, dy:3.30},
-    {name:'创业板指',   pe:55.20, pePct:42, pb:6.08, dy:1.10},
-    {name:'中证500',   pe:23.10, pePct:30, pb:1.72, dy:2.10},
-    {name:'中证1000',  pe:31.40, pePct:26, pb:2.18, dy:1.60},
-    {name:'科创50',    pe:43.80, pePct:38, pb:3.84, dy:0.90},
-    {name:'国证1000',  pe:19.80, pePct:35, pb:1.92, dy:2.20},
-    {name:'中证全指',  pe:17.40, pePct:38, pb:1.58, dy:2.50},
+    {name:'上证指数',   pe:14.80, pePct:65, pb:1.42, pbPct:45, dy:2.30},
+    {name:'深证成指',   pe:18.60, pePct:48, pb:2.08, pbPct:38, dy:1.70},
+    {name:'沪深300',    pe:14.20, pePct:78, pb:1.38, pbPct:52, dy:2.90},
+    {name:'上证50',     pe:11.40, pePct:72, pb:1.26, pbPct:48, dy:3.30},
+    {name:'创业板指',   pe:55.20, pePct:42, pb:6.08, pbPct:55, dy:1.10},
+    {name:'中证500',   pe:23.10, pePct:30, pb:1.72, pbPct:22, dy:2.10},
+    {name:'中证1000',  pe:31.40, pePct:26, pb:2.18, pbPct:18, dy:1.60},
+    {name:'科创50',    pe:43.80, pePct:38, pb:3.84, pbPct:32, dy:0.90},
+    {name:'中证全指',  pe:17.40, pePct:38, pb:1.58, pbPct:28, dy:2.50},
   ]
 };
 
-/* ============ 评级逻辑 ============ */
+/* ============ 内置默认数据 —— 行业（2026-08 参考，定期更新） ============ */
+const FALLBACK_INDUSTRY = {
+  time: '2026-08-10',
+  src: '内置参考数据',
+  items: [
+    {name:'银行',      pe:5.60,  pePct:12, pb:0.58,  pbPct:8,  dy:5.20},
+    {name:'证券',      pe:18.40, pePct:35, pb:1.42,  pbPct:22, dy:1.80},
+    {name:'保险',      pe:12.80, pePct:28, pb:1.18,  pbPct:18, dy:3.40},
+    {name:'半导体',    pe:58.60, pePct:52, pb:4.20,  pbPct:48, dy:0.60},
+    {name:'游戏',      pe:24.50, pePct:38, pb:2.85,  pbPct:35, dy:1.20},
+    {name:'旅游',      pe:22.80, pePct:42, pb:2.40,  pbPct:30, dy:1.50},
+    {name:'商业航天',  pe:68.40, pePct:62, pb:4.80,  pbPct:55, dy:0.40},
+    {name:'医药生物',  pe:29.60, pePct:22, pb:3.15,  pbPct:15, dy:2.00},
+    {name:'白酒',      pe:22.40, pePct:32, pb:5.60,  pbPct:28, dy:2.80},
+    {name:'新能源车',  pe:26.80, pePct:28, pb:2.45,  pbPct:20, dy:1.60},
+    {name:'房地产',    pe:0,    pePct:0,  pb:0.58,  pbPct:5,  dy:0},
+    {name:'煤炭',      pe:9.80,  pePct:18, pb:0.95,  pbPct:12, dy:6.20},
+    {name:'电力',      pe:18.20, pePct:45, pb:1.55,  pbPct:32, dy:2.60},
+    {name:'军工',      pe:42.50, pePct:48, pb:3.25,  pbPct:40, dy:0.90},
+    {name:'家电',      pe:14.60, pePct:35, pb:3.10,  pbPct:30, dy:3.00},
+  ]
+};
+
+/* ============ 评级逻辑（基于 PE 百分位） ============ */
 function rate(pePct){
+  if(pePct === 0 || pePct === null || pePct === undefined) return {lv:'待评估', cls:'rtag-mid', pcls:'pct-mid', sev:'mid'};
   if(pePct < 35) return {lv:'低估', cls:'rtag-low', pcls:'pct-low', sev:'low'};
   if(pePct < 58) return {lv:'合理偏低', cls:'rtag-low', pcls:'pct-low', sev:'mid'};
   if(pePct < 76) return {lv:'合理', cls:'rtag-mid', pcls:'pct-mid', sev:'mid'};
   return {lv:'高估', cls:'rtag-high', pcls:'pct-high', sev:'high'};
 }
 function suggest(name, pePct){
+  if(!pePct) return '暂无足够数据';
   if(pePct < 35) return '低估区间，适合定投或分批布局';
   if(pePct < 58) return '偏低位置，可正常定投逢低加码';
   if(pePct < 76) return '中性偏高，控制节奏保持持有';
   return '高估预警，谨慎追高可考虑止盈';
 }
 
+/* ============ 排序 ============ */
+function getSortVal(item, col){
+  switch(col){
+    case 'name': return item.name;
+    case 'pe': return item.pe||0;
+    case 'pePct': return item.pePct||0;
+    case 'pb': return item.pb||0;
+    case 'pbPct': return item.pbPct||0;
+    case 'dy': return item.dy||0;
+    case 'rating':
+      const r = rate(item.pePct);
+      const order = {'低估':0,'合理偏低':1,'合理':2,'高估':3,'待评估':4};
+      return order[r.lv]||4;
+    default: return item.pePct||0;
+  }
+}
+function sortData(arr){
+  const sorted = [...arr].sort((a,b)=>{
+    let va = getSortVal(a, sortCol), vb = getSortVal(b, sortCol);
+    if(typeof va === 'string') va = va.toLowerCase();
+    if(typeof vb === 'string') vb = vb.toLowerCase();
+    if(va < vb) return sortDir === 'asc' ? -1 : 1;
+    if(va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return sorted;
+}
+
+/* ============ 表头渲染（带排序箭头） ============ */
+function renderThead(){
+  const isIndex = curTab === 'index';
+  const cols = isIndex ? [
+    {key:'name', label:'指数名称', sortable:true},
+    {key:'pe', label:'PE(TTM)', sortable:true},
+    {key:'pePct', label:'PE 百分位', sortable:true},
+    {key:'pb', label:'PB', sortable:true},
+    {key:'pbPct', label:'PB 百分位', sortable:true},
+    {key:'dy', label:'股息率', sortable:true},
+    {key:'rating', label:'评级', sortable:true},
+    {key:'adv', label:'操作建议', sortable:false},
+  ] : [
+    {key:'name', label:'行业名称', sortable:true},
+    {key:'pe', label:'PE(TTM)', sortable:true},
+    {key:'pePct', label:'PE 百分位', sortable:true},
+    {key:'pb', label:'PB', sortable:true},
+    {key:'pbPct', label:'PB 百分位', sortable:true},
+    {key:'dy', label:'股息率', sortable:true},
+    {key:'rating', label:'评级', sortable:true},
+    {key:'adv', label:'操作建议', sortable:false},
+  ];
+
+  document.getElementById('thead').innerHTML = '<tr>' + cols.map(c => {
+    const arrow = c.sortable
+      ? '<span class=sort-arrow>'+(sortCol===c.key?(sortDir==='asc'?' ^ ':' v '):' | ')+'</span>'
+      : '';
+    const cls = c.sortable && sortCol===c.key ? `sort-${sortDir}` : '';
+    const onClick = c.sortable ? `onclick="doSort('${c.key}')"` : '';
+    const hideClass = (!isIndex && c.key==='adv') ? ' hide-xs' : (isIndex && c.key==='adv' ? ' hide-xs' : '');
+    return `<th ${onClick} class="${cls}${hideClass}"><span class="th-inner">${c.label}${arrow}</span></th>`;
+  }).join('') + '</tr>';
+}
+
+function doSort(col){
+  if(sortCol === col){ sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else{ sortCol = col; sortDir = 'asc'; }
+  renderCurrent();
+}
+
 /* ============ 渲染 ============ */
 function render(data){
-  const arr = data.items;
-  const lowN = arr.filter(x=>x.pePct<35).length;
-  const midN = arr.filter(x=>x.pePct>=35 && x.pePct<76).length;
+  const arr = sortData(data.items);
+  const lowN = arr.filter(x=>x.pePct>0&&x.pePct<35).length;
+  const midN = arr.filter(x=>x.pePct>=35&&x.pePct<76).length;
   const highN = arr.filter(x=>x.pePct>=76).length;
-  const avgPe = (arr.reduce((s,x)=>s+x.pe,0)/arr.length).toFixed(1);
+  const avgPe = arr.filter(x=>x.pe).reduce((s,x)=>s+x.pe,0)/Math.max(arr.filter(x=>x.pe).length,1);
 
   // 概览
   document.getElementById('overview').innerHTML = `
-    <div class="oc low"><div class="num">${lowN}</div><div class="lbl">低估指数</div></div>
-    <div class="oc avg"><div class="num">${avgPe}</div><div class="lbl">平均 PE</div></div>
-    <div class="oc mid"><div class="num">${midN}</div><div class="lbl">合理指数</div></div>
-    <div class="oc high"><div class="num">${highN}</div><div class="lbl">高估指数</div></div>`;
+    <div class="oc low"><div class="num">${lowN}</div><div class="lbl">低估</div></div>
+    <div class="oc avg"><div class="num">${avgPe.toFixed(1)}</div><div class="lbl">平均 PE</div></div>
+    <div class="oc mid"><div class="num">${midN}</div><div class="lbl">合理</div></div>
+    <div class="oc high"><div class="num">${highN}</div><div class="lbl">高估</div></div>`;
 
-  // 表格
+  // 表头
+  renderThead();
+
+  const isIndex = curTab === 'index';
+
+  // 表格内容
   document.getElementById('tbody').innerHTML = arr.map(it => {
     const r = rate(it.pePct);
     const sug = suggest(it.name, it.pePct);
-    const barClr = it.pePct<35 ? 'var(--down)' : it.pePct<76 ? 'var(--amber)' : 'var(--up)';
+    const barClr = (!it.pePct || it.pePct<35) ? 'var(--down)' : it.pePct<76 ? 'var(--amber)' : 'var(--up)';
+    const barClrPB = (!it.pbPct || it.pbPct<35) ? 'var(--down)' : it.pbPct<76 ? 'var(--amber)' : 'var(--up)';
+    const info = isIndex
+      ? (INDICES.find(i=>i.name===it.name)||{})
+      : (INDUSTRIES.find(i=>i.name===it.name)||{});
     return `<tr>
-      <td><div class="idx-cell">${it.name}<span class="type">${INDICES.find(i=>i.name===it.name)?.type||''}</span></div></td>
-      <td><span class="pe-num">${it.pe.toFixed(2)}</span></td>
+      <td><div class="idx-cell">${it.name}<span class="type">${info.type||''}</span></div></td>
+      <td>${it.pe ? `<span class="pe-num">${it.pe.toFixed(2)}</span>` : '<span style="color:var(--sub)">—</span>'}</td>
       <td><div class="pct-wrap">
-        <div class="pct-bar"><div class="pct-fill" style="width:${Math.min(it.pePct,100)}%;background:${barClr}"></div></div>
-        <span class="pct-num ${r.pcls}">${it.pePct}%</span>
+        ${it.pePct!==null&&it.pePct!==undefined?`<div class="pct-bar"><div class="pct-fill" style="width:${Math.min(it.pePct,100)}%;background:${barClr}"></div></div>
+        <span class="pct-num ${r.pcls}">${it.pePct}%</span>`:'<span style="color:var(--sub)">—</span>'}
       </div></td>
-      <td style="font-weight:600;font-variant-numeric:tabular-nums">${it.pb.toFixed(2)}</td>
-      <td style="font-weight:600;font-variant-numeric:tabular-nums">${it.dy.toFixed(1)}%</td>
+      <td style="font-weight:600;font-variant-numeric:tabular-nums">${it.pb ? it.pb.toFixed(2) : '—'}</td>
+      <td><div class="pct-wrap">
+        ${it.pbPct!==null&&it.pbPct!==undefined?`<div class="pct-bar"><div class="pct-fill" style="width:${Math.min(it.pbPct,100)}%;background:${barClrPB}"></div></div>
+        <span class="pct-num ${it.pbPct<35?'pct-low':it.pbPct<76?'pct-mid':'pct-high'}">${it.pbPct}%</span>`:'<span style="color:var(--sub)">—</span>'}
+      </div></td>
+      <td style="font-weight:600;font-variant-numeric:tabular-nums">${it.dy ? it.dy.toFixed(1)+'%' : '—'}</td>
       <td><span class="rtag ${r.cls}">${r.lv}</span></td>
       <td class="hide-xs"><span class="adv">${sug}</span></td>
     </tr>`;
@@ -247,89 +394,162 @@ function render(data){
   document.getElementById('updateTime').textContent =
     `数据更新：${data.time || '未知'} · 来源：${data.src || '—'}`;
   document.getElementById('statusBar').textContent =
-    `共 ${arr.length} 只主要指数 · ${new Date().toLocaleString('zh-CN')}`;
+    `共 ${arr.length} 项 · 排序：${getSortLabel()} · ${new Date().toLocaleString('zh-CN')}`;
 }
 
-/* ============ 数据获取 ============ */
+function getSortLabel(){
+  const labels = {name:'名称', pe:'PE', pePct:'PE百分位', pb:'PB', pbPct:'PB百分位', dy:'股息率', rating:'评级'};
+  return `${labels[sortCol]||sortCol} ${sortDir==='asc'?'↑升序':'↓降序'}`;
+}
+
+/* ============ 标签切换 ============ */
+function switchTab(tab){
+  curTab = tab;
+  // 更新标签样式
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  // 更新标题
+  document.getElementById('pageTitle').textContent = tab === 'index' ? 'A股主要指数估值' : '行业板块估值';
+  renderCurrent();
+}
+
+function renderCurrent(){
+  if(curTab === 'index'){
+    render(currentIndexData || FALLBACK_INDEX);
+  } else{
+    render(currentIndustryData || FALLBACK_INDUSTRY);
+  }
+}
+
+/* ============ 数据获取与缓存 ============ */
+let currentIndexData = null;
+let currentIndustryData = null;
+
 async function doRefresh(){
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true; btn.textContent='⏳ 获取中…';
 
-  let data = null;
-  // 尝试 API（东方财富指数列表）
+  // 尝试 API
   try {
-    const resp = await fetch('https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3+f:!50&fields:f12,f14,f20,f21,f45,f116,f117',{
+    const resp = await fetch('https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3+f:!50,m:90+t:2+f:!50,m:90+t:1+f:!50&fields:f12,f14,f20,f21,f45,f116,f117',{
       mode:'cors'
     });
     if(resp.ok){
       const j = await resp.json();
       if(j?.data?.diff && j.data.diff.length > 0){
-        data = parseEMData(j.data.diff);
+        const parsed = parseEMData(j.data.diff);
+        if(parsed.index && parsed.index.items.length >= 5) currentIndexData = parsed.index;
+        if(parsed.industry && parsed.industry.items.length >= 3) currentIndustryData = parsed.industry;
       }
     }
   } catch(e){ console.log('API不可用:', e.message); }
 
   // localStorage 缓存兜底
-  if(!data){
+  if(!currentIndexData || !currentIndustryData){
     try {
       const c = JSON.parse(localStorage.getItem('val_cache'));
-      if(c && Date.now() - c.ts < 86400000) data = c.d;
+      if(c && Date.now() - c.ts < 86400000){
+        if(!currentIndexData && c.idx) currentIndexData = c.idx;
+        if(!currentIndustryData && c.ind) currentIndustryData = c.ind;
+      }
     }catch(e){}
   }
 
-  // 内置数据最终兜底
-  if(!data) data = FALLBACK;
+  // 最终兜底
+  if(!currentIndexData) currentIndexData = FALLBACK_INDEX;
+  if(!currentIndustryData) currentIndustryData = FALLBACK_INDUSTRY;
 
   // 存缓存
-  try{ localStorage.setItem('val_cache', JSON.stringify({ts:Date.now(), d:data})); }catch(e){}
-  render(data);
+  try{ localStorage.setItem('val_cache', JSON.stringify({ts:Date.now(), d:null, idx:currentIndexData, ind:currentIndustryData})); }catch(e){}
 
+  renderCurrent();
   btn.disabled = false; btn.textContent='🔄 刷新';
 }
 
 function parseEMData(list){
-  const targets = ['沪深300','上证50','创业板指','中证500','中证1000','科创50'];
-  const found = list.filter(x => targets.includes(x.f14));
-  if(found.length < 3) throw new Error('不足');
-  return {
-    time: new Date().toISOString().split('T')[0],
-    src: '东方财富行情API（实时）',
-    items: found.map(x => ({
-      name: x.f14,
-      pe: parseFloat(x.f20)||0,
-      pePct: estPct(x.f14, parseFloat(x.f20)||0),
-      pb: parseFloat(x.f21)||0,
-      dy: (parseFloat(x.f45)||0)*100,
-    }))
-  };
-}
+  const idxTargets = ['上证指数','深证成指','沪深300','上证50','创业板指','中证500','中证1000','科创50','中证全指'];
+  const indTargets = INDUSTRIES.map(i => i.name);
 
-// 基于历史范围估算百分位
-function estPct(name, pe){
-  const rng = {
-    '沪深300':{lo:8,hi:22},'上证50':{lo:7,hi:17},'创业板指':{lo:25,hi:85},
-    '中证500':{lo:15,hi:38},'中证1000':{lo:18,hi:48},'科创50':{lo:28,hi:78},
+  const idxFound = list.filter(x => idxTargets.includes(x.f14));
+  const indFound = list.filter(x => indTargets.includes(x.f14));
+
+  function estPct(name, pe){
+    const rng = {
+      '上证指数':{lo:10,hi:22},'深证成指':{lo:12,hi:30},'沪深300':{lo:8,hi:22},'上证50':{lo:7,hi:17},
+      '创业板指':{lo:25,hi:85},'中证500':{lo:15,hi:38},'中证1000':{lo:18,hi:48},'科创50':{lo:28,hi:78},
+      '中证全指':{lo:12,hi:26},
+      '银行':{lo:4.5,hi:9},'证券':{lo:12,hi:35},'保险':{lo:8,hi:22},
+      '半导体':{lo:30,hi:95},'游戏':{lo:15,hi:45},'旅游':{lo:16,hi:40},
+      '商业航天':{lo:35,hi:100},'医药生物':{lo:20,hi:45},'白酒':{lo:15,hi:40},
+      '新能源车':{lo:16,hi:50},'房地产':{lo:6,hi:16},'煤炭':{lo:6,hi:15},
+      '电力':{lo:12,hi:28},'军工':{lo:30,hi:75},'家电':{lo:10,hi:25},
+    };
+    const r = rng[name] || {lo:10,hi:50};
+    if(pe <= r.lo) return 5;
+    if(pe >= r.hi) return 95;
+    return Math.round(((pe-r.lo)/(r.hi-r.lo))*100);
+  }
+
+  function estPbPct(name, pb){
+    const rng = {
+      '上证指数':{lo:1.1,hi:2.0},'深证成指':{lo:1.6,hi:3.2},'沪深300':{lo:1.0,hi:1.9},'上证50':{lo:0.9,hi:1.7},
+      '创业板指':{lo:4,hi:9},'中证500':{lo:1.3,hi:2.8},'中证1000':{lo:1.6,hi:3.5},'科创50':{lo:2.8,hi:5.5},
+      '中证全指':{lo:1.2,hi:2.2},
+      '银行':{lo:0.45,hi:0.95},'证券':{lo:1.0,hi:2.5},'保险':{lo:0.85,hi:2.0},
+      '半导体':{lo:2.8,hi:6.5},'游戏':{lo:1.8,hi:4.5},'旅游':{lo:1.6,hi:3.5},
+      '商业航天':{lo:3,hi:7},'医药生物':{lo:2.2,hi:4.5},'白酒':{lo:3.5,hi:8},
+      '新能源车':{lo:1.8,hi:4},'房地产':{lo:0.6,hi:1.5},'煤炭':{lo:0.7,hi:1.5},
+      '电力':{lo:1.1,hi:2.2},'军工':{lo:2.2,hi:5},'家电':{lo:2,hi:4.5},
+    };
+    const r = rng[name] || {lo:1,hi:5};
+    if(pb <= r.lo) return 5;
+    if(pb >= r.hi) return 95;
+    return Math.round(((pb-r.lo)/(r.hi-r.lo))*100);
+  }
+
+  return {
+    index: idxFound.length >= 3 ? {
+      time: new Date().toISOString().split('T')[0],
+      src: '东方财富行情API（实时）',
+      items: idxFound.map(x => ({
+        name: x.f14,
+        pe: parseFloat(x.f20)||0,
+        pePct: estPct(x.f14, parseFloat(x.f20)||0),
+        pb: parseFloat(x.f21)||0,
+        pbPct: estPbPct(x.f14, parseFloat(x.f21)||0),
+        dy: (parseFloat(x.f45)||0)*100,
+      }))
+    } : null,
+    industry: indFound.length >= 3 ? {
+      time: new Date().toISOString().split('T')[0],
+      src: '东方财富行情API（实时）',
+      items: indFound.map(x => ({
+        name: x.f14,
+        pe: parseFloat(x.f20)||0,
+        pePct: estPct(x.f14, parseFloat(x.f20)||0),
+        pb: parseFloat(x.f21)||0,
+        pbPct: estPbPct(x.f14, parseFloat(x.f21)||0),
+        dy: (parseFloat(x.f45)||0)*100,
+      }))
+    } : null,
   };
-  const r = rng[name] || {lo:10,hi:50};
-  if(pe <= r.lo) return 5;
-  if(pe >= r.hi) return 95;
-  return Math.round(((pe-r.lo)/(r.hi-r.lo))*100);
 }
 
 /* ============ 复制 ============ */
 function doCopy(){
   const rows = document.querySelectorAll('#tbody tr');
-  let t = 'A股主要指数估值\n' + '='.repeat(65) + '\n';
-  t += `导出：${new Date().toLocaleString('zh-CN')}\n\n`;
-  t += `{'指数':<10} {'PE':>8} {'百分位':>7} {'PB':>6} {'股息率':>6} {'评级':<8}\n`;
-  t += '-'.repeat(65)+'\n';
+  const tabName = curTab === 'index' ? 'A股主要指数估值' : '行业板块估值';
+  let t = tabName + '\n' + '='.repeat(70) + '\n';
+  t += `导出：${new Date().toLocaleString('zh-CN')} · 排序：${getSortLabel()}\n\n`;
+  const hasPB = true;
+  t += `{'名称':<10} {'PE':>8} {'PE%':>7} {'PB':>6} {'PB%':>6} {'股息':>6} {'评级':<8}\n`;
+  t += '-'.repeat(70)+'\n';
   rows.forEach(tr => {
     const td = tr.querySelectorAll('td');
     const n = td[0].textContent.trim(), pe = td[1].textContent.trim();
     const pt = td[2].querySelector('.pct-num')?.textContent.trim() || '';
-    const pb = td[3].textContent.trim(), dy = td[4].textContent.trim();
-    const tg = td[5].textContent.trim();
-    t += `${n.padEnd(10)} ${pe.padStart(8)} ${pt.padStart(7)} ${pb.padStart(6)} ${dy.padStart(6)} ${tg.padEnd(8)}\n`;
+    const pb = td[3].textContent.trim(), ppt = td[4].querySelector('.pct-num')?.textContent.trim() || '';
+    const dy = td[5].textContent.trim(), tg = td[6].textContent.trim();
+    t += `${n.padEnd(10)} ${pe.padStart(8)} ${pt.padStart(7)} ${pb.padStart(6)} ${ppt.padStart(6)} ${dy.padStart(6)} ${tg.padEnd(8)}\n`;
   });
   navigator.clipboard.writeText(t).then(()=>alert('✅ 已复制！')).catch(()=>{
     const ta=document.createElement('textarea');ta.value=t;
@@ -339,7 +559,7 @@ function doCopy(){
 }
 
 /* ============ 启动 ============ */
-render(FALLBACK);
+render(FALLBACK_INDEX);
 doRefresh();
 </script>
 </body>
