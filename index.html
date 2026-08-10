@@ -101,6 +101,10 @@
     display:inline-flex; align-items:center; gap:5px; transition:transform .12s, background .15s; }
   #wbSaveBtn:hover{ background:#a5613f; }
   #wbSaveBtn:active{ transform:scale(.96); }
+  .wbsync-state{ font-size:12px; color:#8a7f70; margin-left:6px; white-space:nowrap; }
+  .wbsync-state.ok{ color:#3aa76d; }
+  .wbsync-state.err{ color:#c0392b; }
+  .wbsync-state.off{ color:#a99c8c; }
   .wb-icon-btn{ font-family:inherit; font-size:12.5px; font-weight:500; color:var(--accent); background:#fff;
     border:1px solid var(--line); border-radius:9px; padding:6px 12px; cursor:pointer;
     display:inline-flex; align-items:center; gap:4px; transition:.14s; }
@@ -231,6 +235,7 @@
     .wb-icon-btn .icn{ font-size:15px; line-height:1; }
     #wbSaveBtn{ padding:5px 9px; font-size:12px; border-radius:8px; }
     #wbSaveBtn .icn{ font-size:15px; line-height:1; }
+    .wbsync-state{ display:none; }
     .topright .clock{ padding:2px 8px; font-size:11px; display:none; /* 极窄屏空 */ }
     .topright .hi{ display:none; }
 
@@ -295,7 +300,8 @@
       <div class="topright">
         <button class="wb-icon-btn" onclick="wbExport()" title="导出全部数据为 JSON 备份"><span class="icn">⬇</span><span class="lbl"> 导出</span></button>
         <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer"><span class="icn">⬆</span><span class="lbl"> 导入</span><input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])"></label>
-        <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地并同步云端"><span class="icn">💾</span><span class="lbl"> 保存</span></button>
+        <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地；若已连接云同步则同时上传"><span class="icn">💾</span><span class="lbl"> 保存</span></button>
+        <span class="wbsync-state off" id="wbSyncState" title="云同步状态：未连接 / 已同步时间">未连接</span>
         <span class="hi" id="hi"></span>
         <span id="today"></span>
       </div>
@@ -573,14 +579,37 @@ function wbSchedulePush(immediate){
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
 /* 统一【保存】按钮：把当前可见 iframe 里的编辑内容立即落盘（子页监听 wb-request-save 自行保存） */
 function wbRequestSave(){
+  wbLoadCfg();
   const f=document.querySelector('.modbody iframe');
-  if(!f || !f.contentWindow){ wbToast('当前页面没有可保存的内容'); return; }
+  if(!f || !f.contentWindow){ wbToast('已保存到本地'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  wbSchedulePush(true); // 立即把本地最新数据上传云端，不等防抖
-  wbToast('已保存并同步到云端');
+  if(wbSync && wbSync.connected){
+    wbSchedulePush(true); // 立即把本地最新数据上传云端，不等防抖
+    wbToast('已保存，正在同步云端…');
+  } else {
+    wbToast('已存本地（云同步未连接，未上传）');
+  }
 }
 /* 子页保存成功后的回执 */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
+/* 顶栏同步状态灯：根据 connected + 上次同步时间更新文字与颜色 */
+function wbUpdateSyncUI(){
+  const dot=document.getElementById('wbSyncDot');
+  const st=document.getElementById('wbSyncState');
+  wbLoadCfg();
+  if(!wbSync || !wbSync.connected){
+    if(dot) dot.style.background='#c9bfae';
+    if(st){ st.textContent='未连接'; st.className='wbsync-state off'; }
+    return;
+  }
+  let txt='已连接';
+  const last=localStorage.getItem(WB_K_LAST_SYNC);
+  if(last && last!=='1970-01-01T00:00:00.000Z'){
+    try{ const d=new Date(last); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); txt='已同步 '+hh+':'+mm; }catch(e){ txt='已连接'; }
+  }
+  if(dot) dot.style.background='#3aa76d';
+  if(st){ st.textContent=txt; st.className='wbsync-state ok'; }
+}
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
 async function wbPush(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
@@ -589,7 +618,7 @@ async function wbPush(){
     const enc=wbGhB64(payload); let sha=wbLastSha;
     if(!sha){ try{ const cur=await wbGhReq('GET'); sha=cur.sha; }catch(e){ sha=null; } }
     const res=await wbGhReq('PUT',{message:'workbench sync '+now,content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
-    if(res && res.sha){ wbLastSha = res.sha; try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){} }
+    if(res && res.sha){ wbLastSha = res.sha; try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){} wbUpdateSyncUI(); }
     wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
@@ -654,11 +683,11 @@ async function wbConnect(){
     if(!wbSync.github.repo||!wbSync.github.token) throw new Error('请填写 GitHub 仓库与令牌');
     try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
     wbGhStartPoll();
-    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步');
+    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步'); wbUpdateSyncUI();
   }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
 }
 function wbDisconnect(){
-  wbSync.connected=false; wbSaveCfg();
+  wbSync.connected=false; wbSaveCfg(); wbUpdateSyncUI();
   if(wbPollTimer){ clearInterval(wbPollTimer); wbPollTimer=null; }
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
   wbToast('已断开云同步');
@@ -707,8 +736,10 @@ async function wbSilentReconnect(){
   if(dot) dot.style.background='#3aa76d';
   try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
   wbGhStartPoll();
+  wbUpdateSyncUI();
 }
 wbSilentReconnect();
+wbUpdateSyncUI();
 </script>
 </body>
 </html>
