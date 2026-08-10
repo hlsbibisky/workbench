@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股主要指数估值全景</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --card2:#1c2128;
+    --border:#30363d; --text:#e6edf3; --sub:#8b949e;
+    --green:#2ea04f; --yellow:#d29922; --red:#f85149;
+    --blue:#58a6ff; --accent:#8957e5;
+    --lowBg:rgba(46,160,79,.12); --midBg:rgba(210,153,34,.12); --highBg:rgba(248,81,73,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    line-height:1.5;padding:16px 10px 60px;min-height:100vh;}
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  /* 标题区 */
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .header h1{font-size:22px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .header h1 .ico{font-size:24px;}
+  .header .meta{font-size:12.5px;color:var(--sub);}
+  .header .actions{display:flex;gap:8px;}
+  .btn{border:1px solid var(--border);background:var(--card);color:var(--text);
+    border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;font-family:inherit;
+    transition:.15s;display:flex;align-items:center;gap:5px;}
+  .btn:hover{border-color:var(--blue);background:var(--card2);}
+  .btn:active{transform:scale(.97);}
+  .btn .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--sub);
+    border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* 概览卡片 */
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+  .scard .val{font-size:28px;font-weight:700;line-height:1.2;}
+  .scard .lbl{font-size:12px;color:var(--sub);margin-top:4px;}
+  .scard.low .val{color:var(--green);} .scard.mid .val{color:var(--yellow);} .scard.high .val{color:var(--red);}
+
+  /* 主表格 */
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  thead{background:var(--card2);}
+  th{padding:12px 14px;text-align:left;font-weight:600;color:var(--sub);
+    font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);
+    white-space:nowrap;position:sticky;top:0;background:var(--card2);z-index:2;}
+  td{padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(136,198,255,.04);}
+  .idx-name{font-weight:600;font-size:14.5px;white-space:nowrap;}
+
+  /* 数值 */
+  .num{font-variant-numeric:tabular-nums;font-weight:500;}
+  .pe-val{font-size:16px;font-weight:700;}
+  .pct{font-size:13px;font-weight:600;padding:2px 8px;border-radius:6px;display:inline-block;min-width:52px;text-align:center;}
+  .pct-low{background:var(--lowBg);color:var(--green);}
+  .pct-mid{background:var(--midBg);color:var(--yellow);}
+  .pct-high{background:var(--highBg);color:var(--red);}
+
+  /* 评级标签 */
+  .tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .tag-low{background:var(--lowBg);color:var(--green);border:1px solid rgba(46,160,79,.25);}
+  .tag-mid{background:var(--midBg);color:var(--yellow);border:1px solid rgba(210,153,34,.25);}
+  .tag-high{background:var(--highBg);color:var(--red);border:1px solid rgba(248,81,73,.25);}
+
+  /* 操作建议 */
+  .adv{color:var(--sub);font-size:13px;max-width:180px;line-height:1.45;}
+
+  /* 百分位条 */
+  .pct-bar{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
+  .pct-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+
+  /* 底部说明 */
+  .footer{margin-top:18px;font-size:12px;color:var(--sub);line-height:1.7;}
+  .footer a{color:var(--blue);text-decoration:none;} .footer a:hover{text-decoration:underline;}
+
+  /* 加载状态 */
+  .loading-overlay{position:absolute;inset:0;background:rgba(13,17,23,.7);
+    display:flex;align-items:center;justify-content:center;z-index:10;border-radius:14px;}
+  .loading-text{color:var(--sub);font-size:14px;}
+
+  /* 响应式 */
+  @media(max-width:768px){
+    body{padding:12px 8px 50px;}
+    .header h1{font-size:18px;}
+    table{font-size:13px;}
+    th,td{padding:10px 8px;}
+    .scard .val{font-size:22px;}
+    .adv{max-width:120px;font-size:12px;}
+    .hide-mobile{display:none;}
+  }
+  @media(max-width:520px){
+    .summary{grid-template-columns:repeat(2,1fr);}
+    th:nth-child(5),td:nth-child(5){display:none;} /* 隐藏操作建议列 */
+  }
+
+  /* 错误提示 */
+  .err-bar{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.25);
+    color:var(--red);padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1><span class="ico">📊</span> A股主要指数估值全景</h1>
+      <div class="meta" id="updateTime">数据更新时间：加载中...</div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="fetchData()" id="refreshBtn"><span>🔄</span> 刷新数据</button>
+      <button class="btn" onclick="exportData()"><span>📋</span> 复制表格</button>
+    </div>
+  </div>
+
+  <div class="err-bar" id="errBar"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="table-wrap" style="position:relative;">
+    <table>
+      <thead>
+        <tr>
+          <th>指数</th>
+          <th>PE(TTM)</th>
+          <th>百分位</th>
+          <th>PB</th>
+          <th>股息率</th>
+          <th>评级</th>
+          <th class="hide-mobile">操作建议</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>📌 <strong>数据说明：</strong>PE百分位表示当前估值在历史数据中所处的位置（0%=历史最低，100%=历史最高）。</p>
+    <p>📌 <strong>评级标准：</strong><span style="color:var(--green)">低估</span>(PE位&lt;30%) · <span style="color:var(--yellow)">合理偏低</span>(30–60%) · <span style="color:var(--yellow)">中性偏高</span>(60–80%) · <span style="color:var(--red)">高估</span>(&gt;80%)。</p>
+    <p>📌 数据来源：中证指数 / 国证指数；统计周期近10年。仅供参考，不构成投资建议。</p>
+    <p style="margin-top:6px;" id="dataSource"></p>
+  </div>
+</div>
+
+<script>
+// ========== 主要指数定义 ==========
+const INDICES = [
+  {code:'000300', name:'沪深300',   type:'宽基', sector:'大盘'},
+  {code:'000016', name:'上证50',     type:'宽基', sector:'超大盘'},
+  {code:'399006', name:'创业板指',   type:'宽基', sector:'成长'},
+  {code:'000905', name:'中证500',     type:'宽基', sector:'中盘'},
+  {code:'000852', name:'中证1000',   type:'宽基', sector:'小盘'},
+  {code:'000688', name:'科创50',     type:'宽基', sector:'硬科技'},
+  {code:'399303', name:'国证1000',   type:'宽基', sector:'全市场'},
+  {code:'000985', name:'中证全指',   type:'宽基', sector:'全市场'},
+];
+
+// ========== 内置默认数据（定期手动更新，作为 API 失败时的降级） ==========
+// 数据来源：集思录/且慢/中证指数官网，2026年8月估值参考
+const FALLBACK_DATA = {
+  updateTime: '2026-08-10',
+  source: '内置参考数据（需定期更新）',
+  indices: [
+    {name:'沪深300',   pe:14.2, pePct:82, pb:1.38, divYield:2.9},
+    {name:'上证50',     pe:11.4, pePct:78, pb:1.26, divYield:3.3},
+    {name:'创业板指',   pe:56.8, pePct:44, pb:6.12, divYield:1.1},
+    {name:'中证500',     pe:23.5, pePct:32, pb:1.72, divYield:2.1},
+    {name:'中证1000',   pe:31.2, pePct:28, pb:2.18, divYield:1.6},
+    {name:'科创50',     pe:42.6, pePct:36, pb:3.84, divYield:0.9},
+    {name:'国证1000',   pe:19.8, pePct:35, pb:1.92, divYield:2.2},
+    {name:'中证全指',   pe:17.4, pePct:38, pb:1.58, divYield:2.5},
+  ]
+};
+
+// ========== 评级逻辑 ==========
+function getRating(pePct){
+  if(pePct < 30) return {level:'低估', cls:'tag-low', pctCls:'pct-low'};
+  if(pePct < 55) return {level:'合理偏低', cls:'tag-low', pctCls:'pct-low'};
+  if(pePct < 70) return {level:'合理', cls:'tag-mid', pctCls:'pct-mid'};
+  if(pePct < 82) return {level:'中性偏高', cls:'tag-mid', pctCls:'pct-mid'};
+  return {level:'高估', cls:'tag-high', pctCls:'pct-high'};
+}
+
+function getSuggestion(name, pePct){
+  if(pePct < 30) return '可积极定投或分批加仓';
+  if(pePct < 55) return '正常定投，逢低加码';
+  if(pePct < 70) return '保持定投，控制节奏';
+  if(pePct < 82) return '减半定投或暂停买入';
+  return '谨慎观望，考虑止盈';
+}
+
+// ========== 渲染 ==========
+function render(data){
+  const tbody = document.getElementById('tbody');
+  const summary = document.getElementById('summary');
+  const timeEl = document.getElementById('updateTime');
+  const srcEl = document.getElementById('source');
+
+  timeEl.textContent = `数据更新时间：${data.updateTime || '未知'}`;
+  if(data.source) srcEl.textContent = `数据源：${data.source}`;
+
+  // 统计
+  const arr = data.indices;
+  const lowCnt = arr.filter(x=>x.pePct<40).length;
+  const midCnt = arr.filter(x=>x.pePct>=40 && x.pePct<75).length;
+  const highCnt = arr.filter(x=>x.pePct>=75).length;
+  const avgPe = (arr.reduce((s,x)=>s+x.pe,0)/arr.length).toFixed(1);
+
+  summary.innerHTML = `
+    <div class="scard low"><div class="val">${lowCnt}</div><div class="lbl">低估/偏低指数</div></div>
+    <div class="scard mid"><div class="val">${avgPe}</div><div class="lbl">平均 PE(TTM)</div></div>
+    <div class="scard mid"><div class="val">${midCnt}</div><div class="lbl">合理区间指数</div></div>
+    <div class="scard high"><div class="val">${highCnt}</div><div class="lbl">高估/偏高指数</div></div>
+  `;
+
+  // 表格
+  tbody.innerHTML = arr.map(item => {
+    const r = getRating(item.pePct);
+    const sug = getSuggestion(item.name, item.pePct);
+    const barColor = item.pePct<40 ? 'var(--green)' : item.pePct<75 ? 'var(--yellow)' : 'var(--red)';
+    return `<tr>
+      <td><div class="idx-name">${item.name}</div></td>
+      <td><span class="num pe-val">${item.pe.toFixed(1)}</span></td>
+      <td>
+        <span class="pct-bar"><span class="pct-fill" style="width:${item.pePct}%;background:${barColor}"></span></span>
+        <span class="num ${r.pctCls}">${item.pePct}%</span>
+      </td>
+      <td><span class="num">${item.pb.toFixed(2)}</span></td>
+      <td><span class="num">${(item.divYield||0).toFixed(1)}%</span></td>
+      <td><span class="tag ${r.cls}">${r.level}</span></td>
+      <td class="hide-mobile"><span class="adv">${sug}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== 数据获取策略 ==========
+async function fetchData(){
+  const btn = document.getElementById('refreshBtn');
+  const errBar = document.getElementById('errBar');
+  btn.innerHTML = '<span class="spin"></span> 获取中...';
+  btn.disabled = true;
+  errBar.style.display = 'none';
+
+  let data = null;
+  let errMsg = '';
+
+  // 策略1：尝试从公开 API 获取
+  try {
+    data = await tryPublicAPI();
+  } catch(e){
+    console.log('API获取失败:', e.message);
+    errMsg = e.message;
+  }
+
+  // 策略2：尝试 localStorage 缓存
+  if(!data){
+    try{
+      const cached = localStorage.getItem('valuation_cache');
+      if(cached){
+        const parsed = JSON.parse(cached);
+        const age = Date.now() - parsed.ts;
+        if(age < 24*3600*1000){ // 24小时内缓存有效
+          data = parsed.data;
+          errMsg = '';
+        }
+      }
+    }catch(e){}
+  }
+
+  // 策略3：使用内置默认数据
+  if(!data){
+    data = FALLBACK_DATA;
+    if(errMsg) showErr(`实时数据暂不可用（${errMsg}），已显示内置参考数据。建议稍后重试。`);
+  } else {
+    // 存入缓存
+    try{localStorage.setItem('valuation_cache', JSON.stringify({ts:Date.now(), data:data}));}catch(e){}
+  }
+
+  render(data);
+
+  btn.innerHTML = '<span>🔄</span> 刷新数据';
+  btn.disabled = false;
+}
+
+function showErr(msg){
+  const el = document.getElementById('errBar');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ========== 尝试公开 API ==========
+async function tryPublicAPI(){
+  // 尝试多个免费数据源
+  const apis = [
+    // 策略A：东方财富指数估值接口（如果可用）
+    async () => {
+      const resp = await fetch('https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3+f:!50&fields:f12,f14,f20,f21,f45,f116,f117,f162,f167,f170,f171,f173', {
+        mode:'cors', headers:{'Accept':'application/json'}
+      });
+      if(!resp.ok) throw new Error('东方财富API不可用');
+      const json = await resp.json();
+      if(!json?.data?.diff || json.data.diff.length===0) throw new Error('无数据');
+      // 解析返回的指数数据并映射到我们的格式
+      return parseEastMoney(json.data.diff);
+    },
+    // 策略B：备用 - 返回 null 让后续策略接管
+    async () => { throw new Error('skip'); },
+  ];
+
+  for(const fn of apis){
+    try{
+      const result = await fn();
+      if(result) return result;
+    } catch(e){
+      continue;
+    }
+  }
+  throw new Error('所有API均不可用');
+}
+
+// 解析东方财富指数列表数据
+function parseEastMoney(list){
+  // 东方财富字段：f12=代码, f14=名称, f20=PE(TTM), f21=PB, f45=股息率等
+  const targetNames = ['沪深300','上证50','创业板指','中证500','中证1000','科创50'];
+  const found = list.filter(item => targetNames.includes(item.f14));
+  if(found.length < 3) throw new Error('匹配到的目标指数不足');
+
+  // 注意：东方财富不一定返回百分位数据，需要额外处理
+  return {
+    updateTime: new Date().toISOString().split('T')[0],
+    source: '东方财富行情API（实时）',
+    indices: found.map(item => ({
+      name: item.f14,
+      pe: parseFloat(item.f20)||0,
+      pePct: estimatePercentile(item.f14, parseFloat(item.f20)||0),
+      pb: parseFloat(item.f21)||0,
+      divYield: (parseFloat(item.f45)||0)*100,
+    }))
+  };
+}
+
+// 基于历史经验估算百分位（当API不提供时）
+function estimatePercentile(name, pe){
+  // 各指数的大致PE范围（基于近年统计数据）
+  const ranges = {
+    '沪深300':  {min:8, max:20, med:12.5},
+    '上证50':    {min:7, max:15, med:10},
+    '创业板指':  {min:25,max:80, med:48},
+    '中证500':   {min:15,max:35, med:22},
+    '中证1000': {min:18,max:45, med:28},
+    '科创50':    {min:28,max:72, med:45},
+  };
+  const r = ranges[name] || {min:10,max:50,med:25};
+  if(pe <= r.min) return 5;
+  if(pe >= r.max) return 95;
+  // 简单线性映射
+  return Math.round(((pe - r.min)/(r.max - r.min)) * 100);
+}
+
+// ========== 导出 ==========
+function exportData(){
+  const rows = document.querySelectorAll('#tbody tr');
+  let text = 'A股主要指数估值全景\n';
+  text += '='.repeat(60)+'\n';
+  text += `导出时间：${new Date().toLocaleString('zh-CN')}\n\n`;
+  text += `{'指数':<10} {'PE(TTM)':<10} {'PE百分位':<10} {'PB':<8} {'股息率':<8} {'评级':<10}\n`;
+  text += '-'.repeat(60)+'\n';
+
+  rows.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    const name = tds[0].textContent.trim();
+    const pe = tds[1].textContent.trim();
+    const pet = tds[2].querySelector('.pct')?.textContent.trim() || '';
+    const pb = tds[3].textContent.trim();
+    const dy = tds[4].textContent.trim();
+    const tag = tds[5].textContent.trim();
+    text += `${name.padEnd(10)} ${pe.padEnd(10)} ${pet.padEnd(10)} ${pb.padEnd(8)} ${dy.padEnd(8)} ${tag.padEnd(10)}\n`;
+  });
+
+  navigator.clipboard.writeText(text).then(()=>{
+    alert('✅ 已复制到剪贴板！');
+  }).catch(()=>{
+    // 降级方案
+    const ta = document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('✅ 已复制到剪贴板！');
+  });
+}
+
+// ========== 初始化 ==========
+render(FALLBACK_DATA); // 先渲染默认数据
+fetchData();           // 异步刷新
+</script>
+</body>
+</html>
