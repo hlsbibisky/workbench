@@ -482,7 +482,7 @@ async function doRefresh(){
 
   // 尝试 API
   try {
-    const resp = await fetch('https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3+f:!50,m:90+t:2+f:!50,m:90+t:1+f:!50&fields:f12,f14,f20,f21,f45,f116,f117',{
+    const resp = await fetch('https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=200&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3+f:!50,m:90+t:2+f:!50,m:90+t:1+f:!50&fields:f12,f14,f20,f21,f45,f116,f117',{
       mode:'cors'
     });
     if(resp.ok){
@@ -490,7 +490,15 @@ async function doRefresh(){
       if(j?.data?.diff && j.data.diff.length > 0){
         const parsed = parseEMData(j.data.diff);
         if(parsed.index && parsed.index.items.length >= 5) currentIndexData = parsed.index;
-        if(parsed.industry && parsed.industry.items.length >= 3) currentIndustryData = parsed.industry;
+        if(parsed.industry && parsed.industry.items.length >= 3){
+          const merged = mergeIndustryItems(parsed.industry.items);
+          const allLive = merged.every(m => m._live);
+          currentIndustryData = {
+            time: parsed.industry.time,
+            src: allLive ? '东方财富行情API（实时）' : '东方财富实时(部分) + 内置参考(缺失项)',
+            items: merged.map(m => { delete m._live; return m; })
+          };
+        }
       }
     }
   } catch(e){ console.log('API不可用:', e.message); }
@@ -510,11 +518,29 @@ async function doRefresh(){
   if(!currentIndexData) currentIndexData = FALLBACK_INDEX;
   if(!currentIndustryData) currentIndustryData = FALLBACK_INDUSTRY;
 
+  // 保险：行业始终以 36 个定义为基准，确保不丢行业（旧缓存可能只有 15 条）
+  currentIndustryData = {
+    time: currentIndustryData.time,
+    src: currentIndustryData.src,
+    items: mergeIndustryItems(currentIndustryData.items)
+  };
+
   // 存缓存
   try{ localStorage.setItem('val_cache', JSON.stringify({ts:Date.now(), d:null, idx:currentIndexData, ind:currentIndustryData})); }catch(e){}
 
   renderCurrent();
   btn.disabled = false; btn.textContent='🔄 刷新';
+}
+
+/* 合并：以 36 个行业定义为基准，实时数据覆盖对应项，缺失项用内置参考补全，保证始终显示全部行业 */
+function mergeIndustryItems(liveItems){
+  const liveMap = {};
+  (liveItems||[]).forEach(x => { if(x && x.name) liveMap[x.name] = x; });
+  return FALLBACK_INDUSTRY.items.map(fb => {
+    const lv = liveMap[fb.name];
+    if(lv){ const out = Object.assign({}, lv); out._live = true; return out; }
+    return Object.assign({}, fb, {_live:false});
+  });
 }
 
 function parseEMData(list){
