@@ -269,6 +269,7 @@
 
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app">
@@ -540,16 +541,27 @@ function wbImport(file){
   reader.readAsText(file);
 }
 
-/* ===== 工作台级云同步：同步全部页面数据（美食/股票/驱动力/周计划…） ===== */
+/* ===== 工作台级云同步（Supabase 版）：同步全部页面数据（美食/股票/驱动力/周计划…） ===== */
+/* 数据存于你自己的 Supabase 项目（表 workbench_sync），电脑/手机打开同一网页即自动同步。
+   URL 与 anon key 已写入前端，单人使用安全；更换项目时改下面两个常量即可。 */
+const WB_SUPABASE_URL = 'https://vienajheerbsmckfzkzo.supabase.co';
+const WB_SUPABASE_ANON = 'sb_publishable_b6t_c2L2j8wB7Vgp9lWGZw_HqHVFQzF';
+let wbSb = null;
+function wbSbInit(){
+  if(wbSb) return wbSb;
+  if(window.supabase && WB_SUPABASE_URL && WB_SUPABASE_ANON){
+    try{ wbSb = window.supabase.createClient(WB_SUPABASE_URL, WB_SUPABASE_ANON); }catch(e){ console.error(e); }
+  }
+  return wbSb;
+}
+
 const WB_K_SYNC='wb_cloudsync';
 const WB_K_LAST_SYNC='wb_last_sync_at';
-let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbLastSha=null, wbBusy=false;
-const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at']; /* 不同步令牌/时间戳本身，防外泄 */
+let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
+const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at'];
 function wbLoadCfg(){
   try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
   if(!wbSync) wbSync={};
-  if(!wbSync.provider) wbSync.provider='github';
-  if(!wbSync.github) wbSync.github={token:'',repo:'hlsbibisky/workbench',branch:'main',path:'data/workbench_sync.json'};
   if(wbSync.connected===undefined) wbSync.connected=false;
   return wbSync;
 }
@@ -557,45 +569,31 @@ function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0) o[k]=localStorage.getItem(k); } return o; }
 function wbApply(o){
   if(!o) return;
-  let changed = false;
+  let changed=false;
   Object.keys(o).forEach(k=>{
     if(WB_SKIP.indexOf(k)<0){
-      const cur = localStorage.getItem(k);
-      if(cur !== o[k]){
-        try{ localStorage.setItem(k,o[k]); changed=true; }
-        catch(e){ console.error('wbApply failed for',k,e); }
-      }
+      const cur=localStorage.getItem(k);
+      if(cur!==o[k]){ try{ localStorage.setItem(k,o[k]); changed=true; }catch(e){ console.error('wbApply failed for',k,e); } }
     }
   });
   if(changed) wbBroadcastReload();
 }
 function wbSchedulePush(immediate){
   wbLoadCfg(); if(!wbSync.connected) return;
-  // 本地一发生改动就标记为「最新」，防止刷新/轮询时被较旧的云端版本覆盖
   try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
   if(wbPushTimer) clearTimeout(wbPushTimer);
   wbPushTimer=setTimeout(wbPush, immediate?0:300);
 }
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
-/* 统一【保存】按钮：把当前可见 iframe 里的编辑内容立即落盘（子页监听 wb-request-save 自行保存） */
 function wbRequestSave(){
   wbLoadCfg();
   const f=document.querySelector('.modbody iframe');
   if(!f || !f.contentWindow){ wbToast('已保存到本地'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  if(wbSync && wbSync.connected){
-    wbSchedulePush(true); // 立即把本地最新数据上传云端，不等防抖
-    wbToast('已保存，正在同步云端…');
-  } else {
-    wbToast('已存本地（云同步未连接，未上传）');
-  }
+  if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存，正在同步云端…'); }
+  else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
-/* 子页保存成功后的回执 */
-window.addEventListener('message', e=>{
-  if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); }
-  else if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } // 子页（如每日状态记录）任何改动自动上传云端，实现无感同步
-});
-/* 顶栏同步状态灯：根据 connected + 上次同步时间更新文字与颜色 */
+window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
 function wbUpdateSyncUI(){
   const dot=document.getElementById('wbSyncDot');
   const st=document.getElementById('wbSyncState');
@@ -616,76 +614,51 @@ function wbUpdateSyncUI(){
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
 async function wbPush(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
-  const now = new Date().toISOString();
-  try{ const payload=JSON.stringify({updatedAt:now,data:wbCollect()});
-    const enc=wbGhB64(payload); let sha=wbLastSha;
-    if(!sha){ try{ const cur=await wbGhReq('GET'); sha=cur.sha; }catch(e){ sha=null; } }
-    const res=await wbGhReq('PUT',{message:'workbench sync '+now,content:enc,sha:sha||undefined,branch:(wbSync.github.branch||'main').trim()});
-    if(res && res.sha){ wbLastSha = res.sha; try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){} wbUpdateSyncUI(); }
-    wbToast('已同步到云端');
+  const now=new Date().toISOString();
+  try{
+    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
+    const row={ id:'me', payload:{ updatedAt:now, data:wbCollect() }, updated_at:now };
+    const { error }=await client.from('workbench_sync').upsert(row, { onConflict:'id' });
+    if(error) throw error;
+    try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
+    wbUpdateSyncUI(); wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
-}
-// 解析 GitHub contents API 返回：小文件直接 decode content；超过 1MB 的文件 content 为空，需用 download_url 取完整内容
-async function wbParseSync(cur){
-  if(cur && cur.content) return wbGhUnB64(cur.content);
-  if(cur && cur.download_url){
-    const r = await fetch(cur.download_url);
-    if(!r.ok) throw new Error('download '+r.status);
-    return await r.text();
-  }
-  throw new Error('no content available');
 }
 async function wbPull(){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   try{
-    const cur=await wbGhReq('GET'); wbLastSha=cur.sha;
-    const text=await wbParseSync(cur); const obj=JSON.parse(text);
-    if(obj&&obj.data){
-      const localAt = localStorage.getItem(WB_K_LAST_SYNC) || '1970-01-01T00:00:00.000Z';
-      const cloudAt = obj.updatedAt || '1970-01-01T00:00:00.000Z';
-      if(cloudAt > localAt){ wbApply(obj.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
+    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化');
+    const { data, error }=await client.from('workbench_sync').select('*').eq('id','me').maybeSingle();
+    if(error) throw error;
+    if(data && data.payload){
+      const localAt=localStorage.getItem(WB_K_LAST_SYNC)||'1970-01-01T00:00:00.000Z';
+      const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
+      if(cloudAt>localAt){ wbApply(data.payload.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
     }
-  }
-  catch(e){ console.error(e); }
+  }catch(e){ console.error(e); }
   finally{ wbBusy=false; }
 }
-async function wbGhReq(method,body){
-  const repo=(wbSync.github.repo||'').trim(), token=(wbSync.github.token||'').trim();
-  if(!repo||!token) throw new Error('请先填写 GitHub 仓库与令牌');
-  const url='https://api.github.com/repos/'+repo+'/contents/'+encodeURIComponent(wbSync.github.path.trim());
-  const headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
-  const res=await fetch(url,{method,headers,body:body?JSON.stringify(body):undefined});
-  if(!res.ok){ const t=await res.text().catch(()=>''); throw new Error('GitHub '+res.status+' '+t.slice(0,140)); }
-  return res.json();
-}
-function wbGhB64(s){ return btoa(unescape(encodeURIComponent(s))); }
-function wbGhUnB64(s){ return decodeURIComponent(escape(atob(s.replace(/\s/g,'')))); }
-function wbGhStartPoll(){
+function wbStartPoll(){
   if(wbPollTimer) clearInterval(wbPollTimer);
   wbPollTimer=setInterval(async()=>{
     if(!wbSync||!wbSync.connected||wbBusy) return;
     try{
-      const cur=await wbGhReq('GET');
-      if(cur.sha!==wbLastSha){
-        wbLastSha=cur.sha;
-        const text=await wbParseSync(cur); const obj=JSON.parse(text);
-        if(obj&&obj.data){
-          const localAt = localStorage.getItem(WB_K_LAST_SYNC) || '1970-01-01T00:00:00.000Z';
-          const cloudAt = obj.updatedAt || '1970-01-01T00:00:00.000Z';
-          if(cloudAt > localAt){ wbApply(obj.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
-        }
-      }
-    }
-    catch(e){}
+      const client=wbSbInit(); if(!client) return;
+      const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
+      if(error) return;
+      const cloudAt=(data&&data.updated_at)||'1970-01-01T00:00:00.000Z';
+      const localAt=localStorage.getItem(WB_K_LAST_SYNC)||'1970-01-01T00:00:00.000Z';
+      if(cloudAt>localAt) wbPull();
+    }catch(e){}
   },15000);
 }
 async function wbConnect(){
   wbLoadCfg();
   try{
-    if(!wbSync.github.repo||!wbSync.github.token) throw new Error('请填写 GitHub 仓库与令牌');
-    try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
-    wbGhStartPoll();
+    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
+    try{ await wbPull(); }catch(e){ }
+    wbStartPoll();
     wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步'); wbUpdateSyncUI();
   }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
 }
@@ -697,52 +670,42 @@ function wbDisconnect(){
 }
 function wbOpenSync(){
   wbLoadCfg();
-  const c=wbSync, g=c.github;
   let m=document.getElementById('wbSyncModal');
   if(!m){ m=document.createElement('div'); m.id='wbSyncModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998'; document.body.appendChild(m); }
   m.onclick=e=>{ if(e.target===m) m.style.display='none'; };
   m.style.display='flex';
-  const conn=c.connected?'已连接 ✅（自动同步中）':'未连接';
+  const conn=wbSync.connected?'已连接 ✅（自动同步中）':'未连接';
+  const urlMask=WB_SUPABASE_URL.replace(/^(https:\/\/[^.]+).*$/,'$1• • • • •');
   m.innerHTML='<div style="background:#faf7f1;max-width:460px;width:92%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
     +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步</h2>'
-    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据（美食记录 / 股票 / 驱动力 / 周计划…）到 GitHub，电脑与手机自动保持一致。</p>'
-    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">GitHub 仓库（owner/repo）</label><input id="wbRepo" value="'+escAttr(g.repo)+'" style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
-    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">个人访问令牌 PAT（需 repo 权限，仅存本机）</label><input id="wbToken" type="password" value="'+escAttr(g.token)+'" placeholder="ghp_..." style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
-    +'<div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:#7a6f60;margin-bottom:4px">分支</label><input id="wbBranch" value="'+escAttr(g.branch||'main')+'" style="width:100%;padding:8px;border:1px solid #ddd3c4;border-radius:8px;box-sizing:border-box"></div>'
+    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据到你的 Supabase 云端（美食/股票/驱动力/周计划…），电脑与手机自动保持一致。无需令牌、换设备不清数据。</p>'
+    +'<div style="margin-bottom:12px;font-size:12px;color:#7a6f60">Supabase 项目：<b style="color:#2c241b">'+escAttr(urlMask)+'</b></div>'
     +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
     +'<button onclick="wbDoConnect()" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">连接并同步</button>'
     +'<button onclick="wbPush();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即上传</button>'
     +'<button onclick="wbPull();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
-    + (c.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
+    + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
     +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
     +'</div>';
 }
-function wbDoConnect(){
-  wbLoadCfg();
-  wbSync.github.repo=document.getElementById('wbRepo').value.trim();
-  wbSync.github.token=document.getElementById('wbToken').value.trim();
-  wbSync.github.branch=document.getElementById('wbBranch').value.trim()||'main';
-  wbSaveCfg();
-  wbConnect();
-}
+function wbDoConnect(){ wbLoadCfg(); wbConnect(); }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-/* 接收各 iframe 页面数据变更，触发上传 */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
-/* 启动自恢复：若上次已连接，静默重连（拉数据 + 起轮询），不弹任何界面 */
 async function wbSilentReconnect(){
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
   if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; return; }
-  if(!wbSync.github.repo||!wbSync.github.token){ wbSync.connected=false; wbSaveCfg(); if(dot) dot.style.background='#c9bfae'; return; }
   if(dot) dot.style.background='#3aa76d';
-  try{ await wbPull(); }catch(e){ /* 首次无文件可忽略 */ }
-  wbGhStartPoll();
+  try{ await wbPull(); }catch(e){}
+  wbStartPoll();
   wbUpdateSyncUI();
 }
 wbSilentReconnect();
 wbUpdateSyncUI();
+
+
 </script>
 </body>
 </html>
