@@ -689,89 +689,40 @@ function compressImage(file, callback, opts){
   reader.readAsDataURL(file);
 }
 
-/* ============ IndexedDB 图片存储层（突破 localStorage 5MB 上限） ============ */
-// 菜谱封面 / 打卡照片 / 菜品封面 改存 IndexedDB，localStorage 只留 idb://<id> 引用。
-// 容量从 5MB 提升到数百 MB，菜谱图越增越多也不会触顶。
-// 降级：浏览器禁用 IndexedDB（如本地 file:// 打开）时自动退回原 base64，功能不受影响。
+/* ============ 图片存储策略（2026-08-14 改：放弃 IndexedDB，图片直接 base64 存 localStorage） ============ */
+// 原因：外壳云同步只走 localStorage，IndexedDB 里的图片无法跨设备同步到手机端。
+// 现在：图片 = base64 字符串存 localStorage → 外壳同步自动带上 → 手机端直接渲染。
+// 5MB 限额用"数据管理 → 压缩历史打卡照片"功能维护。
+let __idbOk=false; // 写死禁用 IndexedDB
 const IDB_NAME='food_img_db', IDB_STORE='images';
-let __idb=null, __idbOk=true;
-function idbConn(){
-  if(__idb) return Promise.resolve(__idb);
-  if(!__idbOk) return Promise.reject(new Error('idb-disabled'));
-  return new Promise((res,rej)=>{
-    try{
-      if(typeof indexedDB==='undefined'){ __idbOk=false; return rej(new Error('no-indexedDB')); }
-      const req=indexedDB.open(IDB_NAME,1);
-      req.onupgradeneeded=()=>{ try{ req.result.createObjectStore(IDB_STORE); }catch(e){} };
-      req.onsuccess=()=>{ __idb=req.result; res(__idb); };
-      req.onerror=()=>{ __idbOk=false; rej(req.error); };
-    }catch(e){ __idbOk=false; rej(e); }
-  });
-}
-function idbGenId(){ return 'img_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
-async function idbPut(dataUrl){
-  const db=await idbConn();
-  const id=idbGenId();
-  await new Promise((res,rej)=>{ const t=db.transaction(IDB_STORE,'readwrite'); t.objectStore(IDB_STORE).put(dataUrl,id); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
-  return 'idb://'+id;
-}
-async function idbGet(ref){
-  const id=ref.slice(6); // 'idb://'.length === 6
-  const db=await idbConn();
-  return await new Promise((res,rej)=>{ const t=db.transaction(IDB_STORE,'readonly'); const r=t.objectStore(IDB_STORE).get(id); r.onsuccess=()=>res(r.result||''); r.onerror=()=>rej(r.error); });
-}
-async function idbDel(ref){
-  const id=ref.slice(6);
-  try{ const db=await idbConn(); await new Promise(res=>{ const t=db.transaction(IDB_STORE,'readwrite'); t.objectStore(IDB_STORE).delete(id); t.oncomplete=()=>res(); t.onerror=()=>res(); }); }catch(e){}
-}
+let __idb=null;
 function isImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
-// 把对象内所有 data:image 字符串转存 IndexedDB，替换成 idb:// 引用（就地修改）
-async function persistImages(root){
-  async function resolveAndStore(v){
-    if(typeof v==='string' && v.indexOf('data:image')===0){
-      try{ return await idbPut(v); }catch(e){ console.warn('IndexedDB 不可用，图片退回 base64 存储', e); return v; }
-    }
-    if(Array.isArray(v)){ await walk(v); return v; }
-    if(v && typeof v==='object'){ await walk(v); return v; }
-    return v;
-  }
-  async function walk(node){
-    if(Array.isArray(node)){ for(let i=0;i<node.length;i++) node[i]=await resolveAndStore(node[i]); }
-    else if(node && typeof node==='object'){ for(const k of Object.keys(node)) node[k]=await resolveAndStore(node[k]); }
-  }
-  await walk(root);
-  return root;
-}
-// 渲染辅助：图片若是 idb:// 引用，先输出占位 data-idb，再由 hydrateImgs 异步填充真实 src
+function idbConn(){ return Promise.reject(new Error('idb-disabled')); }
+function idbGenId(){ return 'b64_'+Date.now().toString(36); }
+async function idbPut(v){ return v; } // 入库 noop：原值（base64）直接返回
+async function idbGet(ref){ return ref && ref.indexOf('data:image')===0 ? ref : ''; } // 老 idb:// 引用：没有真实图片，留空
+async function idbDel(ref){}
+// 渲染：直接输出 src（base64），无异步
 function imgTag(src, cls, extra){
   cls=cls||''; extra=extra||'';
-  if(isImgRef(src)) return '<img class="'+cls+'" '+extra+' data-idb="'+esc(src)+'">';
   return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">';
 }
-function hydrateImgs(root){
-  (root||document).querySelectorAll('img[data-idb]').forEach(async el=>{
-    const d=await resolveImg(el.getAttribute('data-idb'));
-    if(d) el.src=d; else { el.style.visibility='hidden'; }
-  });
-}
+function hydrateImgs(root){ /* noop：图片已是 base64，无需异步填充 */ }
 async function resolveImg(src){
-  if(isImgRef(src)){ try{ return await idbGet(src); }catch(e){ return ''; } }
+  if(isImgRef(src)) return ''; // 老 idb 引用在 IndexedDB 禁用后已无法还原
   return src;
 }
-// 把对象内 idb:// 引用还原为真实 base64（用于导出 / 云同步，保证携带图片）
-async function hydrateStateImages(obj){
-  async function resolveVal(v){
-    if(typeof v==='string' && isImgRef(v)){ try{ return await idbGet(v); }catch(e){ return v; } }
-    if(Array.isArray(v)){ await walk(v); return v; }
-    if(v && typeof v==='object'){ await walk(v); return v; }
-    return v;
-  }
-  async function walk(node){
-    if(Array.isArray(node)){ for(let i=0;i<node.length;i++) node[i]=await resolveVal(node[i]); }
-    else if(node && typeof node==='object'){ for(const k of Object.keys(node)) node[k]=await resolveVal(node[k]); }
-  }
-  await walk(obj);
-  return obj;
+async function persistImages(root){ return root; } // 老接口：base64 无需转存
+async function hydrateStateImages(obj){ return obj; } // 老接口：base64 无需还原
+// 启动时把 localStorage 里遗留的 idb:// 引用清掉（IndexedDB 不可用时图片无意义，保留引用只会显示空白）
+function stripIdbRefs(root){
+  let touched=false;
+  const walk=(n)=>{
+    if(Array.isArray(n)){ for(let i=0;i<n.length;i++){ if(typeof n[i]==='string' && isImgRef(n[i])){ n[i]=''; touched=true; } else if(n[i]&&typeof n[i]==='object') walk(n[i]); } }
+    else if(n&&typeof n==='object'){ for(const k of Object.keys(n)){ if(typeof n[k]==='string' && isImgRef(n[k])){ n[k]=''; touched=true; } else if(n[k]&&typeof n[k]==='object') walk(n[k]); } }
+  };
+  walk(root);
+  return touched;
 }
 // 收集待导出的美食数据（图片还原成 base64，self-contained）
 async function collectFoodForExport(){
@@ -786,16 +737,15 @@ async function collectFoodForExport(){
   Object.keys(snap).forEach(k=>{ if(snap[k]!==undefined) out[k]=JSON.stringify(snap[k]); });
   return out;
 }
-// 启动时把 localStorage 里遗留的 base64 图片迁到 IndexedDB（旧数据兼容，不丢）
+// 启动时：清理历史遗留 idb:// 引用（IndexedDB 不可用后这些引用变成死引用）
 async function migrateImagesToIdb(){
   try{
     let touched=false;
-    const hasBase64Img=o=>{ let s=false; (function w(n){ if(Array.isArray(n)) n.forEach(w); else if(n&&typeof n==='object') Object.keys(n).forEach(k=>w(n[k])); else if(typeof n==='string'&&n.indexOf('data:image')===0) s=true; })(o); return s; };
-    if(hasBase64Img(state.menu)){ await persistImages(state.menu); save(K.menu,state.menu); touched=true; }
-    if(hasBase64Img(state.checkin)){ await persistImages(state.checkin); save(K.checkin,state.checkin); touched=true; }
-    if(hasBase64Img(state.dishCover)){ await persistImages(state.dishCover); save(K.dishCover,state.dishCover); touched=true; }
-    if(touched) console.log('历史图片已迁移至 IndexedDB');
-  }catch(e){ console.warn('图片迁移失败，继续使用原存储', e); }
+    if(state.menu && stripIdbRefs(state.menu)){ save(K.menu,state.menu); touched=true; }
+    if(state.checkin && stripIdbRefs(state.checkin)){ save(K.checkin,state.checkin); touched=true; }
+    if(state.dishCover && stripIdbRefs(state.dishCover)){ save(K.dishCover,state.dishCover); touched=true; }
+    if(touched) console.log('已清理历史 idb:// 图片引用');
+  }catch(e){ console.warn('idb 引用清理失败', e); }
 }
 
 const state = {
