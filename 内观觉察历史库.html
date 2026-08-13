@@ -185,7 +185,7 @@
   <div id="history"></div>
 
   <footer>
-    数据摘录自「当下状态」的本地记录；顺遂日 = 只含积极驱动力，内耗日 = 含过度驱动力。<br>
+    数据摘录自「当下状态」的本地记录；高能量 = 只含积极驱动力，低能量 = 含过度驱动力。<br>
     本页只读，修改请回到「当下状态」。
   </footer>
 </div>
@@ -235,7 +235,7 @@ function classify(tags){
   if(pos>0) return 'good';
   return 'neutral';
 }
-const MOOD_TXT={good:'顺遂 · 有力量', hard:'内耗 · 受挫', neutral:'中性记录'};
+const MOOD_TXT={good:'顺遂 · 积极', hard:'内耗 · 受挫', neutral:'中性 · 普通'};
 
 /* 收集所有"留下痕迹"的日期 */
 function collect(obj){
@@ -288,10 +288,10 @@ function render(){
   const last=data.length?data[0].date:null;
   const ov=document.getElementById('overview');
   ov.innerHTML=
-    statCard(data.length,'留下痕迹（天）','')+
-    statCard(months.size,'覆盖月份','')+
-    statCard(good,'顺遂日','good')+
-    statCard(hard,'内耗日','hard');
+    statCard(data.length,'统计总数（天）','')+
+    statCard(months.size,'统计月份（月）','')+
+    statCard(good,'高能量','good')+
+    statCard(hard,'低能量','hard');
 
   /* 驱动力频率 */
   const counts=new Array(10).fill(0);
@@ -315,12 +315,12 @@ function render(){
   data.forEach(r=>moodDays[r.mood].push(r));
   function colList(arr){
     if(!arr.length) return `<div class="empty">暂无</div>`;
-    return `<div class="dates">`+arr.map(r=>`${r.m}月${r.d}日`).join('、')+`</div>`;
+    return `<div class="dates">`+arr.map(r=>`${ganzhiDay(r.y,r.m,r.d)}日`).join('、')+`</div>`;
   }
   document.getElementById('moodBox').innerHTML=
-    `<div class="mcol good"><h3>顺遂 · 有力量（${moodDays.good.length}）</h3>${colList(moodDays.good)}</div>`+
+    `<div class="mcol good"><h3>顺遂 · 积极（${moodDays.good.length}）</h3>${colList(moodDays.good)}</div>`+
     `<div class="mcol hard"><h3>内耗 · 受挫（${moodDays.hard.length}）</h3>${colList(moodDays.hard)}</div>`+
-    `<div class="mcol neutral"><h3>中性记录（${moodDays.neutral.length}）</h3>${colList(moodDays.neutral)}</div>`;
+    `<div class="mcol neutral"><h3>中性 · 普通（${moodDays.neutral.length}）</h3>${colList(moodDays.neutral)}</div>`;
 
   /* 每月痕迹趋势 */
   const perMonth={};
@@ -405,7 +405,7 @@ document.getElementById('export').onclick=()=>{
   let md=`# 内观觉察 · 历史库\n\n`;
   md+=`> 导出时间：${fmtMD(new Date())}　·　共 ${data.length} 天\n\n`;
   const months=new Set(data.map(r=>`${r.y}-${r.m}`));
-  md+=`## 概览\n\n- 留下痕迹：${data.length} 天\n- 覆盖月份：${months.size} 个\n- 顺遂日：${data.filter(r=>r.mood==='good').length} 天\n- 内耗日：${data.filter(r=>r.mood==='hard').length} 天\n- 中性记录：${data.filter(r=>r.mood==='neutral').length} 天\n\n`;
+  md+=`## 概览\n\n- 统计总数（天）：${data.length}\n- 统计月份（月）：${months.size}\n- 高能量：${data.filter(r=>r.mood==='good').length} 天\n- 低能量：${data.filter(r=>r.mood==='hard').length} 天\n- 中性 · 普通：${data.filter(r=>r.mood==='neutral').length} 天\n\n`;
   // 标签统计
   const counts=new Array(10).fill(0);
   data.forEach(r=>r.tags.forEach(i=>{ if(i>=0&&i<10) counts[i]++; }));
