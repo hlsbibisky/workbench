@@ -151,13 +151,58 @@ let monday=new Date();
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function pad(n){ return n<10?('0'+n):(''+n); }
-function setMonday(d){ const day=d.getDay(); const diff=(day===0?6:day-1); monday=new Date(d); monday.setDate(d.getDate()-diff); monday.setHours(0,0,0,0); }
-function weekKeyOf(d){ const m=new Date(d); setMonday(m); return m.getFullYear()+'-'+pad(m.getMonth()+1)+'-'+pad(m.getDate()); }
+/* 返回自然周周一（周一 00:00:00） */
+function getMonday(d){
+  const date=new Date(d);
+  const day=date.getDay(); // 0=周日,1=周一...
+  const diff=(day===0)?-6:(1-day); // 回到本周一
+  date.setDate(date.getDate()+diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+function setMonday(d){ monday=getMonday(d); }
+function weekKeyOf(d){ const m=getMonday(d); return m.getFullYear()+'-'+pad(m.getMonth()+1)+'-'+pad(m.getDate()); }
+function getSundayKey(key){ const d=new Date(key); d.setDate(d.getDate()+6); return fmtDate(d); }
 function dayDate(i){ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; }
 function fmtMD(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+function fmtDate(d){ return pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function isToday(i){ const d=dayDate(i),t=new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
 
-/* ---------- 数据层 ---------- */
+/* 修复旧数据：把当前 weekKey 与历史记录都归一到自然周（周一~周日） */
+function normalizeHistory(){
+  if(!state) return;
+  // 当前周归到周一
+  state.weekKey = weekKeyOf(state.weekKey || new Date());
+  // 历史归一 + 合并同周
+  const map={};
+  (state.history||[]).forEach(h=>{
+    const startKey = weekKeyOf(h.weekStart || h.weekKey || new Date());
+    const endDate = new Date(startKey); endDate.setDate(endDate.getDate()+6);
+    const endKey = fmtDate(endDate);
+    if(!map[startKey]){
+      map[startKey] = { weekKey:startKey, weekStart:startKey, weekEnd:endKey, summary:{}, totals:{total:0,done:0}, createdAt:h.createdAt||Date.now() };
+    }
+    (h.summary||[]).forEach(s=>{
+      const name=s.catName||'未分类';
+      if(!map[startKey].summary[name]) map[startKey].summary[name]={catName:name,items:[],total:0,done:0};
+      const target=map[startKey].summary[name];
+      target.total += (s.total||0);
+      target.done += (s.done||0);
+      (s.items||[]).forEach(it=>{
+        // 去重：同文字同完成态合并计数
+        const exist=target.items.find(x=>x.text===it.text && !!x.done===!!it.done);
+        if(exist){ exist.count = Math.max(exist.count||0, it.count||0); }
+        else { target.items.push({text:it.text,count:it.count||0,done:!!it.done}); }
+      });
+    });
+    map[startKey].totals.total += (h.totals&&h.totals.total||0);
+    map[startKey].totals.done += (h.totals&&h.totals.done||0);
+  });
+  state.history = Object.values(map).sort((a,b)=> new Date(b.weekStart)-new Date(a.weekStart));
+  state.history.forEach(h=>{
+    h.summary = Object.values(h.summary).map(s=>({...s,total:Math.max(s.total,s.items.length)}));
+  });
+}
 function load(){
   let raw=null;
   try{ raw=JSON.parse(localStorage.getItem(K)); }catch(e){ raw=null; }
@@ -171,6 +216,8 @@ function load(){
     tasks: Array.isArray(raw.tasks)? raw.tasks : [],
     history: Array.isArray(raw.history)? raw.history : []
   };
+  normalizeHistory();
+  save();
 }
 function save(){ localStorage.setItem(K, JSON.stringify(state)); }
 
@@ -191,7 +238,7 @@ function archiveCurrent(){
   state.history.unshift({
     weekKey: state.weekKey,
     weekStart: state.weekKey,
-    weekEnd: weekKeyOf(end),
+    weekEnd: fmtDate(end),
     summary, totals
   });
   return totals;
@@ -329,7 +376,7 @@ function openHistory(){
     const card=document.createElement('div'); card.className='hwk'+(w._cur?' cur':'');
     const head=document.createElement('div'); head.className='hwk-h';
     const range=document.createElement('div'); range.className='hwk-range';
-    const end= w._cur? '' : (' ~ '+w.weekEnd.slice(5));
+    const end= ' ~ '+(w._cur? getSundayKey(w.weekKey) : w.weekEnd);
     range.textContent=w.weekKey.slice(5)+end + (w._cur?'（本周·进行中）':'');
     head.appendChild(range);
     if(!w._cur){
