@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>八字能量分布 · 驱动力</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f3ecdc; --paper-2:#fbf6ea; --ink:#3a3329; --ink-soft:#8a7c68;
+    --line:#e2d4bb; --accent:#b8714e;
+    --yong-ink:#5f7a45; --yong-bd:#c9d8b6; --yong-bg:#f1f6e9;
+    --ji-ink:#b15538;  --ji-bd:#e6c6b2; --ji-bg:#fbeee8;
+    /* 五行色 */
+    --wx-mu:#5b8c7b; --wx-huo:#c8694e; --wx-tu:#b8924a;
+    --wx-jin:#8a837a; --wx-shui:#4a7fb8;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    font-family:'Noto Sans SC', system-ui, sans-serif; color:var(--ink);
+    min-height:100vh;
+    background:radial-gradient(130% 110% at 50% -10%, #fbf5e9 0%, #f3ecdc 55%, #ece1cb 100%);
+    display:flex; flex-direction:column; align-items:center;
+    padding:26px 16px 60px;
+  }
+  .wrap{ width:100%; max-width:1080px; }
+
+  .page-h{ text-align:center; margin-bottom:6px; }
+  .page-h h1{ font-family:'Noto Serif SC',serif; font-size:26px; letter-spacing:3px; margin:0; color:var(--ink); }
+  .page-h .sub{ font-size:13px; color:var(--ink-soft); letter-spacing:2px; margin-top:6px; }
+  .rule{ width:140px; height:1px; margin:14px auto 22px; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
+
+  /* 输入卡片 */
+  .input-card{ background:var(--paper-2); border:1px solid var(--line); border-radius:16px;
+    padding:22px 24px; max-width:640px; margin:0 auto 26px; box-shadow:0 6px 20px rgba(120,90,60,.10); }
+  .input-card h3{ font-family:'Noto Serif SC',serif; font-size:16px; margin:0 0 16px; color:var(--accent); letter-spacing:1px; }
+  .frow{ display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .frow label{ font-family:'Noto Serif SC',serif; font-size:14px; width:74px; flex:0 0 74px; color:var(--ink); }
+  .frow input, .frow select{ flex:1; min-width:160px; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--line); background:#fff; font-family:'Noto Sans SC',sans-serif; font-size:14px; color:var(--ink); }
+  .gen-btn{ display:block; width:100%; padding:13px; border:none; border-radius:11px; background:var(--accent);
+    color:#fff; font-family:'Noto Serif SC',serif; font-size:16px; letter-spacing:3px; cursor:pointer; margin-top:8px; }
+  .gen-btn:hover{ background:#a6623f; }
+  .tip{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:12px; line-height:1.7; }
+
+  /* 结果区 */
+  #result{ display:none; }
+  #result.on{ display:block; animation:fade .3s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  .bazi-bar{ text-align:center; background:var(--paper-2); border:1px solid var(--line);
+    border-radius:14px; padding:16px; margin-bottom:22px; }
+  .bazi-bar .pillars{ font-family:'Noto Serif SC',serif; font-size:22px; letter-spacing:6px; color:var(--ink); }
+  .bazi-bar .pillars b{ color:var(--accent); }
+  .bazi-bar .dm{ font-size:13px; color:var(--ink-soft); margin-top:8px; letter-spacing:1px; }
+
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(186px,1fr)); gap:16px; }
+  .ec{ background:var(--paper-2); border:1px solid var(--line); border-radius:16px; padding:18px 16px;
+    position:relative; overflow:hidden; transition:.18s; border-top:4px solid var(--c, var(--accent)); }
+  .ec:hover{ transform:translateY(-3px); box-shadow:0 10px 26px rgba(120,90,60,.16); }
+  .ec .wx{ position:absolute; top:8px; right:12px; font-family:'Noto Serif SC',serif; font-size:38px;
+    color:var(--c, var(--accent)); opacity:.16; font-weight:700; }
+  .ec .god{ font-family:'Noto Serif SC',serif; font-size:13px; color:var(--c, var(--accent)); letter-spacing:2px; }
+  .ec .name{ font-family:'Noto Serif SC',serif; font-size:17px; margin:2px 0 12px; color:var(--ink); }
+  .ec .energy{ font-family:'Noto Serif SC',serif; font-size:46px; font-weight:700; line-height:1;
+    color:var(--c, var(--accent)); }
+  .ec .energy small{ font-size:14px; font-weight:400; color:var(--ink-soft); margin-left:6px; letter-spacing:1px; }
+  .ec .intensity{ font-size:13px; margin:8px 0 12px; font-weight:600; }
+  .ec .intensity.up{ color:var(--yong-ink); }
+  .ec .intensity.down{ color:var(--ji-ink); }
+  .ec .tags{ margin-bottom:12px; display:flex; flex-wrap:wrap; gap:6px; }
+  .ec .tg{ font-size:11px; padding:3px 10px; border-radius:11px; }
+  .tg.core{ background:var(--accent); color:#fff; }
+  .tg.yong{ background:var(--yong-bg); color:var(--yong-ink); border:1px solid var(--yong-bd); }
+  .tg.ji{ background:var(--ji-bg); color:var(--ji-ink); border:1px solid var(--ji-bd); }
+  .ec .desc{ font-size:12.5px; line-height:1.75; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:10px; }
+
+  .note{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:22px; line-height:1.8;
+    background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:14px 18px; }
+  .note b{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-h">
+    <h1>八字能量分布</h1>
+    <div class="sub">输入出生信息 → 看五种驱动力的能量值</div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="input-card">
+    <h3>输入出生信息</h3>
+    <div class="frow">
+      <label>出生日期</label>
+      <input type="date" id="birth" value="1995-06-15" />
+    </div>
+    <div class="frow">
+      <label>出生时辰</label>
+      <select id="hour">
+        <option value="0">子时（23:00–00:59）</option>
+        <option value="2">丑时（01:00–02:59）</option>
+        <option value="4" selected>寅时（03:00–04:59）</option>
+        <option value="6">卯时（05:00–06:59）</option>
+        <option value="8">辰时（07:00–08:59）</option>
+        <option value="10">巳时（09:00–10:59）</option>
+        <option value="12">午时（11:00–12:59）</option>
+        <option value="14">未时（13:00–14:59）</option>
+        <option value="16">申时（15:00–16:59）</option>
+        <option value="18">酉时（17:00–18:59）</option>
+        <option value="20">戌时（19:00–20:59）</option>
+        <option value="22">亥时（21:00–22:59）</option>
+      </select>
+    </div>
+    <div class="frow">
+      <label>性别</label>
+      <select id="gender">
+        <option value="男">男</option>
+        <option value="女" selected>女</option>
+      </select>
+    </div>
+    <button class="gen-btn" id="genBtn">生 成 能 量 分 布</button>
+    <div class="tip">能量值为基于八字四柱天干地支权重的相对评分（整数）。强度＝相对五种均值的偏离。子时按早子时计，精确分钟不影响模板结论。</div>
+  </div>
+
+  <div id="result">
+    <div class="bazi-bar">
+      <div class="pillars" id="pillars"></div>
+      <div class="dm" id="dmLine"></div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="note">
+      <b>怎么读：</b>能量值越高，该驱动力在这人命局里越活跃。强度为正（绿）表示偏强，为负（红）表示偏弱。
+      标「<b>核心</b>」＝最强驱动力；标「<b>过度</b>」＝该驱动力过强或过弱（极端态，易显失衡面）。
+      与六亲的具体关系（如「需要妈妈的什么」）见驱动力页的「六亲关系矩阵」。
+    </div>
+  </div>
+</div>
+
+<script src="bazi_engine.js"></script>
+<script>
+/* 十神组 → 驱动力信息（与 驱动力.html 的 DRIVERS 映射一致） */
+const DRIVER_INFO = {
+  '比劫': { name:'自我价值感驱动', element:'木', color:'var(--wx-mu)',
+    yong:'靠赚钱与被需要确认价值、能主动表达需求、会逗母亲开心',
+    ji:'不停找事证明自己、忍受不了控制欲、自私、不配得感' },
+  '食伤': { name:'情感驱动', element:'火', color:'var(--wx-huo)',
+    yong:'有情、容易开心、共情强、旺夫、社牛',
+    ji:'带怨念嗔恨、最会吵架、翻旧账、在男人身上找情变怨恨' },
+  '财':   { name:'物质驱动', element:'土', color:'var(--wx-tu)',
+    yong:'花钱开心、招感财富、对价值敏感、适合价值投资',
+    ji:'眼里只有钱、以借钱/目的交友恋爱' },
+  '官杀': { name:'责任感驱动', element:'金', color:'var(--wx-jin)',
+    yong:'最靠谱、规划目标、领导力驾驭、稳定伴侣=意义',
+    ji:'回避责任、讨厌被要求、男回避（承担不了责任）' },
+  '印':   { name:'精神驱动', element:'水', color:'var(--wx-shui)',
+    yong:'理性目标感、智慧、杀印相生成就霸业、朋友精神同频',
+    ji:'无情无爱、忍受不了陪伴/控制、攻击性爱、最易被渣男玩弄' },
+};
+/* 五行顺序：木→火→土→金→水 */
+const ORDER = ['比劫','食伤','财','官杀','印'];
+
+const G = BaziEngine.GAN, Z = BaziEngine.ZHI;
+const gz = p => G[p.gan] + Z[p.zhi];
+
+function compute(){
+  const dt = document.getElementById('birth').value;
+  if(!dt){ alert('请先选择出生日期'); return; }
+  const [y,m,d] = dt.split('-').map(Number);
+  const hh = Number(document.getElementById('hour').value);
+  const gender = document.getElementById('gender').value;
+  const bz = BaziEngine.computeBazi({ y, m, d, hh, mm:0, gender });
+
+  // 四柱展示
+  document.getElementById('pillars').innerHTML =
+    `${gz(bz.year)}　${gz(bz.month)}　<b>${gz(bz.day)}</b>　${gz(bz.hour)}`;
+  document.getElementById('dmLine').textContent =
+    `日主 ${G[bz.dayMaster]}${['木','火','土','金','水'][bz.dmWx]}　·　命局${bz.strength.level}`;
+
+  // 五驱动力能量值
+  const dw = bz.driveW;               // {食伤,财,官杀,印,比劫}
+  const raw = ORDER.map(k => dw[k]);  // 原始权重
+  const energies = raw.map(v => Math.round(v * 10));   // 能量值（整数）
+  const total = energies.reduce((a,b)=>a+b,0);
+  const mean = total / 5;
+  const maxE = Math.max(...energies);
+
+  const cardsHtml = ORDER.map((k,i)=>{
+    const info = DRIVER_INFO[k];
+    const e = energies[i];
+    const intensity = Math.round((e - mean) / mean * 100);  // 强度 %
+    // 标签判定
+    const tags = [];
+    let state = 'yong';
+    if(e === maxE) tags.push('<span class="tg core">核心</span>');
+    if(e >= mean * 1.6){ tags.push('<span class="tg ji">过强·过度</span>'); state='ji'; }
+    else if(e <= mean * 0.5){ tags.push('<span class="tg ji">过弱·过度(不足)</span>'); state='ji'; }
+    if(state==='yong' && !tags.length) tags.push('<span class="tg yong">平衡·用</span>');
+    const desc = state==='ji' ? info.ji : info.yong;
+
+    return `<div class="ec" style="--c:${info.color}">
+      <div class="wx">${info.element}</div>
+      <div class="god">${k}</div>
+      <div class="name">${info.name}</div>
+      <div class="energy">${e}<small>能量值</small></div>
+      <div class="intensity ${intensity>=0?'up':'down'}">强度 ${intensity>=0?'+':''}${intensity}%</div>
+      <div class="tags">${tags.join('')}</div>
+      <div class="desc">${desc}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cards').innerHTML = cardsHtml;
+  document.getElementById('result').classList.add('on');
+  document.getElementById('result').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+document.getElementById('genBtn').onclick = compute;
+// 默认算一个示例
+compute();
+</script>
+</body>
+</html>
