@@ -591,7 +591,10 @@ function wbRequestSave(){
   }
 }
 /* 子页保存成功后的回执 */
-window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
+window.addEventListener('message', e=>{
+  if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); }
+  else if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } // 子页（如每日状态记录）任何改动自动上传云端，实现无感同步
+});
 /* 顶栏同步状态灯：根据 connected + 上次同步时间更新文字与颜色 */
 function wbUpdateSyncUI(){
   const dot=document.getElementById('wbSyncDot');
