@@ -120,6 +120,17 @@
     .addrow select{ flex:1 1 auto; }
     .addrow button{ flex:1 1 auto; }
     .panel{ padding:12px 12px; }
+    /* 盘面跟踪：3 列横排 → 垂直堆叠（避免 644px+ 不够装） */
+    .board{ flex-direction:column; gap:12px; }
+    .wl{ flex:1 1 auto; width:100%; }
+    .alertcol{ flex:1 1 auto; width:100%; max-height:none; }
+    /* 测算/指标卡片：原本 nowrap 会在窄屏挤一起，改为换行 */
+    .cards{ flex-wrap:wrap; }
+    .cards .ic{ flex:1 1 calc(50% - 5px); min-width:0; }
+    /* 止盈/止损字段：直排避免拥挤 */
+    .tpsl{ flex-direction:column; align-items:stretch; }
+    .tpsl-field{ justify-content:space-between; }
+    .tpsl-hint{ margin-left:0; }
     #jbackRow{ flex-direction:column !important; align-items:stretch !important; }
     #jbackRow label{ display:flex; flex-direction:column; gap:4px; }
     #jbackRow input{ width:100%; }
