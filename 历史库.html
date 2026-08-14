@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史库</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --term:#c9823a; --today:#fbe9d6; --noted:#3f9d6b;
+    --bad:#c0392b; --warn:#d9822b; --neutral:#9a9389;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    line-height:1.55; padding:18px 8px 48px;
+  }
+  .wrap{max-width:960px; margin:0 auto;}
+  header{ text-align:center; margin-bottom:14px; }
+  header h1{ font-size:21px; margin:0 0 4px; letter-spacing:1px; }
+  header .tip{ font-size:12px; color:var(--sub); }
+
+  /* 标签页 */
+  .tabs{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .tab{
+    border:1px solid var(--line); background:var(--card); color:var(--sub);
+    padding:9px 20px; border-radius:11px; cursor:pointer; font-size:14px;
+    font-family:inherit; transition:.15s;
+  }
+  .tab.active{ background:var(--accent); color:#fff; border-color:var(--accent);
+    box-shadow:0 2px 8px rgba(184,113,78,.25); }
+  .tab:hover:not(.active){ border-color:var(--accent2); color:var(--accent2); }
+
+  /* 筛选栏（历史检索） */
+  .bar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:10px 12px; margin-bottom:10px;
+    box-shadow:0 2px 10px rgba(120,100,80,.06);
+  }
+  .bar select, .bar input[type="search"], .bar input[type="number"], .bar input[type="date"]{
+    border:1px solid var(--line); border-radius:9px; background:#fff;
+    padding:7px 9px; font-size:13px; color:var(--ink); font-family:inherit;
+  }
+  .bar input[type="search"]{ flex:1; min-width:120px; }
+  .bar input[type="number"]{ width:74px; }
+  .bar select:focus, .bar input:focus{ outline:none; border-color:var(--accent); }
+  .bar .sep{ color:var(--line); }
+  .bar2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 0 6px; }
+  .bar2 .spacer{ flex:1; }
+  .bar2 .cnt{ font-size:12.5px; color:var(--sub); }
+  .bar2 button{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:6px 11px; border-radius:9px; cursor:pointer; font-size:12.5px;
+    font-family:inherit; transition:.15s;
+  }
+  .bar2 button:hover{ border-color:var(--accent2); color:var(--accent2); }
+
+  /* 概览卡片 */
+  .overview{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+  .stat{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:12px 10px; text-align:center; box-shadow:0 1px 6px rgba(120,100,80,.04);
+  }
+  .stat .num{ font-size:24px; font-weight:700; color:var(--accent); line-height:1.1; }
+  .stat .num.good{ color:var(--noted); }
+  .stat .num.hard{ color:var(--bad); }
+  .stat .lbl{ font-size:12px; color:var(--sub); margin-top:4px; }
+
+  /* 区块标题 */
+  .sec{ background:var(--card); border:1px solid var(--line); border-radius:14px;
+        padding:14px 16px; margin-bottom:16px; box-shadow:0 1px 6px rgba(120,100,80,.04); }
+  .sec h2{ font-size:15px; margin:0 0 12px; color:var(--accent); letter-spacing:1px;
+           border-left:4px solid var(--accent); padding-left:10px; }
+
+  /* 驱动力频率 */
+  .tagrow{ display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px; }
+  .tagrow .nm{ flex:0 0 130px; color:var(--ink); }
+  .tagrow .track{ flex:1; background:#f1ece3; border-radius:8px; height:16px; overflow:hidden; }
+  .tagrow .fill{ height:100%; border-radius:8px; }
+  .tagrow .fill.pos{ background:var(--noted); }
+  .tagrow .fill.exc{ background:var(--warn); }
+  .tagrow .ct{ flex:0 0 34px; text-align:right; color:var(--sub); }
+  .tagsum{ display:flex; gap:18px; margin-top:10px; font-size:13px; color:var(--sub); flex-wrap:wrap; }
+  .tagsum b.pos{ color:var(--noted); }
+  .tagsum b.exc{ color:var(--warn); }
+
+  /* 晴雨表 */
+  .mood{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .mcol{ border:1px solid var(--line); border-radius:11px; padding:10px 12px; }
+  .mcol.good{ border-top:3px solid var(--noted); }
+  .mcol.hard{ border-top:3px solid var(--bad); }
+  .mcol.neutral{ border-top:3px solid var(--neutral); }
+  .mcol h3{ margin:0 0 6px; font-size:13.5px; }
+  .mcol.good h3{ color:var(--noted); }
+  .mcol.hard h3{ color:var(--bad); }
+  .mcol.neutral h3{ color:var(--neutral); }
+  .mcol .dates{ font-size:12.5px; color:var(--sub); line-height:1.8; }
+  .mcol .empty{ font-size:12px; color:var(--neutral); }
+
+  /* 每月痕迹趋势 */
+  .trend{ display:flex; align-items:flex-end; gap:8px; height:90px; padding:4px 2px 0; overflow-x:auto; }
+  .tbar{ display:flex; flex-direction:column; align-items:center; gap:4px; min-width:42px; }
+  .tbar .b{ width:26px; background:var(--accent); border-radius:5px 5px 0 0; min-height:2px; transition:.2s; }
+  .tbar .m{ font-size:11px; color:var(--sub); }
+  .tbar .v{ font-size:11px; color:var(--accent); font-weight:600; }
+
+  /* 日历模块 */
+  .cal-head{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:10px; }
+  .cal-head button{ border:1px solid var(--line); background:#fff; border-radius:8px;
+    width:34px; height:30px; cursor:pointer; font-size:16px; color:var(--ink); font-family:inherit; }
+  .cal-head button.txt{ width:auto; padding:0 14px; font-size:13px; }
+  .cal-head button:hover{ border-color:var(--accent2); color:var(--accent2); }
+  .cal-title{ font-size:15px; font-weight:700; min-width:128px; text-align:center; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .cal-grid .wd{ text-align:center; font-size:11px; color:var(--sub); padding:2px 0; }
+  .cal-cell{ min-height:46px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:1px solid var(--line); border-radius:9px; font-size:13px; color:var(--ink); position:relative; background:#fff; }
+  .cal-cell.muted{ color:#cfc8bd; }
+  .cal-cell.noted{ background:var(--mark); border-color:#e7d3bf; cursor:pointer; font-weight:700; color:var(--accent); }
+  .cal-cell.noted:hover{ box-shadow:0 0 0 2px var(--accent2) inset; }
+  .cal-cell.sel{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .cal-cell .dot{ width:5px; height:5px; border-radius:50%; background:var(--accent); margin-top:3px; }
+  .cal-detail{ margin-top:12px; padding:12px 14px; border:1px dashed var(--line); border-radius:10px;
+    font-size:13.5px; min-height:20px; color:var(--sub); line-height:1.7; }
+  .cal-detail b{ color:var(--ink); }
+  .cal-detail .chips{ margin:6px 0; }
+  .cal-legend{ font-size:11.5px; color:var(--sub); text-align:center; margin-top:6px; }
+
+  /* 历史检索：按月折叠 */
+  .mgroup{ margin:10px 0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--card); }
+  .mhead{ display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; background:#fbf7f0; user-select:none; }
+  .mhead:hover{ background:#f6efe5; }
+  .mhead .arrow{ transition:.15s; color:var(--accent); font-size:12px; display:inline-block; }
+  .mhead.collapsed .arrow{ transform:rotate(-90deg); }
+  .mhead .mtitle{ font-weight:700; color:var(--accent); letter-spacing:1px; }
+  .mhead .mcount{ font-size:12px; color:var(--sub); margin-left:auto; }
+  .mbody{ padding:4px 10px 8px; }
+  .mbody.hide{ display:none; }
+
+  /* 单条记录 */
+  .rec{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:11px 14px; margin:8px 0; display:flex; gap:12px; align-items:flex-start;
+    box-shadow:0 1px 6px rgba(120,100,80,.04);
+  }
+  .rec .dc{ flex:0 0 92px; min-width:92px; }
+  .rec .gongli{ font-size:14.5px; font-weight:600; }
+  .rec .ganzhi{ font-size:13px; color:var(--accent); font-weight:600; margin-top:2px; }
+  .rec .term{ display:inline-block; margin-top:4px; background:#fbeede; color:var(--term);
+              font-size:10.5px; padding:1px 7px; border-radius:10px; }
+  .rec .badge{ display:inline-block; margin-top:5px; font-size:11px; padding:1px 8px; border-radius:10px; }
+  .rec .badge.good{ background:#e6f4ec; color:var(--noted); }
+  .rec .badge.hard{ background:#fbe6e2; color:var(--bad); }
+  .rec .badge.neutral{ background:#f0eee9; color:var(--neutral); }
+  .rec .rc{ flex:1; min-width:0; }
+  .rec .chips{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
+  .rec .chip{ background:var(--mark); color:var(--accent); border:1px solid #e7d3bf;
+              border-radius:13px; padding:2px 10px; font-size:12px; }
+  .rec .chip.exc{ background:#fbeede; color:var(--warn); border-color:#f0d6bd; }
+  .rec .txt{ font-size:13.5px; color:var(--ink); white-space:pre-wrap; word-break:break-word; }
+  .rec .txt.clip{ max-height:3.6em; overflow:hidden; }
+  .rec .more{ font-size:12px; color:var(--accent2); cursor:pointer; margin-top:3px; display:inline-block; }
+
+  .empty{ text-align:center; color:var(--sub); padding:40px 10px; font-size:14px; }
+
+  footer{ text-align:center; font-size:11px; color:var(--sub); margin-top:26px; line-height:1.8; }
+
+  /* 手机适配 */
+  @media (max-width:680px){
+    body{padding:14px 6px 40px;}
+    header h1{font-size:18px;}
+    .overview{grid-template-columns:repeat(2,1fr);}
+    .mood{grid-template-columns:1fr;}
+    .tagrow .nm{flex-basis:96px; font-size:12px;}
+    .rec{flex-direction:column; gap:8px; padding:11px 12px;}
+    .rec .dc{flex:0 0 auto; width:100%; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap;}
+    .rec .ganzhi{margin-top:0;}
+    .cal-cell{min-height:40px; font-size:12px;}
+    footer{font-size:10.5px;}
+  }
+  @media (max-width:400px){
+    .bar{flex-direction:column; align-items:stretch;}
+    .bar2{flex-direction:column; align-items:stretch;}
+    .bar2 .cnt{text-align:center;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>历史库</h1>
+    <div class="tip">把留下过痕迹的每一天，收进同一本册子</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="stats">统计</button>
+    <button class="tab" data-tab="records">数据记录</button>
+    <button class="tab" data-tab="search">历史检索</button>
+  </nav>
+
+  <!-- 统计 -->
+  <section id="tab-stats" class="tabpane">
+    <div id="overview" class="overview"></div>
+    <div class="sec">
+      <h2>驱动力分布</h2>
+      <div id="tagsBox"></div>
+      <div class="tagsum" id="tagsum"></div>
+    </div>
+    <div class="sec">
+      <h2>晴雨表 · 状态走向</h2>
+      <div class="mood" id="moodBox"></div>
+    </div>
+  </section>
+
+  <!-- 数据记录 -->
+  <section id="tab-records" class="tabpane" hidden>
+    <div class="sec">
+      <h2>具体日历</h2>
+      <div class="cal">
+        <div class="cal-head">
+          <button id="calPrev" title="上一月">‹</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button id="calNext" title="下一月">›</button>
+          <button class="txt" id="calToday">回到本月</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">底色标记 = 当天留有痕迹，点击可查看当天记录</div>
+        <div class="cal-detail" id="calDetail">点击有标记的日期，查看当天的觉察记录。</div>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>每月痕迹</h2>
+      <div class="trend" id="trendBox"></div>
+    </div>
+  </section>
+
+  <!-- 历史检索 -->
+  <section id="tab-search" class="tabpane" hidden>
+    <div class="bar">
+      <select id="period">
+        <option value="all">全部时间</option>
+        <option value="1m">本月</option>
+        <option value="3m">最近 3 个月</option>
+        <option value="7d">最近 7 天</option>
+        <option value="30d">最近 30 天</option>
+        <option value="90d">最近 90 天</option>
+        <option value="nd">最近 N 天…</option>
+        <option value="range">自定义起止日期…</option>
+      </select>
+      <input type="number" id="ndays" min="1" max="365" value="10" title="最近天数" style="display:none">
+      <span id="rangeWrap" style="display:none">
+        <input type="date" id="dstart" title="开始日期"> <span class="sep">~</span> <input type="date" id="dend" title="结束日期">
+      </span>
+      <select id="monthfilter"><option value="all">全部月份</option></select>
+      <select id="tagfilter"><option value="-1">全部驱动力</option></select>
+      <input type="search" id="q" placeholder="搜索文字 / 标签 / 日期…">
+    </div>
+    <div class="bar2">
+      <span class="cnt" id="cnt"></span>
+      <span class="spacer"></span>
+      <button id="expandAll">全部展开</button>
+      <button id="collapseAll">全部折叠</button>
+      <button id="export">导出 MD</button>
+      <button id="refresh">刷新</button>
+    </div>
+    <div id="history"></div>
+  </section>
+
+  <footer>
+    数据摘录自「当下状态」的本地记录；高能量 = 只含积极驱动力，低能量 = 含过度驱动力。<br>
+    本页只读，修改请回到「当下状态」。
+  </footer>
+</div>
+
+<script>
+/* 与每日状态记录同源 */
+const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
+              '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
+const POS=new Set([0,1,2,3,4]);
+const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
+const LS_KEY='DAILY_STATUS';
+
+/* 干支日 */
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+function jdn(y,m,d){ const a=Math.floor((14-m)/12); const yy=y+4800-a; const mm=m+12*a-3;
+  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045; }
+function ganzhiDay(y,m,d){ const idx=(jdn(y,m,d)+49)%60; return GAN[idx%10]+ZHI[idx%12]; }
+
+const TERM_C=[5.4055,20.12,3.87,18.73,5.63,20.646,4.81,20.1,5.52,21.04,5.678,21.37,
+             7.108,22.83,7.5,23.13,7.646,23.042,8.318,23.438,7.438,22.36,7.18,21.94];
+const TERM_NAMES=['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至',
+                  '小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
+function solarTermDay(year,i){ const Y=year%100; const L=Math.floor((Y-1)/4);
+  return Math.floor(Y*0.2422+TERM_C[i])-L; }
+function termOn(y,m,d){ for(let i=0;i<24;i++){ const mo=Math.floor(i/2)+1;
+  if(mo===m && solarTermDay(y,i)===d) return TERM_NAMES[i]; } return ''; }
+
+/* 读取 */
+function loadAll(){
+  let obj;
+  try{ obj=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ obj=null; }
+  if(!obj || typeof obj!=='object') obj={records:{},tags:{}};
+  if(!obj.records) obj.records={};
+  if(!obj.tags) obj.tags={};
+  return obj;
+}
+function parseKey(k){ const p=k.split('-'); return {y:+p[0], m:+p[1], d:+p[2]}; }
+
+/* 分类：依据驱动力标签 */
+function classify(tags){
+  const t = tags||[];
+  const exc = t.filter(i=>!POS.has(i)).length;
+  const pos = t.filter(i=>POS.has(i)).length;
+  if(exc>0) return 'hard';
+  if(pos>0) return 'good';
+  return 'neutral';
+}
+const MOOD_TXT={good:'顺遂 · 积极', hard:'内耗 · 受挫', neutral:'中性 · 普通'};
+
+/* 收集所有"留下痕迹"的日期 */
+function collect(obj){
+  const keys=new Set();
+  Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
+  Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
+  const arr=[];
+  keys.forEach(k=>{
+    const {y,m,d}=parseKey(k);
+    const tags=(obj.tags[k]||[]).slice();
+    const text=(obj.records[k]||'');
+    arr.push({key:k, y, m, d, date:new Date(y,m-1,d), tags, text, mood:classify(tags)});
+  });
+  arr.sort((a,b)=>b.date-a.date); // 新→旧
+  return arr;
+}
+
+function fmtMD(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+let RAW=[]; // 全部痕迹
+
+/* ---------- 统计标签 ---------- */
+function renderStats(){
+  const data=RAW;
+  const months=new Set(data.map(r=>`${r.y}-${r.m}`));
+  const good=data.filter(r=>r.mood==='good').length;
+  const hard=data.filter(r=>r.mood==='hard').length;
+  const neutral=data.filter(r=>r.mood==='neutral').length;
+  document.getElementById('overview').innerHTML=
+    statCard(data.length,'统计总数（天）','')+
+    statCard(months.size,'统计月份（月）','')+
+    statCard(good,'高能量','good')+
+    statCard(hard,'低能量','hard');
+
+  const counts=new Array(10).fill(0);
+  data.forEach(r=>r.tags.forEach(i=>{ if(i>=0&&i<10) counts[i]++; }));
+  const maxc=Math.max(1,...counts);
+  let tbox='';
+  DRIVERS.forEach((nm,i)=>{
+    const exc=!POS.has(i);
+    tbox+=`<div class="tagrow"><div class="nm">${nm}</div>`+
+      `<div class="track"><div class="fill ${exc?'exc':'pos'}" style="width:${counts[i]/maxc*100}%"></div></div>`+
+      `<div class="ct">${counts[i]}</div></div>`;
+  });
+  document.getElementById('tagsBox').innerHTML=tbox;
+  const posSum=counts.slice(0,5).reduce((a,b)=>a+b,0);
+  const excSum=counts.slice(5,10).reduce((a,b)=>a+b,0);
+  document.getElementById('tagsum').innerHTML=
+    `积极驱动力合计 <b class="pos">${posSum}</b> 次　·　过度驱动力合计 <b class="exc">${excSum}</b> 次`;
+
+  const moodDays={good:[],hard:[],neutral:[]};
+  data.forEach(r=>moodDays[r.mood].push(r));
+  function colList(arr){
+    if(!arr.length) return `<div class="empty">暂无</div>`;
+    return `<div class="dates">`+arr.map(r=>`${ganzhiDay(r.y,r.m,r.d)}日`).join('、')+`</div>`;
+  }
+  document.getElementById('moodBox').innerHTML=
+    `<div class="mcol good"><h3>顺遂 · 积极（${moodDays.good.length}）</h3>${colList(moodDays.good)}</div>`+
+    `<div class="mcol hard"><h3>内耗 · 受挫（${moodDays.hard.length}）</h3>${colList(moodDays.hard)}</div>`+
+    `<div class="mcol neutral"><h3>中性 · 普通（${moodDays.neutral.length}）</h3>${colList(moodDays.neutral)}</div>`;
+}
+function statCard(num,lbl,cls){
+  return `<div class="stat"><div class="num ${cls}">${num}</div><div class="lbl">${lbl}</div></div>`;
+}
+
+/* ---------- 数据记录标签（日历 + 每月痕迹） ---------- */
+let calY, calM, calSel=null;
+function renderRecords(){
+  renderCalendar();
+  /* 每月痕迹 */
+  const perMonth={};
+  RAW.forEach(r=>{ const k=`${r.y}-${r.m}`; perMonth[k]=(perMonth[k]||0)+1; });
+  const monthKeys=Object.keys(perMonth).sort();
+  const maxm=Math.max(1,...Object.values(perMonth));
+  let trend='';
+  monthKeys.forEach(k=>{
+    const [yy,mm]=k.split('-');
+    trend+=`<div class="tbar"><div class="v">${perMonth[k]}</div>`+
+      `<div class="b" style="height:${perMonth[k]/maxm*70}px"></div>`+
+      `<div class="m">${yy.slice(2)}/${mm}</div></div>`;
+  });
+  document.getElementById('trendBox').innerHTML=trend||`<div class="empty">暂无数据</div>`;
+}
+function renderCalendar(){
+  if(calY===undefined){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; }
+  document.getElementById('calTitle').textContent=`${calY}年 ${calM}月`;
+  const first=new Date(calY,calM-1,1);
+  const startW=first.getDay();
+  const days=new Date(calY,calM,0).getDate();
+  const map={};
+  RAW.forEach(r=>{ if(r.y===calY && r.m===calM) map[r.d]=r; });
+  let html='<div class="wd">日</div><div class="wd">一</div><div class="wd">二</div><div class="wd">三</div>'
+         +'<div class="wd">四</div><div class="wd">五</div><div class="wd">六</div>';
+  for(let i=0;i<startW;i++) html+='<div class="cal-cell muted"></div>';
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let d=1; d<=days; d++){
+    const cur=new Date(calY,calM-1,d);
+    const rec=map[d];
+    const cls=['cal-cell'];
+    if(cur>today) cls.push('muted');
+    if(rec) cls.push('noted');
+    if(rec && rec.key===calSel) cls.push('sel');
+    html+=`<div class="${cls.join(' ')}"${rec?` data-d="${d}"`:''}>${d}${rec?'<span class="dot"></span>':''}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  renderCalDetail();
+}
+function renderCalDetail(){
+  const el=document.getElementById('calDetail');
+  if(calSel==null){ el.innerHTML='点击有标记的日期，查看当天的觉察记录。'; return; }
+  const rec=RAW.find(r=>r.y===calY && r.m===calM && r.d===calSel);
+  if(!rec){ el.innerHTML='（该日无记录）'; return; }
+  const wd=WEEK[rec.date.getDay()];
+  const chips=rec.tags.map(i=>`<span class="chip ${!POS.has(i)?'exc':''}">${DRIVERS[i]}</span>`).join('');
+  el.innerHTML=`<b>${rec.y}年${rec.m}月${rec.d}日 ${wd} · ${ganzhiDay(rec.y,rec.m,rec.d)}日</b>`+
+    `<span class="badge ${rec.mood}" style="margin-left:8px">${MOOD_TXT[rec.mood]}</span>`+
+    (chips?`<div class="chips">${chips}</div>`:'')+
+    (rec.text?`<div class="txt">${esc(rec.text)}</div>`:`<div class="txt" style="color:var(--sub)">（仅标签，无文字）</div>`);
+}
+
+/* ---------- 历史检索标签 ---------- */
+function applySearchFilter(){
+  const period=document.getElementById('period').value;
+  const tf=+document.getElementById('tagfilter').value;
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const mf=document.getElementById('monthfilter').value;
+  const now=new Date(); now.setHours(0,0,0,0);
+  let cutoff=null, floor=null, ceil=null;
+  if(period==='1m'){ cutoff=new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(period==='3m'){ cutoff=new Date(now); cutoff.setMonth(cutoff.getMonth()-3); }
+  else if(period==='7d'){ cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-7); }
+  else if(period==='30d'){ cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-30); }
+  else if(period==='90d'){ cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-90); }
+  else if(period==='nd'){ const n=Math.max(1,+document.getElementById('ndays').value||1);
+    cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-n); }
+  else if(period==='range'){
+    if(document.getElementById('dstart').value) floor=new Date(document.getElementById('dstart').value);
+    if(document.getElementById('dend').value){ ceil=new Date(document.getElementById('dend').value); ceil.setDate(ceil.getDate()+1); }
+  }
+  return RAW.filter(r=>{
+    if(cutoff && r.date<cutoff) return false;
+    if(floor && r.date<floor) return false;
+    if(ceil && r.date>=ceil) return false;
+    if(mf!=='all' && `${r.y}-${r.m}`!==mf) return false;
+    if(tf>=0 && !r.tags.includes(tf)) return false;
+    if(q){
+      const hay=(r.text+' '+r.tags.map(i=>DRIVERS[i]).join(' ')+' '+
+        `${r.y}年${r.m}月`+' '+`${r.y}-${r.m}`+' '+`${r.m}月${r.d}日`).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function recCard(r){
+  const wd=WEEK[r.date.getDay()];
+  const chips=(r.tags.map(i=>{
+    const exc=!POS.has(i);
+    return `<span class="chip ${exc?'exc':''}">${DRIVERS[i]||i}</span>`;
+  })).join('');
+  const term=termOn(r.y,r.m,r.d);
+  const text=r.text||'';
+  const clip=text.length>70?' clip':'';
+  const sid='t_'+r.key.replace(/-/g,'');
+  return `<div class="rec">`+
+    `<div class="dc"><div class="gongli">${r.m}月${r.d}日 ${wd}</div>`+
+      `<div class="ganzhi">${ganzhiDay(r.y,r.m,r.d)}日</div>`+
+      (term?`<div class="term">${term}</div>`:'')+
+      `<div class="badge ${r.mood}">${MOOD_TXT[r.mood]}</div></div>`+
+    `<div class="rc">`+
+      (chips?`<div class="chips">${chips}</div>`:'')+
+      (text?`<div class="txt${clip}" id="${sid}">${esc(text)}</div>${clip?`<span class="more" data-t="${sid}">展开</span>`:''}`:`<div class="txt" style="color:var(--sub)">（仅标签，无文字）</div>`)+
+    `</div></div>`;
+}
+function renderSearch(){
+  const data=applySearchFilter();
+  document.getElementById('cnt').textContent=`共 ${data.length} 天`;
+  const hist=document.getElementById('history');
+  if(!data.length){
+    const msg = RAW.length
+      ? `当前筛选条件下没有匹配的记录。<br>试试调整时间范围、月份或搜索词。`
+      : `还没有留下任何痕迹。<br>去「当下状态」记一笔，它会自动收进这里。`;
+    hist.innerHTML=`<div class="empty">${msg}</div>`;
+    return;
+  }
+  const groups={};
+  data.forEach(r=>{ const k=`${r.y}-${r.m}`; (groups[k]=groups[k]||[]).push(r); });
+  const keys=Object.keys(groups).sort().reverse(); // 近月在前
+  let html='';
+  keys.forEach(k=>{
+    const [yy,mm]=k.split('-');
+    const recs=groups[k];
+    html+=`<div class="mgroup" data-mk="${k}">`+
+      `<div class="mhead"><span class="arrow">▾</span><span class="mtitle">${yy}年 ${+mm}月</span><span class="mcount">${recs.length} 天</span></div>`+
+      `<div class="mbody">`+recs.map(recCard).join('')+`</div></div>`;
+  });
+  hist.innerHTML=html;
+}
+
+/* ---------- 标签页切换 ---------- */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.getElementById('tab-stats').hidden = name!=='stats';
+  document.getElementById('tab-records').hidden = name!=='records';
+  document.getElementById('tab-search').hidden = name!=='search';
+  if(name==='records') renderRecords();
+  if(name==='search') renderSearch();
+}
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>switchTab(btn.dataset.tab));
+});
+
+/* ---------- 初始化 ---------- */
+function populateSelectors(){
+  const tf=document.getElementById('tagfilter');
+  DRIVERS.forEach((nm,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=nm; tf.appendChild(o); });
+  const mf=document.getElementById('monthfilter');
+  const seen=new Set();
+  RAW.forEach(r=>{ const k=`${r.y}-${r.m}`; if(!seen.has(k)){ seen.add(k);
+    const o=document.createElement('option'); o.value=k; o.textContent=`${r.y}年 ${r.m}月`; mf.appendChild(o); } });
+}
+function render(){
+  RAW=collect(loadAll());
+  populateSelectors();
+  renderStats();
+  renderRecords();
+  renderSearch();
+}
+
+/* 展开 / 收起（按月分组） */
+document.getElementById('history').addEventListener('click',e=>{
+  const head=e.target.closest('.mhead');
+  if(head){ const body=head.nextElementSibling;
+    const hide=body.classList.toggle('hide'); head.classList.toggle('collapsed',hide); return; }
+  if(e.target.classList && e.target.classList.contains('more')){
+    const t=document.getElementById(e.target.dataset.t);
+    if(t.classList.contains('clip')){ t.classList.remove('clip'); e.target.textContent='收起'; }
+    else { t.classList.add('clip'); e.target.textContent='展开'; }
+  }
+});
+document.getElementById('collapseAll').onclick=()=>{
+  document.querySelectorAll('#history .mbody').forEach(b=>b.classList.add('hide'));
+  document.querySelectorAll('#history .mhead').forEach(h=>h.classList.add('collapsed'));
+};
+document.getElementById('expandAll').onclick=()=>{
+  document.querySelectorAll('#history .mbody').forEach(b=>b.classList.remove('hide'));
+  document.querySelectorAll('#history .mhead').forEach(h=>h.classList.remove('collapsed'));
+};
+
+/* 日历导航 */
+document.getElementById('calPrev').onclick=()=>{ calM--; if(calM<1){calM=12;calY--;} calSel=null; renderCalendar(); };
+document.getElementById('calNext').onclick=()=>{ calM++; if(calM>12){calM=1;calY++;} calSel=null; renderCalendar(); };
+document.getElementById('calToday').onclick=()=>{ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; calSel=null; renderCalendar(); };
+document.getElementById('calGrid').addEventListener('click',e=>{
+  const cell=e.target.closest('.cal-cell');
+  if(cell && cell.dataset.d){ calSel=+cell.dataset.d; renderCalendar(); }
+});
+
+/* 历史检索筛选交互 */
+const periodSel=document.getElementById('period');
+periodSel.onchange=()=>{
+  document.getElementById('ndays').style.display = periodSel.value==='nd' ? '' : 'none';
+  document.getElementById('rangeWrap').style.display = periodSel.value==='range' ? '' : 'none';
+  renderSearch();
+};
+document.getElementById('ndays').oninput=debounce(renderSearch,200);
+document.getElementById('dstart').onchange=renderSearch;
+document.getElementById('dend').onchange=renderSearch;
+document.getElementById('monthfilter').onchange=renderSearch;
+document.getElementById('tagfilter').onchange=renderSearch;
+document.getElementById('q').oninput=debounce(renderSearch,200);
+
+/* 导出 Markdown */
+document.getElementById('export').onclick=()=>{
+  const data=applySearchFilter();
+  let md=`# 历史库\n\n`;
+  md+=`> 导出时间：${fmtMD(new Date())}　·　共 ${data.length} 天\n\n`;
+  const months=new Set(data.map(r=>`${r.y}-${r.m}`));
+  md+=`## 概览\n\n- 统计总数（天）：${data.length}\n- 统计月份（月）：${months.size}\n- 高能量：${data.filter(r=>r.mood==='good').length} 天\n- 低能量：${data.filter(r=>r.mood==='hard').length} 天\n- 中性 · 普通：${data.filter(r=>r.mood==='neutral').length} 天\n\n`;
+  const counts=new Array(10).fill(0);
+  data.forEach(r=>r.tags.forEach(i=>{ if(i>=0&&i<10) counts[i]++; }));
+  md+=`## 驱动力分布\n\n`;
+  DRIVERS.forEach((nm,i)=>{ if(counts[i]) md+=`- ${nm}：${counts[i]} 次\n`; });
+  md+=`\n## 历史记录\n\n`;
+  let curMonth='';
+  data.forEach(r=>{
+    const mk=`${r.y}-${r.m}`;
+    if(mk!==curMonth){ curMonth=mk; md+=`\n### ${r.y}年${r.m}月\n\n`; }
+    const tags=r.tags.map(i=>DRIVERS[i]).join('、');
+    md+=`- **${r.m}月${r.d}日**${tags?` 〔${tags}〕`:''}（${MOOD_TXT[r.mood]}）\n`;
+    if(r.text.trim()) md+=`  ${r.text.trim().replace(/\n/g,'\n  ')}\n`;
+  });
+  const blob=new Blob([md],{type:'text/markdown'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='历史库_'+fmtMD(new Date())+'.md';
+  a.click();
+};
+
+document.getElementById('refresh').onclick=render;
+
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+
+/* 外壳同步刷新 */
+window.addEventListener('message',function(e){
+  if(e.data && e.data.type==='wb-reload'){ try{ render(); }catch(err){} }
+});
+
+render();
+</script>
+</body>
+</html>
