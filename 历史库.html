@@ -255,6 +255,7 @@
         <input type="date" id="dstart" title="开始日期"> <span class="sep">~</span> <input type="date" id="dend" title="结束日期">
       </span>
       <select id="monthfilter"><option value="all">全部月份</option></select>
+      <select id="moodfilter"><option value="all">全部状态</option><option value="good">顺遂 · 积极</option><option value="hard">内耗 · 受挫</option><option value="neutral">中性 · 普通</option></select>
       <select id="tagfilter"><option value="-1">全部驱动力</option></select>
       <input type="search" id="q" placeholder="搜索文字 / 标签 / 日期…">
     </div>
@@ -447,6 +448,7 @@ function applySearchFilter(){
   const tf=+document.getElementById('tagfilter').value;
   const q=document.getElementById('q').value.trim().toLowerCase();
   const mf=document.getElementById('monthfilter').value;
+  const moodf=document.getElementById('moodfilter').value;
   const now=new Date(); now.setHours(0,0,0,0);
   let cutoff=null, floor=null, ceil=null;
   if(period==='1m'){ cutoff=new Date(now.getFullYear(),now.getMonth(),1); }
@@ -465,6 +467,7 @@ function applySearchFilter(){
     if(floor && r.date<floor) return false;
     if(ceil && r.date>=ceil) return false;
     if(mf!=='all' && `${r.y}-${r.m}`!==mf) return false;
+    if(moodf!=='all' && r.mood!==moodf) return false;
     if(tf>=0 && !r.tags.includes(tf)) return false;
     if(q){
       const hay=(r.text+' '+r.tags.map(i=>DRIVERS[i]).join(' ')+' '+
@@ -589,6 +592,7 @@ document.getElementById('ndays').oninput=debounce(renderSearch,200);
 document.getElementById('dstart').onchange=renderSearch;
 document.getElementById('dend').onchange=renderSearch;
 document.getElementById('monthfilter').onchange=renderSearch;
+document.getElementById('moodfilter').onchange=renderSearch;
 document.getElementById('tagfilter').onchange=renderSearch;
 document.getElementById('q').oninput=debounce(renderSearch,200);
 
