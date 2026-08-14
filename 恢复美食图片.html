@@ -88,7 +88,7 @@ function kb(n){ return (n/1024).toFixed(0)+'KB'; }
 function openIdb(){
   return new Promise((res,rej)=>{
     let req;
-    try{ req=indexedDB.open(IDB_NAME,1); }catch(e){ return rej(e); }
+    try{ req=indexedDB.open(IDB_NAME); }catch(e){ return rej(e); } // 不带版本号：以当前版本打开，避免误触发升级清空库
     req.onerror=()=>rej(req.error||new Error('IDB 打开失败'));
     req.onsuccess=()=>res(req.result);
     req.onupgradeneeded=()=>{ /* 不应触发：库已存在 */ };
