@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据抢救 · 本地存档检查</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --ok:#3f9d6b; --warn:#d9822b; --bad:#c0392b;
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;padding:14px;}
+  h1{font-size:19px;margin:0 0 4px;color:var(--accent);letter-spacing:1px;}
+  .sub{font-size:12px;color:var(--sub);margin-bottom:14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .card h2{font-size:14.5px;margin:0 0 10px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#f0e3d6;color:var(--accent);font-weight:600;}
+  .badge.bad{background:#fdecea;color:var(--bad);}
+  .badge.ok{background:#e8f5ee;color:var(--ok);}
+  .row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:7px 0;border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:0;}
+  .row .k{color:var(--sub);word-break:break-all;}
+  .row .v{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .item{padding:10px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;font-size:12.5px;background:#fdfbf7;}
+  .item.only{border-color:var(--bad);background:#fdf3f1;}
+  .item .t{font-size:11px;color:var(--sub);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;}
+  .item .t b{color:var(--bad);font-size:10.5px;}
+  .item .c{white-space:pre-wrap;word-break:break-word;}
+  button{border:0;border-radius:9px;padding:11px 16px;font-size:13.5px;font-family:inherit;cursor:pointer;margin:4px 6px 4px 0;}
+  .b1{background:var(--accent);color:#fff;}
+  .b2{background:#efe7da;color:var(--ink);}
+  .b3{background:var(--ok);color:#fff;}
+  .tip{font-size:12px;color:var(--sub);background:#f5efe6;border-left:3px solid var(--accent);padding:9px 11px;border-radius:0 8px 8px 0;margin:10px 0;}
+  .tip.warn{background:#fdf6ec;border-color:var(--warn);color:#8a6636;}
+  #log{font-size:11.5px;color:var(--sub);white-space:pre-wrap;max-height:200px;overflow:auto;background:#faf7f1;padding:9px;border-radius:8px;margin-top:8px;}
+  .empty{font-size:12px;color:var(--sub);text-align:center;padding:16px 0;}
+</style>
+</head>
+<body>
+
+<h1>数据抢救 · 本地存档检查</h1>
+<div class="sub">只读模式，不会自动上传或覆盖任何数据。当前地址：<span id="org"></span></div>
+
+<div class="tip warn">
+  <b>重要：</b>在确认抢救完成之前，请先不要在这台设备上打开工作台首页。工作台一打开就会自动同步，可能把本机数据覆盖掉。
+</div>
+
+<div class="card">
+  <h2>① 本机存了什么 <span class="badge" id="bgLocal">读取中</span></h2>
+  <div id="localList"><div class="empty">读取中…</div></div>
+</div>
+
+<div class="card">
+  <h2>② 股票 · 状态记录 <span class="badge" id="bgJournal">—</span></h2>
+  <div class="sub" style="margin:0 0 8px">红框 = 本机有、云端没有（就是没同步上去的那几条）</div>
+  <div id="journalList"><div class="empty">等待对比…</div></div>
+</div>
+
+<div class="card">
+  <h2>③ 当下状态 · 每日记录 <span class="badge" id="bgDaily">—</span></h2>
+  <div id="dailyList"><div class="empty">等待对比…</div></div>
+</div>
+
+<div class="card">
+  <h2>④ 抢救动作</h2>
+  <button class="b2" onclick="doExport()">导出本机备份（JSON）</button>
+  <button class="b1" onclick="doCompare()">重新对比云端</button>
+  <button class="b3" onclick="doMerge()">把本机独有的记录补进云端</button>
+  <div class="tip">补进云端只做「增加」：本机独有的条目追加上去，云端已有的一律保留原样，不会删除也不会覆盖。图片类大数据（美食菜谱等）不参与，避免误覆盖。</div>
+  <div id="log">就绪。</div>
+</div>
+
+<script>
+const SB_URL='https://vienajheerbsmckfzkzo.supabase.co';
+const SB_KEY='sb_publishable_b6t_c2L2j8wB7Vgp9lWGZw_HqHVFQzF';
+const MERGE_KEYS=['stock_journal','DAILY_STATUS','weekly_plan','stock_watchlist','cinema_records','riri_myRecipes','food_taste'];
+let cloudData=null;
+
+function log(m){ const el=document.getElementById('log'); el.textContent=(new Date()).toTimeString().slice(0,8)+'  '+m+'\n'+el.textContent; }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtTs(ts){
+  try{ const d=new Date(ts); const p=n=>String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+  catch(e){ return String(ts); }
+}
+document.getElementById('org').textContent=location.origin;
+
+/* ---------- ① 本机概览 ---------- */
+function renderLocal(){
+  const el=document.getElementById('localList');
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++) keys.push(localStorage.key(i));
+  keys.sort();
+  if(!keys.length){ el.innerHTML='<div class="empty">本机这个网址下没有任何数据（可能被浏览器清理过，或这是首次打开）</div>';
+    document.getElementById('bgLocal').textContent='空'; document.getElementById('bgLocal').className='badge bad'; return; }
+  document.getElementById('bgLocal').textContent=keys.length+' 项';
+  let h='';
+  keys.forEach(k=>{
+    const v=localStorage.getItem(k)||'';
+    let extra='';
+    if(k==='stock_journal'){ try{ extra=JSON.parse(v).length+' 条'; }catch(e){} }
+    if(k==='DAILY_STATUS'){ try{ extra=Object.keys(JSON.parse(v).records||{}).length+' 天'; }catch(e){} }
+    if(k==='wb_last_sync_at'){ extra=v; }
+    if(k==='wb_cloudsync'){ try{ extra=JSON.parse(v).connected?'已连接':'未连接'; }catch(e){} }
+    const kb=(v.length/1024);
+    h+='<div class="row"><div class="k">'+esc(k)+(extra?' <b style="color:#b8714e">'+esc(extra)+'</b>':'')+'</div><div class="v">'+(kb>1024?(kb/1024).toFixed(1)+' MB':kb.toFixed(1)+' KB')+'</div></div>';
+  });
+  el.innerHTML=h;
+}
+
+/* ---------- 拉云端 ---------- */
+async function fetchCloud(){
+  const r=await fetch(SB_URL+'/rest/v1/workbench_sync?id=eq.me&select=*',
+    {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+  if(!r.ok) throw new Error('云端读取失败 HTTP '+r.status);
+  const j=await r.json();
+  if(!j.length) return null;
+  return j[0];
+}
+
+/* ---------- ② 股票状态记录对比 ---------- */
+function renderJournal(){
+  const el=document.getElementById('journalList');
+  let local=[]; try{ local=JSON.parse(localStorage.getItem('stock_journal')||'[]'); }catch(e){}
+  let cloud=[]; if(cloudData){ try{ cloud=JSON.parse((cloudData.payload.data||{})['stock_journal']||'[]'); }catch(e){} }
+  const cloudIds=new Set(cloud.map(x=>x.id));
+  const bg=document.getElementById('bgJournal');
+  if(!local.length){
+    el.innerHTML='<div class="empty">本机没有股票状态记录数据</div>';
+    bg.textContent='本机 0 条'; bg.className='badge bad'; return;
+  }
+  const onlyLocal=local.filter(x=>!cloudIds.has(x.id));
+  bg.textContent='本机 '+local.length+' 条 / 云端 '+cloud.length+' 条';
+  bg.className='badge'+(onlyLocal.length?' bad':' ok');
+  const sorted=[...local].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  el.innerHTML=sorted.map(x=>{
+    const only=!cloudIds.has(x.id);
+    return '<div class="item'+(only?' only':'')+'"><div class="t"><span>'+fmtTs(x.ts)+'</span>'
+      +(only?'<b>⚠ 云端没有</b>':'<span style="color:#3f9d6b">已同步</span>')+'</div>'
+      +'<div class="c">'+esc(x.text||'')+'</div></div>';
+  }).join('');
+  log('股票状态记录：本机 '+local.length+' 条，其中 '+onlyLocal.length+' 条云端缺失');
+}
+
+/* ---------- ③ 每日状态对比 ---------- */
+function renderDaily(){
+  const el=document.getElementById('dailyList');
+  let local=null; try{ local=JSON.parse(localStorage.getItem('DAILY_STATUS')||'null'); }catch(e){}
+  let cloud=null; if(cloudData){ try{ cloud=JSON.parse((cloudData.payload.data||{})['DAILY_STATUS']||'null'); }catch(e){} }
+  const bg=document.getElementById('bgDaily');
+  if(!local||!local.records){ el.innerHTML='<div class="empty">本机没有每日状态数据</div>'; bg.textContent='本机 0 天'; bg.className='badge bad'; return; }
+  const lr=local.records||{}, cr=(cloud&&cloud.records)||{};
+  const dates=Object.keys(lr).sort().reverse();
+  const missing=dates.filter(d=>!(d in cr));
+  const diff=dates.filter(d=>(d in cr)&&cr[d]!==lr[d]);
+  bg.textContent='本机 '+dates.length+' 天 / 云端 '+Object.keys(cr).length+' 天';
+  bg.className='badge'+((missing.length||diff.length)?' bad':' ok');
+  el.innerHTML=dates.map(d=>{
+    const only=!(d in cr), differ=(d in cr)&&cr[d]!==lr[d];
+    return '<div class="item'+((only||differ)?' only':'')+'"><div class="t"><span>'+d+'</span>'
+      +(only?'<b>⚠ 云端没有这天</b>':(differ?'<b>⚠ 内容与云端不一致</b>':'<span style="color:#3f9d6b">一致</span>'))+'</div>'
+      +'<div class="c">'+esc((lr[d]||'').slice(0,300))+((lr[d]||'').length>300?'…':'')+'</div></div>';
+  }).join('');
+  log('每日状态：本机 '+dates.length+' 天，云端缺 '+missing.length+' 天，内容不一致 '+diff.length+' 天');
+}
+
+/* ---------- 对比入口 ---------- */
+async function doCompare(){
+  log('正在读取云端…');
+  try{
+    cloudData=await fetchCloud();
+    if(!cloudData){ log('云端没有数据行'); }
+    else{ log('云端版本时间：'+new Date(cloudData.updated_at).toLocaleString('zh-CN')); }
+  }catch(e){ log('✗ '+e.message); }
+  renderJournal(); renderDaily();
+}
+
+/* ---------- 导出 ---------- */
+function doExport(){
+  const o={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); o[k]=localStorage.getItem(k); }
+  const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),origin:location.origin,data:o},null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='工作台本机备份_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  log('✓ 已导出本机备份（共 '+Object.keys(o).length+' 项）');
+}
+
+/* ---------- 安全合并（只增不删） ---------- */
+function mergeJournal(localStr,cloudStr){
+  let L=[],C=[];
+  try{ L=JSON.parse(localStr||'[]'); }catch(e){}
+  try{ C=JSON.parse(cloudStr||'[]'); }catch(e){}
+  const ids=new Set(C.map(x=>x.id));
+  let added=0;
+  L.forEach(x=>{ if(!ids.has(x.id)){ C.push(x); ids.add(x.id); added++; } });
+  C.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  return {str:JSON.stringify(C),added:added};
+}
+function mergeDaily(localStr,cloudStr){
+  let L=null,C=null;
+  try{ L=JSON.parse(localStr||'null'); }catch(e){}
+  try{ C=JSON.parse(cloudStr||'null'); }catch(e){}
+  if(!L) return {str:cloudStr,added:0};
+  if(!C) return {str:localStr,added:Object.keys(L.records||{}).length};
+  let added=0;
+  C.records=C.records||{}; C.tags=C.tags||{};
+  Object.keys(L.records||{}).forEach(d=>{ if(!(d in C.records)){ C.records[d]=L.records[d]; added++; } });
+  Object.keys(L.tags||{}).forEach(d=>{ if(!(d in C.tags)){ C.tags[d]=L.tags[d]; } });
+  return {str:JSON.stringify(C),added:added};
+}
+function mergeGeneric(localStr,cloudStr){
+  if(cloudStr===undefined||cloudStr===null) return {str:localStr,added:1};
+  return {str:cloudStr,added:0};
+}
+
+async function doMerge(){
+  if(!cloudData){ log('请先点「重新对比云端」'); return; }
+  if(!confirm('把本机独有的记录补进云端？\n\n只增加，不会删除或覆盖云端已有内容。')) return;
+  log('开始合并…');
+  const data=Object.assign({},cloudData.payload.data||{});
+  let total=0, detail=[];
+  MERGE_KEYS.forEach(k=>{
+    const lv=localStorage.getItem(k);
+    if(lv===null) return;
+    let res;
+    if(k==='stock_journal') res=mergeJournal(lv,data[k]);
+    else if(k==='DAILY_STATUS') res=mergeDaily(lv,data[k]);
+    else res=mergeGeneric(lv,data[k]);
+    if(res.added>0){ data[k]=res.str; total+=res.added; detail.push(k+' +'+res.added); }
+  });
+  if(!total){ log('没有需要补充的内容，云端已包含本机所有记录。'); return; }
+  const now=new Date().toISOString();
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/workbench_sync',{
+      method:'POST',
+      headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
+               Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({id:'me',payload:{updatedAt:now,data:data},updated_at:now})
+    });
+    if(!r.ok) throw new Error('上传失败 HTTP '+r.status+' '+(await r.text()));
+    log('✓ 已补进云端：'+detail.join('，')+'（共 '+total+' 项）');
+    log('提示：现在可以在另一台设备打开工作台，点云同步的「拉取」把它们取下来。');
+    cloudData=await fetchCloud();
+    renderJournal(); renderDaily();
+  }catch(e){ log('✗ '+e.message); }
+}
+
+/* ---------- 启动：只读，不做任何同步 ---------- */
+renderLocal();
+doCompare();
+</script>
+</body>
+</html>
