@@ -1264,6 +1264,11 @@ function renderCheckin(){
   const body = document.getElementById('modbody');
   const list = state.checkin.slice().sort((a,b)=>b.date.localeCompare(a.date)); // 降序（最新在前）
 
+  // 构建「菜名→菜品库封面」映射，用于打卡记录封面兜底：8/14 清空了 it.cover 快照，
+  // 这里按菜名从菜品库实时取回封面显示，无需重新选择，且手机端同步菜品库后即生效
+  const menuImgByName = {};
+  (state.menu||[]).forEach(r=>{ if(r && r.name && r.image && r.image.indexOf('data:image')===0) menuImgByName[r.name]=r.image; });
+
   // 统计
   const totalDays = list.length;
   const totalItems = list.reduce((s,c)=>s+c.items.length, 0);
@@ -1292,7 +1297,8 @@ function renderCheckin(){
       ? '<div style="color:var(--sub);font-size:13px;padding:6px 0;">还没有添加菜品，点下面「从菜品库选」带出食材与做法～</div>'
       : c.items.map((it, idx) => {
           const cls = 'ck-item';
-          const cov = it.cover || '';
+          let cov = it.cover || '';
+          if(!cov && menuImgByName[it.name]) cov = menuImgByName[it.name]; // 兜底：快照为空时从菜品库取封面
           const coverHtml = cov
             ? imgTag(cov, 'ck-item-thumb', 'alt=""')
             : '<span class="ck-item-emoji">'+(it.emoji||'🍽️')+'</span>';
