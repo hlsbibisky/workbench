@@ -53,6 +53,7 @@
       <button class="btn" id="btnAuto" onclick="autoRecover()" disabled>① 自动恢复（用云端备份的对应关系）</button>
       <button class="btn ghost" id="btnManual" onclick="openManual()" disabled>② 手动认领残留图</button>
       <button class="btn ghost" id="btnExport" onclick="exportOrphans()" disabled>③ 导出全部残留图备份</button>
+      <button class="btn ghost" id="btnFixCk" onclick="fixCheckinCovers()" disabled>④ 修复打卡记录封面（从菜品库自动补回）</button>
     </div>
   </div>
 
@@ -162,6 +163,7 @@ async function diagnose(){
   $('btnAuto').disabled = idbHave===0 && cloudImg===0;
   $('btnManual').disabled = idbHave===0;
   $('btnExport').disabled = idbHave===0;
+  $('btnFixCk').disabled = false; // 修复打卡封面不依赖残留图，只要有菜品库图即可
   let tip='';
   if(idbHave>0) tip+='\n✅ 好消息：浏览器里还有 '+idbHave+' 张残留图片字节没被删，可以找回。';
   else tip+='\n⚠️ 本机 IndexedDB 里没找到残留图（可能已被清空，或你用的是不同浏览器/设备打开的）。';
@@ -304,6 +306,20 @@ function exportOrphans(){
   a.download='美食残留图备份_'+new Date().toISOString().slice(0,10)+'.json';
   document.body.appendChild(a); a.click(); a.remove();
   alert('已导出 '+ORPHANS.length+' 张残留图为 JSON 备份文件，请妥善保存。');
+}
+
+/* ---------- 修复打卡记录封面：按菜名从菜品库补回 it.cover ---------- */
+function fixCheckinCovers(){
+  let n=0;
+  const map={};
+  (LOCAL.menu||[]).forEach(r=>{ if(r && r.name && r.image && r.image.indexOf('data:image')===0) map[r.name]=r.image; });
+  let ck=[];
+  try{ ck=JSON.parse(localStorage.getItem(K.checkin)||'[]'); }catch(e){ ck=[]; }
+  ck.forEach(c=>{ (c.items||[]).forEach(it=>{ if(!it.cover && map[it.name]){ it.cover=map[it.name]; n++; } }); });
+  localStorage.setItem(K.checkin, JSON.stringify(ck));
+  LOCAL.checkin=ck;
+  const btn=$('btnFixCk'); if(btn) btn.disabled=true;
+  showReport('已为 '+n+' 道打卡菜品自动补回封面（按菜名从菜品库匹配图）。已写入本机 localStorage。\n\n建议点下方「重新推送云端」，让手机端也同步到含封面的打卡记录。', n);
 }
 
 /* ---------- 推送云端（走工作台统一云同步 Supabase 通道）---------- */
