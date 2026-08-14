@@ -568,8 +568,10 @@ function wbSbInit(){
 
 const WB_K_SYNC='wb_cloudsync';
 const WB_K_LAST_SYNC='wb_last_sync_at';
+const WB_K_CLOUD_VER='wb_cloud_ver';
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
-const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at'];
+let wbReady=false, wbPendingPush=false, wbLastPushSig='';
+const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver'];
 function wbLoadCfg(){
   try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
   if(!wbSync) wbSync={};
@@ -591,10 +593,63 @@ function wbApply(o){
 }
 function wbSchedulePush(immediate){
   wbLoadCfg(); if(!wbSync.connected) return;
-  try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
+  /* 首次拉取尚未完成前一律不推，避免用本机旧数据覆盖另一台设备刚写的记录 */
+  if(!wbReady){ wbPendingPush=true; return; }
   if(wbPushTimer) clearTimeout(wbPushTimer);
-  wbPushTimer=setTimeout(wbPush, immediate?0:300);
+  wbPushTimer=setTimeout(()=>wbPush(true), immediate?0:800);
 }
+
+/* ===== 合并策略：只增不删，绝不用空值覆盖有值 ===== */
+function wbMergeById(localStr,cloudStr){
+  let L=[],C=[];
+  try{ L=JSON.parse(localStr||'[]'); }catch(e){ return localStr; }
+  try{ C=JSON.parse(cloudStr||'[]'); }catch(e){ C=[]; }
+  if(!Array.isArray(L)||!Array.isArray(C)) return localStr;
+  const seen=new Set(), out=[];
+  C.concat(L).forEach(x=>{
+    const id=(x&&x.id!==undefined)?String(x.id):JSON.stringify(x);
+    if(seen.has(id)) return;
+    seen.add(id); out.push(x);
+  });
+  out.sort((a,b)=>((a&&a.ts)||0)-((b&&b.ts)||0));
+  return JSON.stringify(out);
+}
+function wbMergeDaily(localStr,cloudStr){
+  let L=null,C=null;
+  try{ L=JSON.parse(localStr||'null'); }catch(e){ return localStr; }
+  try{ C=JSON.parse(cloudStr||'null'); }catch(e){ C=null; }
+  if(!L||!L.records) return cloudStr||localStr;
+  if(!C||!C.records) return localStr;
+  const out={records:Object.assign({},C.records||{}),tags:Object.assign({},C.tags||{})};
+  Object.keys(L.records||{}).forEach(d=>{
+    const a=out.records[d]||'', b=L.records[d]||'';
+    out.records[d]=(b.length>=a.length)?b:a;   /* 同一天取内容更充实的一方 */
+  });
+  Object.keys(L.tags||{}).forEach(d=>{
+    const a=out.tags[d]||[], b=L.tags[d]||[];
+    out.tags[d]=(b.length>=a.length)?b:a;
+  });
+  return JSON.stringify(out);
+}
+function wbIsEmptyVal(v){
+  if(v===null||v===undefined) return true;
+  const s=String(v).trim();
+  return s===''||s==='[]'||s==='{}'||s==='null';
+}
+const WB_MERGE_BY_ID=['stock_journal','cinema_records','riri_myRecipes','food_userdishes'];
+function wbMergeAll(cloudObj){
+  const local=wbCollect();
+  const out=Object.assign({},cloudObj||{});
+  Object.keys(local).forEach(k=>{
+    const lv=local[k], cv=out[k];
+    if(k==='DAILY_STATUS'){ out[k]=wbMergeDaily(lv,cv); return; }
+    if(WB_MERGE_BY_ID.indexOf(k)>=0){ out[k]=wbMergeById(lv,cv); return; }
+    if(wbIsEmptyVal(lv)&&!wbIsEmptyVal(cv)) return;  /* 本机空、云端有 → 保留云端 */
+    out[k]=lv;
+  });
+  return out;
+}
+function wbSig(o){ let n=0,s=0; Object.keys(o||{}).forEach(k=>{ n++; s+=(o[k]||'').length; }); return n+':'+s; }
 function wbBroadcastReload(){ document.querySelectorAll('iframe').forEach(f=>{ try{ f.contentWindow.postMessage({type:'wb-reload'},'*'); }catch(e){} }); if(typeof updateStockBadge==='function'){ try{ updateStockBadge(); }catch(e){} } }
 function wbRequestSave(){
   wbLoadCfg();
@@ -623,16 +678,27 @@ function wbUpdateSyncUI(){
   if(st){ st.textContent=txt; st.className='wbsync-state ok'; }
 }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
-async function wbPush(){
+async function wbPush(silent){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
-  const now=new Date().toISOString();
   try{
     const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
-    const row={ id:'me', payload:{ updatedAt:now, data:wbCollect() }, updated_at:now };
+    /* 关键：推送前先取云端现有内容做合并，绝不整库覆盖，否则会抹掉另一台设备的记录 */
+    let cloudObj=null;
+    try{
+      const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
+      if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
+    }catch(e){ console.warn('取云端失败，本次跳过推送以免覆盖',e); wbBusy=false; return; }
+    const merged=cloudObj?wbMergeAll(cloudObj):wbCollect();
+    const sig=wbSig(merged);
+    if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
+    const now=new Date().toISOString();
+    const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now };
     const { error }=await client.from('workbench_sync').upsert(row, { onConflict:'id' });
     if(error) throw error;
-    try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
-    wbUpdateSyncUI(); wbToast('已同步到云端');
+    wbLastPushSig=sig;
+    /* 只有推送成功后才推进时间戳 */
+    try{ localStorage.setItem(WB_K_LAST_SYNC, now); localStorage.setItem(WB_K_CLOUD_VER, now); }catch(e){}
+    wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
 }
@@ -643,9 +709,13 @@ async function wbPull(){
     const { data, error }=await client.from('workbench_sync').select('*').eq('id','me').maybeSingle();
     if(error) throw error;
     if(data && data.payload){
-      const localAt=localStorage.getItem(WB_K_LAST_SYNC)||'1970-01-01T00:00:00.000Z';
+      /* 用「已见过的云端版本」判断，而不是本机推送时间，否则本机一写入就再也拉不到对端数据 */
+      const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
-      if(cloudAt>localAt){ wbApply(data.payload.data); try{ localStorage.setItem(WB_K_LAST_SYNC, cloudAt); }catch(e){} }
+      if(cloudAt>seenVer){
+        wbApply(wbMergeAll(data.payload.data));   /* 落地也走合并，云端旧值不会抹掉本机新记录 */
+        try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
+      }
     }
   }catch(e){ console.error(e); }
   finally{ wbBusy=false; }
@@ -659,8 +729,8 @@ function wbStartPoll(){
       const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
       if(error) return;
       const cloudAt=(data&&data.updated_at)||'1970-01-01T00:00:00.000Z';
-      const localAt=localStorage.getItem(WB_K_LAST_SYNC)||'1970-01-01T00:00:00.000Z';
-      if(cloudAt>localAt) wbPull();
+      const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
+      if(cloudAt>seenVer) wbPull();
     }catch(e){}
   },15000);
 }
@@ -668,9 +738,11 @@ async function wbConnect(){
   wbLoadCfg();
   try{
     const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
+    wbSync.connected=true; wbSaveCfg();      /* 必须先置位，否则 wbPull 会被开头的未连接判断挡掉 */
     try{ await wbPull(); }catch(e){ }
+    wbReady=true;
     wbStartPoll();
-    wbSync.connected=true; wbSaveCfg(); wbToast('已连接，开始同步'); wbUpdateSyncUI();
+    wbToast('已连接，开始同步'); wbUpdateSyncUI();
   }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
 }
 function wbDisconnect(){
@@ -707,9 +779,11 @@ window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-chan
 async function wbSilentReconnect(){
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
-  if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; return; }
+  if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
   if(dot) dot.style.background='#3aa76d';
   try{ await wbPull(); }catch(e){}
+  wbReady=true;                                   /* 拉取完成后才放开推送闸门 */
+  if(wbPendingPush){ wbPendingPush=false; wbSchedulePush(); }
   wbStartPoll();
   wbUpdateSyncUI();
 }
