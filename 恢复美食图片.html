@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>美食图片恢复工具</title>
+<style>
+  :root{ --bg:#faf6f0; --card:#fff; --line:#ead9c5; --txt:#3a2f25; --sub:#8a7a68; --acc:#c8743a; --ok:#3a8f5b; --warn:#c8442e; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--txt); font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; padding:24px; }
+  .wrap{ max-width:880px; margin:0 auto; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  .sub{ color:var(--sub); font-size:13px; margin-bottom:18px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .btn{ display:inline-block; border:none; border-radius:10px; padding:11px 18px; font-size:15px; cursor:pointer; background:var(--acc); color:#fff; margin:6px 8px 6px 0; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn.ghost{ background:#efe6da; color:var(--txt); }
+  .btn.ok{ background:var(--ok); }
+  .stat{ display:flex; gap:14px; flex-wrap:wrap; margin:6px 0 2px; }
+  .stat .box{ background:#f6efe4; border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-width:120px; }
+  .stat .n{ font-size:24px; font-weight:700; }
+  .stat .l{ font-size:12px; color:var(--sub); }
+  .row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); }
+  .row:last-child{ border-bottom:none; }
+  .thumb{ width:54px; height:54px; object-fit:cover; border-radius:8px; flex:0 0 auto; background:#eee; }
+  .msg{ font-size:13px; color:var(--sub); white-space:pre-wrap; }
+  .ok-t{ color:var(--ok); } .warn-t{ color:var(--warn); }
+  .gallery{ display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:10px; margin-top:10px; }
+  .gitem{ border:1px solid var(--line); border-radius:10px; padding:6px; text-align:center; cursor:pointer; background:#fff; }
+  .gitem.sel{ outline:3px solid var(--acc); }
+  .gitem img{ width:100%; height:74px; object-fit:cover; border-radius:6px; }
+  .gitem small{ display:block; font-size:11px; color:var(--sub); margin-top:3px; word-break:break-all; }
+  .recipe-row{ display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fff; }
+  .recipe-row .nm{ font-weight:600; }
+  .recipe-row .as{ color:var(--sub); font-size:12px; }
+  .pill{ font-size:12px; padding:2px 8px; border-radius:20px; background:#f0e7da; color:var(--sub); }
+  .pill.have{ background:#e3f1e8; color:var(--ok); }
+  .pill.miss{ background:#fbe3de; color:var(--warn); }
+  #modal{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  #modal .box{ background:#fff; border-radius:14px; max-width:760px; width:100%; max-height:86vh; overflow:auto; padding:18px; }
+  code{ background:#f3ece2; padding:1px 5px; border-radius:5px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍲 美食图片恢复工具</h1>
+  <div class="sub">用于找回 2026-08-14 那次「菜谱图被清空」里残留的图片。会在你当前浏览器里扫描 IndexedDB 与云端备份，自动/手动把图重新挂回菜谱。</div>
+
+  <div class="card">
+    <div id="diag" class="msg">正在扫描本机数据（IndexedDB + localStorage）…</div>
+    <div id="stat" class="stat" style="display:none"></div>
+    <div style="margin-top:12px">
+      <button class="btn" id="btnAuto" onclick="autoRecover()" disabled>① 自动恢复（用云端备份的对应关系）</button>
+      <button class="btn ghost" id="btnManual" onclick="openManual()" disabled>② 手动认领残留图</button>
+      <button class="btn ghost" id="btnExport" onclick="exportOrphans()" disabled>③ 导出全部残留图备份</button>
+    </div>
+  </div>
+
+  <div class="card" id="reportCard" style="display:none">
+    <b>恢复结果</b>
+    <div id="report" class="msg"></div>
+    <div style="margin-top:10px">
+      <button class="btn ok" id="btnPush" onclick="pushCloud()" disabled>把恢复结果重新推送云端（让手机也看到）</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal"><div class="box">
+  <div id="modalBody"></div>
+  <div style="text-align:right;margin-top:14px"><button class="btn ghost" onclick="closeModal()">关闭</button></div>
+</div></div>
+
+<script>
+const IDB_NAME='food_img_db', IDB_STORE='images';
+const K={ menu:'food_menu', checkin:'food_checkin', dishCover:'food_dishcover', sync:'food_cloudsync' };
+let ORPHANS=[];        // [{key, base64, kb}]
+let LOCAL={ menu:[], checkin:[], dishCover:{} };
+let CLOUD=null;        // {menu,checkin,dishCover}
+let DIAG={};
+
+function $(id){ return document.getElementById(id); }
+function escapeHtml(s){ return (s==null?'':(''+s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function isImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
+function imgBytes(s){ if(typeof s!=='string'||s.indexOf('data:image')!==0) return 0; const i=s.indexOf(','); const b=s.slice(i+1); try{ return Math.round(atob(b).length*0.75); }catch(e){ return 0; } }
+function kb(n){ return (n/1024).toFixed(0)+'KB'; }
+
+/* ---------- IndexedDB 残留图扫描 ---------- */
+function openIdb(){
+  return new Promise((res,rej)=>{
+    let req;
+    try{ req=indexedDB.open(IDB_NAME,1); }catch(e){ return rej(e); }
+    req.onerror=()=>rej(req.error||new Error('IDB 打开失败'));
+    req.onsuccess=()=>res(req.result);
+    req.onupgradeneeded=()=>{ /* 不应触发：库已存在 */ };
+  });
+}
+async function scanIdb(){
+  try{
+    const db=await openIdb();
+    return await new Promise((res,rej)=>{
+      let tx; try{ tx=db.transaction(IDB_STORE,'readonly'); }catch(e){ return rej(e); }
+      const store=tx.objectStore(IDB_STORE);
+      const cur=store.openCursor(); const out=[];
+      cur.onerror=()=>rej(cur.error);
+      cur.onsuccess=(e)=>{
+        const c=e.target.result;
+        if(c){ out.push({ key:c.key, base64:c.value }); c.continue(); }
+        else res(out);
+      };
+    });
+  }catch(e){ console.warn('IDB 扫描失败',e); return []; }
+}
+
+/* ---------- 云端备份拉取 ---------- */
+function ghB64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function ghUnB64(s){ return decodeURIComponent(escape(atob(s.replace(/\s/g,'')))); }
+async function loadCloud(){
+  let cfg; try{ cfg=JSON.parse(localStorage.getItem(K.sync)||'null'); }catch(e){ cfg=null; }
+  if(!cfg || !cfg.connected || cfg.provider!=='github') return null;
+  const repo=(cfg.github&&cfg.github.repo||'').trim();
+  const token=(cfg.github&&cfg.github.token||'').trim();
+  const path=(cfg.github&&cfg.github.path||'').trim();
+  const branch=(cfg.github&&cfg.github.branch||'main').trim();
+  if(!repo||!token||!path) return null;
+  try{
+    const url='https://api.github.com/repos/'+repo+'/contents/'+encodeURIComponent(path);
+    const r=await fetch(url,{ headers:{ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' } });
+    if(!r.ok) return null;
+    const j=await r.json();
+    const obj=JSON.parse(ghUnB64(j.content));
+    if(!obj||!obj.data) return null;
+    const d=obj.data;
+    const parse=k=>{ try{ return d[k]?JSON.parse(d[k]):null; }catch(e){ return null; } };
+    return { menu:parse(K.menu), checkin:parse(K.checkin), dishCover:parse(K.dishCover) };
+  }catch(e){ console.warn('云端拉取失败',e); return null; }
+}
+
+/* ---------- 诊断 ---------- */
+async function diagnose(){
+  const idbRows=await scanIdb();
+  ORPHANS=idbRows.map(r=>({ key:r.key, base64:r.base64, kb:imgBytes(r.base64) }));
+  try{ LOCAL.menu=JSON.parse(localStorage.getItem(K.menu)||'[]'); }catch(e){ LOCAL.menu=[]; }
+  try{ LOCAL.checkin=JSON.parse(localStorage.getItem(K.checkin)||'[]'); }catch(e){ LOCAL.checkin=[]; }
+  try{ LOCAL.dishCover=JSON.parse(localStorage.getItem(K.dishCover)||'{}'); }catch(e){ LOCAL.dishCover={}; }
+  CLOUD=await loadCloud();
+
+  const menuHave=LOCAL.menu.filter(r=>r&&r.image&&(r.image.indexOf('data:image')===0)).length;
+  const menuMiss=LOCAL.menu.filter(r=>r&&!(r.image&&r.image.indexOf('data:image')===0)).length;
+  const ckPhotos=LOCAL.checkin.reduce((s,c)=>s+((c&&c.photos&&c.photos.filter(p=>p&&p.indexOf('data:image')===0).length)||0),0);
+  const idbHave=ORPHANS.length;
+  const cloudImg=countCloudImages();
+
+  DIAG={ menuHave,menuMiss,idbHave,ckPhotos,cloudImg, cloudConnected:!!CLOUD };
+  $('diag').innerHTML='扫描完成。下面这些数能帮我们判断图还在不在：';
+  $('stat').style.display='flex';
+  $('stat').innerHTML=
+    box(menuHave,'菜谱当前有图')+
+    box(menuMiss,'菜谱缺图(待恢复)')+
+    box(idbHave,'IndexedDB 残留图')+
+    box(ckPhotos,'打卡照片(本机)')+
+    box(cloudImg,'云端备份里的图');
+  $('btnAuto').disabled = idbHave===0 && cloudImg===0;
+  $('btnManual').disabled = idbHave===0;
+  $('btnExport').disabled = idbHave===0;
+  let tip='';
+  if(idbHave>0) tip+='\n✅ 好消息：浏览器里还有 '+idbHave+' 张残留图片字节没被删，可以找回。';
+  else tip+='\n⚠️ 本机 IndexedDB 里没找到残留图（可能已被清空，或你用的是不同浏览器/设备打开的）。';
+  if(CLOUD) tip+='\n☁️ 检测到云端备份，里面约有 '+cloudImg+' 张图可作「对应关系」来源。';
+  else tip+='\n☁️ 未检测到已连接的云端备份，将只能靠手动认领。';
+  tip+='\n\n建议：先点「① 自动恢复」（用云端对应关系），不行再「② 手动认领」。';
+  $('diag').innerHTML+='<div class="msg" style="margin-top:8px">'+escapeHtml(tip)+'</div>';
+}
+function box(n,l){ return '<div class="box"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+function countCloudImages(){
+  if(!CLOUD) return 0; let n=0;
+  (CLOUD.menu||[]).forEach(r=>{ if(r&&r.image&&(r.image.indexOf('data:image')===0||isImgRef(r.image))) n++; });
+  (CLOUD.checkin||[]).forEach(c=>{ (c&&c.photos||[]).forEach(p=>{ if(p&&(p.indexOf('data:image')===0||isImgRef(p))) n++; }); });
+  Object.values(CLOUD.dishCover||{}).forEach(v=>{ if(v&&(v.indexOf('data:image')===0||isImgRef(v))) n++; });
+  return n;
+}
+
+/* ---------- 把 idb:// 或 base64 解析成 base64 ---------- */
+function resolveImgFromCloudOrIdb(val){
+  if(typeof val!=='string') return '';
+  if(val.indexOf('data:image')===0) return val;            // 已是 base64
+  if(isImgRef(val)){                                        // idb://xxx → 查本机 IDB
+    const key=val.slice('idb://'.length);
+    const hit=ORPHANS.find(o=>o.key===key);
+    return hit?hit.base64:'';
+  }
+  return '';
+}
+
+/* ---------- 自动恢复 ---------- */
+function autoRecover(){
+  if(!CLOUD && ORPHANS.length===0){ alert('没有可用来源'); return; }
+  let restored=0, stillMiss=0;
+  const newMenu=LOCAL.menu.map(r=>{
+    if(!r) return r;
+    const cloudR = CLOUD && CLOUD.menu ? (CLOUD.menu.find(x=>x&&x.id===r.id) || CLOUD.menu.find(x=>x&&x.name===r.name)) : null;
+    if(r.image && r.image.indexOf('data:image')===0) return r; // 已有图，不动
+    let img='';
+    if(cloudR){ img=resolveImgFromCloudOrIdb(cloudR.image); }
+    if(!img && CLOUD && CLOUD.dishCover){ // 菜品封面兜底
+      const dc=CLOUD.dishCover[r.id]; if(dc) img=resolveImgFromCloudOrIdb(dc);
+    }
+    if(img){ restored++; return Object.assign({},r,{image:img}); }
+    stillMiss++; return r;
+  });
+  const newDishCover={};
+  Object.keys(LOCAL.dishCover).forEach(id=>{
+    let v=LOCAL.dishCover[id];
+    if(v && v.indexOf('data:image')===0){ newDishCover[id]=v; }
+    else if(isImgRef(v) || (CLOUD&&CLOUD.dishCover&&CLOUD.dishCover[id])){
+      const cv=(CLOUD&&CLOUD.dishCover&&CLOUD.dishCover[id])||v;
+      const b=resolveImgFromCloudOrIdb(cv); newDishCover[id]=b||'';
+    } else newDishCover[id]=v||'';
+  });
+  // 打卡照片
+  const newCheckin=LOCAL.checkin.map(c=>{
+    if(!c) return c;
+    const cloudC=CLOUD&&CLOUD.checkin?CLOUD.checkin.find(x=>x&&x.date===c.date):null;
+    const photos=(c.photos||[]).map((p,i)=>{
+      if(p&&p.indexOf('data:image')===0) return p;
+      const cp=cloudC&&cloudC.photos&&cloudC.photos[i];
+      return cp?resolveImgFromCloudOrIdb(cp):'';
+    });
+    return Object.assign({},c,{photos});
+  });
+
+  if(restored>0 || confirm('自动未匹配到图（0 张）。仍要写入现有数据吗？')){
+    localStorage.setItem(K.menu, JSON.stringify(newMenu));
+    localStorage.setItem(K.dishCover, JSON.stringify(newDishCover));
+    localStorage.setItem(K.checkin, JSON.stringify(newCheckin));
+    LOCAL.menu=newMenu; LOCAL.dishCover=newDishCover; LOCAL.checkin=newCheckin;
+    showReport('自动恢复完成：菜谱重新挂回 '+restored+' 张图，仍有 '+stillMiss+' 道菜缺图（可再用②手动认领）。\n\n已写入本机 localStorage。建议你点下方「重新推送云端」，手机端就能看到图了。', restored);
+  }
+}
+
+/* ---------- 手动认领 ---------- */
+let MANUAL={ assign:{}, list:[] };
+function openManual(){
+  MANUAL.list=LOCAL.menu.filter(r=>r&&!(r.image&&r.image.indexOf('data:image')===0));
+  if(MANUAL.list.length===0 && ORPHANS.length===0){ alert('没有待认领项'); return; }
+  let html='<h2>手动认领残留图</h2>';
+  html+='<p class="msg">左侧是缺图的菜谱，右侧是从浏览器里扫出的残留图。点某道菜 → 再点一张图即认领；可重复操作。完成后点「保存认领」。</p>';
+  html+='<div style="display:flex;gap:16px;flex-wrap:wrap">';
+  html+='<div style="flex:1;min-width:260px"><b>缺图菜谱（'+MANUAL.list.length+'）</b><div id="recList">';
+  MANUAL.list.forEach((r,i)=>{
+    html+='<div class="recipe-row" id="rec'+i+'" onclick="selRec('+i+')" style="cursor:pointer">'
+      +'<span class="nm">'+escapeHtml(r.name||'未命名')+'</span>'
+      +'<span class="pill miss">缺图</span>'
+      +'<span class="as" id="recAs'+i+'"></span></div>';
+  });
+  html+='</div>';
+  html+='<div style="flex:1.4;min-width:300px"><b>残留图（'+ORPHANS.length+'）</b><div class="gallery" id="gal">';
+  ORPHANS.forEach((o,i)=>{
+    html+='<div class="gitem" id="g'+i+'" onclick="selGal('+i+')"><img src="'+o.base64+'"><small>'+kb(o.kb)+'</small></div>';
+  });
+  html+='</div></div></div>';
+  html+='<div style="margin-top:14px"><button class="btn ok" onclick="saveManual()">保存认领</button> <button class="btn ghost" onclick="closeModal()">稍后</button></div>';
+  $('modalBody').innerHTML=html;
+  $('modal').style.display='flex';
+}
+let curRec=-1;
+function selRec(i){ curRec=i; document.querySelectorAll('#recList .recipe-row').forEach(e=>e.style.background='#fff'); $('rec'+i).style.background='#fff7ef'; }
+function selGal(i){
+  if(curRec<0){ alert('请先点左侧一道缺图的菜'); return; }
+  MANUAL.assign[curRec]=ORPHANS[i].base64;
+  $('recAs'+curRec).innerHTML='✅ 已选 '+kb(ORPHANS[i].kb);
+  $('g'+i).classList.add('sel');
+}
+function saveManual(){
+  let n=0;
+  MANUAL.list.forEach((r,i)=>{
+    if(MANUAL.assign[i]){ r.image=MANUAL.assign[i]; n++; }
+  });
+  localStorage.setItem(K.menu, JSON.stringify(LOCAL.menu));
+  closeModal();
+  showReport('手动认领完成：为 '+n+' 道菜指定了图片，已写入本机 localStorage。\n建议点下方「重新推送云端」。', n);
+}
+
+/* ---------- 导出残留图 ---------- */
+function exportOrphans(){
+  if(ORPHANS.length===0){ alert('没有残留图可导出'); return; }
+  const data={ app:'food_orphan_images', exportedAt:new Date().toISOString(), images:ORPHANS };
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='美食残留图备份_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  alert('已导出 '+ORPHANS.length+' 张残留图为 JSON 备份文件，请妥善保存。');
+}
+
+/* ---------- 推送云端 ---------- */
+async function pushCloud(){
+  let cfg; try{ cfg=JSON.parse(localStorage.getItem(K.sync)||'null'); }catch(e){ cfg=null; }
+  if(!cfg||!cfg.connected||cfg.provider!=='github'){ alert('未检测到已连接的 GitHub 云端，请先在美食记录里连接云同步再推送。'); return; }
+  const repo=(cfg.github.repo||'').trim(), token=(cfg.github.token||'').trim(), path=(cfg.github.path||'').trim(), branch=(cfg.github.branch||'main').trim();
+  if(!repo||!token||!path){ alert('云端配置不完整'); return; }
+  $('btnPush').disabled=true; $('btnPush').textContent='推送中…';
+  try{
+    const data={};
+    ['food_taste','food_menu','food_userdishes','food_disliked','food_checkin','food_dishcover'].forEach(k=>{ if(localStorage.getItem(k)!=null) data[k]=localStorage.getItem(k); });
+    const payload=JSON.stringify({ updatedAt:new Date().toISOString(), data });
+    const url='https://api.github.com/repos/'+repo+'/contents/'+encodeURIComponent(path);
+    const head=await fetch(url,{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}});
+    let sha=null; if(head.ok){ sha=(await head.json()).sha; }
+    const body={ message:'food recover '+new Date().toISOString(), content:ghB64(payload), branch };
+    if(sha) body.sha=sha;
+    const r=await fetch(url,{ method:'PUT', headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    alert('✅ 已重新推送到云端。手机端打开美食记录会自动拉取，图就回来了。');
+  }catch(e){ alert('推送失败：'+(e&&e.message||e)); }
+  finally{ $('btnPush').disabled=false; $('btnPush').textContent='把恢复结果重新推送云端（让手机也看到）'; }
+}
+
+function showReport(text, n){
+  $('reportCard').style.display='block';
+  $('report').textContent=text;
+  $('btnPush').disabled = n===0;
+  diagnose();
+}
+function closeModal(){ $('modal').style.display='none'; }
+
+window.onload=diagnose;
+</script>
+</body>
+</html>
