@@ -348,6 +348,7 @@ function render(){
 
     const row=document.createElement('div');
     row.className='day'+((text.trim()||tags.length)?' noted':'')+(isToday?' today':'');
+    row.dataset.key=key;
 
     /* 左侧日期列（紧凑：日期+星期一行，干支日一行） */
     const datecol=document.createElement('div');
@@ -466,7 +467,26 @@ document.getElementById('export').onclick=()=>{
   a.click();
 };
 
+/* 从「当下月历」跳转而来：定位到指定日期 */
+let SCROLL_TO_KEY=null;
+(function consumeJumpDate(){
+  const k=localStorage.getItem('wb_inner_now_date');
+  if(!k) return;
+  try{
+    localStorage.removeItem('wb_inner_now_date');
+    const [y,m,d]=k.split('-').map(Number);
+    if(y && m && d){ anchor=new Date(y,m-1,d); SCROLL_TO_KEY=k; }
+  }catch(e){}
+})();
+function scrollToKey(){
+  if(!SCROLL_TO_KEY) return;
+  const row=document.querySelector('.day[data-key="'+SCROLL_TO_KEY+'"]');
+  if(row){ setTimeout(()=>{ row.scrollIntoView({behavior:'smooth',block:'center'}); row.style.transition='none'; row.style.background='#fbe9d6'; setTimeout(()=>row.style.background='',1200); }, 100); }
+  SCROLL_TO_KEY=null;
+}
+
 render();
+scrollToKey();
 </script>
 </body>
 </html>
