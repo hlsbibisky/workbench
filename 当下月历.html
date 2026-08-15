@@ -17,7 +17,7 @@
     font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
     line-height:1.55; padding:18px 8px 48px;
   }
-  .wrap{max-width:720px; margin:0 auto;}
+  .wrap{max-width:1200px; margin:0 auto;}
   header{ text-align:center; margin-bottom:14px; }
   header h1{ font-size:21px; margin:0 0 4px; letter-spacing:1px; }
   header .tip{ font-size:12px; color:var(--sub); }
@@ -36,13 +36,14 @@
   .cal-title{ text-align:center; }
   .cal-title .ym{ font-size:18px; font-weight:700; letter-spacing:1px; }
   .cal-title .gz{ font-size:13px; color:var(--sub); margin-top:2px; }
+  .cal-title .gz-range{ font-size:12px; color:var(--term); margin-top:3px; }
 
-  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:12px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:9px; margin-top:12px; }
   .cal-grid .wd{ text-align:center; font-size:12px; color:var(--sub); padding:4px 0; }
   .cal-cell{
-    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     border:1px solid var(--line); border-radius:11px; background:#fff;
-    font-size:15px; color:var(--ink); position:relative; cursor:pointer; transition:.12s;
+    font-size:16px; color:var(--ink); position:relative; cursor:pointer; transition:.12s;
   }
   .cal-cell:hover{ border-color:var(--accent2); }
   .cal-cell.muted{ color:#d5cfc4; background:transparent; border-color:transparent; cursor:default; }
@@ -80,7 +81,7 @@
 
   @media (max-width:480px){
     body{padding:14px 6px 40px;}
-    .cal-cell{ font-size:13px; }
+    .cal-cell{ aspect-ratio:1; min-height:0; font-size:13px; }
     .cal-cell .gd{ font-size:9.5px; }
     .cal-grid{ gap:4px; }
   }
@@ -142,25 +143,35 @@ function lichunDate(y){ return new Date(y,1,solarTermDay(y,2)); }
 function gzYearVal(y,m,d){ const cur=new Date(y,m-1,d); return cur < lichunDate(y) ? y-1 : y; }
 function ganzhiYear(y){ const idx=((y-1984)%60+60)%60; return GAN[idx%10]+ZHI[idx%12]; }
 
-/* 干支月（十二节令 + 五虎遁） */
-const JIE_TERM_IDX=[2,4,6,8,10,12,14,16,18,20,22,0];
-const JIE_MONTH=[1,2,3,4,5,6,7,8,9,10,11,0];
-function gzMonthInfo(y,m,d){
+/* 干支月（节气分界 + 五虎遁） */
+function getMonthGZ(y,m,d){
+  const date=new Date(y,m-1,d);
   const gy=gzYearVal(y,m,d);
-  const cur=new Date(y,m-1,d);
-  let count=0;
-  for(let mi=0;mi<12;mi++){
-    const ty = JIE_MONTH[mi]===0 ? gy+1 : gy;
-    const tm = JIE_MONTH[mi]===0 ? 1 : JIE_MONTH[mi]+1;
-    const td = solarTermDay(ty, JIE_TERM_IDX[mi]);
-    if(cur >= new Date(ty,tm-1,td)) count++;
-  }
-  let k=Math.min(count-1,11); if(k<0) k=0;
+  const jieIdx=[2,4,6,8,10,12,14,16,18,20,22,0]; /* 立春→小寒 共12节 */
+  const jieDates=jieIdx.map(ti=>{
+    let yy=gy; if(ti===0) yy=gy+1;            /* 小寒属次年 */
+    const mo=Math.floor(ti/2)+1;
+    return new Date(yy, mo-1, solarTermDay(yy,ti));
+  });
+  let mk=0;
+  for(let k=0;k<12;k++){ if(date>=jieDates[k]) mk=k; }
   const yStem=((gy-1984)%10+10)%10;
-  const yinStem=((yStem%5)*2+2)%10;
-  const mStem=(yinStem+k)%10;
-  const mBranch=(2+k)%12;
-  return { ganzhi: GAN[mStem]+ZHI[mBranch] };
+  const yinStem=((yStem%5)*2+2)%10;          /* 五虎遁 */
+  const mStem=(yinStem+mk)%10;
+  const mBranch=(2+mk)%12;
+  const start=jieDates[mk];
+  let endStart;
+  if(mk===11){ endStart=new Date(gy+1,1,solarTermDay(gy+1,2)); } /* 丑月止于次年立春前 */
+  else { endStart=jieDates[(mk+1)%12]; }
+  const end=new Date(endStart.getTime()-86400000); /* 下一节前一天 */
+  return { ganzhi: GAN[mStem]+ZHI[mBranch], start, end };
+}
+function fmtMDshort(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
+function fmtMonthRange(s,e,year){
+  let a=fmtMDshort(s), b=fmtMDshort(e);
+  if(s.getFullYear()!==year) a=`${s.getFullYear()}年`+a;
+  if(e.getFullYear()!==year) b=`${e.getFullYear()}年`+b;
+  return `${a} ～ ${b}`;
 }
 
 /* 读取 */
@@ -200,11 +211,12 @@ let RECORDS={};
 
 function renderCalendar(){
   if(calY===undefined){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; }
-  const yearGan=ganzhiYear(gzYearVal(calY,calM,1));
-  const monthGz=gzMonthInfo(calY,calM,1).ganzhi;
+  const yGz=ganzhiYear(gzYearVal(calY,calM,1));
+  const mInfo=getMonthGZ(calY,calM,15);
   document.getElementById('calTitle').innerHTML=
     `<div class="ym">${calY}年 ${calM}月</div>`+
-    `<div class="gz">${yearGan}年 ${monthGz}月</div>`;
+    `<div class="gz">${yGz}年 · ${mInfo.ganzhi}月</div>`+
+    `<div class="gz-range">${fmtMonthRange(mInfo.start, mInfo.end, calY)}</div>`;
 
   const first=new Date(calY,calM-1,1);
   const startW=first.getDay();
