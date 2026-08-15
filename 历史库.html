@@ -129,6 +129,25 @@
   .cal-detail .chips{ margin:6px 0; }
   .cal-legend{ font-size:11.5px; color:var(--sub); text-align:center; margin-top:6px; }
 
+  /* 干支探寻 */
+  .gz-search .gz-line{ margin:10px 0; }
+  .gz-search .gz-label{ display:block; font-size:12.5px; color:var(--sub); margin-bottom:6px; }
+  .gz-search .gz-pills, .gz-search .gz-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+  .gz-search .gz-pill, .gz-search .gz-tag{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:6px 12px; border-radius:20px; cursor:pointer; font-size:13px; font-family:inherit;
+    transition:.12s;
+  }
+  .gz-search .gz-pill:hover, .gz-search .gz-tag:hover{ border-color:var(--accent2); color:var(--accent2); }
+  .gz-search .gz-pill.active, .gz-search .gz-tag.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .gz-search .gz-btn{
+    width:100%; border:1px solid var(--line); background:#fff; color:var(--sub);
+    padding:10px; border-radius:10px; margin-top:10px; font-size:13px; font-family:inherit;
+    cursor:pointer; transition:.12s;
+  }
+  .gz-search .gz-btn:not(:disabled):hover{ border-color:var(--accent); color:var(--accent); }
+  .gz-search .gz-btn:disabled{ background:#9a9389; color:#fff; border-color:#9a9389; cursor:not-allowed; }
+
   /* 历史检索：按月折叠 */
   .mgroup{ margin:10px 0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--card); }
   .mhead{ display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; background:#fbf7f0; user-select:none; }
@@ -267,6 +286,52 @@
       <button id="export">导出 MD</button>
       <button id="refresh">刷新</button>
     </div>
+
+    <div class="sec gz-search">
+      <h2>干支探寻</h2>
+      <div class="gz-line">
+        <span class="gz-label">统计范围</span>
+        <div class="gz-pills" id="gzScope">
+          <button class="gz-pill" data-scope="3m">近三个月</button>
+          <button class="gz-pill" data-scope="year">今年</button>
+          <button class="gz-pill active" data-scope="all">全部</button>
+        </div>
+      </div>
+      <div class="gz-line">
+        <span class="gz-label">选择日支（可多选）</span>
+        <div class="gz-tags" id="gzZhi">
+          <button class="gz-tag" data-z="子">子</button>
+          <button class="gz-tag" data-z="丑">丑</button>
+          <button class="gz-tag" data-z="寅">寅</button>
+          <button class="gz-tag" data-z="卯">卯</button>
+          <button class="gz-tag" data-z="辰">辰</button>
+          <button class="gz-tag" data-z="巳">巳</button>
+          <button class="gz-tag" data-z="午">午</button>
+          <button class="gz-tag" data-z="未">未</button>
+          <button class="gz-tag" data-z="申">申</button>
+          <button class="gz-tag" data-z="酉">酉</button>
+          <button class="gz-tag" data-z="戌">戌</button>
+          <button class="gz-tag" data-z="亥">亥</button>
+        </div>
+      </div>
+      <div class="gz-line">
+        <span class="gz-label">选择藏干（可多选）</span>
+        <div class="gz-tags" id="gzGan">
+          <button class="gz-tag" data-g="甲">甲</button>
+          <button class="gz-tag" data-g="乙">乙</button>
+          <button class="gz-tag" data-g="丙">丙</button>
+          <button class="gz-tag" data-g="丁">丁</button>
+          <button class="gz-tag" data-g="戊">戊</button>
+          <button class="gz-tag" data-g="己">己</button>
+          <button class="gz-tag" data-g="庚">庚</button>
+          <button class="gz-tag" data-g="辛">辛</button>
+          <button class="gz-tag" data-g="壬">壬</button>
+          <button class="gz-tag" data-g="癸">癸</button>
+        </div>
+      </div>
+      <button id="gzBtn" class="gz-btn" disabled>请选择至少一个标签</button>
+    </div>
+
     <div id="history"></div>
   </section>
 
@@ -449,6 +514,9 @@ function applySearchFilter(){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const mf=document.getElementById('monthfilter').value;
   const moodf=document.getElementById('moodfilter').value;
+  const gzScope=document.querySelector('#gzScope .gz-pill.active')?.dataset.scope||'all';
+  const gzZhi=Array.from(document.querySelectorAll('#gzZhi .gz-tag.active')).map(el=>el.dataset.z);
+  const gzGan=Array.from(document.querySelectorAll('#gzGan .gz-tag.active')).map(el=>el.dataset.g);
   const now=new Date(); now.setHours(0,0,0,0);
   let cutoff=null, floor=null, ceil=null;
   if(period==='1m'){ cutoff=new Date(now.getFullYear(),now.getMonth(),1); }
@@ -469,6 +537,15 @@ function applySearchFilter(){
     if(mf!=='all' && `${r.y}-${r.m}`!==mf) return false;
     if(moodf!=='all' && r.mood!==moodf) return false;
     if(tf>=0 && !r.tags.includes(tf)) return false;
+    if(gzZhi.length || gzGan.length){
+      let gzFloor=null;
+      if(gzScope==='3m'){ gzFloor=new Date(now); gzFloor.setMonth(gzFloor.getMonth()-3); }
+      else if(gzScope==='year'){ gzFloor=new Date(now.getFullYear(),0,1); }
+      if(gzFloor && r.date<gzFloor) return false;
+      const gz=ganzhiDay(r.y,r.m,r.d);
+      if(gzZhi.length && !gzZhi.includes(gz[1])) return false;
+      if(gzGan.length && !gzGan.includes(gz[0])) return false;
+    }
     if(q){
       const hay=(r.text+' '+r.tags.map(i=>DRIVERS[i]).join(' ')+' '+
         `${r.y}年${r.m}月`+' '+`${r.y}-${r.m}`+' '+`${r.m}月${r.d}日`).toLowerCase();
@@ -595,6 +672,30 @@ document.getElementById('monthfilter').onchange=renderSearch;
 document.getElementById('moodfilter').onchange=renderSearch;
 document.getElementById('tagfilter').onchange=renderSearch;
 document.getElementById('q').oninput=debounce(renderSearch,200);
+
+/* 干支探寻交互 */
+function updateGzBtn(){
+  const z=Array.from(document.querySelectorAll('#gzZhi .gz-tag.active')).length;
+  const g=Array.from(document.querySelectorAll('#gzGan .gz-tag.active')).length;
+  const btn=document.getElementById('gzBtn');
+  if(z+g===0){ btn.disabled=true; btn.textContent='请选择至少一个标签'; }
+  else { btn.disabled=false; btn.textContent=`已选 ${z+g} 个标签，点击筛选`; }
+}
+document.getElementById('gzScope').addEventListener('click',e=>{
+  const p=e.target.closest('.gz-pill'); if(!p) return;
+  p.parentElement.querySelectorAll('.gz-pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');
+  if(document.querySelectorAll('#gzZhi .gz-tag.active, #gzGan .gz-tag.active').length) renderSearch();
+});
+document.getElementById('gzZhi').addEventListener('click',e=>{
+  const t=e.target.closest('.gz-tag'); if(!t) return;
+  t.classList.toggle('active'); updateGzBtn(); renderSearch();
+});
+document.getElementById('gzGan').addEventListener('click',e=>{
+  const t=e.target.closest('.gz-tag'); if(!t) return;
+  t.classList.toggle('active'); updateGzBtn(); renderSearch();
+});
+document.getElementById('gzBtn').onclick=()=>{ renderSearch(); };
 
 /* 导出 Markdown */
 document.getElementById('export').onclick=()=>{
