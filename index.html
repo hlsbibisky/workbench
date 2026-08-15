@@ -377,6 +377,7 @@ const MODULES = {
     title:'内观觉察', note:'自我觉察与成长', group:'common',
     sub:[
       {id:'now',     name:'当下状态', type:'iframe',      src:'每日状态记录.html', status:'online'},
+      {id:'calendar', name:'当下月历', type:'iframe', src:'当下月历.html', status:'online'},
       {id:'history', name:'历史库', type:'iframe', src:'历史库.html', status:'online'},
     ]
   },
@@ -454,17 +455,22 @@ NAV_ORDER.forEach(key=>{
 
 /* 接收股票模块发来的异常预警，在左侧导航「股票」上标注 */
 window.addEventListener('message', e=>{
-  const d = e.data; if(!d || d.type!=='stockAlert') return;
-  const nav = document.querySelector('.navitem[data-key="stock"]'); if(!nav) return;
-  const red=(d.red||0), yellow=(d.yellow||0);
-  nav.classList.toggle('nav-alarm-red', red>0);
-  nav.classList.toggle('nav-alarm', yellow>0 && red===0);
-  let badge = nav.querySelector('.navbadge');
-  const total = red+yellow;
-  if(total>0){
-    if(!badge){ badge=document.createElement('span'); badge.className='navbadge'; nav.appendChild(badge); }
-    badge.textContent = total;
-  } else if(badge){ badge.remove(); }
+  const d = e.data; if(!d) return;
+  if(d.type==='stockAlert'){
+    const nav = document.querySelector('.navitem[data-key="stock"]'); if(!nav) return;
+    const red=(d.red||0), yellow=(d.yellow||0);
+    nav.classList.toggle('nav-alarm-red', red>0);
+    nav.classList.toggle('nav-alarm', yellow>0 && red===0);
+    let badge = nav.querySelector('.navbadge');
+    const total = red+yellow;
+    if(total>0){
+      if(!badge){ badge=document.createElement('span'); badge.className='navbadge'; nav.appendChild(badge); }
+      badge.textContent = total;
+    } else if(badge){ badge.remove(); }
+  }
+  else if(d.type==='wb-switch-tab' && d.module && d.subId){
+    if(MODULES[d.module]){ selectModule(d.module); selectSub(d.module, d.subId); }
+  }
 });
 
 /* 底部状态统计（页脚文案为静态，见 HTML 中 .sidefoot） */
