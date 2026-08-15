@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日期记录</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --term:#c9823a; --today:#fbe9d6; --noted:#3f9d6b;
+    --bad:#c0392b; --warn:#d9822b; --neutral:#9a9389;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    line-height:1.55; padding:18px 8px 48px;
+  }
+  .wrap{max-width:1200px; margin:0 auto;}
+  header{ text-align:center; margin-bottom:14px; }
+  header h1{ font-size:21px; margin:0 0 4px; letter-spacing:1px; }
+  header .tip{ font-size:12px; color:var(--sub); }
+
+  .cal-card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:14px 12px; box-shadow:0 2px 10px rgba(120,100,80,.06);
+  }
+  .cal-head{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:6px; }
+  .cal-head button{
+    border:1px solid var(--line); background:#fff; border-radius:9px;
+    width:34px; height:32px; cursor:pointer; font-size:18px; color:var(--ink); font-family:inherit;
+  }
+  .cal-head button.txt{ width:auto; padding:0 12px; font-size:13px; }
+  .cal-head button:hover{ border-color:var(--accent2); color:var(--accent2); }
+  .cal-title{ text-align:center; }
+  .cal-title .ym{ font-size:18px; font-weight:700; letter-spacing:1px; }
+  .cal-title .gz{ font-size:13px; color:var(--sub); margin-top:2px; }
+  .cal-title .gz-range{ font-size:12px; color:var(--term); margin-top:3px; }
+
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:10px; }
+  .cal-grid .wd{ text-align:center; font-size:12px; color:var(--sub); padding:3px 0; }
+  .cal-cell{
+    min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:1px solid var(--line); border-radius:10px; background:#fff;
+    font-size:16px; color:var(--ink); position:relative; cursor:pointer; transition:.12s;
+  }
+  .cal-cell:hover{ border-color:var(--accent2); }
+  .cal-cell.muted{ color:#d5cfc4; background:transparent; border-color:transparent; cursor:default; }
+  .cal-cell.muted:hover{ border-color:transparent; }
+  .cal-cell.today{ border-color:var(--accent); background:var(--today); }
+  .cal-cell.noted{ background:var(--mark); border-color:#e7d3bf; font-weight:600; color:var(--accent); }
+  .cal-cell.sel{ outline:2px solid var(--accent2); outline-offset:-2px; }
+  .cal-cell .gd{ font-size:11px; color:var(--sub); margin-top:2px; font-weight:400; }
+  .cal-cell.noted .gd{ color:var(--accent); }
+  .cal-cell .dot{ width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:5px; }
+
+  .detail{
+    margin-top:14px; padding:14px; border:1px dashed var(--line); border-radius:12px;
+    background:#fff; min-height:24px; font-size:13.5px; color:var(--ink); line-height:1.7;
+  }
+  .detail .empty{ color:var(--sub); }
+  .detail .hd{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .detail .hd b{ font-size:15px; }
+  .detail .hd .gz{ color:var(--accent); font-weight:700; }
+  .detail .chips{ display:flex; flex-wrap:wrap; gap:5px; margin:8px 0; }
+  .detail .chip{
+    background:var(--mark); color:var(--accent); border:1px solid #e7d3bf;
+    border-radius:13px; padding:2px 10px; font-size:12px;
+  }
+  .detail .chip.exc{ background:#fbeede; color:var(--warn); border-color:#f0d6bd; }
+  .detail .txt{ white-space:pre-wrap; word-break:break-word; }
+  .detail .btnrow{ margin-top:12px; }
+  .detail button{
+    border:1px solid var(--accent); background:var(--accent); color:#fff;
+    padding:7px 16px; border-radius:9px; cursor:pointer; font-size:13px; font-family:inherit;
+  }
+  .detail button:hover{ background:#a05f3d; }
+
+  @media (max-width:480px){
+    body{padding:14px 6px 40px;}
+    .cal-cell{ aspect-ratio:1; min-height:0; font-size:13px; }
+    .cal-cell .gd{ font-size:9.5px; }
+    .cal-grid{ gap:4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>日期记录</h1>
+  </header>
+
+  <div class="cal-card">
+    <div class="cal-head">
+      <button id="calPrev" title="上一月">‹</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button id="calNext" title="下一月">›</button>
+      <button class="txt" id="calToday">回到本月</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="detail" id="detail">
+    <div class="empty">点击日历上的某一天，查看那一天的觉察记录；若未记录，可点击「去记录」。</div>
+  </div>
+</div>
+
+<script>
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
+const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
+              '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
+const POS=new Set([0,1,2,3,4]);
+const LS_KEY='DAILY_STATUS';
+
+/* 干支日 */
+function jdn(y,m,d){ const a=Math.floor((14-m)/12); const yy=y+4800-a; const mm=m+12*a-3;
+  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045; }
+function ganzhiDay(y,m,d){ const idx=(jdn(y,m,d)+49)%60; return GAN[idx%10]+ZHI[idx%12]; }
+
+/* 节气：21世纪寿星公式 */
+const TERM_C=[5.4055,20.12,3.87,18.73,5.63,20.646,4.81,20.1,5.52,21.04,5.678,21.37,
+             7.108,22.83,7.5,23.13,7.646,23.042,8.318,23.438,7.438,22.36,7.18,21.94];
+const TERM_NAMES=['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至',
+                  '小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
+function solarTermDay(year,i){ const Y=year%100; const L=Math.floor((Y-1)/4);
+  return Math.floor(Y*0.2422+TERM_C[i])-L; }
+function termOn(y,m,d){ for(let i=0;i<24;i++){ const mo=Math.floor(i/2)+1;
+  if(mo===m && solarTermDay(y,i)===d) return TERM_NAMES[i]; } return ''; }
+
+/* 干支年（立春分界） */
+function lichunDate(y){ return new Date(y,1,solarTermDay(y,2)); }
+function gzYearVal(y,m,d){ const cur=new Date(y,m-1,d); return cur < lichunDate(y) ? y-1 : y; }
+function ganzhiYear(y){ const idx=((y-1984)%60+60)%60; return GAN[idx%10]+ZHI[idx%12]; }
+
+/* 干支月（节气分界 + 五虎遁） */
+function getMonthGZ(y,m,d){
+  const date=new Date(y,m-1,d);
+  const gy=gzYearVal(y,m,d);
+  const jieIdx=[2,4,6,8,10,12,14,16,18,20,22,0]; /* 立春→小寒 共12节 */
+  const jieDates=jieIdx.map(ti=>{
+    let yy=gy; if(ti===0) yy=gy+1;            /* 小寒属次年 */
+    const mo=Math.floor(ti/2)+1;
+    return new Date(yy, mo-1, solarTermDay(yy,ti));
+  });
+  let mk=0;
+  for(let k=0;k<12;k++){ if(date>=jieDates[k]) mk=k; }
+  const yStem=((gy-1984)%10+10)%10;
+  const yinStem=((yStem%5)*2+2)%10;          /* 五虎遁 */
+  const mStem=(yinStem+mk)%10;
+  const mBranch=(2+mk)%12;
+  const start=jieDates[mk];
+  let endStart;
+  if(mk===11){ endStart=new Date(gy+1,1,solarTermDay(gy+1,2)); } /* 丑月止于次年立春前 */
+  else { endStart=jieDates[(mk+1)%12]; }
+  const end=new Date(endStart.getTime()-86400000); /* 下一节前一天 */
+  return { ganzhi: GAN[mStem]+ZHI[mBranch], start, end };
+}
+function fmtMDshort(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
+function fmtMonthRange(s,e,year){
+  let a=fmtMDshort(s), b=fmtMDshort(e);
+  if(s.getFullYear()!==year) a=`${s.getFullYear()}年`+a;
+  if(e.getFullYear()!==year) b=`${e.getFullYear()}年`+b;
+  return `${a} ～ ${b}`;
+}
+
+/* 读取 */
+function loadAll(){
+  let obj;
+  try{ obj=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ obj=null; }
+  if(!obj || typeof obj!=='object') obj={records:{},tags:{}};
+  if(!obj.records) obj.records={};
+  if(!obj.tags) obj.tags={};
+  return obj;
+}
+function dkey(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function parseKey(k){ const p=k.split('-'); return {y:+p[0], m:+p[1], d:+p[2]}; }
+function classify(tags){
+  const t=tags||[]; const exc=t.filter(i=>!POS.has(i)).length; const pos=t.filter(i=>POS.has(i)).length;
+  if(exc>0) return 'hard'; if(pos>0) return 'good'; return 'neutral';
+}
+const MOOD_TXT={good:'顺遂 · 积极', hard:'内耗 · 受挫', neutral:'中性 · 普通'};
+
+/* 收集 */
+function collect(){
+  const obj=loadAll();
+  const keys=new Set();
+  Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
+  Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
+  const map={};
+  keys.forEach(k=>{
+    const {y,m,d}=parseKey(k);
+    map[k]={ tags:(obj.tags[k]||[]).slice(), text:(obj.records[k]||''), mood:classify(obj.tags[k]) };
+  });
+  return map;
+}
+function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+let calY, calM, calSel;
+let RECORDS={};
+
+function renderCalendar(){
+  if(calY===undefined){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; }
+  const yGz=ganzhiYear(gzYearVal(calY,calM,1));
+  const mInfo=getMonthGZ(calY,calM,15);
+  document.getElementById('calTitle').innerHTML=
+    `<div class="ym">${calY}年 ${calM}月</div>`+
+    `<div class="gz">${yGz}年 · ${mInfo.ganzhi}月</div>`+
+    `<div class="gz-range">${fmtMonthRange(mInfo.start, mInfo.end, calY)}</div>`;
+
+  const first=new Date(calY,calM-1,1);
+  const startW=first.getDay();
+  const days=new Date(calY,calM,0).getDate();
+  let html='<div class="wd">日</div><div class="wd">一</div><div class="wd">二</div><div class="wd">三</div>'
+         +'<div class="wd">四</div><div class="wd">五</div><div class="wd">六</div>';
+  for(let i=0;i<startW;i++) html+='<div class="cal-cell muted"></div>';
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let d=1; d<=days; d++){
+    const cur=new Date(calY,calM-1,d);
+    const k=dkey(calY,calM,d);
+    const rec=RECORDS[k];
+    const cls=['cal-cell'];
+    if(cur>today) cls.push('muted');
+    else { if(rec) cls.push('noted'); }
+    if(cur.getTime()===today.getTime()) cls.push('today');
+    if(calSel===d) cls.push('sel');
+    const gz=ganzhiDay(calY,calM,d);
+    html+=`<div class="${cls.join(' ')}" data-d="${d}">${d}<div class="gd">${gz}</div>${rec?'<div class="dot"></div>':''}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  renderDetail();
+}
+
+function renderDetail(){
+  const el=document.getElementById('detail');
+  if(calSel==null){ el.innerHTML='<div class="empty">点击日历上的某一天，查看那一天的觉察记录；若未记录，可点击「去记录」。</div>'; return; }
+  const k=dkey(calY,calM,calSel);
+  const rec=RECORDS[k];
+  const wd=WEEK[new Date(calY,calM-1,calSel).getDay()];
+  const gz=ganzhiDay(calY,calM,calSel);
+  const term=termOn(calY,calM,calSel);
+  if(!rec){
+    el.innerHTML=
+      `<div class="hd"><b>${calY}年${calM}月${calSel}日 ${wd}</b><span class="gz">${gz}日</span>${term?`<span style="color:var(--term);font-size:12px">${term}</span>`:''}</div>`+
+      `<div class="empty">这一天还没有留下记录。</div>`+
+      `<div class="btnrow"><button data-key="${k}">去记录</button></div>`;
+    return;
+  }
+  const chips=rec.tags.map(i=>`<span class="chip ${!POS.has(i)?'exc':''}">${DRIVERS[i]}</span>`).join('');
+  const badge=`<span style="display:inline-block;margin-left:6px;font-size:11px;padding:1px 8px;border-radius:10px;background:${rec.mood==='good'?'#e6f4ec':rec.mood==='hard'?'#fbe6e2':'#f0eee9'};color:${rec.mood==='good'?'var(--noted)':rec.mood==='hard'?'var(--bad)':'var(--neutral)'}">${MOOD_TXT[rec.mood]}</span>`;
+  el.innerHTML=
+    `<div class="hd"><b>${calY}年${calM}月${calSel}日 ${wd}</b><span class="gz">${gz}日</span>${badge}${term?`<span style="color:var(--term);font-size:12px">${term}</span>`:''}</div>`+
+    (chips?`<div class="chips">${chips}</div>`:'')+
+    (rec.text.trim()?`<div class="txt">${esc(rec.text)}</div>`:`<div class="empty">（仅标签，无文字）</div>`)+
+    `<div class="btnrow"><button data-key="${k}">去记录 / 继续编辑</button></div>`;
+}
+
+function goRecord(key){
+  try{ localStorage.setItem('wb_inner_now_date', key); }catch(e){}
+  try{
+    if(window.parent && window.parent!==window){
+      window.parent.postMessage({type:'wb-switch-tab', module:'inner', subId:'now'}, '*');
+    } else {
+      location.href='每日状态记录.html?date='+encodeURIComponent(key);
+    }
+  }catch(e){ location.href='每日状态记录.html?date='+encodeURIComponent(key); }
+}
+
+function init(){
+  RECORDS=collect();
+  renderCalendar();
+}
+
+/* 导航 */
+document.getElementById('calPrev').onclick=()=>{ calM--; if(calM<1){calM=12;calY--;} calSel=null; renderCalendar(); };
+document.getElementById('calNext').onclick=()=>{ calM++; if(calM>12){calM=1;calY++;} calSel=null; renderCalendar(); };
+document.getElementById('calToday').onclick=()=>{ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; calSel=null; renderCalendar(); };
+document.getElementById('calGrid').addEventListener('click',e=>{
+  const cell=e.target.closest('.cal-cell');
+  if(cell && cell.dataset.d){ calSel=+cell.dataset.d; renderCalendar(); }
+});
+document.getElementById('detail').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(b && b.dataset.key) goRecord(b.dataset.key);
+});
+
+/* 外壳同步刷新 */
+window.addEventListener('message',function(e){
+  if(e.data && e.data.type==='wb-reload'){ try{ RECORDS=collect(); renderCalendar(); }catch(err){} }
+});
+
+init();
+</script>
+</body>
+</html>
