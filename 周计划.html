@@ -168,7 +168,7 @@ function fmtMD(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
 function fmtDate(d){ return pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function isToday(i){ const d=dayDate(i),t=new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
 
-/* 修复旧数据：把当前 weekKey 与历史记录都归一到自然周（周一~周日） */
+/* 修复旧数据：把当前 weekKey 与历史记录都归一到自然周（周一~周日），并合并同一周的多设备归档 */
 function normalizeHistory(){
   if(!state) return;
   // 当前周归到周一
@@ -186,21 +186,30 @@ function normalizeHistory(){
       const name=s.catName||'未分类';
       if(!map[startKey].summary[name]) map[startKey].summary[name]={catName:name,items:[],total:0,done:0};
       const target=map[startKey].summary[name];
-      target.total += (s.total||0);
-      target.done += (s.done||0);
       (s.items||[]).forEach(it=>{
-        // 去重：同文字同完成态合并计数
-        const exist=target.items.find(x=>x.text===it.text && !!x.done===!!it.done);
-        if(exist){ exist.count = Math.max(exist.count||0, it.count||0); }
-        else { target.items.push({text:it.text,count:it.count||0,done:!!it.done}); }
+        // 按任务文本去重（不区分完成态），保留完成状态更高的、计数更大的
+        const exist=target.items.find(x=>x.text===it.text);
+        if(exist){
+          if(it.done) exist.done=true;
+          exist.count = Math.max(exist.count||0, it.count||0);
+        } else {
+          target.items.push({text:it.text,count:it.count||0,done:!!it.done});
+        }
       });
+      // 完全重新计算 total/done，避免旧数据里重复计数或跨设备污染
+      target.total = target.items.length;
+      target.done = target.items.filter(x=>x.done).length;
     });
-    map[startKey].totals.total += (h.totals&&h.totals.total||0);
-    map[startKey].totals.done += (h.totals&&h.totals.done||0);
   });
   state.history = Object.values(map).sort((a,b)=> new Date(b.weekStart)-new Date(a.weekStart));
   state.history.forEach(h=>{
-    h.summary = Object.values(h.summary).map(s=>({...s,total:Math.max(s.total,s.items.length)}));
+    h.summary = Object.values(h.summary);
+    h.totals = {total:0, done:0};
+    h.summary.forEach(s=>{
+      s.total = s.items.length;
+      h.totals.total += s.total;
+      h.totals.done += s.done;
+    });
   });
 }
 function load(){
@@ -367,6 +376,8 @@ function startNewWeek(){
 
 /* ---------- 历史抽屉 ---------- */
 function openHistory(){
+  normalizeHistory(); // 每次打开前重新归并，防止同步后同一周出现多条
+  save();
   const body=document.getElementById('histBody'); body.innerHTML='';
   if(!state.history.length){
     body.innerHTML='<div class="empty">还没有历史周。下次新的一周开始时，会自动在这里留下一条上周的完成摘要。</div>';
