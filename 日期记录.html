@@ -80,26 +80,102 @@
     .cal-cell .gd{ font-size:9.5px; }
     .cal-grid{ gap:4px; }
   }
+  /* 视图切换 */
+  .viewswitch{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; }
+  .viewswitch button{
+    border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:20px;
+    padding:7px 22px; font-size:14px; cursor:pointer; font-family:inherit; transition:.12s;
+  }
+  .viewswitch button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .viewswitch button:hover{ border-color:var(--accent2); }
+
+  /* 月份/年份备注编辑图标 */
+  .editnote{ border:none; background:transparent; cursor:pointer; font-size:15px; color:var(--accent);
+    margin-left:7px; vertical-align:middle; padding:0 3px; line-height:1; }
+  .editnote:hover{ color:var(--accent2); }
+  .noteflag{ font-size:12px; margin-left:5px; }
+
+  /* 年份视图：12 节气月网格 */
+  .year-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  .year-cell{
+    border:1px solid var(--line); border-radius:12px; background:#fff; padding:16px 10px;
+    cursor:pointer; text-align:center; transition:.12s; position:relative;
+  }
+  .year-cell:hover{ border-color:var(--accent2); box-shadow:0 2px 8px rgba(120,100,80,.08); }
+  .year-cell.noted{ background:var(--mark); border-color:#e7d3bf; }
+  .year-cell .yc-gz{ font-size:18px; font-weight:700; color:var(--accent); }
+  .year-cell .yc-range{ font-size:12px; color:var(--sub); margin-top:5px; }
+  .year-cell .yc-dot{ margin-top:7px; font-size:12px; color:var(--accent); }
+  .year-cell.hasnote .yc-gz::after{ content:' 📝'; }
+
+  /* 备注编辑弹窗 */
+  .modal{ position:fixed; inset:0; background:rgba(58,54,49,.42); display:none;
+    align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-box{ background:var(--card); border-radius:16px; width:min(520px,100%);
+    padding:18px; box-shadow:0 10px 34px rgba(0,0,0,.2); }
+  .modal-hd{ font-size:15px; font-weight:700; margin-bottom:10px; color:var(--ink); }
+  #noteArea{ width:100%; min-height:150px; border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-size:14px; font-family:inherit; resize:vertical; line-height:1.65; }
+  .modal-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+  .modal-btns button{ border-radius:9px; padding:7px 18px; font-size:13px; cursor:pointer; font-family:inherit; }
+  #noteSave{ background:var(--accent); color:#fff; border:1px solid var(--accent); }
+  #noteSave:hover{ background:#a05f3d; }
+  #noteCancel{ background:#fff; color:var(--sub); border:1px solid var(--line); }
+
+  @media (max-width:480px){ .year-grid{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="cal-card">
-    <div class="cal-head">
-      <div class="navgap">
-        <button id="calPrev" title="上一月">‹</button>
-        <button class="txt" id="calToday">回到本月</button>
-      </div>
-      <div class="cal-title" id="calTitle"></div>
-      <div class="navgap">
-        <button id="calNext" title="下一月">›</button>
-      </div>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
+  <div class="viewswitch">
+    <button id="btnMonth" class="active">月份记录</button>
+    <button id="btnYear">年份记录</button>
   </div>
 
-  <div class="detail" id="detail">
-    <div class="empty">点击日历上的某一天，查看那一天的觉察记录；若未记录，可点击「去记录」。</div>
+  <div id="monthView">
+    <div class="cal-card">
+      <div class="cal-head">
+        <div class="navgap">
+          <button id="calPrev" title="上一月">‹</button>
+          <button class="txt" id="calToday">回到本月</button>
+        </div>
+        <div class="cal-title" id="calTitle"></div>
+        <div class="navgap">
+          <button id="calNext" title="下一月">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="detail" id="detail">
+      <div class="empty">点击日历上的某一天，查看那一天的觉察记录；若未记录，可点击「去记录」。</div>
+    </div>
+  </div>
+
+  <div id="yearView" style="display:none;">
+    <div class="cal-card">
+      <div class="cal-head">
+        <div class="navgap">
+          <button id="yearPrev" title="上一年">‹</button>
+        </div>
+        <div class="cal-title" id="yearTitle"></div>
+        <div class="navgap">
+          <button id="yearNext" title="下一年">›</button>
+        </div>
+      </div>
+      <div class="year-grid" id="yearGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="noteModal">
+    <div class="modal-box">
+      <div class="modal-hd" id="noteModalHd"></div>
+      <textarea id="noteArea" placeholder="在这里写下本月（或本年）的觉察备注，导出文本与备份时会被一起收入…"></textarea>
+      <div class="modal-btns">
+        <button id="noteCancel">取消</button>
+        <button id="noteSave">保存</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -170,8 +246,11 @@ function loadAll(){
   if(!obj || typeof obj!=='object') obj={records:{},tags:{}};
   if(!obj.records) obj.records={};
   if(!obj.tags) obj.tags={};
+  if(!obj.monthNotes) obj.monthNotes={};
+  if(!obj.yearNotes) obj.yearNotes={};
   return obj;
 }
+function saveAll(obj){ try{ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }catch(e){} }
 function dkey(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 function parseKey(k){ const p=k.split('-'); return {y:+p[0], m:+p[1], d:+p[2]}; }
 function classify(tags){
@@ -202,9 +281,12 @@ function renderCalendar(){
   if(calY===undefined){ const n=new Date(); calY=n.getFullYear(); calM=n.getMonth()+1; }
   const yGz=ganzhiYear(gzYearVal(calY,calM,1));
   const mInfo=getMonthGZ(calY,calM,15);
+  const mKey=monthKeyOf(calY,calM,15);
+  const mNote=(loadAll().monthNotes[mKey]||'').trim();
   document.getElementById('calTitle').innerHTML=
-    `<div class="ym">${calY}年 ${calM}月</div>`+
-    `<div class="gz">${yGz}年 · ${mInfo.ganzhi}月 · <span>${fmtMonthRange(mInfo.start, mInfo.end, calY)}</span></div>`;
+    `<div class="ym">${calY}年 ${calM}月 <button class="editnote" id="editMonthNote" title="编辑本月备注">✎</button></div>`+
+    `<div class="gz">${yGz}年 · ${mInfo.ganzhi}月 · <span>${fmtMonthRange(mInfo.start, mInfo.end, calY)}</span>${mNote?` <span class="noteflag">📝已备注</span>`:''}</div>`;
+  const em=document.getElementById('editMonthNote'); if(em) em.onclick=openMonthNote;
 
   const first=new Date(calY,calM-1,1);
   const startW=first.getDay();
@@ -283,7 +365,106 @@ document.getElementById('detail').addEventListener('click',e=>{
 
 /* 外壳同步刷新 */
 window.addEventListener('message',function(e){
-  if(e.data && e.data.type==='wb-reload'){ try{ RECORDS=collect(); renderCalendar(); }catch(err){} }
+  if(e.data && e.data.type==='wb-reload'){ try{ RECORDS=collect(); if(document.getElementById('yearView').style.display!=='none') renderYear(); else renderCalendar(); }catch(err){} }
+});
+
+/* ===== 月份备注 / 年份记录（新增） ===== */
+let curYear=null;
+function ensureYear(){ if(curYear===null){ const n=new Date(); curYear=gzYearVal(n.getFullYear(),n.getMonth()+1,n.getDate()); } }
+function monthKeyOf(y,m,d){ return `${gzYearVal(y,m,d)}-${getMonthGZ(y,m,d).ganzhi}`; }
+
+/* 干支年的 12 个节气月（寅→丑，从立春到次年立春前） */
+function yearMonths(gy){
+  const jieIdx=[2,4,6,8,10,12,14,16,18,20,22,0];
+  const arr=[];
+  for(let k=0;k<12;k++){
+    const ti=jieIdx[k];
+    const yy= ti===0? gy+1 : gy;
+    const mo=Math.floor(ti/2)+1;
+    const start=new Date(yy, mo-1, solarTermDay(yy,ti));
+    let endStart;
+    if(k===11){ endStart=new Date(gy+1,1,solarTermDay(gy+1,2)); }
+    else { const ti2=jieIdx[k+1]; const yy2= ti2===0? gy+1 : gy; const mo2=Math.floor(ti2/2)+1; endStart=new Date(yy2, mo2-1, solarTermDay(yy2,ti2)); }
+    const end=new Date(endStart.getTime()-86400000);
+    const yStem=((gy-1984)%10+10)%10;
+    const yinStem=((yStem%5)*2+2)%10;
+    const mStem=(yinStem+k)%10;
+    const mBranch=(2+k)%12;
+    const ganzhi=GAN[mStem]+ZHI[mBranch];
+    arr.push({k, ganzhi, start, end, key:`${gy}-${ganzhi}`});
+  }
+  return arr;
+}
+
+function renderYear(){
+  ensureYear();
+  const yGz=ganzhiYear(curYear);
+  const months=yearMonths(curYear);
+  const obj=loadAll();
+  document.getElementById('yearTitle').innerHTML=
+    `<div class="ym">${yGz}年 ${curYear} <button class="editnote" id="editYearNote" title="编辑本年备注">✎</button></div>`;
+  let grid='';
+  months.forEach(M=>{
+    let hasRec=false;
+    for(const k in RECORDS){ const p=k.split('-'); if(monthKeyOf(+p[0],+p[1],+p[2])===M.key){ hasRec=true; break; } }
+    const mNote=(obj.monthNotes[M.key]||'').trim();
+    const cls='year-cell'+(hasRec?' noted':'')+(mNote?' hasnote':'');
+    grid+=`<div class="${cls}" data-key="${M.key}" data-y="${M.start.getFullYear()}" data-m="${M.start.getMonth()+1}" data-d="${M.start.getDate()}">`
+        +`<div class="yc-gz">${M.ganzhi}月</div>`
+        +`<div class="yc-range">${fmtMDshort(M.start)} ～ ${fmtMDshort(M.end)}</div>`
+        +`<div class="yc-dot">${hasRec?'● 有记录':'○ 无记录'}</div>`
+        +`</div>`;
+  });
+  document.getElementById('yearGrid').innerHTML=grid;
+  const ey=document.getElementById('editYearNote'); if(ey) ey.onclick=openYearNote;
+}
+
+/* 备注编辑弹窗 */
+let noteKind=null, noteKey=null;
+function openEditor(kind, key, title){
+  noteKind=kind; noteKey=key;
+  const obj=loadAll();
+  document.getElementById('noteModalHd').textContent=title;
+  document.getElementById('noteArea').value = (kind==='month'? (obj.monthNotes[key]||'') : (obj.yearNotes[key]||''));
+  document.getElementById('noteModal').style.display='flex';
+  const ta=document.getElementById('noteArea'); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);
+}
+function openMonthNote(){
+  const key=monthKeyOf(calY,calM,15);
+  const mInfo=getMonthGZ(calY,calM,15);
+  const yGz=ganzhiYear(gzYearVal(calY,calM,15));
+  openEditor('month', key, `编辑本月备注 · ${yGz}年 ${mInfo.ganzhi}月（${key}）`);
+}
+function openYearNote(){
+  openEditor('year', curYear, `编辑本年备注 · ${ganzhiYear(curYear)}年 ${curYear}`);
+}
+document.getElementById('noteSave').onclick=()=>{
+  const v=document.getElementById('noteArea').value;
+  const obj=loadAll();
+  if(noteKind==='month'){ obj.monthNotes=obj.monthNotes||{}; if(v.trim()) obj.monthNotes[noteKey]=v; else delete obj.monthNotes[noteKey]; }
+  else { obj.yearNotes=obj.yearNotes||{}; if(v.trim()) obj.yearNotes[noteKey]=v; else delete obj.yearNotes[noteKey]; }
+  saveAll(obj);
+  document.getElementById('noteModal').style.display='none';
+  if(noteKind==='month') renderCalendar(); else renderYear();
+};
+document.getElementById('noteCancel').onclick=()=>{ document.getElementById('noteModal').style.display='none'; };
+document.getElementById('noteModal').addEventListener('click',e=>{ if(e.target.id==='noteModal') document.getElementById('noteModal').style.display='none'; });
+
+/* 视图切换 */
+function switchView(v){
+  document.getElementById('monthView').style.display = v==='month'?'block':'none';
+  document.getElementById('yearView').style.display = v==='year'?'block':'none';
+  document.getElementById('btnMonth').classList.toggle('active', v==='month');
+  document.getElementById('btnYear').classList.toggle('active', v==='year');
+  if(v==='year') renderYear(); else renderCalendar();
+}
+document.getElementById('btnMonth').onclick=()=>switchView('month');
+document.getElementById('btnYear').onclick=()=>switchView('year');
+document.getElementById('yearPrev').onclick=()=>{ curYear--; renderYear(); };
+document.getElementById('yearNext').onclick=()=>{ curYear++; renderYear(); };
+document.getElementById('yearGrid').addEventListener('click',e=>{
+  const cell=e.target.closest('.year-cell');
+  if(cell && cell.dataset.key){ const y=+cell.dataset.y, m=+cell.dataset.m, d=+cell.dataset.d; calY=y; calM=m; calSel=d; switchView('month'); }
 });
 
 init();
