@@ -262,6 +262,7 @@
       <span class="spacer"></span>
       <button id="expandAll">全部展开</button>
       <button id="collapseAll">全部折叠</button>
+      <button id="exportTxt">导出文本</button>
       <button id="export">导出 MD</button>
       <button id="refresh">刷新</button>
     </div>
@@ -609,6 +610,33 @@ document.getElementById('gzGan').addEventListener('click',e=>{
   t.classList.toggle('active'); updateGzBtn(); renderSearch();
 });
 document.getElementById('gzBtn').onclick=()=>{ renderSearch(); };
+
+/* 导出纯文本（沿用当前筛选；默认「全部时间」即导出所有填写过的记录） */
+document.getElementById('exportTxt').onclick=()=>{
+  const data=applySearchFilter();
+  const L=[];
+  L.push('内观觉察 · 每日记录（纯文本导出）');
+  L.push('导出时间：'+fmtMD(new Date())+'　·　共 '+data.length+' 天有记录');
+  L.push('');
+  L.push('————————————');
+  L.push('');
+  data.forEach(r=>{
+    const wd=WEEK[r.date.getDay()];
+    const gz=ganzhiDay(r.y,r.m,r.d)+'日';
+    const tags=r.tags.map(i=>DRIVERS[i]).join('、');
+    L.push('【'+fmtMD(r.date)+' '+wd+' · '+gz+' · '+MOOD_TXT[r.mood]+'】');
+    if(tags) L.push('驱动力：'+tags);
+    const txt=(r.text||'').trim();
+    if(txt) L.push(txt);
+    else if(!tags) L.push('（无文字、无标签）');
+    L.push('');
+  });
+  const blob=new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='每日记录_'+fmtMD(new Date())+'.txt';
+  a.click();
+};
 
 /* 导出 Markdown */
 document.getElementById('export').onclick=()=>{
