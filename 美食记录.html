@@ -96,6 +96,12 @@
   .badge.汤{ background:#e8eef6; color:#3f6aa3; }
   .badge.主食{ background:#f3ecdf; color:#8a6d3b; }
   .badge.零食{ background:#f1e6f3; color:#7a4f86; }
+  /* 饮品分类配色 */
+  .badge.养生茶{ background:#e7f3ec; color:#3f9d6b; }
+  .badge.茶叶{ background:#eef0e3; color:#6f8a3f; }
+  .badge.水饮料{ background:#e6eef6; color:#3f6aa3; }
+  .badge.酒{ background:#f3e6ea; color:#a34f63; }
+  .badge.调制酒{ background:#f6ece1; color:#b8702e; }
 
   .empty{ text-align:center; color:var(--sub); padding:40px 10px; }
   .empty b{ color:var(--accent); }
@@ -154,6 +160,11 @@
   .rtype-badge.汤{ background:rgba(63,106,163,.82); }
   .rtype-badge.主食{ background:rgba(138,109,59,.82); }
   .rtype-badge.零食{ background:rgba(122,79,134,.82); }
+  .rtype-badge.养生茶{ background:rgba(63,157,107,.82); }
+  .rtype-badge.茶叶{ background:rgba(111,138,63,.82); }
+  .rtype-badge.水饮料{ background:rgba(63,106,163,.82); }
+  .rtype-badge.酒{ background:rgba(163,79,99,.82); }
+  .rtype-badge.调制酒{ background:rgba(184,112,46,.82); }
   /* 内容区 */
   .rcard .rbody{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .rcard .rhead{ display:flex; align-items:center; gap:9px; }
@@ -507,6 +518,7 @@
     <div class="subtabs">
       <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
       <button class="subtab" data-tab="menu" onclick="switchTab('menu')"><span class="pip"></span>菜品库</button>
+      <button class="subtab" data-tab="drinks" onclick="switchTab('drinks')"><span class="pip"></span>饮品库</button>
       <button class="subtab" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
       <button class="subtab" data-tab="taste" onclick="switchTab('taste')"><span class="pip"></span>我的口味</button>
     </div>
@@ -616,7 +628,8 @@ const TASTE_GROUPS = [
 
 const K = {
   taste:'food_taste', menu:'food_menu', userDishes:'food_userdishes',
-  disliked:'food_disliked', checkin:'food_checkin', dishCover:'food_dishcover'
+  disliked:'food_disliked', checkin:'food_checkin', dishCover:'food_dishcover',
+  drinks:'food_drinks'
 };
 
 // 图标候选集（菜谱/菜品编辑器点选用）
@@ -634,7 +647,40 @@ let activeCoverTarget = null;
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
   try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
-  catch(e){ console.error(e); showStorageAlert(); return false; }
+  catch(e){
+    console.error(e);
+    // 写入失败：先尝试自动压缩所有图片再重试一次，尽量避免打扰用户
+    try{
+      autoShrinkImagesSync();
+      localStorage.setItem(key, JSON.stringify(v));
+      scheduleCloudPush();
+      toast('空间不足，已自动压缩旧图片后保存');
+      return true;
+    }catch(e2){
+      console.error(e2); showStorageAlert(); return false;
+    }
+  }
+}
+// 同步压缩所有 base64 图片（封面 + 打卡照片），尽量释放空间；compressImage 本身是异步，这里用 Image 同步 canvas 转码
+function autoShrinkImagesSync(){
+  const shrink = (src, max, q)=>{
+    if(!src || src.indexOf('data:image')!==0) return src;
+    try{
+      const img = new Image(); img.src = src;
+      const canvas = document.createElement('canvas');
+      let w = img.width||max, h = img.height||max;
+      const scale = Math.min(1, max/w, max/h);
+      w = Math.round(w*scale); h = Math.round(h*scale);
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      return canvas.toDataURL('image/jpeg', q);
+    }catch(e){ return src; }
+  };
+  (state.menu||[]).forEach(r=>{ if(r.image) r.image = shrink(r.image, 640, 0.6); });
+  (state.drinks||[]).forEach(r=>{ if(r.image) r.image = shrink(r.image, 640, 0.6); });
+  Object.keys(state.dishCover||{}).forEach(id=>{ if(state.dishCover[id]) state.dishCover[id] = shrink(state.dishCover[id], 640, 0.6); });
+  (state.checkin||[]).forEach(c=>{ (c.photos||[]).forEach((p,pi)=>{ c.photos[pi] = shrink(p, 1000, 0.7); }); });
 }
 function storageDiagnostics(){
   const list=[]; let total=0;
@@ -730,6 +776,7 @@ async function collectFoodForExport(){
   const snap={
     [K.taste]:state.taste, [K.menu]:state.menu, [K.userDishes]:state.userDishes,
     [K.disliked]:state.disliked, [K.checkin]:state.checkin, [K.dishCover]:state.dishCover,
+    [K.drinks]:state.drinks,
     [K_SYNC]:syncCfg
   };
   await hydrateStateImages(snap);
@@ -754,10 +801,12 @@ const state = {
   userDishes: load(K.userDishes, []),
   disliked: load(K.disliked, []),
   dishCover: load(K.dishCover, {}),
+  drinks: load(K.drinks, []),
   skipSession: new Set(),
   queue: [], queueIdx: 0,
   tab: 'checkin',
   menuCat: 'all',
+  drinksCat: 'all',
   checkin: load(K.checkin, [])
 };
 
@@ -1641,7 +1690,7 @@ function setRecCoverUpload(file){
   compressImage(file, function(dataUrl){
     editBuf._cover = dataUrl;
     renderEditor();
-  }, {maxWidth:800, maxHeight:800, quality:0.72});
+  }, {maxWidth:640, maxHeight:640, quality:0.6});
 }
 
 /* ============ 菜谱查看器：简洁版 ============ */
@@ -1650,6 +1699,13 @@ function diffLabel(v){
   if(n<=2) return '简单';
   if(n===3) return '复杂';
   return '困难';
+}
+// 饮品「温度/形态」标签（复用 difficulty 字段：1=热饮 3=常温冷饮 5=冰冻）
+function tempLabel(v){
+  const n = parseInt(v)||3;
+  if(n<=2) return '热饮';
+  if(n===3) return '常温冷饮';
+  return '冰冻';
 }
 function openRecipeViewer(id){
   const r = state.menu.find(x=>x.id===id); if(!r) return;
@@ -1799,6 +1855,182 @@ async function saveDish(){
   if(state.tab==='today') renderToday();
 }
 
+/* ============ 渲染：饮品库（带封面图卡片；无制作方法；难度=温度形态） ============ */
+const DRINK_TYPES = ['养生茶','茶叶','水/饮料','酒','调制酒'];
+const DRINK_TEMPS = [['热饮',1],['常温冷饮',3],['冰冻',5]];
+
+function renderDrinks(){
+  const body = document.getElementById('modbody');
+  const cats = [
+    {type:'all', label:'全部'},
+    {type:'养生茶', label:'养生茶'},
+    {type:'茶叶', label:'茶叶'},
+    {type:'水/饮料', label:'水/饮料'},
+    {type:'酒', label:'酒'},
+    {type:'调制酒', label:'调制酒'}
+  ];
+  const cntOf = t => t==='all' ? state.drinks.length : state.drinks.filter(r=>r.type===t).length;
+  const catBar = '<div class="catbar">' + cats.map(c=>{
+    const on = state.drinksCat===c.type ? ' on':'';
+    return '<button class="catbtn'+on+'" onclick="setDrinksCat(\''+c.type+'\')">'+c.label
+      + '<span class="cnt">'+cntOf(c.type)+'</span></button>';
+  }).join('') + '</div>';
+
+  const list = state.drinksCat==='all' ? state.drinks : state.drinks.filter(r=>r.type===state.drinksCat);
+
+  let inner;
+  if(state.drinks.length === 0){
+    inner = '<div class="empty"><p>你的饮品库还是空的。</p>'
+      + '<p>点右侧「＋ 新建饮品」开始添加第一杯吧。</p></div>';
+  } else if(list.length === 0){
+    inner = '<div class="empty"><p>该分类下还没有饮品。</p>'
+      + '<p>点右侧「＋ 新建饮品」并选分类为「'+state.drinksCat+'」即可。</p></div>';
+  } else {
+    inner = '<div class="grid">' + list.map(r=>{
+      const imgSrc = r.image || '';
+      const coverHtml = imgSrc
+        ? imgTag(imgSrc, 'rcover-img', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"')
+          + '<div class="remoji-fallback" style="display:none">'+esc(r.emoji)+'</div>'
+        : '<div class="remoji-fallback">'+esc(r.emoji)+'</div>';
+      const tagItems = (r.materials||[]).slice(0,5).map(m=>'<span class="rtag">'+esc(m.n)+'</span>');
+      if((r.materials||[]).length > 5) tagItems.push('<span class="rtag" style="opacity:.55">+'+(r.materials.length-5)+'</span>');
+      return '<div class="rcard">'
+        + '<div class="rcover">'+coverHtml
+          + '<span class="rtype-badge '+cssClass(r.type)+'">'+esc(r.type)+'</span>'
+          + '</div>'
+        + '<div class="rbody">'
+        + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
+        + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · '+tempLabel(r.difficulty)+'</div>'
+        + (tagItems.length ? '<div class="rtags">'+tagItems.join('')+'</div>' : '')
+        + '<div class="rbar">'
+        +   '<button class="rbtn primary" onclick="openDrinkViewer(\''+r.id+'\')">📖 查看</button>'
+        +   '<button class="rbtn" onclick="openDrinkEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn danger" onclick="delDrink(\''+r.id+'\')">🗑</button>'
+        + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  body.innerHTML =
+    catBar
+    + '<div class="row spread" style="margin-bottom:14px">'
+    + '<div class="moddesc" style="margin:0">共 '+list.length+' 款饮品'
+      + (state.drinksCat!=='all' ? '（'+state.drinks.length+' 款中筛选）' : '') + '</div>'
+    + '<button class="btn btn-primary" onclick="openDrinkEditor(null)">＋ 新建饮品</button>'
+    + '</div>' + inner;
+  hydrateImgs(body);
+}
+function cssClass(t){ return String(t).replace(/[^一-龥a-zA-Z0-9]/g,''); }
+function setDrinksCat(t){ state.drinksCat = t; renderDrinks(); }
+function delDrink(id){
+  myConfirm('确定删除这款饮品？', function(){
+    state.drinks = state.drinks.filter(r=>r.id!==id);
+    save(K.drinks, state.drinks); renderDrinks(); toast('已删除');
+  });
+}
+
+/* ============ 弹窗：饮品编辑（带图片字段；无制作方法；难度=温度形态） ============ */
+let drinkBuf = null;
+function openDrinkEditor(id){
+  let r;
+  if(id){ r = state.drinks.find(x=>x.id===id); if(!r) return; }
+  else {
+    r = {
+      id:rid(), name:'', emoji:'🥤', type:'养生茶', image:'',
+      difficulty:1,
+      materials:[
+        {n:'', qty:'', skip:false, note:''},
+        {n:'', qty:'', skip:false, note:''}
+      ],
+      created:Date.now()
+    };
+  }
+  drinkBuf = clone(r);
+  drinkBuf._cover = drinkBuf.image || '';
+  activeCoverTarget = 'drink';
+  renderDrinkEditor();
+  showModal();
+}
+function renderDrinkEditor(){
+  const r = drinkBuf;
+  const curTemp = DRINK_TEMPS.find(d=>d[1]===r.difficulty) || DRINK_TEMPS[0];
+  const heroHtml = drinkBuf._cover
+    ? imgTag(drinkBuf._cover, 're-hero', 'id="drHero" onclick="drPickCover()" title="点击更换图片"')
+    : '<div class="re-hero-placeholder" onclick="drPickCover()" title="点击上传图片"><div class="big">'+esc(drinkBuf.emoji||'🥤')+'</div><span>点击上传饮品图片</span></div>';
+  const matRows = (r.materials||[]).map((m,idx)=>
+    '<div class="re-mat-row">'
+    + '<input value="'+esc(m.n)+'" placeholder="如：柠檬、蜂蜜" oninput="editDrinkMat('+idx+',this.value)">'
+    + '<button class="row-del" onclick="delDrinkMat('+idx+')" title="删除">✕</button>'
+    + '</div>'
+  ).join('');
+  document.getElementById('modalBody').innerHTML =
+    '<h2>'+(r.name?'编辑饮品':'新建饮品')+'</h2>'
+    + heroHtml
+    + '<input type="file" id="drCoverFile" accept="image/*" style="display:none" onchange="setDrinkCoverUpload(this.files[0])">'
+    + '<div class="field"><label>名称</label>'
+    +   '<input id="dr_name" placeholder="如：陈皮山楂茶" value="'+esc(r.name)+'"></div>'
+    + '<div class="re-row">'
+    +   '<div class="field"><label>分类</label><select id="dr_type">'+DRINK_TYPES.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field"><label>温度/形态</label><select id="dr_temp">'+DRINK_TEMPS.map(d=>'<option value="'+d[1]+'" '+(d[1]===curTemp[1]?'selected':'')+'>'+d[0]+'</option>').join('')+'</select></div>'
+    + '</div>'
+    + '<div class="field"><label>饮品成分（每行一种，如配料、基底）</label>'
+    +   '<div class="re-mat-list" id="drMatWrap">'+matRows+'</div>'
+    +   '<button class="re-add" onclick="addDrinkMat()">＋ 添加成分</button></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-primary" onclick="saveDrink()">保存</button></div>';
+  hydrateImgs(document.getElementById('modalBody'));
+}
+function drPickCover(){ document.getElementById('drCoverFile').click(); }
+function editDrinkMat(idx, val){ drinkBuf.materials[idx].n = val; }
+function addDrinkMat(){ drinkBuf.materials.push({n:'',qty:'',skip:false,note:''}); renderDrinkEditor(); }
+function delDrinkMat(idx){ drinkBuf.materials.splice(idx,1); renderDrinkEditor(); }
+function setDrinkCoverUpload(file){
+  if(!file) return;
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }, {maxWidth:640, maxHeight:640, quality:0.6});
+}
+async function saveDrink(){
+  const r = drinkBuf;
+  r.name = document.getElementById('dr_name').value.trim() || '未命名饮品';
+  r.type = document.getElementById('dr_type').value;
+  r.difficulty = parseInt(document.getElementById('dr_temp').value) || 1;
+  r.image = drinkBuf._cover || '';
+  const inputs = document.querySelectorAll('#drMatWrap .re-mat-row input');
+  const newMats = [];
+  inputs.forEach((input, idx)=>{
+    const n = input.value.trim();
+    if(!n) return;
+    const old = r.materials[idx] || {qty:'',skip:false,note:''};
+    newMats.push({n:n, qty:old.qty||'', skip:!!old.skip, note:old.note||''});
+  });
+  r.materials = newMats;
+  const exist = state.drinks.find(x=>x.id===r.id);
+  if(exist){ Object.assign(exist, r); } else { state.drinks.unshift(r); }
+  save(K.drinks, state.drinks);
+  closeModal(); renderDrinks(); toast('饮品已保存');
+}
+
+/* ============ 饮品查看器（简洁：无制作方法） ============ */
+function openDrinkViewer(id){
+  const r = state.drinks.find(x=>x.id===id); if(!r) return;
+  const heroHtml = r.image
+    ? imgTag(r.image, 'rv-hero', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\'"')
+    : '<div class="rv-hero" style="display:flex;align-items:center;justify-content:center;font-size:90px;background:linear-gradient(145deg,#f3e6d6,#ede4d4)">'+(r.emoji||'🥤')+'</div>';
+  const matItems = (r.materials||[]).map(m=>'<span class="rv-mat">'+esc(m.n)+(m.qty?'<span class="qty">'+esc(m.qty)+'</span>':'')+'</span>').join('');
+  document.getElementById('modalBody').innerHTML =
+    '<div class="recipe-simple">'
+    + heroHtml
+    + '<div class="rv-title">'+esc(r.name)+'</div>'
+    + '<div class="rv-meta">'
+    +   '<span><b>分类</b>'+esc(r.type||'—')+'</span>'
+    +   '<span><b>温度/形态</b>'+tempLabel(r.difficulty)+'</span>'
+    + '</div>'
+    + '<div class="rv-section">'
+    +   '<div class="rv-section-title">🥤 饮品成分</div>'
+    +   '<div class="rv-mats">'+(matItems || '<span style="color:var(--sub)">暂无成分</span>')+'</div></div>'
+    + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openDrinkEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
+  showModal();
+}
+
 /* ============ 工具 ============ */
 function showModal(){ document.getElementById('modal').classList.remove('hidden'); const b=document.getElementById('modalBody'); if(b) setTimeout(()=>hydrateImgs(b),0); }
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
@@ -1816,6 +2048,7 @@ document.addEventListener('paste', function(e){
       compressImage(f, function(dataUrl){
         if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; renderEditor(); }
         else if(activeCoverTarget==='dish'){ dishEditorCover = dataUrl; updateCoverPreview(); }
+        else if(activeCoverTarget==='drink'){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }
       });
       e.preventDefault();
       toast('已粘贴截图');
@@ -1874,6 +2107,7 @@ function switchTab(tab){
   document.querySelectorAll('.subtab').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
   if(tab==='today'){ if(state.queue.length===0) buildQueue(); renderToday(); }
   else if(tab==='menu') renderMenu();
+  else if(tab==='drinks') renderDrinks();
   else if(tab==='taste') renderTaste();
   else if(tab==='checkin') renderCheckin();
 }
@@ -1888,7 +2122,16 @@ function tick(){
 tick(); setInterval(tick, 30000);
 
 ensureTagStore();
-migrateImagesToIdb().then(function(){ buildQueue(); switchTab('checkin'); });
+migrateImagesToIdb().then(function(){
+  buildQueue(); switchTab('checkin');
+  // 启动温和预警：占用超 80% 时提醒，但不阻断（避免频繁弹窗）
+  const d = storageDiagnostics();
+  if(d.total > 4*1024*1024){
+    setTimeout(function(){
+      toast('本地存储已用 '+Math.round(d.total/1024/1024*10)/10+'MB，可在「数据管理」压缩图片释放空间');
+    }, 1200);
+  }
+});
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
 function openDataMgr(){
@@ -1898,6 +2141,7 @@ function openDataMgr(){
   let photoBytes = 0, photoCount = 0;
   ck.forEach(c=>{ (c.photos||[]).forEach(p=>{ if(p){ photoBytes += p.length; photoCount++; } }); });
   const menuCoverBytes = (state.menu||[]).reduce((a,r)=>a+((r.image||'').length),0);
+  const drinkCoverBytes = (state.drinks||[]).reduce((a,r)=>a+((r.image||'').length),0);
   const dishCoverBytes = Object.values(state.dishCover||{}).reduce((a,v)=>a+(v?v.length:0),0);
   document.getElementById('modalBody').innerHTML =
     '<h2>数据管理与备份</h2>'
@@ -1907,7 +2151,7 @@ function openDataMgr(){
     +   '<label class="btn" style="cursor:pointer">⬆ 导入备份文件<input type="file" accept="application/json" style="display:none" onchange="importFood(this.files[0])"></label>'
     + '</div>'
     + '<h3 style="font-size:15px;margin:16px 0 8px">存储占用</h3>'
-    + '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b> · 菜谱封面约 <b>'+Math.round(menuCoverBytes/1024)+' KB</b> · 菜品封面约 <b>'+Math.round(dishCoverBytes/1024)+' KB</b> · 打卡照片约 <b>'+Math.round(photoBytes/1024)+' KB</b> ('+photoCount+'张)</p>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b> · 菜谱封面约 <b>'+Math.round(menuCoverBytes/1024)+' KB</b> · 饮品封面约 <b>'+Math.round(drinkCoverBytes/1024)+' KB</b> · 菜品封面约 <b>'+Math.round(dishCoverBytes/1024)+' KB</b> · 打卡照片约 <b>'+Math.round(photoBytes/1024)+' KB</b> ('+photoCount+'张)</p>'
     + '<div style="max-height:220px;overflow:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:10px;background:#fff">'
     +   '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">key</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
     + '</div>'
@@ -1915,6 +2159,7 @@ function openDataMgr(){
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
     +   (photoCount>0 ? '<button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button>' : '')
     +   (state.menu.some(r=>r.image) ? '<button class="btn" onclick="compressMenuCovers();closeModal();">🗜 压缩所有菜谱封面</button>' : '')
+    +   (state.drinks.some(r=>r.image) ? '<button class="btn" onclick="compressDrinkCovers();closeModal();">🗜 压缩所有饮品封面</button>' : '')
     +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面</button>'
     + '</div>'
     + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
@@ -2017,6 +2262,52 @@ function compressMenuCovers(){
       ctx.drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL('image/jpeg',0.72);
       state.menu[t.ri].image=dataUrl;
+      after += dataUrl.length; done++;
+      progress.textContent='正在压缩 '+done+'/'+tasks.length+' …';
+      setTimeout(next,15);
+    };
+    img.onerror=function(){ done++; setTimeout(next,15); };
+    img.src=t.src;
+  }
+  next();
+}
+// 批量压缩饮品库封面，减少 localStorage 占用
+function compressDrinkCovers(){
+  const tasks=[];
+  (state.drinks||[]).forEach((r,ri)=>{ if(r.image && r.image.indexOf('data:image')===0) tasks.push({ri,src:r.image}); });
+  if(tasks.length===0){ toast('没有可压缩的饮品封面'); return; }
+  let done=0, before=0, after=0;
+  tasks.forEach(t=>before += t.src.length);
+  const progress=document.createElement('div');
+  progress.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
+  progress.textContent='正在压缩 0/'+tasks.length+' …';
+  document.body.appendChild(progress);
+  let i=0;
+  function next(){
+    if(i>=tasks.length){
+      if(save(K.drinks, state.drinks)){
+        progress.textContent='完成：'+tasks.length+' 张饮品封面，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
+        setTimeout(()=>progress.remove(),1800);
+        renderDrinks();
+      } else {
+        progress.textContent='压缩完成但保存失败，请导出备份后清理';
+        setTimeout(()=>progress.remove(),3000);
+      }
+      return;
+    }
+    const t=tasks[i++];
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      const scale=Math.min(1, 800/w, 800/h);
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.72);
+      state.drinks[t.ri].image=dataUrl;
       after += dataUrl.length; done++;
       progress.textContent='正在压缩 '+done+'/'+tasks.length+' …';
       setTimeout(next,15);
