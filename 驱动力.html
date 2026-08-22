@@ -10,24 +10,22 @@
     --paper:#f3ecdc; --paper-2:#fbf6ea; --ink:#3a3329; --ink-soft:#8a7c68;
     --line:#e2d4bb; --accent:#b8714e;
     --yong-ink:#5f7a45; --yong-bd:#c9d8b6; --yong-bg:#f1f6e9;
-    --ji-ink:#b15538; --ji-bd:#e6c6b2; --ji-bg:#fbeee8;
+    --ji-ink:#b15538;  --ji-bd:#e6c6b2; --ji-bg:#fbeee8;
+    --fire:#c8694e; --earth:#b8924a; --metal:#8a837a; --water:#4a7fb8; --wood:#5b8c7b;
   }
   *{ box-sizing:border-box; }
   html,body{ margin:0; }
   body{
     font-family:'Noto Sans SC', system-ui, sans-serif; color:var(--ink);
-    min-height:100vh;
-    background:radial-gradient(130% 110% at 50% -10%, #fbf5e9 0%, #f3ecdc 55%, #ece1cb 100%);
-    display:flex; flex-direction:column; align-items:center;
-    padding:26px 16px 60px;
+    min-height:100vh; background:radial-gradient(130% 110% at 50% -10%, #fbf5e9 0%, #f3ecdc 55%, #ece1cb 100%);
+    display:flex; flex-direction:column; align-items:center; padding:26px 16px 60px;
   }
-  .wrap{ width:100%; max-width:1080px; }
+  .wrap{ width:100%; max-width:1120px; }
 
-  /* Tabs */
-  .tabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:22px;
-    border-bottom:1px solid var(--line); padding-bottom:14px; }
-  .tab{ font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:1px; cursor:pointer;
-    padding:9px 18px; border-radius:22px; border:1px solid var(--line); background:var(--paper-2);
+  .tabs{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-bottom:20px;
+    border-bottom:1px solid var(--line); padding-bottom:13px; }
+  .tab{ font-family:'Noto Serif SC',serif; font-size:14px; letter-spacing:1px; cursor:pointer;
+    padding:8px 15px; border-radius:22px; border:1px solid var(--line); background:var(--paper-2);
     color:var(--ink-soft); transition:.18s; user-select:none; }
   .tab:hover{ border-color:var(--accent); color:var(--accent); }
   .tab.on{ background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 4px 14px rgba(184,113,78,.28); }
@@ -35,96 +33,91 @@
   .panel{ display:none; animation:fade .25s ease; }
   .panel.on{ display:block; }
   @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
-
-  .sub{ font-family:'Noto Serif SC',serif; font-size:13px; color:var(--ink-soft);
-    letter-spacing:2px; text-align:center; margin:0 0 18px; }
+  .sub{ font-family:'Noto Serif SC',serif; font-size:13px; color:var(--ink-soft); letter-spacing:2px; text-align:center; margin:0 0 18px; }
+  .hint{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:14px; line-height:1.7; }
 
   /* 总览卡片 */
-  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:16px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
   .dc{ background:var(--paper-2); border:1px solid var(--line); border-radius:16px; padding:18px 16px;
     cursor:pointer; transition:.18s; position:relative; overflow:hidden; }
   .dc:hover{ transform:translateY(-3px); box-shadow:0 10px 26px rgba(120,90,60,.16); }
-  .dc .god{ position:absolute; top:10px; right:12px; font-family:'Noto Serif SC',serif; font-size:34px;
-    color:rgba(184,113,78,.13); font-weight:700; }
+  .dc .god{ position:absolute; top:8px; right:12px; font-family:'Noto Serif SC',serif; font-size:38px; color:rgba(184,113,78,.13); font-weight:700; }
   .dc h3{ margin:0 0 4px; font-family:'Noto Serif SC',serif; font-size:19px; letter-spacing:1px; }
-  .dc .el{ font-size:12px; color:var(--accent); margin-bottom:10px; }
-  .dc .core{ font-size:13px; color:var(--ink); margin-bottom:10px; }
-  .dc .pill{ display:inline-block; font-size:11px; padding:2px 9px; border-radius:11px; margin:3px 4px 0 0; }
-  .pill.y{ background:var(--yong-bg); color:var(--yong-ink); border:1px solid var(--yong-bd); }
-  .pill.j{ background:var(--ji-bg); color:var(--ji-ink); border:1px solid var(--ji-bd); }
+  .dc .el{ font-size:12px; color:var(--accent); margin-bottom:8px; }
+  .dc .core{ font-size:13px; color:var(--ink); margin-bottom:6px; }
+  .dc .cnt{ font-size:11.5px; color:var(--ink-soft); }
 
-  /* 详解 */
-  .detail-head{ text-align:center; margin-bottom:18px; }
-  .detail-head h2{ font-family:'Noto Serif SC',serif; font-size:24px; margin:0 0 4px; letter-spacing:2px; }
-  .detail-head .meta{ font-size:13px; color:var(--ink-soft); }
-  .nav-row{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:20px; }
-  .nav-row .nv{ font-size:13px; padding:6px 14px; border-radius:18px; border:1px solid var(--line);
-    background:var(--paper-2); cursor:pointer; color:var(--ink-soft); }
-  .nav-row .nv.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
-  .block{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
-  .block h4{ margin:0 0 12px; font-family:'Noto Serif SC',serif; font-size:16px; display:flex; align-items:center; gap:8px; }
-  .block h4 .tag{ font-size:11px; padding:2px 9px; border-radius:10px; }
-  .tag.y{ background:var(--yong-bg); color:var(--yong-ink); }
-  .tag.j{ background:var(--ji-bg); color:var(--ji-ink); }
-  .tag.n{ background:#efe6d4; color:var(--ink-soft); }
-  .block ul{ margin:0; padding-left:20px; }
-  .block li{ font-size:13.5px; line-height:1.85; margin-bottom:6px; }
-  .define{ font-size:14px; line-height:1.9; background:linear-gradient(180deg,#fbf3e3,#f6ecd8);
-    border-left:4px solid var(--accent); padding:16px 18px; border-radius:10px; margin-bottom:16px; }
+  /* 特征库 */
+  .feat-bar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; margin-bottom:14px; }
+  .fd-btn{ font-family:'Noto Serif SC',serif; font-size:14px; padding:7px 15px; border-radius:18px; border:1px solid var(--line);
+    background:var(--paper-2); cursor:pointer; color:var(--ink-soft); transition:.15s; }
+  .fd-btn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+  .seg span{ font-size:13px; padding:7px 16px; cursor:pointer; background:var(--paper-2); color:var(--ink-soft); }
+  .seg span.on.y{ background:var(--yong-ink); color:#fff; }
+  .seg span.on.j{ background:var(--ji-ink); color:#fff; }
+  .search{ width:100%; max-width:480px; margin:0 auto 16px; display:block; padding:11px 16px; border-radius:12px;
+    border:1px solid var(--line); background:#fff; font-family:'Noto Sans SC',sans-serif; font-size:14px; color:var(--ink); }
+  .feat-list{ display:grid; gap:10px; }
+  .fi{ background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:13px 16px; cursor:pointer; transition:.15s; }
+  .fi:hover{ border-color:var(--accent); }
+  .fi .ft{ font-family:'Noto Serif SC',serif; font-size:15px; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .fi .ft .ic{ font-size:12px; color:var(--ink-soft); flex:none; }
+  .fi .fx{ font-size:13.5px; line-height:1.85; color:var(--ink); margin-top:8px; display:none; }
+  .fi.open .fx{ display:block; animation:fade .2s; }
+  .fi .fx b{ color:var(--accent); }
+  .empty{ text-align:center; color:var(--ink-soft); padding:30px; font-size:14px; }
+  .mode-j .fi .ft{ color:var(--ji-ink); }
 
   /* 矩阵 */
   .matrix-wrap{ overflow-x:auto; }
-  table.matrix{ border-collapse:collapse; width:100%; min-width:760px; background:var(--paper-2);
-    border:1px solid var(--line); border-radius:12px; overflow:hidden; }
-  table.matrix th, table.matrix td{ border:1px solid var(--line); padding:12px 10px; vertical-align:top; font-size:13px; }
+  table.matrix{ border-collapse:collapse; width:100%; min-width:780px; background:var(--paper-2); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  table.matrix th, table.matrix td{ border:1px solid var(--line); padding:11px 10px; vertical-align:top; font-size:13px; }
   table.matrix thead th{ background:var(--accent); color:#fff; font-family:'Noto Serif SC',serif; font-size:14px; letter-spacing:1px; }
-  table.matrix tbody th.drv{ background:#f0e6d2; text-align:left; width:118px; }
+  table.matrix tbody th.drv{ background:#f0e6d2; text-align:left; width:120px; }
   table.matrix tbody th.drv .dn{ font-family:'Noto Serif SC',serif; font-weight:600; font-size:14px; }
   table.matrix tbody th.drv .dg{ font-size:11px; color:var(--ink-soft); }
-  .cell{ cursor:pointer; border-radius:8px; min-height:54px; transition:.15s; line-height:1.6; }
+  .cell{ cursor:pointer; border-radius:8px; min-height:52px; transition:.15s; line-height:1.6; }
   .cell:hover{ background:#fff7ea; box-shadow:inset 0 0 0 2px var(--accent); }
   .cell .ans{ font-weight:500; }
   .cell .more{ font-size:11px; color:var(--accent); margin-top:4px; display:block; }
-  .cell.todo{ color:var(--ink-soft); font-style:italic; }
-
-  .detail-box{ margin-top:18px; background:var(--paper-2); border:1px solid var(--line); border-radius:12px;
-    padding:18px 20px; display:none; }
+  .detail-box{ margin-top:18px; background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:18px 20px; display:none; }
   .detail-box.on{ display:block; animation:fade .2s; }
   .detail-box .dh{ font-family:'Noto Serif SC',serif; font-size:16px; color:var(--accent); margin:0 0 10px; }
-  .detail-box .q{ font-size:13px; color:var(--ink-soft); margin-bottom:10px; }
-  .detail-box .body{ font-size:14px; line-height:1.95; }
   .detail-box .src{ margin-top:12px; font-size:11.5px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:8px; }
+
+  /* 配对表 */
+  table.match{ border-collapse:collapse; width:100%; background:var(--paper-2); border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:13px; }
+  table.match th, table.match td{ border:1px solid var(--line); padding:10px 11px; vertical-align:top; line-height:1.7; }
+  table.match thead th{ background:var(--accent); color:#fff; font-family:'Noto Serif SC',serif; letter-spacing:1px; }
+  table.match tbody th{ background:#f0e6d2; text-align:left; font-family:'Noto Serif SC',serif; }
+  .match-note{ background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-top:16px; font-size:13.5px; line-height:1.9; }
+
+  /* 情与爱 */
+  .love-list{ display:grid; gap:10px; }
+  .lv{ background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:13px 16px; cursor:pointer; }
+  .lv .lt{ font-family:'Noto Serif SC',serif; font-size:15px; font-weight:600; color:var(--accent); }
+  .lv .lx{ font-size:13.5px; line-height:1.85; color:var(--ink); margin-top:7px; display:none; }
+  .lv.open .lx{ display:block; animation:fade .2s; }
+
+  /* 对比 */
+  .cmp{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+  .cc{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:16px; border-top:4px solid var(--accent); }
+  .cc h4{ font-family:'Noto Serif SC',serif; margin:0 0 4px; font-size:18px; }
+  .cc .meta{ font-size:12px; color:var(--accent); margin-bottom:10px; }
+  .cc .row{ font-size:13px; line-height:1.7; margin:5px 0; }
+  .cc .lab{ color:var(--ink-soft); font-size:11.5px; }
 
   /* 快速查询 */
   .quick{ background:var(--paper-2); border:1px solid var(--line); border-radius:16px; padding:24px; max-width:680px; margin:0 auto; }
   .qrow{ display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
   .qrow label{ font-family:'Noto Serif SC',serif; font-size:14px; width:64px; }
-  .qsel{ flex:1; min-width:200px; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
-    background:#fff; font-family:'Noto Sans SC',sans-serif; font-size:14px; color:var(--ink); }
-  .qbtn{ display:block; width:100%; padding:12px; border:none; border-radius:10px; background:var(--accent);
-    color:#fff; font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:2px; cursor:pointer; margin-top:6px; }
+  .qsel{ flex:1; min-width:200px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; font-family:'Noto Sans SC',sans-serif; font-size:14px; color:var(--ink); }
+  .qbtn{ display:block; width:100%; padding:12px; border:none; border-radius:10px; background:var(--accent); color:#fff; font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:2px; cursor:pointer; }
   .qbtn:hover{ background:#a6623f; }
   .qres{ margin-top:18px; display:none; }
   .qres.on{ display:block; animation:fade .2s; }
-  .qres .qr-h{ font-family:'Noto Serif SC',serif; font-size:15px; color:var(--accent); margin-bottom:8px; }
-  .qres .qr-ans{ background:linear-gradient(180deg,#fbf3e3,#f6ecd8); border-left:4px solid var(--accent);
-    padding:14px 16px; border-radius:10px; font-size:14.5px; line-height:1.9; margin-bottom:12px; }
-  .qres .qr-body{ font-size:14px; line-height:1.95; }
-
-  /* 关系 */
-  .rel-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
-  .rel-card{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:18px; }
-  .rel-card h4{ font-family:'Noto Serif SC',serif; margin:0 0 10px; font-size:16px; color:var(--accent); }
-  .rel-card p{ font-size:13.5px; line-height:1.85; margin:0; }
-  .cycle{ display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin:20px 0; }
-  .cn{ width:74px; height:74px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    font-family:'Noto Serif SC',serif; background:#fff; border:2px solid var(--accent); }
-  .cn b{ font-size:17px; }
-  .cn span{ font-size:11px; color:var(--ink-soft); }
-  .arr{ font-size:20px; color:var(--accent); }
-  .legend{ text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:6px; }
-
-  .hint{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:14px; line-height:1.7; }
+  .qres .qr-ans{ background:linear-gradient(180deg,#fbf3e3,#f6ecd8); border-left:4px solid var(--accent); padding:14px 16px; border-radius:10px; font-size:14.5px; line-height:1.9; margin-bottom:12px; }
   a{ color:var(--accent); }
 </style>
 </head>
@@ -132,62 +125,66 @@
 <div class="wrap">
   <div class="tabs" id="tabs">
     <div class="tab on" data-p="overview">速查总览</div>
-    <div class="tab" data-p="detail">驱动力详解</div>
-    <div class="tab" data-p="matrix">六亲关系矩阵</div>
+    <div class="tab" data-p="feat">特征库</div>
+    <div class="tab" data-p="matrix">六亲关系</div>
+    <div class="tab" data-p="match">配对匹配</div>
+    <div class="tab" data-p="love">情与爱</div>
+    <div class="tab" data-p="cmp">五驱动力对比</div>
     <div class="tab" data-p="quick">快速查询</div>
-    <div class="tab" data-p="relation">驱动力之间的关系</div>
   </div>
 
-  <!-- 1 总览 -->
   <section class="panel on" id="overview">
     <p class="sub">五种核心驱动力 · 命理学中的「用神」= 自身会动的念头 = 内在五行平衡最核心的动应</p>
     <div class="cards" id="cards"></div>
-    <p class="hint">点击任意卡片 → 进入「驱动力详解」。想知道「某驱动力的人需要某角色的什么」→ 用「六亲关系矩阵」或「快速查询」。</p>
+    <p class="hint">点任意卡片 → 进入「特征库」看该驱动力的全部特征（可搜索）。想查「某驱动力的人需要某角色的什么」→ 用「六亲关系」或「快速查询」。</p>
   </section>
 
-  <!-- 2 详解 -->
-  <section class="panel" id="detail">
-    <div class="nav-row" id="detailNav"></div>
-    <div id="detailBody"></div>
+  <section class="panel" id="feat">
+    <p class="sub">各种类型的人 · 他的一些特征 —— 选驱动力 + 用/过度，再搜索关键词</p>
+    <div class="feat-bar" id="featNav"></div>
+    <div class="feat-bar"><div class="seg" id="modeSeg"><span class="y on" data-m="positive">用（积极）</span><span class="j" data-m="negative">过度（忌）</span></div></div>
+    <input class="search" id="featSearch" placeholder="搜索特征关键词，如：出轨 / 陪伴 / 吵架 / 赚钱 / 不配得感 …" />
+    <div class="feat-list" id="featList"></div>
   </section>
 
-  <!-- 3 矩阵 -->
   <section class="panel" id="matrix">
-    <p class="sub">行 = 我的核心驱动力　列 = 六亲角色　点任意格看「资料原文」</p>
-    <div class="matrix-wrap">
-      <table class="matrix" id="matrixTable"></table>
-    </div>
+    <p class="sub">行 = 我的核心驱动力　列 = 六亲角色　点任意格看「一句话答案 + 资料原文」</p>
+    <div class="matrix-wrap"><table class="matrix" id="matrixTable"></table></div>
     <div class="detail-box" id="matrixDetail"></div>
+    <p class="hint">这些六亲对应关系是此前从资料中结构化出的固定答案；特征库里的 403 条细项可补充更多维度。</p>
   </section>
 
-  <!-- 4 快速查询 -->
+  <section class="panel" id="match">
+    <p class="sub">五种驱动类型的配对 —— 匹配程度 = 两人相处的难度（矛盾的多少），仅作参考</p>
+    <div id="matchWrap"></div>
+    <div class="match-note" id="matchNote"></div>
+  </section>
+
+  <section class="panel" id="love">
+    <p class="sub">情 vs 爱 —— 两种核心能量：定位、区别与不同驱动类型的表现</p>
+    <input class="search" id="loveSearch" placeholder="搜索关键词，如：共情 / 焦虑 / 多疑 / 审核 / 无情无爱 …" />
+    <div class="love-list" id="loveList"></div>
+  </section>
+
+  <section class="panel" id="cmp">
+    <p class="sub">五种驱动力并排对比 —— 五行 · 十神 · 核心 · 关键特征</p>
+    <div class="cmp" id="cmpGrid"></div>
+  </section>
+
   <section class="panel" id="quick">
     <p class="sub">选「驱动力」+「角色」，一秒得到答案</p>
     <div class="quick">
-      <div class="qrow">
-        <label>驱动力</label>
-        <select class="qsel" id="qDriver"></select>
-      </div>
-      <div class="qrow">
-        <label>角色</label>
-        <select class="qsel" id="qRole"></select>
-      </div>
+      <div class="qrow"><label>驱动力</label><select class="qsel" id="qDriver"></select></div>
+      <div class="qrow"><label>角色</label><select class="qsel" id="qRole"></select></div>
       <button class="qbtn" id="qBtn">查 询</button>
       <div class="qres" id="qRes"></div>
     </div>
   </section>
-
-  <!-- 5 关系 -->
-  <section class="panel" id="relation">
-    <p class="sub">五行生克 · 经典组合 · 驱动力切换</p>
-    <div class="cycle" id="cycle"></div>
-    <p class="legend">生：木→火→土→金→水→木　｜　克：木克土 · 火克金 · 土克水 · 金克木 · 水克火</p>
-    <div class="rel-grid" id="relGrid"></div>
-  </section>
 </div>
 
+<script src="驱动力数据.js"></script>
 <script>
-/* ============ 数据：从《情感模式-驱动力》资料结构化抽取 ============ */
+/* ============ 六亲关系（此前从资料结构化出的固定答案，保留） ============ */
 const ROLES = [
   {key:'mom', name:'妈妈', icon:'👩'},
   {key:'dad', name:'爸爸', icon:'👨'},
@@ -195,331 +192,171 @@ const ROLES = [
   {key:'partner', name:'伴侣', icon:'💑'},
   {key:'child', name:'孩子', icon:'👶'},
 ];
+const SIXIN = {
+  qing:{ mom:{ans:'需要妈妈的「情」与温暖陪伴；若母亲也是情感驱动，则母子互相充电', detail:'情感驱动的母亲陪伴孩子是「充电」——想陪伴是因为喜欢。作为孩子，情感驱动的人需要母亲的情与温暖；情越重越怕被冤枉，被误解比什么都难受。', src:'资料：情感驱动母亲陪伴孩子是充电；越有情越不能被冤枉'},
+    dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    friend:{ans:'朋友是共情与陪伴；共情能力越强，朋友越多、越容易做生意', detail:'共情能力强的人不怕陌生人、没有距离感，很容易跟人亲近，到哪儿都能处成朋友、老板、贵人。共情能力强的女人可以做好生意。', src:'资料：社牛、共情强易有朋友、易做生意'},
+    partner:{ans:'伴侣需要「情」而非「爱」；自己开心最重要，需要伴侣尊重感受、不冷暴力', detail:'有情方推动情感，情感驱动女遇回避男基本无解。旺夫：女人的情是男人的事业。表达情感说「喜欢」不说「爱」——说爱会让男人有压迫感、感知到你在索取情。感情趋于平淡时，责任在有情的一方。', src:'资料：有情方推动情感；说喜欢不说爱；旺夫'},
+    child:{ans:'需要孩子的真情回流；作为「有情」母亲，陪伴孩子即充电', detail:'真正发自内心喜欢自己孩子的人一定是有情的女人；喜欢自己孩子=喜欢所有孩子。情感驱动的女生喜欢生孩子（是自己想生）。作为母亲，陪伴孩子是充电而非耗电。', src:'资料：喜欢孩子；生孩子开运；母亲陪伴是充电'} },
+  ziwo:{ mom:{ans:'需要妈妈的「情」（不是爱）；忍受不了母亲的控制欲；若母亲无情则痛苦', detail:'自我价值感驱动的孩子在妈妈身上找情感往往找不到，会痛苦——「要的不是妈妈的爱，是妈妈的情，但妈妈有可能没有情」。极度忍受不了母亲控制欲的人是过度的弱自我价值感驱动；被动承受大量控制欲的是强自我价值感驱动（强的能忍，弱的忍不了）。', src:'资料：自我价值感驱动与母亲关系'},
+    dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    friend:{ans:'朋友非核心需求；社交中以「被需要 / 有用」为联结', detail:'自我价值感驱动的人社交重心在确认自身价值。女NPD（自驱+弱精神）搭配过度弱情感男，需要没有情的男人的情。', src:'资料：社交以被需要为联结'},
+    partner:{ans:'伴侣关系中以「被需要、赚钱能力」确认价值；与责任感驱动伴侣互相促进', detail:'男自我价值感驱动 × 女责任感驱动：当伴侣自我价值感越强，责驱女内心更有做事冲动、更有目标感，互相促进。但不要太勉强自己追求工作/发展。砸锅卖铁养男人的女人通常是过度精神+情感驱动（配物质+责任男）。', src:'资料：自我价值感驱动伴侣关系'},
+    child:{ans:'作为父母，在孩子身上找自我价值感 / 被需要；需要孩子「被需要」来确认价值', detail:'自我价值感驱动母亲在孩子身上找自我价值感、找被需要的感觉，没有就很失落。会逗母亲开心的孩子一定是自我价值感驱动——哄母亲开心就是他自我价值感的来源。', src:'资料：自我价值感驱动与孩子的关系'} },
+  wuzhi:{ mom:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    friend:{ans:'朋友讲究「有用」，基于利益/价值联结', detail:'物质驱动的人眼里只有钱，反而很会交朋友，因为朋友对他都有用。这种人会因为目的和你成为朋友，是最会交朋友的。', src:'资料：物质驱动很会交朋友（朋友有用）'},
+    partner:{ans:'伴侣间金钱流动自然；男性易以借钱为目的；女性（物质+责任）给男人花钱是自我满足', detail:'最容易向女人借钱的男人是物质驱动（要的是钱）。物质+责任男会让女人砸锅卖铁养自己（善根浅薄时）。女性物质+责任组合谈恋爱就爱给男人花钱，越花自己越开心、越有钱。情感驱动女人花男人钱会感到惭愧，但男人很喜欢为有情女人付钱。', src:'资料：借钱；砸锅卖铁；给男人花钱'},
+    child:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'} },
+  zeren:{ mom:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    friend:{ans:'朋友 = 共同目标的合作者，靠目标维系', detail:'责任感驱动的人靠共同目标走到一起，通常把对方当实现目标的方式/伙伴，而非情感朋友关系。', src:'资料：责任感驱动非自我价值感，本质非朋友关系'},
+    partner:{ans:'伴侣是「活着的目的」；需要伴侣的关注与共同目标；失去伴侣则失去意义', detail:'责任感驱动女生开运标志是稳定伴侣；找不到/失去伴侣就找不到活着的目的。责任感男因妻子不打电话催回家而痛苦，觉得老婆不爱他了。挑毛病就事论事。与自我价值感驱动伴侣互相促进。', src:'资料：责任感驱动伴侣关系'},
+    child:{ans:'作为父母，孩子是责任；需要孩子让自己「被需要、有担当」', detail:'责任感驱动男生有孩子=事业标志。责任感母亲觉得「应该」陪伴孩子（耗电，非需求）；过度责任感母亲（多为情感驱动）需要被孩子需要，不会打骂孩子。', src:'资料：责任感驱动与孩子的关系'} },
+  jingshen:{ mom:{ans:'需要母亲「不控制、给空间」；过度精神驱动忍受不了母亲陪伴/控制欲；作为母亲希望孩子有目标感', detail:'和母亲关系不好的人往往是过度精神驱动——忍受不了母亲的陪伴、控制欲。过度精神母亲对孩子有攻击性爱（质问、愧疚式教育），平时爱陪但做错就精神攻击。积极精神母亲希望孩子有目标感、有责任感担当。', src:'资料：精神驱动与母亲关系'},
+    dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+    friend:{ans:'朋友 = 精神同频者；无共情维系，重精神共鸣；客观上显得不合群', detail:'精神驱动不需要人情、共情方式维系，多年不联系还能非常亲近才是真朋友，这是精神的同频和交流。无法进行精神交流的人不会有真正朋友。客观上不需要朋友，显得不合群。', src:'资料：朋友是精神同频；不合群'},
+    partner:{ans:'伴侣需要「情」（在男人身上找情）；真爱引发不配得感→回避；慕强（情绪稳定男人）', detail:'精神驱动女在男人身上找情，不抱怨变期待，找不到就加倍努力。遇对自己不动念头的男人反而动情。当男人真的有爱时引发剧烈不配得感→回避、作、反复确认。最易被渣男（有钱有势有才穷追）玩弄；慕强情绪稳定的男人。', src:'资料：精神驱动伴侣关系'},
+    child:{ans:'作为父母，因孩子需要才愿陪伴（有爱非需求）；需要孩子的精神共鸣', detail:'精神驱动母亲因孩子需要陪伴而愿意陪伴（有爱），孩子无需求时不强加陪伴。精神驱动的孩子需要母亲的陪伴（与情感驱动孩子不同）。', src:'资料：精神驱动与孩子的关系'} },
+};
 
-const DRIVERS = [
-  {
-    key:'qing', name:'情感驱动', god:'食伤', element:'火', core:'情 · 爱',
-    define:'以「情与爱」为核心，自己开心最重要，尊重自己的感受。有情方推动情感——谁有情谁主动。情感是招感物质的源头，也是男人事业的原动力。',
-    yong:{
-      summary:'积极态：有情、容易开心、共情强、旺夫、社牛',
-      points:[
-        '自己开心最重要，尊重自己的感受（不需要用头脑分辨对错）',
-        '容易开心、喜欢小朋友、社牛、共情能力极强，到哪儿都能处成朋友',
-        '只会热暴力、不会冷暴力：一定主动沟通哄人，不吵架、没有情绪对抗',
-        '有情的一方才是推动情感的关键；谁有情谁主动',
-        '旺夫：女人的情 = 男人的事业；情越多，对方事业越大',
-        '无法出轨、做不了海后（典型回避型人格）',
-        '话多、分享欲强，喜欢跟喜欢的人讲废话',
-        '被认可、被需要是「情感需求」（不是自我价值感驱动）',
-      ]
-    },
-    ji:{
-      summary:'过度态：带怨念嗔恨、最会吵架、翻旧账、在男人身上找情变怨恨',
-      points:[
-        '最会吵架（带着怨念和嗔恨），吵架爱翻旧账、在意对方态度',
-        '在男人身上找情找不到 → 变成怨恨、攻击',
-        '承受力不够，情绪波动大、负面情绪多',
-        '我慢心重：被冤枉后急于自证、解释',
-      ]
-    },
-    sixin:{
-      mom:{ ans:'需要妈妈的「情」与温暖陪伴；若母亲也是情感驱动，则母子互相充电', detail:'情感驱动的母亲陪伴孩子是「充电」——想陪伴是因为喜欢。作为孩子，情感驱动的人需要母亲的情与温暖；情越重越怕被冤枉，被误解比什么都难受。', src:'资料：情感驱动母亲陪伴孩子是充电；越有情越不能被冤枉' },
-      dad:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      friend:{ ans:'朋友是共情与陪伴；共情能力越强，朋友越多、越容易做生意', detail:'共情能力强的人不怕陌生人、没有距离感，很容易跟人亲近，到哪儿都能处成朋友、老板、贵人。共情能力强的女人可以做好生意。', src:'资料：社牛、共情强易有朋友、易做生意' },
-      partner:{ ans:'伴侣需要「情」而非「爱」；自己开心最重要，需要伴侣尊重感受、不冷暴力', detail:'有情方推动情感，情感驱动女遇回避男基本无解。旺夫：女人的情是男人的事业。表达情感说「喜欢」不说「爱」——说爱会让男人有压迫感、感知到你在索取情。感情趋于平淡时，责任在有情的一方。', src:'资料：有情方推动情感；说喜欢不说爱；旺夫' },
-      child:{ ans:'需要孩子的真情回流；作为「有情」母亲，陪伴孩子即充电', detail:'真正发自内心喜欢自己孩子的人一定是有情的女人；喜欢自己孩子=喜欢所有孩子。情感驱动的女生喜欢生孩子（是自己想生）。作为母亲，陪伴孩子是充电而非耗电。', src:'资料：喜欢孩子；生孩子开运；母亲陪伴是充电' },
-    }
-  },
-  {
-    key:'ziwo', name:'自我价值感驱动', god:'比劫', element:'木', core:'自我价值感',
-    define:'靠「赚钱能力」和「被需要」获得自我价值感。缺少/过度时通过创业、不停找事来寻找自我价值感。开口谈条件/表达需求是自我价值感充实的表现。',
-    yong:{
-      summary:'积极态：靠赚钱与被需要确认价值、能主动表达需求、会逗母亲开心',
-      points:[
-        '靠赚钱能力和被需要获得自我价值感',
-        '积极自我价值感女生能自己谈彩礼、房子等条件（不觉得掉价）',
-        '会逗母亲开心的孩子一定是自我价值感驱动（哄母亲开心是自我价值感来源）',
-        '与责任感驱动伴侣互相促进（对方自我价值感越强，责驱方越有目标感）',
-      ]
-    },
-    ji:{
-      summary:'过度态：不停找事证明自己、忍受不了控制欲、自私、不配得感',
-      points:[
-        '过度自我价值感：通过创业/不停找事寻找自我价值感',
-        '忍受不了母亲控制欲——强能忍、弱忍不了一点',
-        '自私：只在意对自己有用的东西，斤斤计较不愿付出',
-        '不配得感（通常过度精神+过度自我价值感组合）：男人的爱引发回避',
-        '过度者讲不出谈条件的话，即使父母替谈也难受',
-      ]
-    },
-    sixin:{
-      mom:{ ans:'需要妈妈的「情」（不是爱）；忍受不了母亲的控制欲；若母亲无情则痛苦', detail:'自我价值感驱动的孩子在妈妈身上找情感往往找不到，会痛苦——「要的不是妈妈的爱，是妈妈的情，但妈妈有可能没有情」。极度忍受不了母亲控制欲的人是过度的弱自我价值感驱动；被动承受大量控制欲的是强自我价值感驱动（强的能忍，弱的忍不了）。', src:'资料第70、80条' },
-      dad:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      friend:{ ans:'朋友非核心需求；社交中以「被需要 / 有用」为联结', detail:'自我价值感驱动的人社交重心在确认自身价值。女NPD（自驱+弱精神）搭配过度弱情感男，需要没有情的男人的情。', src:'资料：女NPD组合；社交以被需要为联结（推断）' },
-      partner:{ ans:'伴侣关系中以「被需要、赚钱能力」确认价值；与责任感驱动伴侣互相促进', detail:'男自我价值感驱动 × 女责任感驱动：当伴侣自我价值感越强，责驱女内心更有做事冲动、更有目标感，互相促进。但不要太勉强自己追求工作/发展。砸锅卖铁养男人的女人通常是过度精神+情感驱动（配物质+责任男）。', src:'资料第91条；砸锅卖铁养男人' },
-      child:{ ans:'作为父母，在孩子身上找自我价值感 / 被需要；需要孩子「被需要」来确认价值', detail:'自我价值感驱动母亲在孩子身上找自我价值感、找被需要的感觉，没有就很失落。会逗母亲开心的孩子一定是自我价值感驱动——哄母亲开心就是他自我价值感的来源。', src:'资料第70、89条' },
-    }
-  },
-  {
-    key:'wuzhi', name:'物质驱动', god:'财才', element:'土', core:'物质',
-    define:'以「物质」为核心，对事物价值的感知能力高、感知度灵敏。花钱花得开心，适合价值投资。物质驱动的人眼里有钱，反而很会交朋友（朋友对其有用）。',
-    yong:{
-      summary:'积极态：花钱开心、招感财富、对价值敏感、适合价值投资',
-      points:[
-        '花钱花的是开心，花光95%财富也不焦虑',
-        '对事物价值的感知能力高、灵敏（价值投资天赋）',
-        '喜欢年纪小的伴侣（食伤/财气越重越明显）',
-        '给男人花钱（物质+责任组合）是自我满足感的来源，越花越有钱',
-        '朋友讲究「有用」，基于利益联结，反而很会交朋友',
-      ]
-    },
-    ji:{
-      summary:'过度态：眼里只有钱、以借钱/目的交友恋爱',
-      points:[
-        '眼里只有钱的人，朋友只为有用',
-        '最容易向女人借钱的男人是物质驱动（要的是钱，不只是女人的钱）',
-        '以借钱为目的交友恋爱（交朋友只为了借钱）',
-      ]
-    },
-    sixin:{
-      mom:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      dad:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      friend:{ ans:'朋友讲究「有用」，基于利益/价值联结', detail:'物质驱动的人眼里只有钱，反而很会交朋友，因为朋友对他都有用。这种人会因为目的和你成为朋友，是最会交朋友的。', src:'资料：物质驱动很会交朋友（朋友有用）' },
-      partner:{ ans:'伴侣间金钱流动自然；男性易以借钱为目的；女性（物质+责任）给男人花钱是自我满足', detail:'最容易向女人借钱的男人是物质驱动（要的是钱）。物质+责任男会让女人砸锅卖铁养自己（善根浅薄时）。女性物质+责任组合谈恋爱就爱给男人花钱，越花自己越开心、越有钱。情感驱动女人花男人钱会感到惭愧，但男人很喜欢为有情女人付钱。', src:'资料：借钱；砸锅卖铁；给男人花钱' },
-      child:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-    }
-  },
-  {
-    key:'zeren', name:'责任感驱动', god:'官杀', element:'金', core:'责任感',
-    define:'以「责任」为核心，最靠谱、规划谋划、锁定目标。稳定伴侣是「活着的目的/意义」。领导力是驾驭（确立共同目标+控制），杀印相生（精神+责任）成就霸业。',
-    yong:{
-      summary:'积极态：最靠谱、规划目标、领导力驾驭、稳定伴侣=意义',
-      points:[
-        '最靠谱：哪怕做不到原约定，也会跟你做交代',
-        '规划、谋划、锁定目标，确定战略实现过程',
-        '领导力=驾驭：确立共同目标 + 控制、管理人',
-        '稳定伴侣 = 活着的目的/意义；失去伴侣就找不到做事价值',
-        '挑毛病就事论事，不讲人情、不精神攻击',
-      ]
-    },
-    ji:{
-      summary:'过度态：回避责任、讨厌被要求、男回避（承担不了责任）',
-      points:[
-        '过度责任感驱动回避责任、讨厌被要求做任何事',
-        '男回避：承担不了责任，只能随性、随情感走，对女人无法负任何责任',
-        '过度责任感驱动的母亲（多为情感驱动）不会打骂孩子（需要被需要）',
-      ]
-    },
-    sixin:{
-      mom:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      dad:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      friend:{ ans:'朋友 = 共同目标的合作者，靠目标维系', detail:'责任感驱动的人靠共同目标走到一起，通常把对方当实现目标的方式/伙伴，而非情感朋友关系。', src:'资料：责任感驱动非自我价值感，本质非朋友关系（推断）' },
-      partner:{ ans:'伴侣是「活着的目的」；需要伴侣的关注与共同目标；失去伴侣则失去意义', detail:'责任感驱动女生开运标志是稳定伴侣；找不到/失去伴侣就找不到活着的目的。责任感男因妻子不打电话催回家而痛苦，觉得老婆不爱他了。挑毛病就事论事。与自我价值感驱动伴侣互相促进。', src:'资料第78、90、91条' },
-      child:{ ans:'作为父母，孩子是责任；需要孩子让自己「被需要、有担当」', detail:'责任感驱动男生有孩子=事业标志。责任感母亲觉得「应该」陪伴孩子（耗电，非需求）；过度责任感母亲（多为情感驱动）需要被孩子需要，不会打骂孩子。', src:'资料第78条；母亲陪伴耗电' },
-    }
-  },
-  {
-    key:'jingshen', name:'精神驱动', god:'印枭', element:'水', core:'精神',
-    define:'以「精神（智慧、理性、目标感）」为核心，理性、接纳因果、运筹帷幄。朋友是精神同频者。不配得感的主要来源之一——男人的真爱会引发回避。过度精神+过度情感=无情无爱。',
-    yong:{
-      summary:'积极态：理性目标感、智慧、杀印相生成就霸业、朋友精神同频',
-      points:[
-        '理性、目标感、智慧，最容易接纳因果（从理性角度接纳空性）',
-        '运筹帷幄决胜千里——杀印相生（精神+责任）成就大事业（刘邦、毛泽东）',
-        '朋友是精神同频的交流者，不需共情维系，多年不联系仍亲近',
-        '愿意花钱（约财富3-5%上限），挑毛病多为孩子好',
-        '不配得感来源之一（男人的爱引发回避）',
-      ]
-    },
-    ji:{
-      summary:'过度态：无情无爱、忍受不了陪伴/控制、攻击性爱、最易被渣男玩弄',
-      points:[
-        '过度精神 + 过度情感 = 无情无爱的人',
-        '忍受不了母亲陪伴/控制欲（关系不好的多是过度精神驱动）',
-        '攻击性爱：质问型、愧疚式教育（「为什么又没做好」）',
-        '最易被渣男玩弄（因爱生恨是有爱女人的事，无情者无恨）',
-        '精神攻击、慕强（最喜欢情绪稳定的男人）',
-      ]
-    },
-    sixin:{
-      mom:{ ans:'需要母亲「不控制、给空间」；过度精神驱动忍受不了母亲陪伴/控制欲；作为母亲希望孩子有目标感', detail:'和母亲关系不好的人往往是过度精神驱动——忍受不了母亲的陪伴、控制欲。过度精神母亲对孩子有攻击性爱（质问、愧疚式教育），平时爱陪但做错就精神攻击。积极精神母亲希望孩子有目标感、有责任感担当。', src:'资料第80、87条' },
-      dad:{ ans:'资料未明确覆盖，待补充', detail:'', src:'待补充' },
-      friend:{ ans:'朋友 = 精神同频者；无共情维系，重精神共鸣；客观上显得不合群', detail:'精神驱动不需要人情、共情方式维系，多年不联系还能非常亲近才是真朋友，这是精神的同频和交流。无法进行精神交流的人不会有真正朋友。客观上不需要朋友，显得不合群。', src:'资料：朋友是精神同频；不合群' },
-      partner:{ ans:'伴侣需要「情」（在男人身上找情）；真爱引发不配得感→回避；慕强（情绪稳定男人）', detail:'精神驱动女在男人身上找情，不抱怨变期待，找不到就加倍努力。遇对自己不动念头的男人反而动情。当男人真的有爱时引发剧烈不配得感→回避、作、反复确认。最易被渣男（有钱有势有才穷追）玩弄；慕强情绪稳定的男人。', src:'资料第79、93、94条' },
-      child:{ ans:'作为父母，因孩子需要才愿陪伴（有爱非需求）；需要孩子的精神共鸣', detail:'精神驱动母亲因孩子需要陪伴而愿意陪伴（有爱），孩子无需求时不强加陪伴。精神驱动的孩子需要母亲的陪伴（与情感驱动孩子不同）。', src:'资料第81条' },
-    }
-  },
-];
-
-/* ============ 渲染 ============ */
+const D = window.DRIVE_DATA || {drivers:[], synthesis:[], love:[], match_table:null, match_list:''};
+const DRIVERS = D.drivers;
+const byKey = k => DRIVERS.find(d=>d.key===k);
 const $ = s => document.querySelector(s);
-const byKey = k => DRIVERS.find(d => d.key === k);
 
-// Tabs
+/* ============ Tabs ============ */
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick = ()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
     document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    $('#'+t.dataset.p).classList.add('on');
+    t.classList.add('on'); $('#'+t.dataset.p).classList.add('on');
   };
 });
 
-// 总览卡片
+/* ============ 速查总览 ============ */
 $('#cards').innerHTML = DRIVERS.map(d=>`
-  <div class="dc" onclick="gotoDetail('${d.key}')">
+  <div class="dc" onclick="gotoFeat('${d.key}')">
     <div class="god">${d.god[0]}</div>
     <h3>${d.name}</h3>
     <div class="el">${d.god}　·　五行属${d.element}</div>
     <div class="core">核心：${d.core}</div>
-    <span class="pill y">用：${d.yong.summary.split('：')[0].replace('积极态','')}</span>
-    <span class="pill j">忌：${d.ji.summary.split('：')[0].replace('过度态','')}</span>
+    <div class="cnt">特征 ${d.positive.length} 条 · 过度态 ${d.negative.length} 条</div>
   </div>`).join('');
 
-function gotoDetail(key){
-  document.querySelector('.tab[data-p="detail"]').click();
-  renderDetail(key);
-}
-
-// 详解
-const detailNav = $('#detailNav');
-detailNav.innerHTML = DRIVERS.map((d,i)=>`<div class="nv ${i===0?'on':''}" data-k="${d.key}">${d.name}</div>`).join('');
-detailNav.querySelectorAll('.nv').forEach(n=>{
-  n.onclick = ()=>{ detailNav.querySelectorAll('.nv').forEach(x=>x.classList.remove('on')); n.classList.add('on'); renderDetail(n.dataset.k); };
+/* ============ 特征库 ============ */
+let curDriver = DRIVERS[0] ? DRIVERS[0].key : null;
+let curMode = 'positive';
+$('#featNav').innerHTML = DRIVERS.map(d=>`<div class="fd-btn ${d.key===curDriver?'on':''}" data-k="${d.key}">${d.name}</div>`).join('');
+$('#featNav').querySelectorAll('.fd-btn').forEach(b=>{
+  b.onclick = ()=>{ curDriver=b.dataset.k; $('#featNav').querySelectorAll('.fd-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); renderFeat(); };
 });
-function renderDetail(key){
-  const d = byKey(key);
-  $('#detailBody').innerHTML = `
-    <div class="detail-head">
-      <h2>${d.name}</h2>
-      <div class="meta">${d.god}　·　五行属${d.element}　·　核心：${d.core}</div>
-    </div>
-    <div class="define">${d.define}</div>
-    <div class="block">
-      <h4><span class="tag y">用</span> 积极态 · ${d.yong.summary}</h4>
-      <ul>${d.yong.points.map(p=>`<li>${p}</li>`).join('')}</ul>
-    </div>
-    <div class="block">
-      <h4><span class="tag j">忌</span> 过度态 · ${d.ji.summary}</h4>
-      <ul>${d.ji.points.map(p=>`<li>${p}</li>`).join('')}</ul>
-    </div>
-    <div class="block">
-      <h4><span class="tag n">关系</span> 与其他驱动力的关系</h4>
-      <ul>${relationPoints(key).map(p=>`<li>${p}</li>`).join('')}</ul>
-    </div>`;
+$('#modeSeg').querySelectorAll('span').forEach(s=>{
+  s.onclick = ()=>{ curMode=s.dataset.m; $('#modeSeg').querySelectorAll('span').forEach(x=>x.classList.remove('on')); s.classList.add('on'); renderFeat(); };
+});
+$('#featSearch').oninput = renderFeat;
+function gotoFeat(key){ document.querySelector('.tab[data-p="feat"]').click(); if(key){ curDriver=key; $('#featNav').querySelectorAll('.fd-btn').forEach(x=>x.classList.toggle('on', x.dataset.k===key)); } renderFeat(); }
+function renderFeat(){
+  const d = byKey(curDriver); if(!d) return;
+  const list = (curMode==='positive'? d.positive : d.negative) || [];
+  const q = $('#featSearch').value.trim();
+  const panel = $('#feat');
+  panel.classList.toggle('mode-j', curMode==='negative');
+  const filtered = q ? list.filter(it=> (it.t+it.x).includes(q)) : list;
+  if(!filtered.length){ $('#featList').innerHTML = `<div class="empty">没有匹配「${q}」的特征</div>`; return; }
+  $('#featList').innerHTML = filtered.map(it=>`
+    <div class="fi" onclick="this.classList.toggle('open')">
+      <div class="ft"><span>${it.t}</span><span class="ic">${q?'':'展开 ▾'}</span></div>
+      <div class="fx">${it.x}</div>
+    </div>`).join('');
 }
-function relationPoints(key){
-  const map = {
-    qing:[
-      '被认可、被需要是情感需求，不是自我价值感驱动（动情≠自我价值）',
-      '精神驱动女遇对自己不动念头的男人反而动情——情由定力触发',
-      '情感+精神（伤官配印）：情是创造性、无中生有，配智慧成艺术/团结领导力',
-      '情感驱动的人创业靠好运，下坡路标志是开始傲慢（我慢心）',
-    ],
-    ziwo:[
-      '与责任感驱动伴侣互相促进（对方自我价值感越强，责驱方越有目标感）',
-      '自我价值感缺失时不敢表达需求（怕对方骄傲而觉得自己掉价）',
-      '过度自我价值感 + 过度精神驱动 → 不配得感（男人的爱引发回避）',
-      '靠赚钱/被需要确认价值，与物质驱动天然亲近',
-    ],
-    wuzhi:[
-      '财富之源是情：没有情（对自己/伴侣）就没有钱，会穷得稳定',
-      '物质驱动炒股：感受价值，适合价值投资，想得少动作干脆',
-      '物质+责任组合给伴侣花钱=自我满足，越花越有钱',
-      '与自我价值感驱动亲近（钱服务于情/自我价值确认）',
-    ],
-    zeren:[
-      '杀印相生（精神+责任）成就大事业，是乱世称王标配（刘邦、毛泽东）',
-      '与自我价值感驱动伴侣互相促进',
-      '责任感驱动靠深耕一件事成功；弱责任感驱动靠不停换事幻想成功',
-      '稳定伴侣=活着的意义，失去伴侣则失去做事价值',
-    ],
-    jingshen:[
-      '杀印相生（精神+责任）= 顶级霸业；伤官配印（情感+精神）= 艺术创造力',
-      '精神驱动女在男人身上找情；遇不动念头的男人反而动情',
-      '过度精神+过度情感 = 无情无爱',
-      '不配得感主要来源：男人的真爱引发回避（需对方情绪稳定疗愈）',
-    ],
-  };
-  return map[key] || [];
-}
-renderDetail('qing');
 
-// 矩阵
+/* ============ 六亲关系矩阵 ============ */
 const mt = $('#matrixTable');
 const head = `<thead><tr><th>我的驱动力 ＼ 角色</th>${ROLES.map(r=>`<th>${r.icon} ${r.name}</th>`).join('')}</tr></thead>`;
 const rows = DRIVERS.map(d=>{
   const cells = ROLES.map(r=>{
-    const cell = d.sixin[r.key];
+    const cell = (SIXIN[d.key]||{})[r.key];
     const todo = !cell || cell.ans.startsWith('资料未明确');
-    return `<td><div class="cell ${todo?'todo':''}" data-d="${d.key}" data-r="${r.key}">
+    return `<td><div class="cell ${todo?'':''}" data-d="${d.key}" data-r="${r.key}">
       <span class="ans">${cell?cell.ans:'待补充'}</span>
-      ${todo?'':'<span class="more">点开看原文 ▸</span>'}
-    </div></td>`;
+      ${todo?'':'<span class="more">点开看原文 ▸</span>'}</div></td>`;
   }).join('');
   return `<tr><th class="drv"><div class="dn">${d.name}</div><div class="dg">${d.god}</div></th>${cells}</tr>`;
 }).join('');
 mt.innerHTML = head + '<tbody>'+rows+'</tbody>';
-
 mt.querySelectorAll('.cell').forEach(c=>{
   c.onclick = ()=>{
     const d = byKey(c.dataset.d), r = ROLES.find(x=>x.key===c.dataset.r);
-    const cell = d.sixin[r.key];
-    const box = $('#matrixDetail');
+    const cell = (SIXIN[d.key]||{})[r.key]; const box = $('#matrixDetail');
     if(!cell || cell.ans.startsWith('资料未明确')){
-      box.innerHTML = `<div class="dh">${d.name} ＼ ${r.name}</div>
-        <div class="q">资料未明确覆盖此组合，待你补充。</div>
-        <div class="body">你可以把这段关系写进 <code>DRIVERS</code> 数据的 <code>sixin.${r.key}</code> 字段，页面会自动更新。</div>`;
+      box.innerHTML = `<div class="dh">${d.name} ＼ ${r.name}</div><div class="q" style="font-size:13px;color:var(--ink-soft)">资料未明确覆盖此组合，待补充。</div>`;
     } else {
       box.innerHTML = `<div class="dh">${d.name} ＼ ${r.name}</div>
-        <div class="q">一句话答案</div>
-        <div class="body"><b>${cell.ans}</b></div>
-        ${cell.detail?`<div class="q" style="margin-top:14px">资料原文 / 解读</div><div class="body">${cell.detail}</div>`:''}
+        <div style="font-size:14.5px;line-height:1.95"><b>${cell.ans}</b></div>
+        ${cell.detail?`<div style="margin-top:12px;font-size:14px;line-height:1.95">${cell.detail}</div>`:''}
         <div class="src">来源：${cell.src}</div>`;
     }
-    box.classList.add('on');
-    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+    box.classList.add('on'); box.scrollIntoView({behavior:'smooth', block:'nearest'});
   };
 });
 
-// 快速查询
-const qd = $('#qDriver'), qr = $('#qRole');
+/* ============ 配对匹配 ============ */
+(function(){
+  const wrap = $('#matchWrap');
+  if(D.match_table && D.match_table.length){
+    const tbl = D.match_table;
+    const thead = `<thead><tr>${tbl[0].map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+    const tbody = '<tbody>'+tbl.slice(1).map(row=>`<tr><th>${row[0]}</th>${row.slice(1).map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')+'</tbody>';
+    wrap.innerHTML = `<table class="match">${thead}${tbody}</table>`;
+  } else { wrap.innerHTML = '<div class="empty">配对对照表数据缺失</div>'; }
+  $('#matchNote').textContent = D.match_list || '（配对模式清单暂无补充文本）';
+})();
+
+/* ============ 情与爱 ============ */
+$('#loveSearch').oninput = renderLove;
+function renderLove(){
+  const q = $('#loveSearch').value.trim();
+  const list = q ? D.love.filter(it=>(it.t+it.x).includes(q)) : D.love;
+  if(!list.length){ $('#loveList').innerHTML = `<div class="empty">没有匹配「${q}」的条目</div>`; return; }
+  $('#loveList').innerHTML = list.map(it=>`
+    <div class="lv" onclick="this.classList.toggle('open')">
+      <div class="lt">${it.t}</div><div class="lx">${it.x}</div></div>`).join('');
+}
+
+/* ============ 五驱动力对比 ============ */
+$('#cmpGrid').innerHTML = DRIVERS.map(d=>{
+  const keys = (d.positive[0]? d.positive.slice(0,4).map(p=>p.t.split('：')[0]).join('；') : '');
+  const neg1 = d.negative[0]? d.negative[0].t : '';
+  return `<div class="cc">
+    <h4>${d.name}</h4><div class="meta">${d.god}　·　五行属${d.element}</div>
+    <div class="row"><span class="lab">核心</span><br>${d.core}</div>
+    <div class="row"><span class="lab">用（积极）关键特征</span><br>${keys}</div>
+    <div class="row"><span class="lab">过度（忌）表现</span><br>${neg1}</div>
+    <div class="row"><span class="lab">数据量</span><br>特征 ${d.positive.length} 条 · 过度 ${d.negative.length} 条</div>
+  </div>`;
+}).join('');
+
+/* ============ 快速查询 ============ */
+const qd=$('#qDriver'), qr=$('#qRole');
 qd.innerHTML = DRIVERS.map(d=>`<option value="${d.key}">${d.name}（${d.god}）</option>`).join('');
 qr.innerHTML = ROLES.map(r=>`<option value="${r.key}">${r.icon} ${r.name}</option>`).join('');
 $('#qBtn').onclick = ()=>{
   const d = byKey(qd.value), r = ROLES.find(x=>x.key===qr.value);
-  const cell = d.sixin[r.key];
-  const res = $('#qRes');
-  res.classList.add('on');
+  const cell = (SIXIN[d.key]||{})[r.key]; const res = $('#qRes'); res.classList.add('on');
   if(!cell || cell.ans.startsWith('资料未明确')){
-    res.innerHTML = `<div class="qr-h">${d.name} 需要 ${r.name} 的什么？</div>
-      <div class="qr-ans">资料未明确覆盖此组合，待补充。</div>`;
+    res.innerHTML = `<div class="qr-ans">${d.name} 需要 ${r.name} 的什么？<br>资料未明确覆盖此组合，待补充。</div>`;
   } else {
-    res.innerHTML = `<div class="qr-h">${d.name} 需要 ${r.name} 的什么？</div>
-      <div class="qr-ans">${cell.ans}</div>
-      ${cell.detail?`<div class="qr-body">${cell.detail}</div>`:''}
+    res.innerHTML = `<div class="qr-ans">${d.name} 需要 ${r.name} 的什么？<br>${cell.ans}</div>
+      ${cell.detail?`<div style="font-size:14px;line-height:1.95;margin-top:10px">${cell.detail}</div>`:''}
       <div class="src" style="font-size:11.5px;color:var(--ink-soft);margin-top:10px">来源：${cell.src}</div>`;
   }
   res.scrollIntoView({behavior:'smooth', block:'nearest'});
 };
 
-// 关系
-const cycle = [
-  {n:'比劫',e:'木'},{n:'食伤',e:'火'},{n:'财才',e:'土'},{n:'官杀',e:'金'},{n:'印枭',e:'水'}
-];
-$('#cycle').innerHTML = cycle.map((c,i)=>{
-  const arr = i<cycle.length-1 ? '<span class="arr">→</span>' : '<span class="arr">→</span>';
-  return `<div class="cn"><b>${c.n}</b><span>${c.e}</span></div>${arr}`;
-}).join('') + `<div class="cn"><b>比劫</b><span>木</span></div>`;
-const relCards = [
-  {h:'伤官配印（情感+精神）', p:'情是创造性、无中生有；配智慧成艺术天赋与团结他人的领导力。蒋介石即此局之反例。'},
-  {h:'杀印相生（精神+责任）', p:'印给安忍、杀给巨大心量与志向，是乱世称王标配（刘邦、毛泽东）。谋略体现在实现目标而非小聪明。'},
-  {h:'责任感+物质', p:'见好就收的天生组合：实现目标的成就感+把钱用好的能力，资本市场活得最久。'},
-  {h:'自我价值感+物质', p:'钱服务于情/自我价值确认；不会索取的人才能得到最多。'},
-  {h:'驱动力切换', p:'核心驱动力随气运/时间波动，变化往往带来缘分结束与开始。过度情感可因时运转积极情感，但多数人取决于个人因果。'},
-  {h:'五行生克', p:'生：木→火→土→金→水→木；克：木克土·火克金·土克水·金克木·水克火。偏离核心驱动力做别的事=攀缘=业力。'},
-];
-$('#relGrid').innerHTML = relCards.map(c=>`<div class="rel-card"><h4>${c.h}</h4><p>${c.p}</p></div>`).join('');
+/* 初始化 */
+renderFeat();
+renderLove();
 </script>
 </body>
 </html>
