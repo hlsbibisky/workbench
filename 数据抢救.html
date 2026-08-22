@@ -208,8 +208,11 @@ function mergeDaily(localStr,cloudStr){
   if(!C) return {str:localStr,added:Object.keys(L.records||{}).length};
   let added=0;
   C.records=C.records||{}; C.tags=C.tags||{};
+  C.monthNotes=C.monthNotes||{}; C.yearNotes=C.yearNotes||{};
   Object.keys(L.records||{}).forEach(d=>{ if(!(d in C.records)){ C.records[d]=L.records[d]; added++; } });
   Object.keys(L.tags||{}).forEach(d=>{ if(!(d in C.tags)){ C.tags[d]=L.tags[d]; } });
+  Object.keys(L.monthNotes||{}).forEach(k=>{ if(!(k in C.monthNotes)){ C.monthNotes[k]=L.monthNotes[k]; } });
+  Object.keys(L.yearNotes||{}).forEach(k=>{ if(!(k in C.yearNotes)){ C.yearNotes[k]=L.yearNotes[k]; } });
   return {str:JSON.stringify(C),added:added};
 }
 function mergeGeneric(localStr,cloudStr){
