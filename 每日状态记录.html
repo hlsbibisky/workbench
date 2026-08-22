@@ -173,7 +173,8 @@
     </div>
     <div class="tools">
       <button id="today">今天</button>
-      <button id="export">导出</button>
+      <button id="export">导出备份</button>
+      <button id="exportTxt">导出文本</button>
     </div>
   </div>
 
@@ -470,8 +471,18 @@ function classifyTags(tags){
 }
 const MOOD_TXT={good:'顺遂·积极', hard:'内耗·受挫', neutral:'中性·普通'};
 
-/* 导出纯文本（所有填写过的记录） */
+/* 导出备份（JSON，供「数据抢救」导入接口使用，结构：{records:{},tags:{}}） */
 document.getElementById('export').onclick=()=>{
+  const data=loadAll();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='每日状态备份_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+};
+
+/* 导出纯文本（所有填写过的记录，便于阅读/复制）—— 新增，不影响上面的 JSON 备份 */
+document.getElementById('exportTxt').onclick=()=>{
   const obj=loadAll();
   const keys=new Set();
   Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
