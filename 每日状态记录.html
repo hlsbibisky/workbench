@@ -458,12 +458,50 @@ function stepMonth(dir){
 document.getElementById('prev').onclick=()=>stepMonth(-1);
 document.getElementById('next').onclick=()=>stepMonth(1);
 document.getElementById('today').onclick=()=>{ anchor=new Date(); render(); window.scrollTo({top:0,behavior:'smooth'}); };
+/* 分类：依据驱动力标签 */
+const POS_SET=new Set([0,1,2,3,4]);
+function classifyTags(tags){
+  const t=tags||[];
+  const exc=t.filter(i=>!POS_SET.has(i)).length;
+  const pos=t.filter(i=>POS_SET.has(i)).length;
+  if(exc>0) return 'hard';
+  if(pos>0) return 'good';
+  return 'neutral';
+}
+const MOOD_TXT={good:'顺遂·积极', hard:'内耗·受挫', neutral:'中性·普通'};
+
+/* 导出纯文本（所有填写过的记录） */
 document.getElementById('export').onclick=()=>{
-  const data=loadAll();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const obj=loadAll();
+  const keys=new Set();
+  Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
+  Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
+  const arr=[];
+  keys.forEach(k=>{ const p=k.split('-'); const y=+p[0],m=+p[1],d=+p[2];
+    arr.push({k,y,m,d,tags:(obj.tags[k]||[]).slice(),text:(obj.records[k]||'')}); });
+  arr.sort((a,b)=>{ const A=new Date(a.y,a.m-1,a.d), B=new Date(b.y,b.m-1,b.d); return B-A; });
+  const L=[];
+  L.push('内观觉察 · 每日记录（纯文本导出）');
+  L.push('导出时间：'+new Date().toISOString().slice(0,10)+'　·　共 '+arr.length+' 天有记录');
+  L.push('');
+  L.push('————————————');
+  L.push('');
+  arr.forEach(r=>{
+    const wd=WEEK[new Date(r.y,r.m-1,r.d).getDay()];
+    const gz=ganzhiDay(r.y,r.m,r.d)+'日';
+    const mood=classifyTags(r.tags);
+    const tags=r.tags.map(i=>DRIVERS[i]).join('、');
+    L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+gz+' · '+MOOD_TXT[mood]+'】');
+    if(tags) L.push('驱动力：'+tags);
+    const txt=(r.text||'').trim();
+    if(txt) L.push(txt);
+    else if(!tags) L.push('（无文字、无标签）');
+    L.push('');
+  });
+  const blob=new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='每日状态备份_'+new Date().toISOString().slice(0,10)+'.json';
+  a.download='每日记录_'+new Date().toISOString().slice(0,10)+'.txt';
   a.click();
 };
 
