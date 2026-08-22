@@ -23,11 +23,67 @@
   const WX_NAME = ['木','火','土','金','水'];
   const WX_COLOR = ['#5b8c7b','#c8694e','#b8924a','#8a837a','#4a7fb8'];
 
+  // ===== 子平旺衰算法数据表（取自命理大师 skill · 子平真诠月令旺衰）=====
+  // 天干 → 五行（字符映射）
+  const STEM_ELEMENT = { '甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水' };
+  // 五行元素(0木1火2土3金4水) → 生我之元素
+  const ELEMENT_GENBY = { '木':'水','火':'木','土':'火','金':'土','水':'金' };
+  const ELEMENT_IDX = { '木':0,'火':1,'土':2,'金':3,'水':4 };
+  const YANG_STEM_BY_ELEMENT = { '木':'甲','火':'丙','土':'戊','金':'庚','水':'壬' };
+  // 地支藏干（主气/中气/余气）→ 字符（由 ZHANGAN 索引推导）
+  const BRANCH_HIDDEN = {};
+  // 月令旺衰分值表（子平真诠）：月支 → 该天干在此月得令分
+  const MONTH_STRENGTH = {
+    '寅': { '甲':100,'乙':80, '丙':70,'丁':60, '戊':50,'己':40, '庚':30,'辛':20, '壬':10,'癸':0 },
+    '卯': { '甲':80, '乙':100,'丙':60,'丁':70, '戊':40,'己':50, '庚':20,'辛':30, '壬':10,'癸':0 },
+    '辰': { '甲':60, '乙':70, '丙':70,'丁':80, '戊':70,'己':80, '庚':50,'辛':60, '壬':40,'癸':50 },
+    '巳': { '甲':30, '乙':40, '丙':100,'丁':80,'戊':60,'己':50, '庚':40,'辛':30, '壬':10,'癸':0 },
+    '午': { '甲':20, '乙':30, '丙':80,'丁':100,'戊':50,'己':60, '庚':30,'辛':40, '壬':0, '癸':10 },
+    '未': { '甲':50, '乙':60, '丙':60,'丁':70, '戊':70,'己':80, '庚':50,'辛':60, '壬':20,'癸':30 },
+    '申': { '甲':20, '乙':10, '丙':30,'丁':40, '戊':50,'己':60, '庚':100,'辛':80,'壬':70,'癸':50 },
+    '酉': { '甲':10, '乙':20, '丙':20,'丁':30, '戊':40,'己':50, '庚':80,'辛':100,'壬':50,'癸':70 },
+    '戌': { '甲':50, '乙':60, '丙':70,'丁':80, '戊':70,'己':80, '庚':50,'辛':60, '壬':40,'癸':50 },
+    '亥': { '甲':70, '乙':60, '丙':20,'丁':30, '戊':30,'己':40, '庚':10,'辛':20, '壬':100,'癸':80 },
+    '子': { '甲':50, '乙':40, '丙':10,'丁':20, '戊':20,'己':30, '庚':0, '辛':10, '壬':80,'癸':100 },
+    '丑': { '甲':40, '乙':50, '丙':50,'丁':60, '戊':60,'己':70, '庚':50,'辛':60, '壬':50,'癸':60 }
+  };
+  // 通根加分表（该天干在地支有根之加分）
+  const TONGGEEN_BONUS = {
+    '甲': { '寅':50,'卯':40,'亥':20,'子':0, '辰':10,'未':10,'戌':10,'丑':5, '巳':0,'午':0,'申':0,'酉':0 },
+    '乙': { '卯':50,'寅':30,'亥':10,'子':20,'辰':10,'未':15,'戌':10,'丑':10,'巳':0,'午':0,'申':0,'酉':0 },
+    '丙': { '巳':50,'午':40,'寅':20,'卯':10,'申':0,'酉':0,'辰':5,'戌':10,'丑':5,'亥':0,'子':0,'未':10 },
+    '丁': { '午':50,'巳':30,'未':15,'戌':10,'寅':10,'酉':0,'申':0,'辰':5,'丑':5,'亥':0,'子':0,'卯':5 },
+    '戊': { '辰':40,'戌':40,'丑':30,'未':30,'巳':20,'午':30,'寅':5,'卯':5,'申':0,'酉':0,'亥':0,'子':0 },
+    '己': { '丑':40,'未':40,'辰':30,'戌':30,'午':20,'巳':10,'寅':5,'卯':5,'申':0,'酉':0,'亥':5,'子':5 },
+    '庚': { '申':50,'酉':40,'辰':15,'戌':15,'丑':20,'未':15,'寅':0,'卯':0,'巳':0,'午':0,'亥':0,'子':0 },
+    '辛': { '酉':50,'申':30,'辰':10,'戌':10,'丑':15,'未':10,'寅':0,'卯':0,'巳':0,'午':0,'亥':0,'子':0 },
+    '壬': { '亥':50,'子':40,'申':20,'酉':10,'辰':10,'戌':10,'丑':15,'寅':0,'卯':0,'巳':0,'午':0,'未':5 },
+    '癸': { '子':50,'亥':40,'丑':20,'辰':10,'戌':10,'申':5,'酉':5,'寅':0,'卯':0,'巳':0,'午':0,'未':5 }
+  };
+  // 旺衰总分 → 等级（子平真诠）
+  function strengthLevel(total) {
+    if (total < 80)  return '极弱';
+    if (total < 150) return '弱';
+    if (total < 220) return '偏弱';
+    if (total < 300) return '中和';
+    if (total < 380) return '偏强';
+    if (total < 450) return '强';
+    return '极强';
+  }
+
   // 地支藏干（本气/中气/余气），数值为天干索引
   const ZHANGAN = {
     0:[9], 1:[5,9,7], 2:[0,2,4], 3:[1], 4:[4,1,9], 5:[2,3,4],
     6:[3,5], 7:[5,3,1], 8:[6,8,4], 9:[7], 10:[4,7,3], 11:[8,0,4]
   };
+  // 地支藏干（主气/中气/余气）→ 天干字符（需在 ZHANGAN 之后填充）
+  (function () {
+    const order = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    order.forEach((z, i) => {
+      const arr = ZHANGAN[i];
+      BRANCH_HIDDEN[z] = { 主气: GAN[arr[0]], 中气: arr[1] != null ? GAN[arr[1]] : null, 余气: arr[2] != null ? GAN[arr[2]] : null };
+    });
+  })();
 
   // 十二节（月令分界），index: 0小寒 1立春 2惊蛰 3清明 4立夏 5芒种 6小暑 7立秋 8白露 9寒露 10立冬 11大雪
   const TERM_NAME = ['小寒','立春','惊蛰','清明','立夏','芒种','小暑','立秋','白露','寒露','立冬','大雪'];
@@ -306,8 +362,73 @@
     '土':'承载、稳定、调和', '金':'收敛、决断、成器', '水':'流动、智慧、潜藏'
   };
 
+  // ---------- 五驱动力能量值（子平旺衰法）----------
+  // 每个十神组对应一个五行元素，能量值 = 该元素在命局中的旺衰总分
+  //   （月令分 + 比劫/同类分 + 通根分 + 印绶/生我分），整数，无单位。
+  // 比劫 用日主本身为参照；其余四组用该元素的阳干为代表计算。
+  function computeDriveEnergies(p) {
+    const dm = p.dayMaster;            // 日主天干索引
+    const dmWx = p.dmWx;               // 日主五行(0-4)
+    const monthBranch = ZHI[p.month.zhi];
+    const allStems = [GAN[p.year.gan], GAN[p.month.gan], GAN[p.day.gan], GAN[p.hour.gan]];
+    const allBranches = [ZHI[p.year.zhi], ZHI[p.month.zhi], ZHI[p.day.zhi], ZHI[p.hour.zhi]];
+    const dayStemChar = GAN[dm];
+
+    function strengthFor(repStem, excludeSelf) {
+      const myElement = STEM_ELEMENT[repStem];
+      const genBy = ELEMENT_GENBY[myElement];
+      const monthScore = (MONTH_STRENGTH[monthBranch] || {})[repStem] || 0;
+      // 同类（比劫）分：天干同五行 + 地支藏干
+      let biJie = 0;
+      allStems.forEach(s => { if (s !== excludeSelf && STEM_ELEMENT[s] === myElement) biJie += 20; });
+      allBranches.forEach(z => {
+        const h = BRANCH_HIDDEN[z] || {};
+        const w = { 主气:15, 中气:8, 余气:5 };
+        ['主气','中气','余气'].forEach(k => { if (h[k] && STEM_ELEMENT[h[k]] === myElement) biJie += w[k]; });
+      });
+      // 通根分
+      let tonggen = 0;
+      allBranches.forEach(z => { tonggen += (TONGGEEN_BONUS[repStem] || {})[z] || 0; });
+      // 印绶（生我者）分
+      let yin = 0;
+      allStems.forEach(s => { if (STEM_ELEMENT[s] === genBy) yin += 15; });
+      allBranches.forEach(z => {
+        const h = BRANCH_HIDDEN[z] || {};
+        const w = { 主气:10, 中气:5, 余气:3 };
+        ['主气','中气','余气'].forEach(k => { if (h[k] && STEM_ELEMENT[h[k]] === genBy) yin += w[k]; });
+      });
+      return monthScore + biJie + tonggen + yin;
+    }
+
+    const groups = {
+      '比劫': { element: dmWx,            rep: dayStemChar,    exclude: dayStemChar },
+      '食伤': { element: (dmWx + 1) % 5,  rep: YANG_STEM_BY_ELEMENT[WX_NAME[(dmWx+1)%5]], exclude: null },
+      '财':   { element: (dmWx + 2) % 5,  rep: YANG_STEM_BY_ELEMENT[WX_NAME[(dmWx+2)%5]], exclude: null },
+      '官杀': { element: (dmWx + 3) % 5,  rep: YANG_STEM_BY_ELEMENT[WX_NAME[(dmWx+3)%5]], exclude: null },
+      '印':   { element: (dmWx + 4) % 5,  rep: YANG_STEM_BY_ELEMENT[WX_NAME[(dmWx+4)%5]], exclude: null }
+    };
+
+    const energies = {}, levels = {};
+    const rawVals = {};
+    Object.keys(groups).forEach(k => {
+      rawVals[k] = Math.round(strengthFor(groups[k].rep, groups[k].exclude));
+    });
+    const vals = Object.values(rawVals);
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    // 旺衰等级＝相对本命五驱动力均值判定（过强/过弱均为过度态）
+    Object.keys(groups).forEach(k => {
+      const e = rawVals[k];
+      energies[k] = e;
+      const ratio = e / mean;
+      if (ratio >= 1.6)      levels[k] = '强';   // 过强·过度
+      else if (ratio <= 0.55) levels[k] = '弱';   // 过弱·过度（不足）
+      else                    levels[k] = '中和';  // 平衡·用
+    });
+    return { energies, levels };
+  }
+
   global.BaziEngine = {
-    computeBazi, analyzeDrive,
+    computeBazi, analyzeDrive, computeDriveEnergies, strengthLevel,
     GAN, ZHI, GAN_WX, ZHI_WX, GAN_YIN, ZHI_YIN, WX_NAME, WX_COLOR,
     SS_COLOR, DAY_MASTER, WX_DESC, DRIVE_INFO, TERM_NAME, ZHANGAN, shiShen
   };
