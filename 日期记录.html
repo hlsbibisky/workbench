@@ -108,6 +108,21 @@
   .year-cell .yc-dot{ margin-top:7px; font-size:12px; color:var(--accent); }
   .year-cell.hasnote .yc-gz::after{ content:' 📝'; }
 
+  /* 月记录清单 */
+  .md-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .md-title{ font-size:18px; font-weight:700; color:var(--text); }
+  .md-list{ display:flex; flex-direction:column; gap:12px; }
+  .md-item{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; cursor:pointer; transition:box-shadow .15s; }
+  .md-item:hover{ box-shadow:0 3px 10px rgba(100,60,30,0.08); }
+  .md-date{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .md-date b{ font-size:15px; }
+  .md-date .gz{ font-size:12px; color:var(--sub); }
+  .md-date .badge{ font-size:11px; padding:1px 8px; border-radius:10px; }
+  .md-chips{ margin-bottom:6px; }
+  .md-text{ font-size:13px; line-height:1.7; color:var(--text); white-space:pre-wrap; }
+  .md-empty{ color:var(--sub); font-size:14px; padding:18px 0; text-align:center; }
+  .backbtn{ background:#fff; border:1px solid var(--line); border-radius:9px; padding:6px 14px; font-size:13px; cursor:pointer; color:var(--sub); }
+
   /* 备注编辑弹窗 */
   .modal{ position:fixed; inset:0; background:rgba(58,54,49,.42); display:none;
     align-items:center; justify-content:center; z-index:50; padding:20px; }
@@ -164,6 +179,16 @@
         </div>
       </div>
       <div class="year-grid" id="yearGrid"></div>
+    </div>
+  </div>
+
+  <div id="monthDetailView" style="display:none;">
+    <div class="cal-card">
+      <div class="md-head">
+        <div class="md-title" id="mdTitle">月记录清单</div>
+        <button class="backbtn" id="mdBack">← 返回年份记录</button>
+      </div>
+      <div class="md-list" id="mdList"></div>
     </div>
   </div>
 
@@ -365,7 +390,13 @@ document.getElementById('detail').addEventListener('click',e=>{
 
 /* 外壳同步刷新 */
 window.addEventListener('message',function(e){
-  if(e.data && e.data.type==='wb-reload'){ try{ RECORDS=collect(); if(document.getElementById('yearView').style.display!=='none') renderYear(); else renderCalendar(); }catch(err){} }
+  if(e.data && e.data.type==='wb-reload'){
+    try{
+      RECORDS=collect();
+      if(document.getElementById('yearView').style.display!=='none') renderYear();
+      else if(document.getElementById('monthView').style.display!=='none') renderCalendar();
+    }catch(err){}
+  }
 });
 
 /* ===== 月份备注 / 年份记录（新增） ===== */
@@ -431,12 +462,10 @@ function openEditor(kind, key, title){
 }
 function openMonthNote(){
   const key=monthKeyOf(calY,calM,15);
-  const mInfo=getMonthGZ(calY,calM,15);
-  const yGz=ganzhiYear(gzYearVal(calY,calM,15));
-  openEditor('month', key, `编辑本月备注 · ${yGz}年 ${mInfo.ganzhi}月（${key}）`);
+  openEditor('month', key, '编辑本月备注');
 }
 function openYearNote(){
-  openEditor('year', curYear, `编辑本年备注 · ${ganzhiYear(curYear)}年 ${curYear}`);
+  openEditor('year', curYear, '编辑本年备注');
 }
 document.getElementById('noteSave').onclick=()=>{
   const v=document.getElementById('noteArea').value;
@@ -450,10 +479,52 @@ document.getElementById('noteSave').onclick=()=>{
 document.getElementById('noteCancel').onclick=()=>{ document.getElementById('noteModal').style.display='none'; };
 document.getElementById('noteModal').addEventListener('click',e=>{ if(e.target.id==='noteModal') document.getElementById('noteModal').style.display='none'; });
 
+/* 月记录清单 */
+function renderMonthDetail(key, gy){
+  const months=yearMonths(gy);
+  const M=months.find(x=>x.key===key) || months[0];
+  const yGz=ganzhiYear(gy);
+  document.getElementById('mdTitle').textContent=`${yGz}年 ${M.ganzhi}月 记录清单`;
+  // 收集该节气月内所有有记录的日期
+  const arr=[];
+  Object.keys(RECORDS).forEach(k=>{
+    const p=k.split('-');
+    if(monthKeyOf(+p[0],+p[1],+p[2])===key){
+      const dt=parseKey(k);
+      arr.push({...dt, k, rec:RECORDS[k]});
+    }
+  });
+  arr.sort((a,b)=>{ const A=new Date(a.y,a.m-1,a.d), B=new Date(b.y,b.m-1,b.d); return A-B; });
+  let html='';
+  if(!arr.length){
+    html='<div class="md-empty">这个月还没有留下记录。</div>';
+  } else {
+    arr.forEach(r=>{
+      const wd=WEEK[new Date(r.y,r.m-1,r.d).getDay()];
+      const gz=ganzhiDay(r.y,r.m,r.d);
+      const chips=r.rec.tags.map(i=>`<span class="chip ${!POS.has(i)?'exc':''}">${DRIVERS[i]}</span>`).join('');
+      const badge=`<span class="badge" style="background:${r.rec.mood==='good'?'#e6f4ec':r.rec.mood==='hard'?'#fbe6e2':'#f0eee9'};color:${r.rec.mood==='good'?'var(--noted)':r.rec.mood==='hard'?'var(--bad)':'var(--neutral)'}">${MOOD_TXT[r.rec.mood]}</span>`;
+      const txt=(r.rec.text||'').trim();
+      html+=`<div class="md-item" data-key="${r.k}">`
+           +`<div class="md-date"><b>${r.y}年${r.m}月${r.d}日 ${wd}</b><span class="gz">${gz}日</span>${badge}</div>`
+           +(chips?`<div class="md-chips">${chips}</div>`:'')
+           +(txt?`<div class="md-text">${esc(txt)}</div>`:'')
+           +`</div>`;
+    });
+  }
+  document.getElementById('mdList').innerHTML=html;
+  document.getElementById('monthDetailView').style.display='block';
+  document.getElementById('monthView').style.display='none';
+  document.getElementById('yearView').style.display='none';
+  document.getElementById('btnMonth').classList.remove('active');
+  document.getElementById('btnYear').classList.remove('active');
+}
+
 /* 视图切换 */
 function switchView(v){
   document.getElementById('monthView').style.display = v==='month'?'block':'none';
   document.getElementById('yearView').style.display = v==='year'?'block':'none';
+  document.getElementById('monthDetailView').style.display='none';
   document.getElementById('btnMonth').classList.toggle('active', v==='month');
   document.getElementById('btnYear').classList.toggle('active', v==='year');
   if(v==='year') renderYear(); else renderCalendar();
@@ -464,7 +535,12 @@ document.getElementById('yearPrev').onclick=()=>{ curYear--; renderYear(); };
 document.getElementById('yearNext').onclick=()=>{ curYear++; renderYear(); };
 document.getElementById('yearGrid').addEventListener('click',e=>{
   const cell=e.target.closest('.year-cell');
-  if(cell && cell.dataset.key){ const y=+cell.dataset.y, m=+cell.dataset.m, d=+cell.dataset.d; calY=y; calM=m; calSel=d; switchView('month'); }
+  if(cell && cell.dataset.key){ renderMonthDetail(cell.dataset.key, curYear); }
+});
+document.getElementById('mdBack').onclick=()=>switchView('year');
+document.getElementById('mdList').addEventListener('click',e=>{
+  const item=e.target.closest('.md-item');
+  if(item && item.dataset.key) goRecord(item.dataset.key);
 });
 
 init();
