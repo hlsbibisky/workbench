@@ -177,24 +177,25 @@ function compute(){
   document.getElementById('dmLine').textContent =
     `日主 ${G[bz.dayMaster]}${['木','火','土','金','水'][bz.dmWx]}　·　命局${bz.strength.level}`;
 
-  // 五驱动力能量值
-  const dw = bz.driveW;               // {食伤,财,官杀,印,比劫}
-  const raw = ORDER.map(k => dw[k]);  // 原始权重
-  const energies = raw.map(v => Math.round(v * 10));   // 能量值（整数）
-  const total = energies.reduce((a,b)=>a+b,0);
-  const mean = total / 5;
+  // 五驱动力能量值（子平旺衰法：月令+通根+同类+印绶，整数无单位）
+  const res = BaziEngine.computeDriveEnergies(bz);
+  const energies = ORDER.map(k => res.energies[k]);
+  const mean = energies.reduce((a,b)=>a+b,0) / 5;
   const maxE = Math.max(...energies);
+  const EXTREME_HI = ['偏强','强','极强'];
+  const EXTREME_LO = ['极弱','弱','偏弱'];
 
   const cardsHtml = ORDER.map((k,i)=>{
     const info = DRIVER_INFO[k];
     const e = energies[i];
-    const intensity = Math.round((e - mean) / mean * 100);  // 强度 %
-    // 标签判定
+    const level = res.levels[k];
+    const intensity = Math.round((e - mean) / mean * 100);  // 强度（相对均值偏离%）
+    // 标签判定：以旺衰等级辨 用 / 过度（过强或过弱均为过度）
     const tags = [];
     let state = 'yong';
     if(e === maxE) tags.push('<span class="tg core">核心</span>');
-    if(e >= mean * 1.6){ tags.push('<span class="tg ji">过强·过度</span>'); state='ji'; }
-    else if(e <= mean * 0.5){ tags.push('<span class="tg ji">过弱·过度(不足)</span>'); state='ji'; }
+    if(EXTREME_HI.includes(level)){ tags.push('<span class="tg ji">过强·过度</span>'); state='ji'; }
+    else if(EXTREME_LO.includes(level)){ tags.push('<span class="tg ji">过弱·过度(不足)</span>'); state='ji'; }
     if(state==='yong' && !tags.length) tags.push('<span class="tg yong">平衡·用</span>');
     const desc = state==='ji' ? info.ji : info.yong;
 
@@ -203,7 +204,7 @@ function compute(){
       <div class="god">${k}</div>
       <div class="name">${info.name}</div>
       <div class="energy">${e}<small>能量值</small></div>
-      <div class="intensity ${intensity>=0?'up':'down'}">强度 ${intensity>=0?'+':''}${intensity}%</div>
+      <div class="intensity ${intensity>=0?'up':'down'}">强度 ${level}（${intensity>=0?'+':''}${intensity}%）</div>
       <div class="tags">${tags.join('')}</div>
       <div class="desc">${desc}</div>
     </div>`;
