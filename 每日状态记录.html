@@ -499,10 +499,13 @@ document.getElementById('exportTxt').onclick=()=>{
   L.push('');
   arr.forEach(r=>{
     const wd=WEEK[new Date(r.y,r.m-1,r.d).getDay()];
+    const gy=gzYearVal(r.y,r.m,r.d);
+    const yGz=ganzhiYear(gy);
+    const mGz=gzMonthInfo(r.y,r.m,r.d).ganzhi;
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const mood=classifyTags(r.tags);
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
-    L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+gz+' · '+MOOD_TXT[mood]+'】');
+    L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+yGz+'年 '+mGz+'月 · '+gz+' · '+MOOD_TXT[mood]+'】');
     if(tags) L.push('驱动力：'+tags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
