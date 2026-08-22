@@ -489,23 +489,37 @@ document.getElementById('exportTxt').onclick=()=>{
   Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
   const arr=[];
   keys.forEach(k=>{ const p=k.split('-'); const y=+p[0],m=+p[1],d=+p[2];
-    arr.push({k,y,m,d,tags:(obj.tags[k]||[]).slice(),text:(obj.records[k]||'')}); });
+    const mi=gzMonthInfo(y,m,d);
+    arr.push({y,m,d, gy:mi.gy, mKey:mi.gy+'-'+mi.ganzhi, mGz:mi.ganzhi,
+              tags:(obj.tags[k]||[]).slice(), text:(obj.records[k]||'')}); });
   arr.sort((a,b)=>{ const A=new Date(a.y,a.m-1,a.d), B=new Date(b.y,b.m-1,b.d); return B-A; });
   const L=[];
   L.push('内观觉察 · 每日记录（纯文本导出）');
   L.push('导出时间：'+new Date().toISOString().slice(0,10)+'　·　共 '+arr.length+' 天有记录');
   L.push('');
-  L.push('————————————');
+  L.push('============================');
   L.push('');
+  let curGy=null, curMk=null;
   arr.forEach(r=>{
+    if(r.gy!==curGy){
+      curGy=r.gy; curMk=null;
+      L.push('');
+      L.push('== '+ganzhiYear(r.gy)+'年 '+r.gy+' ==');
+      const yNote=(obj.yearNotes && obj.yearNotes[r.gy]||'').trim();
+      if(yNote) L.push('【年备注】'+yNote);
+      L.push('');
+    }
+    if(r.mKey!==curMk){
+      curMk=r.mKey;
+      L.push('———— '+r.mGz+'月 ————');
+      const mNote=(obj.monthNotes && obj.monthNotes[r.mKey]||'').trim();
+      if(mNote) L.push('【月备注】'+mNote);
+    }
     const wd=WEEK[new Date(r.y,r.m-1,r.d).getDay()];
-    const gy=gzYearVal(r.y,r.m,r.d);
-    const yGz=ganzhiYear(gy);
-    const mGz=gzMonthInfo(r.y,r.m,r.d).ganzhi;
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const mood=classifyTags(r.tags);
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
-    L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+yGz+'年 '+mGz+'月 · '+gz+' · '+MOOD_TXT[mood]+'】');
+    L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+ganzhiYear(r.gy)+'年 '+r.mGz+'月 · '+gz+' · '+MOOD_TXT[mood]+'】');
     if(tags) L.push('驱动力：'+tags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
