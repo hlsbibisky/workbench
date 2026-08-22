@@ -346,6 +346,32 @@ function solarTermDay(year,i){ const Y=year%100; const L=Math.floor((Y-1)/4);
 function termOn(y,m,d){ for(let i=0;i<24;i++){ const mo=Math.floor(i/2)+1;
   if(mo===m && solarTermDay(y,i)===d) return TERM_NAMES[i]; } return ''; }
 
+/* 干支年（立春分界） */
+function lichunDate(y){ return new Date(y,1,solarTermDay(y,2)); }
+function gzYearVal(y,m,d){ const cur=new Date(y,m-1,d); return cur < lichunDate(y) ? y-1 : y; }
+function ganzhiYear(y){ const idx=((y-1984)%60+60)%60; return GAN[idx%10]+ZHI[idx%12]; }
+/* 干支月（十二节令分界 + 五虎遁） */
+const JIE_TERM_IDX=[2,4,6,8,10,12,14,16,18,20,22,0];
+const JIE_MONTH=[1,2,3,4,5,6,7,8,9,10,11,0];
+function gzMonthInfo(y,m,d){
+  const gy=gzYearVal(y,m,d);
+  const cur=new Date(y,m-1,d);
+  let count=0;
+  for(let mi=0;mi<12;mi++){
+    const ty = JIE_MONTH[mi]===0 ? gy+1 : gy;
+    const tm = JIE_MONTH[mi]===0 ? 1 : JIE_MONTH[mi]+1;
+    const td = solarTermDay(ty, JIE_TERM_IDX[mi]);
+    if(cur >= new Date(ty,tm-1,td)) count++;
+  }
+  let k=Math.min(count-1,11);
+  if(k<0) k=0;
+  const yStem=((gy-1984)%10+10)%10;
+  const yinStem=((yStem%5)*2+2)%10;
+  const mStem=(yinStem+k)%10;
+  const mBranch=(2+k)%12;
+  return { gy:gy, idx:k, ganzhi: GAN[mStem]+ZHI[mBranch] };
+}
+
 /* 读取 */
 function loadAll(){
   let obj;
@@ -622,9 +648,12 @@ document.getElementById('exportTxt').onclick=()=>{
   L.push('');
   data.forEach(r=>{
     const wd=WEEK[r.date.getDay()];
+    const gy=gzYearVal(r.y,r.m,r.d);
+    const yGz=ganzhiYear(gy);
+    const mGz=gzMonthInfo(r.y,r.m,r.d).ganzhi;
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
-    L.push('【'+fmtMD(r.date)+' '+wd+' · '+gz+' · '+MOOD_TXT[r.mood]+'】');
+    L.push('【'+fmtMD(r.date)+' '+wd+' · '+yGz+'年 '+mGz+'月 · '+gz+' · '+MOOD_TXT[r.mood]+'】');
     if(tags) L.push('驱动力：'+tags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
