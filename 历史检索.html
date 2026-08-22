@@ -640,20 +640,37 @@ document.getElementById('gzBtn').onclick=()=>{ renderSearch(); };
 /* 导出纯文本（沿用当前筛选；默认「全部时间」即导出所有填写过的记录） */
 document.getElementById('exportTxt').onclick=()=>{
   const data=applySearchFilter();
+  const obj=loadAll();
+  data.sort((a,b)=> b.date - a.date);
   const L=[];
   L.push('内观觉察 · 每日记录（纯文本导出）');
   L.push('导出时间：'+fmtMD(new Date())+'　·　共 '+data.length+' 天有记录');
   L.push('');
-  L.push('————————————');
+  L.push('============================');
   L.push('');
+  let curGy=null, curMk=null;
   data.forEach(r=>{
+    const mi=gzMonthInfo(r.y,r.m,r.d);
+    const gy=mi.gy;
+    if(gy!==curGy){
+      curGy=gy; curMk=null;
+      L.push('');
+      L.push('== '+ganzhiYear(gy)+'年 '+gy+' ==');
+      const yNote=(obj.yearNotes && obj.yearNotes[gy]||'').trim();
+      if(yNote) L.push('【年备注】'+yNote);
+      L.push('');
+    }
+    const mk=gy+'-'+mi.ganzhi;
+    if(mk!==curMk){
+      curMk=mk;
+      L.push('———— '+mi.ganzhi+'月 ————');
+      const mNote=(obj.monthNotes && obj.monthNotes[mk]||'').trim();
+      if(mNote) L.push('【月备注】'+mNote);
+    }
     const wd=WEEK[r.date.getDay()];
-    const gy=gzYearVal(r.y,r.m,r.d);
-    const yGz=ganzhiYear(gy);
-    const mGz=gzMonthInfo(r.y,r.m,r.d).ganzhi;
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
-    L.push('【'+fmtMD(r.date)+' '+wd+' · '+yGz+'年 '+mGz+'月 · '+gz+' · '+MOOD_TXT[r.mood]+'】');
+    L.push('【'+fmtMD(r.date)+' '+wd+' · '+ganzhiYear(gy)+'年 '+mi.ganzhi+'月 · '+gz+' · '+MOOD_TXT[r.mood]+'】');
     if(tags) L.push('驱动力：'+tags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
