@@ -1336,7 +1336,18 @@ const KEY='life_scene_obs_v1';
 let state = loadState();
 function loadState(){
   try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.answers) return s; }catch(e){}
-  return {started:false, mode:'all', currentScene:0, currentQ:0, answers:{}, qaHistory:{}};
+  return {started:false, mode:'all', currentScene:0, currentQ:0, answers:{}, qaHistory:{}, randomQueue:[]};
+}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+// 把所有题打平为一维 [{si,qi}] 并打乱
+function buildRandomQueue(){
+  const q=[];
+  SCENES.forEach((sc,si)=>sc.questions.forEach((_,qi)=>q.push({si,qi})));
+  return shuffle(q);
 }
 function saveState(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -1351,6 +1362,9 @@ function render(){
   if(state.mode==='all'){
     if(state.currentScene>=SCENES.length){ renderResult(); return; }
     renderScene();
+  } else if(state.mode==='random'){
+    if(state.currentQ>=state.randomQueue.length){ renderResult(); return; }
+    renderRandom();
   } else {
     renderScene();
   }
@@ -1363,7 +1377,9 @@ function renderWelcome(){
     <p>二十个日常瞬间，带你用「十神 · 五行 · 荣格八维 · 四象」的视角，重新看懂自己如何反应、为何反应。</p>
     <p>每题选完即显答案与解析；随时可在场景里写自己的困惑，系统会给出能量视角的解读。</p>
     <p style="font-size:13px;color:var(--sub);">已完成场景：${done} / ${SCENES.length}</p>
-    <button class="btn" onclick="startAll()">从头开始闯关</button>
+    <button class="btn" onclick="startRandom()">随机闯关（全部题目打乱）</button>
+    <div style="height:14px"></div>
+    <button class="btn ghost" onclick="startAll()">从头开始闯关</button>
     <div style="height:14px"></div>
     <button class="btn ghost" onclick="pickMode()">选择单个场景</button>
   </div>`;
@@ -1378,11 +1394,12 @@ function pickMode(){
   }).join('');
   app.innerHTML = `<div class="page-head"><h1>选择场景</h1></div>
     <div class="scene-list">${list}</div>
-    <div class="center"><button class="btn ghost" onclick="renderWelcome()">返回</button></div>`;
+    <div class="center"><button class="btn ghost" onclick="goHome()">返回</button></div>`;
 }
 
 function startAll(){ state.started=true; state.mode='all'; state.currentScene=0; state.currentQ=0; saveState(); render(); }
 function startSingle(i){ state.started=true; state.mode='single'; state.currentScene=i; state.currentQ=0; saveState(); render(); }
+function startRandom(){ state.started=true; state.mode='random'; state.randomQueue=buildRandomQueue(); state.currentQ=0; saveState(); render(); }
 
 function renderScene(){
   const sc = SCENES[state.currentScene];
@@ -1443,13 +1460,15 @@ function renderScene(){
 
   // 导航
   const isLast = state.mode==='all' && state.currentScene===SCENES.length-1;
-  html += `<div class="nav">
-    <button class="btn ghost" ${state.currentScene===0?'disabled':''} onclick="goPrev()">上一场景</button>
-    <button class="btn" onclick="goNext()">${isLast?'完成':'下一场景'}</button>
-  </div>`;
-  if(state.mode==='single'){
-    html += `<div class="center" style="margin-top:14px"><button class="btn ghost" onclick="renderWelcome()">返回首页</button></div>`;
+  let navHtml = `<div class="nav">`;
+  if(state.mode==='all'){
+    navHtml += `<button class="btn ghost" ${state.currentScene===0?'disabled':''} onclick="goPrev()">上一场景</button>
+    <button class="btn" onclick="goNext()">${isLast?'完成':'下一场景'}</button>`;
+  } else {
+    navHtml += `<button class="btn" onclick="goNext()">下一场景</button>`;
   }
+  navHtml += `<button class="btn ghost" onclick="goHome()">返回首页</button></div>`;
+  html += navHtml;
   app.innerHTML = html;
   renderQA();
 }
@@ -1462,6 +1481,62 @@ function selTF(si,qi,val){
   const k=si+'_'+qi; if(state.answers[k]!==undefined) return;
   state.answers[k]=val; saveState(); render();
 }
+
+// 随机闯关：所有题目打平打乱后逐题出现
+function renderRandom(){
+  const item = state.randomQueue[state.currentQ];
+  const sc = SCENES[item.si];
+  const q = sc.questions[item.qi];
+  const aKey = item.si+'_'+item.qi;
+  const ans = state.answers[aKey];
+  const total = state.randomQueue.length;
+  const answered = getAnswered();
+  const dimLabel = getDimLabel(q.dimension);
+  const dimCls = 'dim-'+q.dimension;
+  let html = `<div class="page-head"><h1>随机闯关</h1></div>
+    <div class="prog"><b>第 ${state.currentQ+1} / ${total} 题 · 来自「${sc.title}」 · 已答 ${answered} 题</b></div>
+    <div class="card scene-desc"><span style="font-size:12px;color:var(--sub)">本题维度</span><h2 style="margin-top:4px">${dimLabel}</h2></div>`;
+
+  let qHtml = `<div class="q">
+    <div class="q-head"><span class="q-no">${state.currentQ+1}</span><span class="q-dim ${dimCls}">${dimLabel}</span></div>
+    <div class="q-txt">${q.text}</div>`;
+  if(q.type==='mc'){
+    qHtml += `<div class="opts">`;
+    q.options.forEach((o,oi)=>{
+      let cls='opt', letter=o.letter;
+      if(ans!==undefined){
+        if(oi===ans){ cls += ans===oi&&o.correct ? ' ok':' no'; }
+        else if(o.correct){ cls += ' ok'; }
+      }
+      const mark = (ans!==undefined && o.correct) ? '✓' : (ans===oi? '✗':'');
+      qHtml += `<div class="${cls}" ${ans!==undefined?'':'onclick="selOpt('+item.si+','+item.qi+','+oi+')"'}>
+        <span class="opt-letter">${mark||letter}</span><span>${o.text}</span></div>`;
+    });
+    qHtml += `</div>`;
+  } else {
+    qHtml += `<div class="tf">
+      <div class="${ans!==undefined?'tf-btn sel':'tf-btn'}" ${ans!==undefined?'':'onclick="selTF('+item.si+','+item.qi+',true)"'}>正确</div>
+      <div class="${ans!==undefined?'tf-btn sel':'tf-btn'}" ${ans!==undefined?'':'onclick="selTF('+item.si+','+item.qi+',false)"'}>错误</div>
+    </div>`;
+    if(ans!==undefined){
+      const ok = (ans===q.correct);
+      qHtml += `<div style="margin-top:9px;font-size:13px;color:${ok?'var(--accent2)':'#c98a7a'};font-weight:600;">你的判断：${ans?'正确':'错误'} · 正确答案：${q.correct?'正确':'错误'} ${ok?'✓':'✗'}</div>`;
+    }
+  }
+  const expOpen = ans!==undefined ? ' open':'';
+  qHtml += `<button class="exp-toggle${expOpen}" onclick="toggleExp(this)"><span class="ar">▶</span>${ans!==undefined?'查看解析':'选完显示解析'}</button>
+    <div class="exp-content${expOpen}">${q.explanation}</div></div>`;
+  html += qHtml;
+
+  const isLast = state.currentQ===total-1;
+  html += `<div class="nav">
+    <button class="btn ghost" ${state.currentQ===0?'disabled':''} onclick="randPrev()">上一题</button>
+    <button class="btn" onclick="goNext()">${isLast?'完成':'下一题'}</button>
+    <button class="btn ghost" onclick="goHome()">返回首页</button>
+  </div>`;
+  app.innerHTML = html;
+}
+function randPrev(){ if(state.currentQ>0){ state.currentQ--; saveState(); render(); } }
 function toggleExp(btn){ btn.classList.toggle('open'); btn.nextElementSibling.classList.toggle('open'); }
 
 function sendQA(){
@@ -1483,11 +1558,17 @@ function renderQA(){
 }
 
 function goNext(){
+  if(state.mode==='random'){
+    if(state.currentQ<state.randomQueue.length-1){ state.currentQ++; saveState(); render(); }
+    else { renderResult(); }
+    return;
+  }
   if(state.mode==='single'){ renderWelcome(); return; }
   if(state.currentScene<SCENES.length-1){ state.currentScene++; state.currentQ=0; saveState(); render(); }
   else { renderResult(); }
 }
 function goPrev(){
+  if(state.mode==='random'){ if(state.currentQ>0){ state.currentQ--; saveState(); render(); } return; }
   if(state.currentScene>0){ state.currentScene--; state.currentQ=0; saveState(); render(); }
 }
 
@@ -1510,10 +1591,18 @@ function renderResult(){
     <div style="height:16px"></div>
     <button class="btn" onclick="restart()">再来一轮</button>
     <div style="height:10px"></div>
-    <button class="btn ghost" onclick="renderWelcome()">回到首页</button>
+    <button class="btn ghost" onclick="goHome()">回到首页</button>
   </div>`;
 }
-function restart(){ state.started=false; state.mode='all'; state.currentScene=0; state.currentQ=0; state.answers={}; state.qaHistory={}; saveState(); render(); }
+function restart(){
+  const keepMode = state.mode;
+  state.started=false; state.mode=keepMode; state.currentScene=0; state.currentQ=0;
+  state.answers={}; state.qaHistory={};
+  if(keepMode==='random') state.randomQueue=buildRandomQueue();
+  saveState(); render();
+}
+// 返回首页：彻底回到初始欢迎界面
+function goHome(){ state.started=false; saveState(); render(); }
 
 render();
 </script>
