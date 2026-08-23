@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>生活场景观察</title>
+<style>
+:root{
+  --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+  --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif;background:var(--bg);color:var(--ink);line-height:1.75;min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:26px 18px 60px;}
+
+/* 顶部标题 */
+.page-head{text-align:center;margin-bottom:22px;}
+.page-head h1{font-size:23px;font-weight:700;color:var(--accent);letter-spacing:1px;}
+.page-head p{font-size:13.5px;color:var(--sub);margin-top:6px;}
+
+/* 进度（轻量文字，不用科技条） */
+.prog{text-align:center;font-size:13px;color:var(--sub);margin:0 0 18px;}
+.prog b{color:var(--accent);}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:0 2px 10px rgba(120,90,60,0.05);}
+.scene-desc{border-left:4px solid var(--accent2);}
+.scene-desc h2{font-size:18px;color:var(--accent);margin-bottom:8px;font-weight:700;}
+.scene-desc p{font-size:14.5px;color:var(--ink);}
+
+/* 题卡 */
+.q{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(120,90,60,0.04);}
+.q-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap;}
+.q-no{background:var(--accent);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+.q-dim{font-size:11.5px;padding:3px 11px;border-radius:12px;color:#fff;font-weight:500;}
+.dim-shishen{background:#b8714e;}
+.dim-xingzuo{background:#9b6fc3;}
+.dim-zonghe{background:#c4954a;}
+.dim-jung{background:#8B5FC0;}
+.dim-flow{background:#5b8c7b;}
+.dim-body{background:#4A9C6F;}
+.q-txt{font-size:15px;font-weight:600;margin-bottom:12px;line-height:1.7;}
+.q-type{font-size:11px;color:var(--sub);margin-bottom:10px;}
+
+/* 选项 */
+.opts{display:flex;flex-direction:column;gap:9px;}
+.opt{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;background:#fdfbf7;cursor:pointer;transition:.16s;font-size:14px;text-align:left;}
+.opt:hover{border-color:var(--accent2);background:#f4f8f5;}
+.opt.sel{border-color:var(--accent2);background:#eef5f1;}
+.opt.ok{border-color:var(--accent2);background:#eef5f1;}
+.opt.no{border-color:#c98a7a;background:#fbf0ec;}
+.opt-letter{width:25px;height:25px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--sub);flex-shrink:0;}
+.opt.sel .opt-letter,.opt.ok .opt-letter{background:var(--accent2);color:#fff;}
+.opt.no .opt-letter{background:#c98a7a;color:#fff;}
+
+.tf{display:flex;gap:10px;}
+.tf-btn{flex:1;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:#fdfbf7;cursor:pointer;font-size:15px;font-weight:600;text-align:center;transition:.16s;}
+.tf-btn:hover{border-color:var(--accent2);}
+.tf-btn.sel{border-color:var(--accent2);background:#eef5f1;}
+
+/* 解析 */
+.exp-toggle{display:flex;align-items:center;gap:6px;margin-top:13px;padding:8px 12px;background:var(--mark);border-radius:9px;cursor:pointer;font-size:13px;color:var(--accent);font-weight:600;transition:.16s;border:none;width:100%;text-align:left;font-family:inherit;}
+.exp-toggle:hover{background:#e9dac9;}
+.exp-toggle .ar{transition:transform .3s;font-size:10px;}
+.exp-toggle.open .ar{transform:rotate(90deg);}
+.exp-content{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s ease;padding:0 14px;background:#fcf8f2;border-radius:0 0 9px 9px;font-size:13.5px;line-height:1.9;color:var(--ink);}
+.exp-content.open{max-height:1200px;padding:14px;}
+.exp-content strong{color:var(--accent);}
+
+/* 自由问答 */
+.qa{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:6px;box-shadow:0 2px 8px rgba(120,90,60,0.04);}
+.qa h3{font-size:16px;color:var(--accent);margin-bottom:10px;}
+.qa-hist{max-height:280px;overflow-y:auto;margin-bottom:12px;}
+.qa-item{margin-bottom:11px;padding:10px 12px;background:var(--mark);border-radius:9px;font-size:13.5px;line-height:1.8;}
+.qa-q{color:var(--accent);font-weight:600;margin-bottom:3px;}
+.qa-a{color:var(--ink);}
+.qa-a strong{color:var(--accent);}
+.qa-row{display:flex;gap:8px;}
+.qa-input{flex:1;padding:10px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#fdfbf7;transition:.16s;}
+.qa-input:focus{border-color:var(--accent2);}
+.qa-send{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;transition:.16s;}
+.qa-send:hover{background:#a35f3e;}
+
+/* 按钮 */
+.btn{display:inline-block;padding:13px 38px;background:var(--accent);color:#fff;border:none;border-radius:26px;font-size:16px;cursor:pointer;font-family:inherit;font-weight:600;transition:.18s;box-shadow:0 3px 10px rgba(184,113,78,0.25);}
+.btn:hover{background:#a35f3e;transform:translateY(-1px);}
+.btn.ghost{background:#fff;color:var(--accent);border:1.5px solid var(--accent);box-shadow:none;}
+.btn.ghost:hover{background:var(--mark);}
+.center{text-align:center;}
+
+/* 导航 */
+.nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+.nav .btn{padding:10px 22px;font-size:14px;}
+.nav .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* 欢迎/结果 */
+.welcome{text-align:center;padding:34px 18px;}
+.welcome h2{font-size:22px;color:var(--accent);margin-bottom:14px;}
+.welcome p{font-size:14.5px;color:var(--ink);margin-bottom:11px;line-height:1.9;}
+.result{text-align:center;padding:30px 18px;}
+.result h2{color:var(--accent);font-size:21px;margin-bottom:14px;}
+.result .score{font-size:44px;color:var(--accent);font-weight:700;margin:16px 0 6px;}
+.result p{font-size:14.5px;color:var(--ink);margin-bottom:8px;}
+
+/* 场景列表（欢迎页选场景） */
+.scene-list{display:flex;flex-direction:column;gap:10px;margin:18px 0;}
+.scene-pick{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);cursor:pointer;transition:.16s;font-size:14.5px;}
+.scene-pick:hover{border-color:var(--accent2);background:#f4f8f5;}
+.scene-pick .st{font-size:12px;color:var(--sub);}
+.scene-pick.done{border-color:var(--accent);background:#fbf2ea;}
+@media(max-width:480px){
+  .wrap{padding:20px 13px 54px;}
+  .card,.q,.qa{padding:16px;}
+  .q-txt{font-size:14px;}
+  .opt{padding:10px 12px;font-size:13px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+// ========== DATA（来自桌面 index.html 完整迁移，UI 重写为工作台暖色宣纸调性） ==========
+const SCENES = [
+// ===== 数据由下方完整展开 =====
+// ========== 场景1：拒绝别人的请求 ==========
+{
+  title:`拒绝别人的请求`,
+  description:`朋友临时找你帮忙做一件你不太想做的事。你内心有些犹豫，但最终清晰地说出了"不"。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"清晰地说出不"的行为体现了什么？`,
+      options:[
+        {letter:"A",text:`印星——内在安全感的支撑`,correct:false},
+        {letter:"B",text:`比劫——自我边界的清晰确立`,correct:true},
+        {letter:"C",text:`财官——对外部资源的合理管控`,correct:false},
+        {letter:"D",text:`食伤——自然流畅的表达`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>比劫能量代表"自我边界"的力量。当你清晰地说出"不"，这是比劫能量健康运作的表现——你有能力区分"我的"和"不是我的"，有能力保护自己的能量不被过度消耗。<br><br><strong>干扰项辨析：</strong>食伤是表达，但说"不"的核心不是表达能力，而是边界意识；财官是外部管控，但拒绝请求首先是内在边界问题；印星是内在安全感，虽然提供了基础支撑，但"说不"这个动作本身是比劫的功能。<br><br><strong>关键区分：</strong>比劫管"边界"，食伤管"表达"，财官管"秩序"——拒绝是边界问题，不是表达问题。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`从四象限角度看，"拒绝别人"属于火象维度（外在行动/可观察行为）的事件。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>"拒绝"是一个可被外部观察到的行为，属于火象维度（外在行动）。但需要注意的是，拒绝的<strong>内在动机</strong>（我为什么要拒绝）属于水象维度（内在感受），而拒绝后的<strong>关系影响</strong>属于风象维度（关系沟通）。<br><br><strong>关键区分：</strong>同一个事件在四个维度都有对应——行为在火象，动机在水象，关系在风象，系统规则在土象。觉察时要有"四象限全景"意识。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`拒绝别人后，如果你感到轻松而非内疚，这说明什么？`,
+      options:[
+        {letter:"A",text:`你的比劫能量充足，边界感健康`,correct:true},
+        {letter:"B",text:`你的印星能量不足，缺少安全感`,correct:false},
+        {letter:"C",text:`你的食伤能量过弱，无法表达真实想法`,correct:false},
+        {letter:"D",text:`你缺乏同理心，不在乎他人感受`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>拒绝后感到轻松，说明你的比劫能量在健康运作——你守住了自己的边界，内在没有冲突。这种轻松感是比劫功能正常的信号。<br><br><strong>干扰项辨析：</strong>B选项是常见误解——设立边界不等于缺乏同理心。健康的拒绝恰恰是因为你足够了解自己，才能给出真实的回应。C和D描述的是能量不足的状态，但题目描述的是健康的拒绝。<br><br><strong>关键区分：</strong>内疚感往往意味着比劫被压制——你"应该"拒绝但"不敢"拒绝。轻松感才是比劫健康的标志。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在拒绝别人的过程中，你清晰地感知到"我不想要这样做"，这种内在价值判断主要对应哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Te（外倾思维）——基于效率的分析`,correct:false},
+        {letter:"B",text:`Se（外倾感觉）——基于当下感官的体验`,correct:false},
+        {letter:"C",text:`Fi（内倾情感）——基于内在价值观的判断`,correct:true},
+        {letter:"D",text:`Fe（外倾情感）——基于群体和谐的考量`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Fi（内倾情感）是"向内"的价值判断——我内心觉得这件事对不对、值不值得、是否符合我的价值观。"我不想要这样做"正是Fi的典型表达。<br><br><strong>干扰项辨析：</strong>Fe会考虑"拒绝会不会让对方不高兴"——这是向外的情感判断；Te会考虑"这件事值不值得花时间"——这是效率导向；Se关注当下的感官体验，与价值判断无关。<br><br><strong>关键区分：</strong>Fi对应比劫/食伤——内在价值观；Fe对应食伤/杀——群体和谐。拒绝时用的是Fi还是Fe，决定了你是忠于自己还是照顾他人。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行流转的角度看，拒绝别人属于"金"的收敛能量——收缩、划定边界。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>五行中，"金"主收敛、肃降、划定边界。拒绝别人正是"金"的功能——收缩自己的能量场，明确什么是"我的范围"，什么是"范围之外"。<br><br><strong>五行对应：</strong>木（生发/开始）→ 火（绽放/表达）→ 土（承载/接纳）→ 金（收敛/边界）→ 水（潜藏/休养）。拒绝是金的收敛功能。<br><br><strong>关键区分：</strong>如果金的收敛功能不足，就会"边界松散"——什么都答应，能量持续外泄。`
+    },
+    {type:"mc",dimension:"body",
+      text:`当你清晰地说出"不"的那一刻，身体最可能的感受是什么？`,
+      options:[
+        {letter:"A",text:`喉咙感到紧缩和堵塞`,correct:false},
+        {letter:"B",text:`腹部感到空虚和不安`,correct:false},
+        {letter:"C",text:`头顶感到压力和沉重`,correct:false},
+        {letter:"D",text:`胸口有一种稳定而有力的感觉`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>比劫能量对应的身体区域是胸口（心轮区域）。当比劫健康运作时，胸口会有一种稳定、有力、"站得住"的感觉。这就是"有底气"的身体表达。<br><br><strong>干扰项辨析：</strong>B选项（喉咙紧缩）是食伤受阻的身体信号——想说但不敢说；C选项（腹部空虚）是印星不足——缺少内在支撑；D选项（头顶压力）是杀能量——面对挑战时的压力感。<br><br><strong>关键区分：</strong>身体觉察比思维更准确。胸口有力 = 比劫在线；胸口发虚 = 比劫不足。学会识别这个信号，就能实时觉察自己的边界状态。`
+    }
+  ]
+},
+// ========== 场景2：拒绝后的内心反应 ==========
+{
+  title:`拒绝后的内心反应`,
+  description:`你拒绝了朋友的请求后，内心开始出现各种声音："我是不是太自私了？""他会不会不高兴？"但同时也有一个声音说："我确实有自己的安排。"`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`"我是不是太自私了"这种自我质疑，主要反映了什么能量状态？`,
+      options:[
+        {letter:"A",text:`财官过强——过度关注外部评价`,correct:false},
+        {letter:"B",text:`印星充足——内在安全感很强`,correct:false},
+        {letter:"C",text:`食伤过旺——过度表达和反思`,correct:false},
+        {letter:"D",text:`比劫被压制——自我需求被道德评判覆盖`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>"我是不是太自私了"是比劫被压制的典型表现——你的自我需求被一个"应该为别人付出"的道德框架所覆盖。比劫的核心功能是维护自我边界，当它被压制时，你会觉得"维护自己的需求 = 自私"。<br><br><strong>干扰项辨析：</strong>食伤过旺是"说太多"而非"质疑自己"；财官过强关注的是外部评价（"别人怎么看我"），而非内在道德评判；印星充足的人不会有这种自我质疑。<br><br><strong>关键区分：</strong>比劫健康的人拒绝后感到轻松；比劫被压制的人拒绝后感到内疚。内疚感是比劫被压制的信号。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`"他会不会不高兴"这种担忧属于水象维度（内在体验/主观感受）的关注。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>"他会不会不高兴"关注的是<strong>他人的感受</strong>和<strong>关系的影响</strong>，这属于风象维度（关系沟通/共享意义），而非水象维度。<br><br><strong>四象限回顾：</strong>水象关注的是"我的内在体验"（我自己的情绪、感受）；风象关注的是"关系层面"（别人怎么想、关系会怎样）。<br><br><strong>关键区分：</strong>如果是"我拒绝后感到内疚"，这是水象维度（我的内在感受）；但"他会不会不高兴"是在关注对方的感受和关系影响，这是风象维度。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`"我确实有自己的安排"这个声音代表什么？`,
+      options:[
+        {letter:"A",text:`比劫的真实声音——自我需求的清晰表达`,correct:true},
+        {letter:"B",text:`财官的计算——权衡利弊后的理性判断`,correct:false},
+        {letter:"C",text:`食伤的合理化——为自己的拒绝找借口`,correct:false},
+        {letter:"D",text:`印星的退缩——回避冲突的防御机制`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>"我确实有自己的安排"是比劫的真实声音——它不需要解释、不需要理由，只是清晰地陈述一个事实：我有自己的需求和安排。这是比劫健康运作的表现。<br><br><strong>干扰项辨析：</strong>如果是"合理化"，你会编造一个理由而非陈述事实；印星的退缩是"算了不说清楚"而非清晰表达；财官的计算会有更多利弊分析而非简单的事实陈述。<br><br><strong>关键区分：</strong>比劫的表达是简洁、直接、不需要论证的。当你发现自己在反复解释拒绝的理由时，说明比劫已经被动摇了。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在内心两种声音的拉扯中，如果你最终倾向于照顾对方的感受而后悔拒绝，这主要体现了哪个认知功能的主导？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）——优先考虑群体和谐与他人感受`,correct:true},
+        {letter:"B",text:`Ti（内倾思维）——追求内部逻辑一致性`,correct:false},
+        {letter:"C",text:`Ni（内倾直觉）——依赖深层预感`,correct:false},
+        {letter:"D",text:`Fi（内倾情感）——坚持内在价值观`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Fe（外倾情感）的核心特征是"以他人的情感状态为参照"——对方的感受比自己的需求更重要。当Fe过度主导时，你会为了维持和谐而牺牲自己的边界。<br><br><strong>干扰项辨析：</strong>Fi会坚持"我的感受更重要"——不会后悔拒绝；Ti关注逻辑一致性，不太会被情感拉扯；Ni是直觉功能，与这种情感决策模式无关。<br><br><strong>关键区分：</strong>Fe对应食伤/杀——关注群体和谐；Fi对应比劫/食伤——关注内在价值。Fe过度 = 讨好模式；Fi健康 = 边界清晰。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行流转角度看，拒绝后的内疚感说明能量卡在了哪个环节？`,
+      options:[
+        {letter:"A",text:`金的收敛过度——边界太硬导致内在冲突`,correct:false},
+        {letter:"B",text:`水的潜藏不足——缺少内在休养`,correct:false},
+        {letter:"C",text:`火的绽放受阻——表达后无法自然过渡`,correct:false},
+        {letter:"D",text:`土的承载失衡——接纳与边界之间失去平衡`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>土主承载、中和、平衡。土的能量是在"接纳"和"边界"之间找到平衡点。拒绝后的内疚感说明土的承载功能失衡——你既想维护边界（金），又想保持关系（木的生发连接），两者之间缺少土的调和。<br><br><strong>干扰项辨析：</strong>金的收敛过度会表现为冷漠无情而非内疚；火的绽放受阻是表达不出来，而非表达后的反应；水的潜藏不足是休息不够，与拒绝内疚无直接关系。<br><br><strong>关键区分：</strong>土是"中间地带"——既不僵硬地拒绝，也不无底线地接受。土健康的人能温柔而坚定地守住边界。`
+    },
+    {type:"tf",dimension:"body",
+      text:`拒绝后的内疚感在身体上通常表现为腹部的空虚和不安。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>拒绝后的内疚感通常表现为<strong>肩背部的紧张和僵硬</strong>，而非腹部的空虚。<br><br><strong>身体对应：</strong>肩背部是财官能量的身体对应区域。当内在出现"我拒绝了但觉得不应该"的冲突时，肩背会不自觉地紧张——这是"承担责任"的身体模式。<br><br><strong>关键区分：</strong>腹部空虚 = 印星不足（缺少内在安全感）；肩背紧张 = 过度承担（财官/土的能量失衡）。拒绝后的内疚是肩背紧张，不是腹部空虚。`
+    }
+  ]
+},
+// ========== 场景3：看到别人成功时的比较心 ==========
+{
+  title:`看到别人成功时的比较心`,
+  description:`你在社交媒体上看到同龄人取得了很大的成就——升职、创业成功、或者获得了你一直想要的机会。你的内心涌起一阵复杂的感觉。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`如果你感到一种"他凭什么"的愤愤不平，这主要反映了什么？`,
+      options:[
+        {letter:"A",text:`食伤不畅——表达能力被压抑`,correct:false},
+        {letter:"B",text:`财星过旺——过度关注物质成就`,correct:false},
+        {letter:"C",text:`杀星激活——将对方视为竞争对手`,correct:false},
+        {letter:"D",text:`比劫受挫——自我价值感受到威胁`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>"他凭什么"是比劫受挫的典型反应。比劫代表"自我"，当别人拥有你觉得"应该是你的"东西时，比劫感受到了威胁——"我的位置被占了""我不如他吗"。<br><br><strong>干扰项辨析：</strong>食伤不畅是"说不出来"的憋闷，不是愤愤不平；财星过旺是"我也想要那个东西"的渴望，不是"凭什么"的愤怒；杀星激活会有更强的对抗性——"我要超过他"，而非单纯的愤愤不平。<br><br><strong>关键区分：</strong>比劫的嫉妒是"自我价值"层面的——"我不够好吗"；财的渴望是"资源"层面的——"我也想要"；杀的对抗是"竞争"层面的——"我要赢"。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`如果你看到别人成功后感到由衷的高兴，说明你的食伤能量足够健康，不需要通过"比较"来确认自我价值。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>能够为别人的成功感到由衷高兴，说明你的<strong>比劫能量</strong>足够健康，而非食伤能量。<br><br><strong>深层理解：</strong>比劫健康的人有稳定的自我价值感，不需要通过"比别人强"来确认自己。因此，别人的成功不会威胁到你的自我感，你能够真诚地为他人高兴。<br><br><strong>关键区分：</strong>食伤代表表达和输出，比劫代表自我边界和价值感。能够为他人高兴是比劫健康的表现，不是食伤。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果你感到羡慕但同时也能看到自己的节奏，这种状态说明什么？`,
+      options:[
+        {letter:"A",text:`杀星转化——将嫉妒转化为动力`,correct:false},
+        {letter:"B",text:`印星过强——对一切都无所谓`,correct:false},
+        {letter:"C",text:`比劫与食伤协调运作——既有自我觉察又能自然表达`,correct:true},
+        {letter:"D",text:`财官主导——理性压过了情感`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>羡慕是真实的情感（食伤的自然流动——我承认我的感受），同时能看到自己的节奏（比劫的稳定——我有自己的路）。两者的协调说明能量在健康地流动。<br><br><strong>干扰项辨析：</strong>印星过强是"什么都不在乎"的冷漠，而非"羡慕但有节奏"；财官主导会用理性否定情感——"不应该嫉妒"；杀星转化是更激烈的——"我一定要超过他"。<br><br><strong>关键区分：</strong>健康的状态不是"没有羡慕"，而是"能感受到羡慕但不被它控制"。允许情感流动（食伤），同时保持自我中心（比劫），这就是协调。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`当你看到别人成功时，脑海中自动浮现"如果我也这样做，我也能成功"的可能性联想，这主要对应哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Ni（内倾直觉）——深层预感自己未来的方向`,correct:false},
+        {letter:"B",text:`Si（内倾感觉）——参照过去的经验`,correct:false},
+        {letter:"C",text:`Ne（外倾直觉）——发散性地看到多种可能性`,correct:true},
+        {letter:"D",text:`Te（外倾思维）——制定具体的执行计划`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Ne（外倾直觉）的特点是"发散联想"——看到一个点后，迅速联想到多种可能性。"如果我也这样做，我也能成功"正是Ne的发散模式——从一个案例中看到自己的多种可能。<br><br><strong>干扰项辨析：</strong>Ni是"收敛到一个预感"——"我感觉我的路在另一个方向"；Si是参照过去——"我以前试过类似的方法"；Te是执行导向——"第一步做什么，第二步做什么"。<br><br><strong>关键区分：</strong>Ne对应食伤/印——发散联想；Ni对应印/杀——深层洞察。Ne是"看到很多可能"，Ni是"感觉到一个方向"。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，嫉妒（木的生发被阻断）如果无法转化为成长的动力，就会变成"火郁"——一种压抑的愤怒。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>嫉妒是<strong>"木郁"</strong>，而非"火郁"。<br><br><strong>五行理解：</strong>木主生发、成长。看到别人成功时，你的生发能量被激活——"我也想成长"。但如果这个能量被阻断（"我不行""我没机会"），就会形成"木郁"——一种压抑的、闷闷的愤怒。木郁的表现是酸——心理上的"酸"就是嫉妒。<br><br><strong>关键区分：</strong>火郁表现为焦躁、易怒；木郁表现为压抑、酸楚（嫉妒）。嫉妒是木的生发能量被阻断，不是火的问题。`
+    },
+    {type:"mc",dimension:"body",
+      text:`看到别人成功时，如果你感到胃部（心口窝）有一阵紧缩，这对应什么能量状态？`,
+      options:[
+        {letter:"A",text:`财星活跃——对物质的渴望`,correct:false},
+        {letter:"B",text:`印星充足——内在安全感强`,correct:false},
+        {letter:"C",text:`比劫受压——自我价值感被触动`,correct:true},
+        {letter:"D",text:`食伤过旺——情绪表达过于激烈`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>胃部（心口窝）的紧缩是比劫受压的典型身体信号。这个区域是"自我"的身体映射——当自我价值感受到威胁时，这里会不自觉地收紧。<br><br><strong>干扰项辨析：</strong>食伤过旺的身体信号在喉咙——想说但说不出来；财星活跃的身体信号在腹部——一种"想要"的饥渴感；印星充足时腹部是温暖放松的，不会有紧缩。<br><br><strong>关键区分：</strong>心口窝紧缩 = "我的自我被触动了"。觉察到这个信号时，可以深呼吸，把手放在这个位置，给自己一个"我够好"的内在确认。`
+    }
+  ]
+},
+// ========== 场景4：灵感涌现的创作状态 ==========
+{
+  title:`灵感涌现的创作状态`,
+  description:`你正在做一件创造性的工作——写作、画画、编程或者解决一个问题。突然，灵感来了，思路如泉涌，你完全沉浸其中，忘记了时间。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"灵感涌现、忘记时间"的状态，在十神中最对应哪个能量？`,
+      options:[
+        {letter:"A",text:`财星——对外部成果的把控`,correct:false},
+        {letter:"B",text:`比劫——自我力量的充分发挥`,correct:false},
+        {letter:"C",text:`食伤——创造力的自然流淌`,correct:true},
+        {letter:"D",text:`官星——结构化的系统思维`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>食伤代表创造、表达、输出。灵感涌现、思路泉涌正是食伤能量旺盛且流畅的表现。在食伤状态中，创造不需要"努力"——它自然流淌，你只是一个通道。<br><br><strong>干扰项辨析：</strong>比劫是"自我力量"而非创造力；财星关注的是成果和价值——"这个能卖多少钱"，而非创造过程；官星是结构化思维——需要规则和框架，而灵感涌现恰恰是超越框架的。<br><br><strong>关键区分：</strong>食伤的核心是"自然流淌"——不需要用力，不追求完美，只是让创造力自由表达。一旦加入评判（"这够好吗"），食伤就被压制了。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`在创作心流中，你的主观体验（水象维度）和外在行为表现（火象维度）往往是分裂的——你内心焦虑但外在表现流畅。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>心流状态的特征是<strong>"内外一致"</strong>，而非分裂。<br><br><strong>四象限视角：</strong>心流时，你内在感到流畅、自然（水象），外在的行为表现也是流畅的（火象）。没有内在冲突，也没有内外分裂。<br><br><strong>关键区分：</strong>能量健康的标志之一就是"内外一致"——你感受到的和你表现出来的是匹配的。内外分裂（内心焦虑但表面镇定）是能量卡住的信号，不是心流状态。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`创作心流结束后，如果你感到充实而满足，说明什么？`,
+      options:[
+        {letter:"A",text:`食伤过度输出，即将进入空虚期`,correct:false},
+        {letter:"B",text:`财官能量过强，需要放松控制`,correct:false},
+        {letter:"C",text:`印星能量不足，需要补充滋养`,correct:false},
+        {letter:"D",text:`食伤输出有度，能量流转健康`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>心流后的充实感说明食伤的输出是健康的——你表达了创造力，但没有过度消耗。充实感是食伤健康运作的标志：有输出，有回馈，能量在良性循环。<br><br><strong>干扰项辨析：</strong>食伤过度输出后的感觉是"空虚"和"被掏空"，而非充实；印星不足会有"枯竭感"——但题目描述的是充实状态；财官过强会有"控制感"——但心流恰恰是不需要控制的状态。<br><br><strong>关键区分：</strong>充实 vs 空虚——这是判断食伤输出是否适度的关键指标。充实 = 适度输出；空虚 = 过度输出。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在创作心流中，你完全沉浸在当下的感官体验中——手指敲击键盘的节奏、色彩的搭配、音符的流动。这主要对应哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Ne（外倾直觉）——联想各种可能性`,correct:false},
+        {letter:"B",text:`Ti（内倾思维）——进行内部逻辑分析`,correct:false},
+        {letter:"C",text:`Se（外倾感觉）——完全活在当下的感官体验中`,correct:true},
+        {letter:"D",text:`Si（内倾感觉）——参照过去的经验模板`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Se（外倾感觉）是"完全活在当下"——你的全部注意力都在此刻此地的感官体验中。创作心流中的"忘记时间"正是Se高度激活的表现——你不再思考过去或未来，只是完全沉浸在当下的创造中。<br><br><strong>干扰项辨析：</strong>Si会参照过去的经验——"上次我这样做效果很好"；Ne会联想可能性——"也许我还可以那样做"；Ti会分析逻辑——"这个结构是否合理"。这些都是"离开当下"的状态。<br><br><strong>关键区分：</strong>Se对应食伤——活在当下的创造力。心流 = Se + 食伤的高度协同。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行流转角度看，灵感涌现对应哪个元素的能量状态？`,
+      options:[
+        {letter:"A",text:`木——生发、开始萌芽`,correct:false},
+        {letter:"B",text:`水——潜藏、深层酝酿`,correct:false},
+        {letter:"C",text:`火——绽放、充分表达`,correct:true},
+        {letter:"D",text:`土——承载、稳定中心`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>火主绽放、表达、光明。灵感涌现、创造力充分表达正是"火"的能量状态——你的内在创造力像火焰一样绽放出来，照亮一切。<br><br><strong>五行流转：</strong>水（灵感酝酿）→ 木（开始萌芽）→ 火（充分绽放）→ 土（承载成果）→ 金（收敛定型）。灵感涌现是"火"的阶段——之前需要水的酝酿和木的生发，之后需要土的承载和金的收敛。<br><br><strong>关键区分：</strong>火的健康绽放是"灵感涌现"；火的过度燃烧是"亢奋"——停不下来、无法休息。区分在于：绽放后有满足感，亢奋后有空虚感。`
+    },
+    {type:"tf",dimension:"body",
+      text:`创作心流时，身体的典型特征是呼吸变得急促而浅短，肌肉高度紧张以保持专注。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>心流状态的身体特征是<strong>"放松而警觉"</strong>，而非紧张急促。<br><br><strong>身体特征：</strong>心流时，呼吸深长均匀（副交感神经活跃），肌肉放松但不松懈（保持行动能力）。这是能量流畅运转的身体标志。<br><br><strong>关键区分：</strong>呼吸急促浅短、肌肉紧张是焦虑时的身体状态；心流时是放松但有能量的状态。`
+    }
+  ]
+},
+// ========== 场景5：说话过多后的空虚感 ==========
+{
+  title:`说话过多后的空虚感`,
+  description:`在一次聚会或长时间的社交互动中，你一直在说话、分享、表达。结束后，你突然感到一种被掏空的空虚感，不想再和任何人说话。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"被掏空"的空虚感，从十神角度最准确的解释是什么？`,
+      options:[
+        {letter:"A",text:`杀星能量过强，自我施压导致疲惫`,correct:false},
+        {letter:"B",text:`财星能量不足，无法将表达转化为价值`,correct:false},
+        {letter:"C",text:`比劫能量耗尽，自我边界完全崩溃`,correct:false},
+        {letter:"D",text:`食伤过度输出，缺少印星的滋养补充`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>食伤代表输出和表达。当食伤持续输出而没有印星（滋养、输入）的补充时，就会出现"被掏空"的感觉——你的表达能量被耗尽了。<br><br><strong>核心原理：</strong>食伤和印星是一对互补——印是输入（吸收养分），食伤是输出（表达创造）。健康的状态是"有进有出"。只有出没有进，就会枯竭。<br><br><strong>干扰项辨析：</strong>比劫耗尽是"自我消失"的感觉——不是空虚而是无力；财星不足是"没有成果"的焦虑；杀星过强是"压力太大"的疲惫——与说话过多无直接关系。<br><br><strong>关键区分：</strong>空虚感 = 食伤过度 + 印星不足。解决方法：安静、独处、接收——让印星补充能量。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`聚会后的"不想说话"状态，可以理解为从水象维度（内在个体/主观体验）回撤到土象维度（外在集体/社交系统）的需要。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>聚会后的"不想说话"是从<strong>土象维度回撤到水象维度</strong>，而非相反。<br><br><strong>四象限动态：</strong>社交互动主要发生在土象维度（外在集体系统）——你在群体中运作、遵循社交规则。聚会后的"不想说话"是内在系统需要回到水象维度（独处、内在体验）进行恢复。<br><br><strong>关键区分：</strong>健康的能量需要在四个维度之间自由流动。社交后需要独处（从土象回到水象），独处后需要社交（从水象回到土象）——这是自然的能量节奏。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果你发现自己在社交中总是"停不下来"，即使已经感到疲惫还在继续说，这说明什么？`,
+      options:[
+        {letter:"A",text:`印星能量充足——有很多内容可以分享`,correct:false},
+        {letter:"B",text:`食伤的惯性输出失去了觉察——自动化模式`,correct:true},
+        {letter:"C",text:`财官能量主导——在社交中获取价值`,correct:false},
+        {letter:"D",text:`比劫能量特别旺盛——精力充沛`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>"停不下来"是食伤的惯性输出——你已经累了，但输出的惯性让你无法刹车。这说明觉察力不够——你没有及时觉察到身体的信号（累了、空了），而是被惯性带着走。<br><br><strong>干扰项辨析：</strong>比劫旺盛是"有力量"而非"停不下来"；印星充足的人知道什么时候该停止——因为他们能觉察到自己的状态；财官主导是目标导向的社交，不会无目的地"说个不停"。<br><br><strong>关键区分：</strong>健康的食伤是"有觉察的输出"——知道什么时候开始，也知道什么时候停止。惯性输出 = 觉察力不足。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在社交中"停不下来"的状态，最可能是哪个认知功能过度使用而缺少平衡？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）过度——持续回应他人的情感需求`,correct:true},
+        {letter:"B",text:`Si（内倾感觉）过度——反复回忆过去的细节`,correct:false},
+        {letter:"C",text:`Ni（内倾直觉）过度——沉浸在深层预感中`,correct:false},
+        {letter:"D",text:`Ti（内倾思维）过度——不断进行内部分析`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Fe（外倾情感）过度使用时，你会持续地回应他人的情感需求——别人笑你跟着笑，别人说话你接着说，你的表达不是为了自己，而是为了"维持互动"。这种Fe的惯性运作让你无法停下来。<br><br><strong>干扰项辨析：</strong>Ti过度是"想太多"而非"说太多"；Si过度是"回忆太多"——可能表现为反复讲过去的故事；Ni过度是"沉浸在自己的世界里"——反而不太说话。<br><br><strong>关键区分：</strong>Fe过度 = 为别人而说；Fi健康 = 为自己而说。当你发现自己在说一些"不是真心想说"的话时，Fe可能过度了。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，说话过多后的空虚需要用什么能量来补充？`,
+      options:[
+        {letter:"A",text:`水——安静潜藏、深层滋养`,correct:true},
+        {letter:"B",text:`火——继续表达和绽放`,correct:false},
+        {letter:"C",text:`金——收敛边界、停止输出`,correct:false},
+        {letter:"D",text:`木——重新激活生发能量`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>水主潜藏、滋养、深层补充。说话过多（火过度绽放）后，需要水的滋养来恢复——安静、独处、不说话、让内在重新被充满。<br><br><strong>五行相生：</strong>水生木、木生火。水是源头——当水充足时，木自然生发，火自然绽放。当水不足时，强行绽放（继续说话）只会加速枯竭。<br><br><strong>干扰项辨析：</strong>金（收敛）可以帮助"停下来"，但不能"补充能量"；木（生发）需要水作为基础；火（继续表达）只会加重空虚。<br><br><strong>关键区分：</strong>空虚 = 水不足。补水的方式：安静、独处、睡眠、接触自然、减少表达。`
+    },
+    {type:"mc",dimension:"body",
+      text:`说话过多后的空虚感，在身体上最直接的表现是什么？`,
+      options:[
+        {letter:"A",text:`喉咙干燥、发紧，有被掏空的感觉`,correct:true},
+        {letter:"B",text:`胸口发闷，呼吸变得困难`,correct:false},
+        {letter:"C",text:`头痛，太阳穴跳动`,correct:false},
+        {letter:"D",text:`双腿发软，想坐下来`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>喉咙是食伤能量的身体对应区域。说话过多后，喉咙会感到干燥、发紧、甚至有一种"被掏空"的感觉——这是食伤过度输出最直接的身体信号。<br><br><strong>干扰项辨析：</strong>胸口发闷是比劫受压的信号；头痛可能是杀能量过度（用脑过度）或火气上冲；双腿发软可能是肾虚（水不足）的表现——但不是食伤过度的直接信号。<br><br><strong>关键区分：</strong>喉咙 = 食伤的身体指标。当你感到喉咙干燥发紧时，这就是身体在说"够了，该休息了"。学会识别这个信号，就能避免过度输出。`
+    }
+  ]
+},
+// ========== 场景6：完成任务后的踏实感 ==========
+{
+  title:`完成任务后的踏实感`,
+  description:`你花了一周时间完成了一个重要的项目。提交的那一刻，你感到一种深深的踏实和满足——不是兴奋，而是一种"落地"的感觉。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"落地"的踏实感，主要对应十神中哪个能量的健康运作？`,
+      options:[
+        {letter:"A",text:`食伤——创造力释放的满足`,correct:false},
+        {letter:"B",text:`官星——秩序完成、结构落定的安心`,correct:true},
+        {letter:"C",text:`财星——获得回报的期待`,correct:false},
+        {letter:"D",text:`比劫——自我证明的快感`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>官星代表秩序、结构、责任。完成一个项目后的"踏实感"正是官星健康运作的信号——你完成了承诺，结构闭合了，秩序恢复了。这种感觉不是兴奋，而是"落地"。<br><br><strong>干扰项辨析：</strong>食伤的满足是"创造"的快感——更偏向兴奋和流动；比劫的快感是"我做到了"的自我证明——更偏向骄傲；财星的期待是"我能得到什么"——更偏向渴望。<br><br><strong>关键区分：</strong>官星的踏实 vs 食伤的兴奋——踏实是"落地"，兴奋是"升腾"。完成后的踏实是官星，完成后的兴奋是食伤。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`完成任务后的踏实感主要属于水象维度（内在个体/主观体验）的感受，而非外在可观察的行为。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>"踏实"是一种内在的主观体验——别人看不到你"踏实"，只有你自己能感受到。这属于水象维度（内在个体）。<br><br><strong>四象限对应：</strong>水象（我感到踏实）→ 火象（我长舒一口气）→ 风象（同事为我高兴）→ 土象（项目流程完成）。同一个"完成任务"的事件在四个维度有不同的表现。<br><br><strong>关键区分：</strong>觉察训练的重点之一就是区分"我的内在体验"（水象）和"外在表现"（火象）。有时候你外在看起来很平静，内在却波澜壮阔——两者都需要被关注。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果完成任务后你没有感到踏实，反而感到空虚，可能是什么原因？`,
+      options:[
+        {letter:"A",text:`你的印星太强，对一切结果都不在意`,correct:false},
+        {letter:"B",text:`你的财官能量完美运作`,correct:false},
+        {letter:"C",text:`任务主要靠食伤驱动（创造性输出），完成后食伤能量耗尽`,correct:true},
+        {letter:"D",text:`你的比劫能量太强，不需要外部成就来确认自己`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>如果任务主要靠食伤（创造力）驱动，完成后食伤能量被大量消耗，就会出现"空虚感"——你的输出能量被掏空了。这和"说话过多后的空虚"是同一个原理。<br><br><strong>干扰项辨析：</strong>比劫太强的人完成任务后会有"我做到了"的满足感，不会空虚；印星太强的人可能确实不在意结果，但那是"无感"而非"空虚"；财官完美运作会有踏实感。<br><br><strong>关键区分：</strong>踏实 = 官星运作（结构完成）；空虚 = 食伤耗尽（输出过度）。同样是"完成任务"，驱动能量不同，完成后的感受完全不同。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`完成任务后那种"一切归位"的秩序感，最对应哪个认知功能的满足？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）——群体关系得到维护`,correct:false},
+        {letter:"B",text:`Fi（内倾情感）——内在价值观得到实现`,correct:false},
+        {letter:"C",text:`Te（外倾思维）——外部世界的秩序和效率得到落实`,correct:true},
+        {letter:"D",text:`Ti（内倾思维）——内部逻辑框架得到完善`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Te（外倾思维）关注的是外部世界的秩序和效率——项目完成了、目标达成了、系统运转了。Te的满足感来自"外部世界变得更有秩序了"。<br><br><strong>干扰项辨析：</strong>Ti的满足是"我理解了这个东西"——内部逻辑通了；Fe的满足是"大家都开心"——关系和谐了；Fi的满足是"这符合我的价值观"——内在价值实现了。<br><br><strong>关键区分：</strong>Te对应财官——外部秩序；Ti对应印/杀——内部逻辑。Te的满足是"事情做好了"，Ti的满足是"道理想通了"。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，完成任务后的踏实感对应"土"的能量——承载成果、安稳落地。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>土主承载、稳定、中和。完成任务后，成果需要被"承载"——就像大地承载万物一样。踏实感正是土的能量的体现——一切安稳落地。<br><br><strong>五行流转：</strong>木（开始项目）→ 火（全力推进）→ 土（承载成果）→ 金（总结经验）→ 水（休息恢复）。踏实感出现在"土"的阶段——项目完成了，成果被承载了。<br><br><strong>关键区分：</strong>土健康的人完成任务后感到踏实和满足；土不足的人完成任务后感到空虚和漂浮。`
+    },
+    {type:"mc",dimension:"body",
+      text:`完成任务后的踏实感，在身体上最典型的表现是什么？`,
+      options:[
+        {letter:"A",text:`胸口兴奋、心跳加速`,correct:false},
+        {letter:"B",text:`腹部温暖、稳定，有一种"落地"的感觉`,correct:true},
+        {letter:"C",text:`头脑清醒，但身体疲惫`,correct:false},
+        {letter:"D",text:`肩膀放松，但双腿发软`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>腹部（丹田区域）是"土"和"印星"的身体对应区域。踏实感在身体上表现为腹部温暖、稳定——这就是"落地"的感觉。<br><br><strong>干扰项辨析：</strong>胸口兴奋是食伤/火的状态——还在"升腾"；肩膀放松但双腿发软可能是能量耗尽；头脑清醒但身体疲惫是"精神透支"——不是踏实。<br><br><strong>关键区分：</strong>腹部温暖稳定 = 土的能量在线 = 踏实。这是身体在告诉你"一切安好"。学会感受这个信号，就能区分"真正的完成"和"虚假的结束"。`
+    }
+  ]
+},
+// ========== 场景7：完美主义导致的拖延 ==========
+{
+  title:`完美主义导致的拖延`,
+  description:`你有一个重要的任务要完成，但迟迟无法开始。你告诉自己"要准备好""要做到最好"，但越这样想越不想动。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`完美主义导致的拖延，从十神角度看，最核心的能量卡点是什么？`,
+      options:[
+        {letter:"A",text:`比劫太弱——缺乏行动的勇气`,correct:false},
+        {letter:"B",text:`食伤被杀星压制——不敢输出不完美的作品`,correct:true},
+        {letter:"C",text:`财星不足——看不到任务的价值`,correct:false},
+        {letter:"D",text:`印星太强——过度准备、过度学习`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>完美主义拖延的核心模式是：杀星（内在压力/自我批判）过度激活，压制了食伤（自然表达/输出）。你的内在有一个声音说"必须完美"，这个声音让食伤不敢流动——因为"不完美就不敢输出"。<br><br><strong>干扰项辨析：</strong>比劫弱是"没有主见"，不是"不敢开始"；印星太强是"过度学习"——但完美主义拖延者往往不是在学习，而是在焦虑；财星不足是"没有动力"，但完美主义者往往很在乎结果。<br><br><strong>关键区分：</strong>拖延 ≠ 懒。完美主义拖延是"杀压食伤"——内在批判压制了自然表达。解决方法：降低标准，允许"不完美"的输出。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`完美主义拖延中，"我应该做到最好"这个想法属于土象维度（外在集体/系统规则）的内化——你内化了外部世界的标准。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>"要做到最好"往往不是你自己的标准，而是内化了外部世界的标准——社会的评价体系、行业的标杆、父母的期待。这些属于土象维度（外在集体/系统规则）的内容。<br><br><strong>四象限分析：</strong>土象（社会标准：必须优秀）→ 内化为水象（我的信念：我应该完美）→ 导致火象（行为：拖延不动）→ 影响风象（关系：觉得自己不如别人）。<br><br><strong>关键区分：</strong>觉察的关键是区分"我的标准"和"内化的外部标准"。问自己：这个"必须完美"的要求，真的是我想要的吗？`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`打破完美主义拖延的第一步应该是什么？`,
+      options:[
+        {letter:"A",text:`释放食伤——允许自己做出"不完美"的第一个版本`,correct:true},
+        {letter:"B",text:`补充印星——继续学习和准备`,correct:false},
+        {letter:"C",text:`激活财星——想想完成任务后的回报`,correct:false},
+        {letter:"D",text:`增强比劫——强迫自己行动起来`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>打破完美主义拖延的关键是释放食伤——让表达和输出重新流动起来。"先做一个烂版本"是最有效的方法——一旦开始输出，食伤就开始流动，惯性会带着你继续。<br><br><strong>干扰项辨析：</strong>强迫自己行动（比劫）可能会加重内在冲突；继续学习（印星）是拖延的另一种形式——"用准备来逃避行动"；想回报（财星）可能增加压力而非减轻。<br><br><strong>关键区分：</strong>完美主义的问题是"不敢输出"，所以解决方法是"允许输出"——而不是"更努力"或"更准备"。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`完美主义者内心的"必须做到最好"的声音，最可能是哪个认知功能的过度使用？`,
+      options:[
+        {letter:"A",text:`Se（外倾感觉）不足——无法享受当下的过程`,correct:false},
+        {letter:"B",text:`Ne（外倾直觉）过度——看到太多可能性而无法选择`,correct:false},
+        {letter:"C",text:`Te（外倾思维）过度——用外部标准苛求自己的产出`,correct:true},
+        {letter:"D",text:`Fi（内倾情感）过度——过于坚持自己的标准`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Te过度使用时，你会用外部的效率标准来衡量一切——包括自己的创作。"不够好""不够快""不够完美"都是Te过度评判的结果。<br><br><strong>干扰项辨析：</strong>Fi过度是"我的感受最重要"——不会太在意"好不好"的外部标准；Se不足确实会导致无法享受过程，但不是拖延的核心原因；Ne过度是"选择困难"——不是"不敢开始"。<br><br><strong>关键区分：</strong>Te的过度评判 = 用外部标准压制内在创造。解决方法：暂时关闭Te的评判功能，让食伤自由流动。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，完美主义拖延是哪种五行失衡的表现？`,
+      options:[
+        {letter:"A",text:`金克木过度——收敛和批判压制了生发和创造`,correct:true},
+        {letter:"B",text:`水克火过度——潜藏压制了绽放`,correct:false},
+        {letter:"C",text:`木克土过度——生发压制了承载`,correct:false},
+        {letter:"D",text:`火克金过度——绽放压制了收敛`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>金主收敛、批判、评判。木主生发、创造、开始。当金的力量过度（内在批判太强），就会过度克制木——你还没开始生发，就被"这不够好"的批判压回去了。<br><br><strong>五行相克：</strong>金克木是正常的（收敛调节生发），但金克木过度就是问题——你无法开始任何新事物，因为"内在批评家"太强了。<br><br><strong>关键区分：</strong>健康的金克木 = 有标准但不苛刻；过度的金克木 = 完美主义、自我批判。解决方法：增强木的力量（允许不完美地开始）。`
+    },
+    {type:"tf",dimension:"body",
+      text:`完美主义拖延时，身体最常见的信号是肩颈部位的僵硬和头部的紧绷感。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>肩颈和头部的紧绷是"杀星过度"的身体信号——你在对自己施压。这种紧绷是一种"控制"的身体模式：你的身体在"抓紧"，好像不抓紧就会失控。<br><br><strong>身体觉察：</strong>当你注意到肩颈僵硬、头部紧绷时，这就是一个信号——"我的内在批评家又上线了"。此时最有效的做法不是"继续工作"，而是先放松身体——做几个深呼吸，转动脖子，让身体先"松"下来。<br><br><strong>关键区分：</strong>身体放松了，内在批判就会减弱。身体和心灵是双向的——不是"想通了才能放松"，而是"放松了才能想通"。`
+    }
+  ]
+},
+// ========== 场景8：被批评后的冷静应对 ==========
+{
+  title:`被批评后的冷静应对`,
+  description:`在工作中，你的方案被领导当众批评了。你感到一阵不舒服，但很快调整过来，冷静地听取了意见并做出了改进。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`你能快速调整并冷静听取意见，这说明什么能量在健康运作？`,
+      options:[
+        {letter:"A",text:`比劫——强大的自我让你无视批评`,correct:false},
+        {letter:"B",text:`印星——内在安全感让你不被批评击垮`,correct:true},
+        {letter:"C",text:`食伤——善于表达和沟通`,correct:false},
+        {letter:"D",text:`财星——关注实际利益而非情感`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>印星代表内在安全感和滋养。印星健康的人有稳定的"内在根基"——批评来了，你能接收到，但它不会动摇你的核心自我。你能区分"批评我的方案"和"批评我这个人"。<br><br><strong>干扰项辨析：</strong>比劫的"无视批评"不是健康应对——那是压抑或否认；食伤是表达能力，与"接受批评"无直接关系；财星的"关注利益"可能会让你忽略情感层面的影响。<br><br><strong>关键区分：</strong>印星健康 = 能接受批评但不被击垮；比劫过强 = 拒绝接受任何批评。前者是灵活，后者是僵硬。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`在这个场景中，你从"感到不舒服"（水象维度）到"冷静听取意见"（火象维度）的转变，体现了能量在维度间的健康流动。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>你首先觉察到了内在的不舒服（水象），然后能够将其转化为冷静的外在行为（火象）。这说明能量在维度间是流动的——你没有压抑感受，也没有被感受控制。<br><br><strong>健康模式：</strong>水象（我感到不舒服）→ 觉察和接纳 → 火象（我冷静地听取意见）。不健康模式：水象（我不舒服）→ 压抑 → 火象（假装没事）→ 内在积累。<br><br><strong>关键区分：</strong>健康的能量流动是"先觉察、再调节"——不是"不感受"，而是"感受了但能调节"。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果你被批评后完全没有不舒服的感觉，可能的原因是什么？`,
+      options:[
+        {letter:"A",text:`说明你对这个领导完全不在乎`,correct:false},
+        {letter:"B",text:`说明你的心理素质特别好`,correct:false},
+        {letter:"C",text:`说明你的印星能量特别强大`,correct:false},
+        {letter:"D",text:`可能是比劫或食伤的觉察力不足——没有接收到信号`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>被批评后完全没有不舒服，可能不是"太强"，而是"太钝"——你的觉察力没有接收到信号。比劫和食伤的觉察力是"感受力"——能感知到微妙的情感变化。如果完全没有感觉，可能是觉察力需要提升。<br><br><strong>干扰项辨析：</strong>印星强大的人也会感到不舒服——但他们能快速调节。"完全没有不舒服"和"不舒服但能快速调节"是两回事。心理素质好不等于没有感受。<br><br><strong>关键区分：</strong>健康的状态是"有感受 + 能调节"，而非"没有感受"。没有感受可能是压抑或觉察力不足。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在冷静听取批评意见时，你运用哪种认知功能来客观分析对方的观点？`,
+      options:[
+        {letter:"A",text:`Ti（内倾思维）——在内部逻辑框架中分析批评是否合理`,correct:true},
+        {letter:"B",text:`Ni（内倾直觉）——直觉判断批评背后的深层含义`,correct:false},
+        {letter:"C",text:`Se（外倾感觉）——关注当下的肢体语言和氛围`,correct:false},
+        {letter:"D",text:`Fe（外倾情感）——关注领导的情绪和面子`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Ti（内倾思维）的功能是在内部建立一个逻辑框架，然后用这个框架来分析信息。"这个批评是否有道理""他的逻辑是否成立"——这些都是Ti的分析方式。<br><br><strong>干扰项辨析：</strong>Fe关注的是"领导的情绪"而非"批评的内容"；Se关注的是当下的感官信息（表情、语气），而非内容分析；Ni是直觉判断——"我感觉这个批评有深层原因"，而非逻辑分析。<br><br><strong>关键区分：</strong>Ti对应印/杀——内部逻辑分析。Ti健康的人能客观分析批评的合理性，既不盲目接受，也不盲目拒绝。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，被批评后的快速恢复体现了"水生木"的流转——压力（水）转化为成长（木）的动力。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>水主潜藏、压力、深层。木主生发、成长。当你能把批评（水的压力）转化为成长的动力（木的生发），这就是"水生木"的健康流转——压力不是终点，而是成长的养分。<br><br><strong>五行理解：</strong>不健康的模式是"水多木漂"——压力太大，把你淹没了，你无法生发。健康的模式是"水生木"——适度的压力促进成长。<br><br><strong>关键区分：</strong>压力（水）本身不是坏事——它是成长的养分。关键在于你能否让水流向木——把批评转化为行动。`
+    },
+    {type:"mc",dimension:"body",
+      text:`在被批评的那一刻，如果你能有意识地做几个深呼吸，这个动作主要帮助调节哪个能量？`,
+      options:[
+        {letter:"A",text:`补充印星能量，让你感到安全和被支持`,correct:false},
+        {letter:"B",text:`安抚杀星的压力反应，让身体从"战斗或逃跑"模式回到平衡`,correct:true},
+        {letter:"C",text:`增强比劫力量，让你更有底气反驳`,correct:false},
+        {letter:"D",text:`激活食伤能量，让你能立刻表达回应`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>深呼吸直接作用于自主神经系统——从交感神经（战斗或逃跑）切换到副交感神经（放松和恢复）。在能量模型中，这对应的是安抚杀星的压力反应。<br><br><strong>身体机制：</strong>被批评时，杀星被激活——身体进入"战斗或逃跑"模式（心跳加速、肌肉紧张、呼吸急促）。深呼吸直接打断这个反应链，让身体回到平衡。<br><br><strong>关键区分：</strong>深呼吸不是"增强"某个能量，而是"调节"——让过度激活的能量回到平衡。这是最简单、最直接的能量调节工具。`
+    }
+  ]
+},
+// ========== 场景9：被批评后的防御反应 ==========
+{
+  title:`被批评后的防御反应`,
+  description:`你被一个重要的人批评了。你的第一反应是辩解和反驳——"不是这样的""你误解了""我也有我的原因"。事后你才意识到，你当时完全没有听进去对方的话。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"立刻辩解和反驳"的反应，主要反映了什么能量状态？`,
+      options:[
+        {letter:"A",text:`杀星激活——将批评视为攻击`,correct:false},
+        {letter:"B",text:`比劫受到威胁后的防御性反应——自我边界被攻击`,correct:true},
+        {letter:"C",text:`印星不足——缺少内在安全感`,correct:false},
+        {letter:"D",text:`食伤过度活跃——急于表达和解释`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>立刻辩解和反驳是比劫受到威胁后的防御反应——你感觉"自我"被攻击了，所以本能地保护它。这不是理性的回应，而是自动化的防御。<br><br><strong>干扰项辨析：</strong>食伤活跃是"想表达"，不是"想辩解"——区别在于动机；印星不足确实会降低承受力，但直接驱动辩解的是比劫的防御；杀星激活会有更强的对抗性——"反击"而非"辩解"。<br><br><strong>关键区分：</strong>辩解 = 比劫防御（保护自我）；倾听 = 印星稳定（内在安全）。当比劫被威胁时，印星是第一道缓冲——印星不足，比劫就直接暴露了。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`辩解反应中，你的水象维度（内在体验：受伤、委屈）被跳过了，直接进入了火象维度（外在行为：反驳）。这说明觉察力不足。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>健康的反应顺序是：先觉察内在体验（水象：我感到受伤），然后选择如何回应（火象：我选择冷静沟通）。辩解反应跳过了觉察——你还没来得及感受，就已经在反驳了。<br><br><strong>自动化模式：</strong>刺激 → [跳过觉察] → 自动化反应。健康模式：刺激 → 觉察感受 → 选择回应。<br><br><strong>关键区分：</strong>觉察力的作用就是在"刺激"和"反应"之间创造一个空间。没有这个空间，你就会被自动化模式控制。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`事后才意识到"没有听进去"，这个"事后觉察"说明了什么？`,
+      options:[
+        {letter:"A",text:`你的觉察力很弱，不值得继续训练`,correct:false},
+        {letter:"B",text:`你的食伤能量不足，无法在当下做出回应`,correct:false},
+        {letter:"C",text:`你的比劫能量太强，总是需要保护自己`,correct:false},
+        {letter:"D",text:`觉察力存在但有延迟——需要缩短从"反应"到"觉察"的时间`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>"事后觉察"说明觉察力是存在的——只是它有延迟。这是很常见的状态。训练的目标不是"消灭延迟"，而是逐渐缩短延迟的时间——从事后觉察，到事中觉察，到事前觉察。<br><br><strong>觉察力的发展阶段：</strong>事后觉察（"我当时怎么了"）→ 事中觉察（"我正在辩解"）→ 事前觉察（"我快要开始辩解了"）→ 预防觉察（"我选择不进入辩解模式"）。<br><br><strong>关键区分：</strong>有觉察就是进步——不要因为"事后才觉察"就否定自己。觉察力的提升是一个渐进的过程。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在辩解的那一刻，你的Fe（外倾情感）可能在做什么？`,
+      options:[
+        {letter:"A",text:`Fe过度活跃——你在讨好对方`,correct:false},
+        {letter:"B",text:`Fe被压制了——你没有关注对方的感受，只关注保护自己`,correct:true},
+        {letter:"C",text:`Fe完全正常运作——你在维护关系和谐`,correct:false},
+        {letter:"D",text:`Fe和Fi同时激活——你在平衡内外需求`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>辩解时，你的注意力完全在"保护自己"上——你没有空间去关注对方的感受和需求。Fe（关注他人情感）被Fi/比劫的自我保护模式压制了。<br><br><strong>干扰项辨析：</strong>Fe过度活跃是"讨好"——你不会辩解；Fe和Fi同时激活是理想状态——但辩解时显然不是；Fe正常运作时你会边辩解边关注对方感受——但题目说"完全没听进去"。<br><br><strong>关键区分：</strong>辩解模式 = 向内收缩（自我保护）→ Fe被压制。健康模式 = 既保护自己又关注对方 → Fe和Fi协调。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，辩解反应中能量主要卡在哪个环节？`,
+      options:[
+        {letter:"A",text:`金的收敛过度——封闭了接收通道，只出不进`,correct:true},
+        {letter:"B",text:`水的潜藏不足——缺少深层反思`,correct:false},
+        {letter:"C",text:`火的绽放过度——情绪爆发太强烈`,correct:false},
+        {letter:"D",text:`木的生发不足——缺少成长的意愿`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>金主收敛。健康的金是"有选择地接收"——过滤掉不需要的，接收有价值的。但金过度收敛就变成了"封闭"——什么都不接收，只输出（辩解）。<br><br><strong>五行理解：</strong>辩解 = 只出不进 = 金的收敛过度（封闭了接收通道）。健康的沟通需要"有出有进"——你表达你的观点（出），也接收对方的信息（进）。<br><br><strong>关键区分：</strong>辩解 vs 沟通——辩解是"只出不进"（金过度收敛），沟通是"有出有进"（金的正常调节）。`
+    },
+    {type:"mc",dimension:"body",
+      text:`辩解时身体最典型的反应是什么？`,
+      options:[
+        {letter:"A",text:`腹部紧缩、双腿发软`,correct:false},
+        {letter:"B",text:`头部清凉、身体静止`,correct:false},
+        {letter:"C",text:`胸口发紧、面部发热、语速加快`,correct:true},
+        {letter:"D",text:`全身放松、呼吸平稳`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>辩解时身体进入"战斗"模式——胸口发紧（比劫防御）、面部发热（火气上冲）、语速加快（食伤急促输出）。这些都是交感神经激活的表现。<br><br><strong>干扰项辨析：</strong>全身放松是平静状态，不是辩解；腹部紧缩是恐惧/印星不足的反应；头部清凉是理性状态——辩解时你不够"清凉"。<br><br><strong>关键区分：</strong>当你感到胸口发紧、面部发热时，这就是"辩解模式启动"的身体信号。觉察到这个信号，你就可以选择暂停——深呼吸，让自己先回到平衡。`
+    }
+  ]
+},
+// ========== 场景10：安静独处时的满足感 ==========
+{
+  title:`安静独处时的满足感`,
+  description:`一个安静的下午，你独自待在家里。没有手机、没有社交、没有任何需要做的事情。你泡了一杯茶，坐在窗边，感到一种深深的满足和平静。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"不需要任何外在刺激就感到满足"的状态，主要对应哪个能量的充足？`,
+      options:[
+        {letter:"A",text:`食伤——创造力旺盛，享受独处时光`,correct:false},
+        {letter:"B",text:`比劫——自我力量强大，不需要他人`,correct:false},
+        {letter:"C",text:`财星——内心富足，不缺乏什么`,correct:false},
+        {letter:"D",text:`印星——内在滋养充足，不依赖外部输入`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>印星代表内在的滋养和安全感。印星充足的人不需要外部刺激就能感到满足——他们的"能量杯"是满的，不依赖外界来填充。<br><br><strong>干扰项辨析：</strong>食伤在独处时可能"没有输出对象"——食伤旺的人在独处时可能感到无聊；比劫是"自我力量"，但比劫强的人也可能需要"对手"来确认自己；财星是"外部资源"——与内在满足无直接关系。<br><br><strong>关键区分：</strong>印星 = 内在滋养 = 不需要外部输入就能满足。这是"独处能力"的核心——你的内在是否足够丰富和安定。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`独处时的满足感属于水象维度（内在个体/主观体验），这种体验的质量取决于你与自己内在的关系。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>独处时的体验完全属于水象维度——你和自己的关系。如果你和自己的内在关系是好的，独处就是享受；如果不好，独处就是煎熬。<br><br><strong>深层理解：</strong>独处的质量是一面镜子——它反映了你和自己的关系。能在独处中感到满足，说明你和自己的内在是"好朋友"关系；感到焦虑或空虚，说明你在逃避自己。<br><br><strong>关键区分：</strong>独处能力 = 与自己相处的能力。这个能力的核心是印星——你的内在是否有足够的滋养和安全感。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果你发现自己很难安静独处，总是需要找事情做或看手机，这说明什么？`,
+      options:[
+        {letter:"A",text:`食伤能量过旺——有太多需要表达的内容`,correct:false},
+        {letter:"B",text:`比劫太强——需要不断行动来证明自己的存在`,correct:false},
+        {letter:"C",text:`财官能量主导——习惯了外部世界的节奏`,correct:false},
+        {letter:"D",text:`印星能量不足——内在缺少滋养，需要外部填充`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>无法独处说明你的"内在杯子"是空的——你需要外部刺激来填充。这正是印星不足的表现：你的内在缺少滋养，所以需要不断从外部获取——信息、社交、娱乐。<br><br><strong>干扰项辨析：</strong>食伤过旺的人在独处时可能会"创作"而非"找事做"；比劫强的人可能享受独处——"终于没人打扰我了"；财官主导的人确实习惯了外部节奏，但核心问题还是印星不足。<br><br><strong>关键区分：</strong>独处焦虑 = 印星不足。解决方法：练习"什么都不做"——从5分钟开始，逐渐延长。让内在慢慢学会"自给自足"。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`独处时的平静和满足，最可能是哪个认知功能在主导？`,
+      options:[
+        {letter:"A",text:`Si（内倾感觉）——安住在内在的感官体验和熟悉感中`,correct:true},
+        {letter:"B",text:`Fe（外倾情感）——在想念朋友和社交`,correct:false},
+        {letter:"C",text:`Te（外倾思维）——在规划下一步的行动`,correct:false},
+        {letter:"D",text:`Ne（外倾直觉）——在脑海中探索各种可能性`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Si（内倾感觉）是"安住在内在体验中"——你注意到茶的温度、窗外的光线、身体的舒适。Si不追求新鲜刺激，而是在"熟悉和安稳"中找到满足。<br><br><strong>干扰项辨析：</strong>Ne是"向外发散"——独处时Ne活跃会让你坐不住；Te是"外部规划"——你在想"下一步做什么"而非享受当下；Fe是"关注他人"——独处时Fe活跃会让你想找人聊天。<br><br><strong>关键区分：</strong>Si对应印星——内在参照、安全感。Si健康的人能在独处中感到满足——因为他们能安住在内在的体验中。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，安静独处的满足感对应"水"的能量——潜藏、安静、滋养。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>水主潜藏、安静、深层滋养。独处时的平静和满足正是"水"的能量状态——你的能量在"向内收敛"，在深层被滋养。<br><br><strong>五行理解：</strong>水是万物的源头——当水充足时，木自然生发，火自然绽放。独处（水）不是"没有用"——它是为下一次绽放做准备。<br><br><strong>关键区分：</strong>现代人往往恐惧"水"的状态——觉得独处是"浪费时间"。但从五行角度看，水是不可缺少的滋养环节。没有水的潜藏，就没有木的生发和火的绽放。`
+    },
+    {type:"mc",dimension:"body",
+      text:`安静独处感到满足时，身体最典型的状态是什么？`,
+      options:[
+        {letter:"A",text:`身体僵硬，肌肉紧绷`,correct:false},
+        {letter:"B",text:`头脑高度清醒，思维敏捷`,correct:false},
+        {letter:"C",text:`腹部温暖放松，呼吸深长缓慢，全身柔软`,correct:true},
+        {letter:"D",text:`胸口兴奋扩张，精力充沛`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>腹部温暖放松是印星充足的典型身体信号——你的"内在根基"是安稳的。呼吸深长缓慢说明副交感神经活跃——身体处于"休息和恢复"模式。全身柔软说明没有能量卡点。<br><br><strong>干扰项辨析：</strong>胸口兴奋是食伤/火的状态——不是独处的平静；头脑清醒是杀/金的清醒——不是放松；身体僵硬是压力状态——和满足感完全相反。<br><br><strong>关键区分：</strong>腹部温暖 + 呼吸深长 + 全身柔软 = 印星充足 = 独处满足。这是身体在告诉你"一切安好，你被滋养着"。`
+    }
+  ]
+},
+// ========== 场景11：深夜思维停不下来 ==========
+{
+  title:`深夜思维停不下来`,
+  description:`夜深了，你躺在床上，但大脑却停不下来——反复回想今天发生的事，思考明天的计划，分析各种可能性。越想越清醒，越清醒越焦虑。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`深夜思维停不下来，从十神角度看，主要是什么能量在过度运作？`,
+      options:[
+        {letter:"A",text:`财星活跃——在计算利益得失`,correct:false},
+        {letter:"B",text:`印星旺盛——在吸收和处理信息`,correct:false},
+        {letter:"C",text:`食伤过度活跃——思维不断输出，无法停止`,correct:true},
+        {letter:"D",text:`比劫过强——自我意识过度活跃`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>食伤不仅代表"说话"，也代表一切"输出"——包括思维的输出。深夜思维停不下来，正是食伤过度活跃的表现——你的大脑在不断"输出"想法，无法进入"输入"（休息/接收）模式。<br><br><strong>干扰项辨析：</strong>比劫过强是"自我感"太强——但思维停不下来更多是"想法"太多而非"自我"太强；财星活跃是"计算"——有明确的目标导向，而非漫无目的地想；印星是"输入"——印星活跃应该是"吸收"而非"输出"。<br><br><strong>关键区分：</strong>思维停不下来 = 食伤过度输出 + 印星不足（无法切换到"接收"模式）。解决方法：让食伤"着陆"——把想法写下来，让输出有一个终点。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`深夜的思维反刍主要发生在水象维度（内在个体/主观体验），但如果过度持续，会影响火象维度（身体/行为）——导致失眠。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>思维反刍是水象维度的活动——纯粹的主观体验。但如果持续时间过长，就会"溢出"到火象维度——身体无法放松、心跳加速、失眠。<br><br><strong>维度溢出：</strong>水象（思维停不下来）→ 火象（身体无法入睡）→ 土象（明天工作效率下降）→ 风象（情绪不好影响关系）。一个维度的失衡会连锁影响其他维度。<br><br><strong>关键区分：</strong>觉察的价值在于"早期干预"——在水象维度阶段就觉察到思维反刍，在它影响身体之前就进行调节。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`打破深夜思维反刍最有效的方法是什么？`,
+      options:[
+        {letter:"A",text:`从食伤模式切换到印星模式——安静、接收、让身体主导`,correct:true},
+        {letter:"B",text:`用比劫力量强迫自己停止思考`,correct:false},
+        {letter:"C",text:`起来做运动消耗多余能量`,correct:false},
+        {letter:"D",text:`继续思考直到想通为止`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>思维停不下来是食伤过度输出。解决方法不是"停止思考"（那需要比劫的强制力，往往无效），而是切换到印星模式——让身体接收、安静、放松。比如：深呼吸、身体扫描、听白噪音。<br><br><strong>干扰项辨析：</strong>强迫自己停止思考往往会适得其反——"不要想白熊"效应；继续思考只会加重失眠；深夜运动反而会激活身体，更难入睡。<br><br><strong>关键区分：</strong>不是"停止思维"，而是"切换模式"——从输出（食伤）切换到接收（印星）。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`深夜反复分析各种可能性（"如果这样做会怎样""那样做又会如何"），这主要对应哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Si（内倾感觉）——反复回忆过去的细节`,correct:false},
+        {letter:"B",text:`Ti（内倾思维）——进行深入的逻辑分析`,correct:false},
+        {letter:"C",text:`Ni（内倾直觉）——收敛到一个深层预感`,correct:false},
+        {letter:"D",text:`Ne（外倾直觉）过度——不断发散联想，看到无数可能性`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>Ne过度的典型表现就是"可能性爆炸"——一个念头触发无数联想，每个联想又触发更多联想。"如果这样做...那样做...但是..."——这就是Ne的发散模式失控了。<br><br><strong>干扰项辨析：</strong>Ni是"收敛"——最终会聚焦到一个预感；Ti是"深入分析一个问题"而非"发散到无数可能"；Si是"回忆过去"而非"想象未来"。<br><br><strong>关键区分：</strong>Ne过度 = 可能性太多、无法落地。解决方法：用Si来"着陆"——关注身体的感觉、当下的呼吸、具体的感官体验。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，深夜思维停不下来是什么五行失衡？`,
+      options:[
+        {letter:"A",text:`木过旺——生发能量太强`,correct:false},
+        {letter:"B",text:`土不稳——中焦失衡`,correct:false},
+        {letter:"C",text:`火不降——心火亢盛，能量应该收敛但无法收敛`,correct:true},
+        {letter:"D",text:`水不足——缺少潜藏和安静的力量`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>火主升腾、绽放。白天火应该升发（活跃），夜晚火应该降敛（安静）。深夜思维停不下来是"火不降"——心火亢盛，能量应该收敛但收不住。<br><br><strong>五行理解：</strong>正常节律是：白天火旺（活跃）→ 傍晚金收（收敛）→ 夜晚水藏（安静）。火不降意味着从"火"到"金"的转化出了问题——你无法从活跃模式切换到安静模式。<br><br><strong>关键区分：</strong>火不降的解决方法：帮助火下降——深呼吸（金的力量）、泡脚（引火下行）、安静（水的力量）。`
+    },
+    {type:"mc",dimension:"body",
+      text:`深夜思维停不下来时，身体最常见的状态是什么？`,
+      options:[
+        {letter:"A",text:`腹部胀痛、消化不良`,correct:false},
+        {letter:"B",text:`肌肉放松、呼吸平稳`,correct:false},
+        {letter:"C",text:`全身冰冷、四肢无力`,correct:false},
+        {letter:"D",text:`头脑发热、心跳偏快、身体虽然疲惫但无法放松`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>头脑发热（火气上炎）、心跳偏快（心火亢盛）、身体疲惫但无法放松（能量卡在头部，无法下降）——这些都是"火不降"的典型身体信号。<br><br><strong>干扰项辨析：</strong>全身冰冷是阳虚/水过寒；腹部胀痛是土失衡；肌肉放松是平静状态——和思维停不下来完全相反。<br><br><strong>关键区分：</strong>头脑发热 + 身体疲惫 = 火不降。解决方法："引火下行"——把注意力从头部转移到身体——脚底的感觉、腹部的起伏、呼吸的节奏。`
+    }
+  ]
+},
+// ========== 场景12：不小心扫了朋友的兴 ==========
+{
+  title:`不小心扫了朋友的兴`,
+  description:`朋友们在热烈讨论一个你很感兴趣的计划，但你因为太累了，没有精力参与。你安静地坐在一旁，朋友们渐渐觉得你"不太感兴趣"，气氛有些降温。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`你内心想参与但身体跟不上，这种"心有余而力不足"反映了什么？`,
+      options:[
+        {letter:"A",text:`财官不足——无法掌控局面`,correct:false},
+        {letter:"B",text:`比劫太弱——无法坚持自己的立场`,correct:false},
+        {letter:"C",text:`杀星压制——恐惧表达自己`,correct:false},
+        {letter:"D",text:`食伤（想表达）和印星（需要休息）之间的拉扯`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>想参与（食伤的欲望）但太累了（印星需要休息）——这是食伤和印星之间的拉扯。食伤想输出，但印星在喊"我需要补充"。<br><br><strong>干扰项辨析：</strong>比劫弱是"没有主见"——但你有明确的参与欲望；财官不足是"无法掌控"——但问题不是掌控而是能量；杀星压制是"不敢"——但你不是不敢，而是没有能量。<br><br><strong>关键区分：</strong>食伤想输出 vs 印星需要休息——这个拉扯很常见。解决方法：尊重印星的需求——先休息，等能量恢复了再参与。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`在这个场景中，你的内在体验（水象：想参与但累了）和外在表现（火象：安静坐着）不一致，这种"内外不一致"可能导致朋友对你的误解。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>你的内在是"想参与但累了"，但外在表现是"安静坐着"——朋友看到的是后者，可能解读为"不感兴趣"。这就是内外不一致导致的关系误解。<br><br><strong>四象限沟通：</strong>如果你能表达你的内在状态（"我很想参加，但今天太累了"），就能让水象的体验通过火象被他人接收，减少风象（关系）的误解。<br><br><strong>关键区分：</strong>内外不一致是关系问题的常见根源。解决方法：适当表达你的内在状态——不需要全部，但至少让对方知道"我不是不感兴趣"。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`面对这种情况，最健康的做法是什么？`,
+      options:[
+        {letter:"A",text:`什么都不说，等朋友们自己发现`,correct:false},
+        {letter:"B",text:`诚实地表达自己的状态——"我很感兴趣，但今天太累了"`,correct:true},
+        {letter:"C",text:`假装很兴奋，掩盖自己的疲惫`,correct:false},
+        {letter:"D",text:`强迫自己参与，不想让朋友失望`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>诚实表达是最健康的做法——它同时照顾了比劫（真实表达自我）、食伤（输出内在状态）、印星（尊重自己的需求）和关系（减少误解）。<br><br><strong>干扰项辨析：</strong>强迫自己参与会进一步消耗印星；什么都不说会导致误解加深；假装兴奋是内外不一致——长期会导致更大的问题。<br><br><strong>关键区分：</strong>诚实表达 ≠ 扫兴。"我很感兴趣但今天太累了"既表达了真实状态，也表达了对计划的认可。这是比劫+食伤的健康组合。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`如果你选择诚实表达自己的状态，这主要运用了哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）——为了维护群体和谐而表达`,correct:false},
+        {letter:"B",text:`Se（外倾感觉）——基于当下的直接体验`,correct:false},
+        {letter:"C",text:`Fi（内倾情感）——忠于自己的内在感受和价值观`,correct:true},
+        {letter:"D",text:`Te（外倾思维）——为了提高沟通效率`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Fi的核心是"忠于自己的内在感受"——我感受到什么就说什么，不伪装、不讨好。"我很感兴趣但太累了"正是Fi的表达——真实地呈现内在状态。<br><br><strong>干扰项辨析：</strong>Fe是为了"让对方舒服"而调整表达——可能会说"你们继续，我先走了"（避免扫兴）；Te是为了"效率"——不太关注感受层面；Se是"活在当下"——不会去分析自己的状态。<br><br><strong>关键区分：</strong>Fi对应比劫/食伤——内在价值的真实表达。Fi健康的人能诚实而不伤害地表达自己。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，"太累了无法参与"是"火"的能量不足——绽放的力量不够。此时需要"水"来补充，而不是强行"加火"。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>参与社交需要"火"的能量——绽放、表达、互动。当你太累了，火的力量不足，自然无法绽放。此时正确的做法是补充"水"（休息、安静、滋养），让水慢慢生木、木生火——自然恢复。<br><br><strong>错误做法：</strong>强行"加火"——用咖啡、意志力强迫自己活跃——这会透支根本，短期有效但长期有害。<br><br><strong>关键区分：</strong>能量不足时，正确的策略是"补充源头"（水），而非"强行输出"（火）。这就像油灯——油不够时应该加油，而不是把灯芯调大。`
+    },
+    {type:"mc",dimension:"body",
+      text:`"太累了无法参与"时，身体最可能在发出什么信号？`,
+      options:[
+        {letter:"A",text:`头痛、太阳穴跳动`,correct:false},
+        {letter:"B",text:`身体沉重、眼皮发沉、四肢无力`,correct:true},
+        {letter:"C",text:`胃部紧缩、恶心`,correct:false},
+        {letter:"D",text:`心跳加速、手心出汗`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>身体沉重、眼皮发沉、四肢无力——这些都是"能量不足"的直接身体信号。你的身体在说"我需要休息"。<br><br><strong>干扰项辨析：</strong>心跳加速、手心出汗是焦虑/杀星激活的信号；头痛是思维过度/火不降的信号；胃部紧缩是恐惧/印星不安的信号。<br><br><strong>关键区分：</strong>身体沉重 = 能量需要补充。此时最需要的不是"加油"，而是"允许休息"。学会识别这个信号，就能在透支之前及时补充。`
+    }
+  ]
+},
+// ========== 场景13：纯粹分享不求回应 ==========
+{
+  title:`纯粹分享不求回应`,
+  description:`你做了一顿美味的晚餐，拍了一张照片发给好朋友。你没有期待对方回复，只是单纯地想分享这个美好的瞬间。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"纯粹分享不求回应"的行为，体现了食伤的哪种状态？`,
+      options:[
+        {letter:"A",text:`食伤的健康流动——自然表达，不执着于结果`,correct:true},
+        {letter:"B",text:`食伤被压制——不敢期待回应`,correct:false},
+        {letter:"C",text:`印星过强——不在乎他人反馈`,correct:false},
+        {letter:"D",text:`财星驱动——想通过分享获取价值`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>食伤最健康的状态是"自然流淌"——表达本身就是目的，不需要外在的回报。你分享是因为"我想分享"，而非"我想得到回应"。这是食伤的自由流动。<br><br><strong>干扰项辨析：</strong>食伤被压制是"不敢分享"——而非"分享了但不期待"；财星驱动是"为了获取"——有明确的目的性；印星过强是"完全不在乎"——你是在乎的，只是不执着。<br><br><strong>关键区分：</strong>健康的食伤 = 享受表达本身；不健康的食伤 = 依赖回应来确认表达的价值。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`"纯粹分享"的行为同时涉及水象维度（我感受到美好）和火象维度（我拍照发送），但它的动机完全来自水象维度——内在的自发冲动。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>分享的动机来自水象的内在体验——"我感到美好，我想分享"。它不需要土象的系统规则（"应该分享"），也不需要风象的关系维护（"应该保持联系"）。<br><br><strong>四象限分析：</strong>水象（我感受到美好）→ 火象（拍照发送）。这是一个纯粹的"内在驱动→外在表达"的过程，没有被其他维度的因素干扰。<br><br><strong>关键区分：</strong>当分享纯粹来自水象维度时，它就是自由的——不依赖结果，不期待回报。这是能量健康的标志。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`如果你发了分享后开始焦虑"对方为什么不回复"，这说明什么？`,
+      options:[
+        {letter:"A",text:`食伤的输出开始依赖外部验证——从自由表达变成了讨好模式`,correct:true},
+        {letter:"B",text:`你的财官能量在运作——关注投入产出比`,correct:false},
+        {letter:"C",text:`你的比劫太强了——太在意自己的付出`,correct:false},
+        {letter:"D",text:`你的印星太强了——太需要内在确认`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>当你的分享从"我想分享"变成"你怎么不回复"时，食伤已经从自由表达变成了"依赖外部验证"的模式——你的表达需要别人的回应来确认价值。<br><br><strong>干扰项辨析：</strong>比劫太强是"我的付出你应该看到"——更偏向愤怒而非焦虑；印星太强不需要外部验证；财官确实关注投入产出，但这里的核心问题是食伤的依赖性。<br><br><strong>关键区分：</strong>自由表达 = 表达本身就是回报；依赖验证 = 需要外部回应才有价值感。后者是食伤不健康的信号。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`"纯粹分享不求回应"最可能是哪个认知功能的自然表达？`,
+      options:[
+        {letter:"A",text:`Fi（内倾情感）+ Se（外倾感觉）——内在的美好感受通过当下的行动自然表达`,correct:true},
+        {letter:"B",text:`Te（外倾思维）——为了达成某个目标而分享`,correct:false},
+        {letter:"C",text:`Fe（外倾情感）——为了维护关系而分享`,correct:false},
+        {letter:"D",text:`Ni（内倾直觉）——有深层的意图`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Fi提供了内在的感受——"我觉得这很美好"；Se提供了当下的行动——"拍一张照片"。两者的结合是"内在感受的自然外化"——没有目的、没有计划、没有期待，只是当下的自然流动。<br><br><strong>干扰项辨析：</strong>Fe是"为了关系"——有目的性；Te是"为了目标"——更有效率导向；Ni是"有深层意图"——但题目说的是"纯粹分享"。<br><br><strong>关键区分：</strong>Fi+Se = 当下的真实表达。这是最"自由"的认知功能组合——不被过去束缚，不被未来牵引，只是此刻的真实。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，"纯粹分享"是火的自然绽放——不需要理由，不需要回报，只是自然地在发光。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>火的本质是绽放——太阳发光不需要理由，花开放不需要回报。"纯粹分享"正是火的自然状态——你的内在美好满到溢出来，自然地在分享。<br><br><strong>五行理解：</strong>火的健康绽放 = 不执着的分享；火的执着绽放 = "我分享了你怎么不回应"。区别在于：前者是自然流淌，后者是执着输出。<br><br><strong>关键区分：</strong>火的最高境界是"光照万物而不求回报"——这是食伤最健康的状态。`
+    },
+    {type:"mc",dimension:"body",
+      text:`"纯粹分享"时，身体最可能的感受是什么？`,
+      options:[
+        {letter:"A",text:`腹部发热、充满力量`,correct:false},
+        {letter:"B",text:`胸口温暖、嘴角自然上扬、身体轻盈`,correct:true},
+        {letter:"C",text:`胸口紧缩、手指犹豫`,correct:false},
+        {letter:"D",text:`头部兴奋、心跳加速`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>胸口温暖（心轮打开）、嘴角自然上扬（食伤的自然表达）、身体轻盈（没有执着和负担）——这些都是"纯粹分享"时身体的自然状态。<br><br><strong>干扰项辨析：</strong>胸口紧缩是"不敢分享"——比劫/食伤被压制；腹部发热是"有力量"——更偏向比劫；头部兴奋是"过度期待"——食伤过度。<br><br><strong>关键区分：</strong>胸口温暖 + 身体轻盈 = 食伤健康流动。当你感到这个状态时，就知道你的表达是自由的、不执着的。`
+    }
+  ]
+},
+// ========== 场景14：被放鸽子后的自我调节 ==========
+{
+  title:`被放鸽子后的自我调节`,
+  description:`你和一个朋友约好了见面，但对方临时取消了。你精心准备了半天，现在计划全部落空。你感到失望和有些愤怒。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`失望和愤怒的情绪，分别从十神角度看对应什么？`,
+      options:[
+        {letter:"A",text:`失望是印星不足（缺少安全感），愤怒是杀星激活（感到威胁）`,correct:false},
+        {letter:"B",text:`两者都是比劫的反应——自我受到了伤害`,correct:false},
+        {letter:"C",text:`失望是食伤受挫（期待落空），愤怒是比劫被侵犯（时间被浪费）`,correct:true},
+        {letter:"D",text:`失望是财星受损（损失了投入），愤怒是官星被挑战（规则被破坏）`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>失望是食伤受挫——你已经"输出"了期待和准备，现在这些输出没有了着落。愤怒是比劫被侵犯——你的时间和能量被浪费了，你的边界被无视了。<br><br><strong>干扰项辨析：</strong>印星不足是"不安"而非"失望"；杀星激活是"恐惧"而非"愤怒"；财星受损是"损失感"——更偏向可惜而非失望；官星被挑战是"不公平感"——更偏向正义感而非愤怒。<br><br><strong>关键区分：</strong>失望 = 食伤（期待落空）；愤怒 = 比劫（边界被侵犯）。两种情绪需要不同的调节方式。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`在这个场景中，你的情绪反应（水象）和你的应对方式（火象）之间有一个"选择空间"——你可以选择如何回应。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>情绪（水象）是自动的——你无法控制它出现。但应对方式（火象）是有选择空间的——你可以选择发泄、压抑、或者觉察和调节。<br><br><strong>选择空间：</strong>刺激 → 情绪（自动）→ [选择空间] → 回应（可选择）。觉察训练的目标就是扩大这个"选择空间"——让你在情绪和回应之间有更多的自由。<br><br><strong>关键区分：</strong>没有觉察时，情绪直接驱动行为——生气就发火。有觉察时，你能在情绪和回应之间暂停——"我生气了，但我选择不发火"。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`以下哪种自我调节方式最健康？`,
+      options:[
+        {letter:"A",text:`先觉察和接纳自己的情绪，然后选择如何度过这个时间`,correct:true},
+        {letter:"B",text:`用购物或暴食来补偿自己的损失`,correct:false},
+        {letter:"C",text:`立刻告诉对方你很生气，让对方知道错误`,correct:false},
+        {letter:"D",text:`压抑失望，假装无所谓`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>最健康的调节是"先觉察、再选择"——先允许自己感受失望和愤怒（不压抑），然后有意识地选择如何度过这个意外的空闲时间。<br><br><strong>干扰项辨析：</strong>立刻发泄可能伤害关系；压抑情绪会导致内在积累；购物暴食是用外部刺激来掩盖内在感受——短期有效但长期有害。<br><br><strong>关键区分：</strong>健康调节 = 觉察 + 选择。不健康调节 = 自动化反应（发泄、压抑、转移）。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`如果你决定"既然计划取消了，那我就享受独处时光"，这个转变运用了哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Si（内倾感觉）——回到熟悉的舒适区`,correct:false},
+        {letter:"B",text:`Te（外倾思维）——重新规划时间`,correct:false},
+        {letter:"C",text:`Ne（外倾直觉）——看到新的可能性，灵活转换`,correct:true},
+        {letter:"D",text:`Fi（内倾情感）——坚持自己的价值`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Ne的核心能力是"看到可能性"——计划取消了，但Ne能看到"这也可能是另一种美好的体验"。这种灵活的转换正是Ne的健康运作。<br><br><strong>干扰项辨析：</strong>Si是"回到熟悉"——可能会做"一直想做的事"；Te是"重新规划"——会列出新的时间表；Fi是"坚持价值"——可能会坚持"被尊重很重要"。<br><br><strong>关键区分：</strong>Ne = 灵活、开放、看到新可能。Ne健康的人能在变化中找到乐趣，而非被变化击垮。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，"被放鸽子"是哪种五行能量的突然阻断？`,
+      options:[
+        {letter:"A",text:`火的绽放被阻断——无法表达热情`,correct:false},
+        {letter:"B",text:`木的生发被阻断——准备好的计划无法展开`,correct:true},
+        {letter:"C",text:`金的收敛被阻断——无法收场`,correct:false},
+        {letter:"D",text:`水的潜藏被阻断——无法安静下来`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>木主生发、计划、开始。你已经"准备好了"——这就是木的生发能量已经启动了。计划突然取消，就像一棵树刚要发芽就被折断了——木的生发被突然阻断。<br><br><strong>五行理解：</strong>木被阻断后的情绪是"愤怒"——因为生发的力量需要出口。如果无法转化，木郁化火——愤怒升级。<br><br><strong>关键区分：</strong>木被阻断 → 愤怒。解决方法：帮助木重新找到生发的方向——"那我把这个能量用在别的地方"。`
+    },
+    {type:"mc",dimension:"body",
+      text:`被放鸽子后，如果感到胸口有一阵"堵"的感觉，这对应什么？`,
+      options:[
+        {letter:"A",text:`财星紧缩——感觉损失了投入`,correct:false},
+        {letter:"B",text:`印星不安——安全感被动摇`,correct:false},
+        {letter:"C",text:`食伤受挫——准备好的表达和期待没有了出口`,correct:true},
+        {letter:"D",text:`比劫受损——自我价值被否定`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>胸口的"堵"是食伤受挫的身体信号——你已经准备好了"输出"（打扮、出门、社交），现在这些输出全部被堵回来了。堵在胸口的就是那些"没有去处的能量"。<br><br><strong>干扰项辨析：</strong>比劫受损是"发虚"而非"堵"；印星不安是"空"而非"堵"；财星紧缩是"紧"而非"堵"。<br><br><strong>关键区分：</strong>胸口堵 = 食伤的能量没有出口。解决方法：给食伤一个新的出口——写日记、打电话给其他人、做运动、或者做任何创造性的活动。`
+    }
+  ]
+},
+// ========== 场景15：选择困难症 ==========
+{
+  title:`选择困难症`,
+  description:`你站在人生的十字路口——换工作、搬家、或者开始一段新关系。每个选择都有利弊，你反复权衡，却始终无法做出决定。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`选择困难的根本原因，从十神角度看是什么？`,
+      options:[
+        {letter:"A",text:`比劫不够清晰——不确定"我真正想要什么"`,correct:true},
+        {letter:"B",text:`印星太强——过度依赖过去的经验`,correct:false},
+        {letter:"C",text:`财星不足——看不到选择的價值`,correct:false},
+        {letter:"D",text:`食伤不足——无法表达出自己的偏好`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>选择困难的根本原因是比劫不够清晰——你不知道"我真正想要什么"。如果你清楚地知道自己要什么，选择就很简单——选那个更接近目标的。比劫模糊时，每个选择看起来都"差不多"，因为你没有一个清晰的内在参照。<br><br><strong>干扰项辨析：</strong>食伤不足是"说不出来"——但你可能连自己"想"什么都不知道；印星太强是"过度参照"——但选择困难更多是"没有参照"而非"太多参照"；财星不足是"看不到价值"——但你能看到每个选择的价值。<br><br><strong>关键区分：</strong>选择困难 = 比劫模糊（不知道自己要什么）。解决方法：先回到内在——"抛开所有利弊分析，我真正想要的是什么？"`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`选择困难中，土象维度（外部系统/社会规则）的影响往往加大了决策的难度——社会对"正确选择"的压力让你更焦虑。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>土象维度代表外部系统的规则和标准——"什么样的选择是成功的""别人会怎么看我的选择"。这些外部标准叠加在你的个人决策上，增加了额外的压力和焦虑。<br><br><strong>四象限分析：</strong>水象（我不确定自己要什么）+ 土象（社会要求我必须选对）= 双重压力。如果只有水象的不确定，你可能还能慢慢探索；但加上土象的"必须选对"的压力，就变成了焦虑和瘫痪。<br><br><strong>关键区分：</strong>区分"我的标准"和"社会的标准"——问自己：如果没有任何人评价我，我会选哪个？`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`面对选择困难，最有帮助的内在态度是什么？`,
+      options:[
+        {letter:"A",text:`让别人帮你做决定，减少自己的责任`,correct:false},
+        {letter:"B",text:`允许自己不确定，相信无论选什么都能应对`,correct:true},
+        {letter:"C",text:`选择最安全的那个选项`,correct:false},
+        {letter:"D",text:`继续收集更多信息，直到能确定最优解`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>选择困难往往源于"必须选对"的执念。最有帮助的态度是"允许不确定"——承认没有完美的选择，相信无论选什么你都有能力应对。这是比劫（自我力量）和印星（内在安全感）的组合。<br><br><strong>干扰项辨析：</strong>继续收集信息是拖延的另一种形式——信息永远不会"够"；让别人决定是放弃比劫——让渡自我决策权；选最安全的是杀星压制——用恐惧而非勇气来做决定。<br><br><strong>关键区分：</strong>没有"正确的选择"——只有"你选择的路"。比劫健康的人能做出选择并为之负责，因为他们相信"我能应对任何结果"。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`选择困难中，Ne（外倾直觉）过度活跃会怎样影响决策？`,
+      options:[
+        {letter:"A",text:`快速做出直觉判断`,correct:false},
+        {letter:"B",text:`依赖过去的经验来做决定`,correct:false},
+        {letter:"C",text:`完全看不到可能性，陷入绝望`,correct:false},
+        {letter:"D",text:`看到每个选项的无数可能性，反而无法聚焦和取舍`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>Ne过度活跃时，你能看到每个选项的无数可能性——"选A的话可以这样...也可以那样...但还有这种可能..."。可能性太多反而让你无法取舍——因为每个选择都意味着放弃其他可能性。<br><br><strong>干扰项辨析：</strong>完全看不到可能性是Ne不足（而非过度）；快速直觉判断是Ni（内倾直觉）——收敛到一个方向；依赖过去经验是Si——参照已知。<br><br><strong>关键区分：</strong>Ne过度 = 可能性爆炸 → 选择瘫痪。解决方法：用Ni或Te来"收敛"——"在所有可能中，我最想走哪个方向？"或者"从实际操作角度，哪个最可行？"`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，选择困难是哪种五行失衡的表现？`,
+      options:[
+        {letter:"A",text:`木不足——缺少生发的方向感`,correct:false},
+        {letter:"B",text:`土失平衡——承载和中和的功能失调，无法在选项间找到重心`,correct:true},
+        {letter:"C",text:`水不足——缺少深层的直觉引导`,correct:false},
+        {letter:"D",text:`火过旺——太急躁想要结果`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>土主承载、中和、稳定。土的功能是在各种力量之间找到平衡和重心。选择困难时，你在各个选项之间"飘来飘去"，找不到重心——这正是土失衡的表现。<br><br><strong>干扰项辨析：</strong>木不足是"没有方向"——但选择困难是有方向但无法取舍；火过旺是"急躁"——选择困难的人往往不是急躁而是停滞；水不足是"缺少直觉"——可能是一个因素，但核心问题是土的失衡。<br><br><strong>关键区分：</strong>土 = 重心。土健康的人能在不确定中保持稳定——"我虽然不确定哪个最好，但我稳得住"。`
+    },
+    {type:"tf",dimension:"body",
+      text:`选择困难时，身体最常见的信号是"飘"的感觉——好像没有根基，脚踩不到实地。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>"飘"是土失衡的身体信号——你缺少"根基"和"落地"的感觉。脚踩不到实地 = 内在没有重心。<br><br><strong>身体觉察练习：</strong>当你感到"飘"时，试试双脚踩实地面，感受脚底和地面的接触。这个简单的动作能帮助土的能量回归——让你从"飘"变为"落地"。<br><br><strong>关键区分：</strong>"飘" = 土失衡/比劫模糊。"落地" = 土健康/比劫清晰。身体的"落地"能帮助内在的"落地"——身心是相互影响的。`
+    }
+  ]
+},
+// ========== 场景16：做出决定后的坦然 ==========
+{
+  title:`做出决定后的坦然`,
+  description:`经过反复思考，你终于做出了一个重要的决定。决定的那一刻，你感到一种深深的坦然——不是因为确定这是"最好的选择"，而是因为"我做了选择，我承担"。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`这种"我做了选择我承担"的坦然，主要对应什么能量的健康运作？`,
+      options:[
+        {letter:"A",text:`印星——内在安全感的支撑`,correct:false},
+        {letter:"B",text:`比劫——自我决策力和承担力`,correct:true},
+        {letter:"C",text:`财星——对结果的把控`,correct:false},
+        {letter:"D",text:`食伤——表达和输出的畅快`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>比劫的核心功能是"自我决策"——我能做选择，也能为选择负责。这种坦然不是来自"选对了"，而是来自"我选了"——比劫的力量在于决策本身，而非结果。<br><br><strong>干扰项辨析：</strong>食伤的畅快是"表达出来了"——不是"做了决定"；印星的支撑是"安全感"——但坦然不是安全，而是勇气；财星的把控是"确定结果"——但坦然恰恰不需要确定。<br><br><strong>关键区分：</strong>比劫的坦然 = "我选了，我承担"；财官的安心 = "我选对了，我放心"。前者是内在力量，后者是外部确认。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`做出决定后的坦然，是水象维度（内在体验）和火象维度（行为决定）高度一致的状态——你内心确定了，行动也就确定了。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>坦然是"内外一致"的状态——内在确定了（水象），外在行动也就明确了（火象）。没有犹豫、没有反复、没有"我再想想"——因为你已经在内在完成了决策。<br><br><strong>对比：</strong>选择困难时，水象（不确定）→ 火象（无法行动）。做出决定后，水象（确定了）→ 火象（行动明确）。<br><br><strong>关键区分：</strong>坦然 = 内外一致 = 能量流畅。犹豫 = 内外不一致 = 能量卡住。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`"坦然"和"兴奋"有什么区别？`,
+      options:[
+        {letter:"A",text:`两者完全相同，只是程度不同`,correct:false},
+        {letter:"B",text:`坦然是比劫/官星的落地感，兴奋是食伤/火的升腾感`,correct:true},
+        {letter:"C",text:`坦然是压抑了兴奋的结果`,correct:false},
+        {letter:"D",text:`坦然是印星的冷漠，兴奋是食伤的健康`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>坦然是"落地"的感觉——比劫/官星的健康运作，你感到稳定、确定、有根基。兴奋是"升腾"的感觉——食伤/火的绽放，你感到激动、期待、有活力。两者都是健康的，但方向不同。<br><br><strong>干扰项辨析：</strong>两者明显不同——坦然是安静的力量，兴奋是活跃的能量；坦然不是压抑——它是真实的落地感；坦然更不是冷漠——它有温度，只是不"沸腾"。<br><br><strong>关键区分：</strong>坦然 = 比劫/官星（落地）；兴奋 = 食伤/火（升腾）。两者都是好的——但适用于不同的场景。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`做出决定后的坦然，最可能是哪个认知功能在运作？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）——考虑了他人的意见`,correct:false},
+        {letter:"B",text:`Ne（外倾直觉）——看到多种可能性`,correct:false},
+        {letter:"C",text:`Si（内倾感觉）——参照了过去的经验`,correct:false},
+        {letter:"D",text:`Ni（内倾直觉）——深层的确定感，"我知道这就是我的方向"`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>Ni（内倾直觉）的特点是"深层确定"——你不一定能解释为什么，但你"就是知道"。这种确定感不是来自逻辑分析，而是来自深层的直觉——"这就是我的方向"。<br><br><strong>干扰项辨析：</strong>Ne是"看到可能性"——不会感到确定，而是感到开放；Fe是"考虑他人"——决策不是基于内在确定；Si是"参照过去"——但重大决策往往没有过去的参照。<br><br><strong>关键区分：</strong>Ni对应印/杀——深层洞察。Ni的确定感是"从内部升起的知道"——不需要外部验证。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，做出决定后的坦然是"金"的功能——收敛、确定、落地。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>金主收敛、确定、落地。做出决定的过程就是从"发散"（木/火）到"收敛"（金）的过程——你从无数可能性中"收敛"到一个选择。<br><br><strong>五行流转：</strong>木（探索方向）→ 火（充分思考）→ 土（承载权衡）→ 金（做出决定）→ 水（休息恢复）。做出决定是"金"的功能——收敛到一个确定的选择。<br><br><strong>关键区分：</strong>金的收敛不是"限制"——它是"聚焦"。没有金的收敛，你永远在探索而无法确定。`
+    },
+    {type:"mc",dimension:"body",
+      text:`做出决定后的坦然，在身体上最典型的表现是什么？`,
+      options:[
+        {letter:"A",text:`胸口扩张、双手握拳、充满力量`,correct:false},
+        {letter:"B",text:`全身放松、想要躺下`,correct:false},
+        {letter:"C",text:`头脑清醒、身体紧绷`,correct:false},
+        {letter:"D",text:`双脚稳稳踩在地面，脊柱自然挺直，呼吸平稳`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>双脚稳踩地面（落地/根基）、脊柱自然挺直（中正/不偏）、呼吸平稳（平衡/不亢不卑）——这些都是"坦然"的身体表达。你的身体在说"我稳住了"。<br><br><strong>干扰项辨析：</strong>胸口扩张、双手握拳是"兴奋/战斗"状态——不是坦然；全身放松想躺下是"休息"状态——不是决策后的坦然；头脑清醒但身体紧绷是"紧张"——不是坦然。<br><br><strong>关键区分：</strong>稳 + 正 + 平 = 坦然。这是身体在告诉你"你的决定是对的——不是因为它完美，而是因为你准备好了"。`
+    }
+  ]
+},
+// ========== 场景17：保护能量边界 ==========
+{
+  title:`保护能量边界`,
+  description:`你意识到最近总是被各种事情消耗——过多的社交、不必要的会议、别人的情绪倾倒。你决定主动保护自己的能量边界。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`"保护能量边界"这个行为，主要调动了哪类能量？`,
+      options:[
+        {letter:"A",text:`财官——管理外部资源和时间`,correct:false},
+        {letter:"B",text:`印星——回归内在滋养`,correct:false},
+        {letter:"C",text:`杀星——对抗外部压力`,correct:false},
+        {letter:"D",text:`比劫——确立和维护自我边界`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>保护边界是比劫的核心功能——区分"我的"和"不是我的"，保护"我的"不被过度侵占。当你主动保护能量边界时，比劫在健康运作。<br><br><strong>干扰项辨析：</strong>财官是"管理"——更偏向时间和资源的安排，而非能量边界；印星是"滋养"——保护边界后印星才能恢复，但保护本身是比劫的功能；杀星是"对抗"——保护边界不一定是"对抗"，也可以是温和地拒绝。<br><br><strong>关键区分：</strong>比劫 = 边界。保护边界不是自私——它是能量管理的基本能力。没有健康的边界，所有其他能量都会被过度消耗。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`保护能量边界需要同时在四个维度中运作：觉察内在状态（水象）、调整外在行为（火象）、沟通关系需求（风象）、建立系统规则（土象）。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>保护边界是一个"全维度"的任务：觉察自己的能量状态（水象）、说不或减少参与（火象）、和他人沟通你的需求（风象）、建立时间管理和社交规则（土象）。<br><br><strong>四象限运作：</strong>只关注一个维度是不够的。比如：只在风象沟通但不调整火象行为——"我说不了但还是在做"；只在火象调整但不沟通——别人不知道你的需求，会持续侵犯。<br><br><strong>关键区分：</strong>全面的边界管理需要四个维度同时运作——觉察、行动、沟通、规则。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`保护能量边界时，最常见的困难是什么？`,
+      options:[
+        {letter:"A",text:`内疚感——觉得"不应该"拒绝别人`,correct:true},
+        {letter:"B",text:`无力感——不知道怎么拒绝`,correct:false},
+        {letter:"C",text:`恐惧感——害怕失去关系`,correct:false},
+        {letter:"D",text:`愤怒感——觉得别人不应该侵犯你`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>内疚感是保护边界时最常见的困难——"我是不是太自私了""他需要我，我怎么忍心拒绝"。这种内疚感是比劫被压制的信号——你的"自我需求"被"应该为别人付出"的道德框架覆盖了。<br><br><strong>干扰项辨析：</strong>愤怒感是"别人侵犯了我"——这是比劫被侵犯后的反应，不是保护边界的困难；恐惧感是"害怕失去"——这是印星不足的表现；无力感是"不知道怎么拒绝"——这是技能问题而非能量问题。<br><br><strong>关键区分：</strong>内疚感 = 比劫被压制。解决方法：重新定义"自私"——保护边界不是自私，而是对自己和他人负责。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在保护边界时，如果你能清晰地说出"我现在需要独处来恢复能量"，这主要运用了哪个认知功能？`,
+      options:[
+        {letter:"A",text:`Te（外倾思维）——用逻辑解释为什么需要独处`,correct:false},
+        {letter:"B",text:`Fe（外倾情感）——考虑对方的感受后委婉表达`,correct:false},
+        {letter:"C",text:`Fi（内倾情感）——忠于自己的内在需求并真实表达`,correct:true},
+        {letter:"D",text:`Si（内倾感觉）——基于过去的经验做出判断`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Fi让你能"忠于自己的内在需求"——你知道自己需要什么（独处/恢复），并且能真实地表达出来。"我现在需要独处"是Fi的典型表达——不解释、不道歉、只是陈述事实。<br><br><strong>干扰项辨析：</strong>Fe会"委婉表达"——可能会编一个理由来避免伤害对方；Te会"解释原因"——"因为独处能提高效率"；Si会"参照过去"——"上次我独处后状态好了很多"。<br><br><strong>关键区分：</strong>Fi的表达是简洁、直接、不需要论证的。当你发现自己在反复解释时，说明Fi被Fe压制了——你在照顾对方的感受而非忠于自己的需求。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，保护能量边界是"金"的功能——收敛、划定范围。但如果金的能量过度，会导致什么问题？`,
+      options:[
+        {letter:"A",text:`过度封闭——隔绝了所有外部连接，变得孤立`,correct:true},
+        {letter:"B",text:`过度绽放——边界太松散`,correct:false},
+        {letter:"C",text:`过度生发——不断开始新事物`,correct:false},
+        {letter:"D",text:`过度潜藏——完全退出社会`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>金主收敛。健康的金是"有选择地开放"——该开时开，该收时收。金过度就变成了"过度封闭"——你把所有通道都关了，不仅隔绝了消耗，也隔绝了滋养。<br><br><strong>五行理解：</strong>边界应该是"半透膜"而非"墙"——允许好的东西进来，阻止不好的东西进来。过度封闭 = 边界从"半透膜"变成了"墙"。<br><br><strong>关键区分：</strong>健康的边界 = 金的健康收敛（有选择地开放）；不健康的边界 = 金的过度收敛（完全封闭）。`
+    },
+    {type:"mc",dimension:"body",
+      text:`当你的能量边界被侵犯时，身体最先发出的信号通常是什么？`,
+      options:[
+        {letter:"A",text:`胸口紧缩或腹部不适——比劫和印星在报警`,correct:true},
+        {letter:"B",text:`头痛——思维过度运转`,correct:false},
+        {letter:"C",text:`双腿发软——缺乏行动力`,correct:false},
+        {letter:"D",text:`手指发麻——神经紧张`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>胸口紧缩是比劫受压的信号——"我的边界被侵犯了"。腹部不适是印星不安的信号——"我的内在安全感被威胁了"。这两个区域是能量边界的"身体哨兵"。<br><br><strong>身体觉察练习：</strong>当你感到胸口紧缩或腹部不适时，暂停一下，问自己："此刻谁在侵犯我的边界？"——这个简单的觉察能帮你及时保护能量。<br><br><strong>关键区分：</strong>胸口和腹部是能量边界的"身体指标"。学会识别这些信号，就能在能量被过度消耗之前及时行动。`
+    }
+  ]
+},
+// ========== 场景18：被美治愈的瞬间 ==========
+{
+  title:`被美治愈的瞬间`,
+  description:`你在路上看到一片美丽的夕阳、听到一首动人的音乐、或者看到孩子的一个天真笑容。那一刻，你被深深打动了，感到一种难以言喻的温暖和感动。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`被美打动的瞬间，主要是什么能量在被激活？`,
+      options:[
+        {letter:"A",text:`比劫——自我意识被强化`,correct:false},
+        {letter:"B",text:`官星——想要分析和定义这个美`,correct:false},
+        {letter:"C",text:`食伤——内在的感知力和共鸣力被唤醒`,correct:true},
+        {letter:"D",text:`财星——想要占有这个美好`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>食伤不仅代表"输出"，也代表"感知"和"共鸣"。被美打动的瞬间，你的食伤被打开了——你的感知力变得敏锐，你的内在和外在的美产生了共鸣。<br><br><strong>干扰项辨析：</strong>比劫是"自我"——但被美打动时你往往"忘了自我"；财星是"占有"——但真正的审美体验不是占有，而是共鸣；官星是"分析"——但美在被分析之前就打动你了。<br><br><strong>关键区分：</strong>食伤的感知 = 共鸣（我和美融为一体）；财星的占有 = 分离（我想拥有那个美）。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`被美治愈的瞬间，你的水象维度（内在体验）被深度激活——一种超越语言的感受在内在升起。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>被美打动是一种深层的内在体验——它超越了语言和思维，属于水象维度（主观体验）的范畴。你"感受到"了，但很难用语言完全表达。<br><br><strong>四象限视角：</strong>水象（我被深深打动）→ 火象（我停下了脚步/眼眶湿润）→ 风象（可能想和人分享）→ 土象（可能想拍照记录）。但最核心的是水象的体验——那种超越语言的感受。<br><br><strong>关键区分：</strong>美的体验主要在水象维度——它是主观的、内在的、超越语言的。试图用土象维度的方式（分析、定义）来理解美，反而会破坏美的体验。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`为什么"被美治愈"对能量健康很重要？`,
+      options:[
+        {letter:"A",text:`美能打开食伤的感知通道，让能量重新流动`,correct:true},
+        {letter:"B",text:`美能提高财官的效率`,correct:false},
+        {letter:"C",text:`美能增强比劫的自我意识`,correct:false},
+        {letter:"D",text:`美能消除杀星的压力`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>当你被美打动时，你的感知通道被打开了——食伤在流动，你和世界之间没有了"隔阂"。这种"打开"本身就是治愈——它让卡住的能量重新流动起来。<br><br><strong>干扰项辨析：</strong>美不是增强"自我"——恰恰相反，美的体验让你"忘我"；美和效率无关——它是"无用之用"；美不能直接消除压力，但它能让你暂时从压力中解脱。<br><br><strong>关键区分：</strong>美的治愈力在于"打开"——打开你的感知、打开你的心灵、打开你和世界之间的连接。当你被美打动时，你就从"封闭"回到了"开放"。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`被美打动时那种"无法言喻"的感受，最可能是哪个认知功能在运作？`,
+      options:[
+        {letter:"A",text:`Fi（内倾情感）——深层的内在价值共鸣，超越了语言的表达能力`,correct:true},
+        {letter:"B",text:`Fe（外倾情感）——与他人分享的情感连接`,correct:false},
+        {letter:"C",text:`Te（外倾思维）——在分析美的构成`,correct:false},
+        {letter:"D",text:`Ne（外倾直觉）——联想到了很多可能性`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>Fi（内倾情感）能产生"超越语言"的深层感受——它触及的是你最内在的价值核心。当Fi被美触发时，你会感到一种"无法言喻"的感动——因为这种感受太深了，语言无法完全承载。<br><br><strong>干扰项辨析：</strong>Fe是"与他人分享"——但美的瞬间往往是独自体验的；Ne是"联想"——但美的体验不是思维活动；Te是"分析"——但分析会破坏美的体验。<br><br><strong>关键区分：</strong>Fi = 深层的内在共鸣。Fi健康的人能被美深深打动——因为他们有"感受力"。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，被美治愈的瞬间是"火"和"水"的交汇——火让你感受到温暖和光明，水让你触碰到深层的感动。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>火的温暖 = 你感到被照亮、被温暖——心轮打开。水的深层 = 你触碰到了超越表面的深层感动——眼泪可能不自觉地流出来。<br><br><strong>五行理解：</strong>美是火和水的交汇——火让你"感受到"（温暖、光明），水让你"触碰到深处"（感动、眼泪）。这种交汇是五行流转中最美的时刻。<br><br><strong>关键区分：</strong>能被美打动说明你的五行在流动——火能绽放（感受温暖），水能深层（触碰感动）。如果你已经很久没有被美打动了，可能说明某些能量卡住了。`
+    },
+    {type:"mc",dimension:"body",
+      text:`被美打动时，身体最典型的反应是什么？`,
+      options:[
+        {letter:"A",text:`全身紧绷、准备行动`,correct:false},
+        {letter:"B",text:`头脑发热、思维加速`,correct:false},
+        {letter:"C",text:`腹部紧缩、想要退缩`,correct:false},
+        {letter:"D",text:`胸口扩张、眼眶湿润、呼吸暂停一瞬`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>胸口扩张（心轮打开）、眼眶湿润（深层感动）、呼吸暂停一瞬（被美"击中"）——这些都是被美打动时身体的自然反应。<br><br><strong>干扰项辨析：</strong>全身紧绷是"战斗"模式——和美的体验完全相反；腹部紧缩是"恐惧"——不是感动；头脑发热是"思维过度"——美的体验超越了思维。<br><br><strong>关键区分：</strong>胸口扩张 + 眼眶湿润 = 食伤/Fi被美打开。这是身体在告诉你"你的感知通道是开放的"——好好珍惜这个瞬间。`
+    }
+  ]
+},
+// ========== 场景19：高压下的超常发挥 ==========
+{
+  title:`高压下的超常发挥`,
+  description:`在一个关键的时刻——演讲、考试、比赛或者紧急处理危机——你感到压力巨大，但反而超常发挥了。平时做不到的事情，在那个瞬间做到了。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`高压下的超常发挥，主要调动了哪类能量的转化？`,
+      options:[
+        {letter:"A",text:`杀星——将压力转化为动力和洞察力`,correct:true},
+        {letter:"B",text:`印星——在压力下保持安全感`,correct:false},
+        {letter:"C",text:`食伤——在压力下依然流畅表达`,correct:false},
+        {letter:"D",text:`比劫——在压力下坚持自我`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>杀星的核心功能是"压力转化"——将外部的压力转化为内在的动力和洞察力。高压下的超常发挥正是杀星健康运作的表现——压力没有压垮你，反而激发了你。<br><br><strong>干扰项辨析：</strong>食伤在高压下往往被压制（紧张说不出话）；印星在高压下会被挑战（安全感被动摇）；比劫在高压下会受到考验（自我感被威胁）。只有杀星能将压力转化为力量。<br><br><strong>关键区分：</strong>杀星 = 压力转化。杀星健康的人"越压越强"——压力是他们的燃料。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`高压下的超常发挥，可以理解为四个维度同时被高度激活——内在专注（水象）、行为高效（火象）、团队协同（风象）、系统应对（土象）。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>超常发挥时，你的整个系统都在高效运转：内在高度专注（水象）、行为精准高效（火象）、与团队/环境高度协同（风象）、对系统规则快速应对（土象）。<br><br><strong>四象限协同：** 平时的"普通发挥"可能只有部分维度在运作。高压下的超常发挥是四个维度同时被激活——你的全部能力被调动了。<br><br><strong>关键区分：</strong>超常发挥 = 全系统激活。这种状态不可持续——它是"紧急模式"而非常态。事后需要充分的恢复。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`高压超常发挥后，你最可能经历什么？`,
+      options:[
+        {letter:"A",text:`持续亢奋——一直保持高水平`,correct:false},
+        {letter:"B",text:`极度疲惫——需要长时间的恢复`,correct:true},
+        {letter:"C",text:`更加强大——完全不需要恢复`,correct:false},
+        {letter:"D",text:`平静如常——没有任何特殊感觉`,correct:false}
+      ],
+      explanation:`<strong>正确答案：B</strong><br><br>超常发挥是"紧急模式"——它调动了你平时不常用的能量储备。事后必然需要恢复——就像短跑后需要休息一样。<br><br><strong>干扰项辨析：</strong>持续亢奋是不健康的——可能是杀星过度激活的"假性亢奋"；平静如常说明你没有真正"超常"发挥；完全不需要恢复是不可能的——能量守恒定律。<br><br><strong>关键区分：** 超常发挥 = 透支储备。事后必须恢复——否则长期会导致能量枯竭。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`高压下你的感知变得异常敏锐，能捕捉到平时忽略的细节，这主要对应哪个认知功能的高度激活？`,
+      options:[
+        {letter:"A",text:`Fe（外倾情感）——对他人情绪的敏锐感知`,correct:false},
+        {letter:"B",text:`Ni（内倾直觉）——对未来的深层预感`,correct:false},
+        {letter:"C",text:`Se（外倾感觉）——对当下环境的高度感知`,correct:true},
+        {letter:"D",text:`Ti（内倾思维）——快速的内部逻辑分析`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>Se（外倾感觉）在高压下被高度激活——你的感官变得异常敏锐，能捕捉到环境中的每一个细节。这就是为什么运动员在关键时刻能"看到"球的旋转、音乐家在演出时能"听到"每一个微小的音色变化。<br><br><strong>干扰项辨析：** Ni是"深层预感"——不是"细节感知"；Ti是"逻辑分析"——高压下来不及深度分析；Fe是"他人情绪"——高压下你更多关注任务而非他人。<br><br><strong>关键区分：** Se = 当下的感官敏锐度。Se高度激活时，你"活在当下"到了极致——每一个感官输入都被充分接收。`
+    },
+    {type:"mc",dimension:"flow",
+      text:`从五行角度看，高压下的超常发挥是哪种五行能量的极致运作？`,
+      options:[
+        {letter:"A",text:`金——在压力下精准收敛`,correct:false},
+        {letter:"B",text:`木——在压力下快速生发`,correct:false},
+        {letter:"C",text:`水——在深层压力下潜藏蓄力`,correct:false},
+        {letter:"D",text:`火——在极致压力下充分绽放`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>火的极致绽放 = 高压下的超常发挥。就像烟花——在最深的黑暗中绽放出最亮的光。火在压力下不是被压灭，而是被激发到极致。<br><br><strong>五行理解：** 火的极致绽放需要之前的蓄力（水的潜藏、木的生发）——超常发挥不是凭空出现的，它建立在日常积累的基础上。<br><br><strong>关键区分：** 火的极致绽放是短暂的——它不可能持续。烟花之美在于它的短暂。超常发挥后必须回归常态——否则就是"过度燃烧"。`
+    },
+    {type:"mc",dimension:"body",
+      text:`高压下超常发挥时，身体的状态是什么？`,
+      options:[
+        {letter:"A",text:`极度紧张——全身僵硬、手抖`,correct:false},
+        {letter:"B",text:`完全无感——身体和意识分离`,correct:false},
+        {letter:"C",text:`高度警觉但不过度紧张——肾上腺素适度分泌，身体进入"最佳表现"状态`,correct:true},
+        {letter:"D",text:`完全放松——没有任何紧张感`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>超常发挥时，身体处于"最佳表现"状态——肾上腺素适度分泌（不是过量），身体警觉但不过度紧张。这就是心理学中的"最佳唤醒水平"——不太松也不太过，刚好在"最佳区间"。<br><br><strong>干扰项辨析：** 完全放松是"低唤醒"——表现不会太好；极度紧张是"过度唤醒"——表现会下降（手抖、大脑空白）；完全无感是"解离"——不健康状态。<br><br><strong>关键区分：** 最佳表现 = 适度紧张 + 高度专注。如果你能在日常中找到这个"最佳区间"，就不需要等到高压时刻才能超常发挥。`
+    }
+  ]
+},
+// ========== 场景20：回顾能量流畅的一天 ==========
+{
+  title:`回顾能量流畅的一天`,
+  description:`回顾今天——你按时起床，专注地完成了工作，和朋友有了愉快的交流，傍晚散了步，晚上安静地读了书。整体感觉能量很流畅，没有太大的波动。`,
+  questions:[
+    {type:"mc",dimension:"shishen",
+      text:`能量流畅的一天，说明什么？`,
+      options:[
+        {letter:"A",text:`食伤能量特别旺盛——一切都很顺利`,correct:false},
+        {letter:"B",text:`比劫能量最强——你掌控了一切`,correct:false},
+        {letter:"C",text:`印星能量最足——你被充分滋养`,correct:false},
+        {letter:"D",text:`五类能量都在适度运作，没有哪一类过度或不足`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>能量流畅 = 五类能量的平衡运作。不是某一类特别强，而是所有都在"适度"——比劫有边界、食伤有表达、财官有秩序、印星有滋养、杀星有转化。<br><br><strong>干扰项辨析：** 如果某一类特别旺盛，反而可能导致失衡——食伤太旺会过度输出；比劫太强会过于刚硬；印星太足会过于安逸。<br><br><strong>关键区分：** 流畅 ≠ 某一类最强。流畅 = 整体平衡。就像交响乐——不是某个乐器最响，而是所有乐器和谐配合。`
+    },
+    {type:"tf",dimension:"xingzuo",
+      text:`能量流畅的一天意味着四个维度之间有良好的流动——内在体验、外在行为、关系互动、系统运作都在协调运转。`,
+      correct:false,
+      explanation:`<strong>正确答案：错误</strong><br><br>能量流畅 = 四维度协调。你的内在体验（水象）和外在行为（火象）一致，你的关系互动（风象）和系统运作（土象）顺畅。没有哪个维度被忽视或过度运作。<br><br><strong>四象限回顾：** 水象（内在平静）→ 火象（行为专注）→ 风象（关系愉快）→ 土象（工作有序）。四个维度在和谐地流转。<br><br><strong>关键区分：** 能量流畅的一天不是"完美"的一天——它可能有挑战、有波动，但整体是协调的。协调 ≠ 完美。`
+    },
+    {type:"mc",dimension:"zonghe",
+      text:`维持能量流畅的关键是什么？`,
+      options:[
+        {letter:"A",text:`觉察——持续地感知自己的能量状态并及时调节`,correct:true},
+        {letter:"B",text:`努力——不断鞭策自己保持高效`,correct:false},
+        {letter:"C",text:`放松——完全不做任何努力`,correct:false},
+        {letter:"D",text:`控制——严格控制自己的行为和情绪`,correct:false}
+      ],
+      explanation:`<strong>正确答案：A</strong><br><br>觉察是维持能量流畅的关键——你能感知到自己的能量状态（哪个强了、哪个弱了），并及时调节。这不是控制——控制是强制的，觉察是灵活的。<br><br><strong>干扰项辨析：** 控制会导致僵硬——能量需要流动而非被控制；努力会导致消耗——持续鞭策自己不是流畅而是紧绷；放松是好的，但"完全不做努力"可能导致放纵。<br><br><strong>关键区分：** 觉察 = 灵活的自我调节。它介于"控制"和"放纵"之间——你既在关注，又不在强制。`
+    },
+    {type:"mc",dimension:"jung",
+      text:`在能量流畅的一天中，你的认知功能最可能的状态是什么？`,
+      options:[
+        {letter:"A",text:`所有功能同时高度激活——八维全开`,correct:false},
+        {letter:"B",text:`某一个功能持续主导——整天都在用同一个功能`,correct:false},
+        {letter:"C",text:`认知功能处于低活跃状态——不怎么思考`,correct:false},
+        {letter:"D",text:`各功能灵活切换——需要专注时用Te/Ti，需要感知时用Se/Si，需要判断时用Fi/Fe`,correct:true}
+      ],
+      explanation:`<strong>正确答案：D</strong><br><br>能量流畅的一天中，你的认知功能是灵活切换的——工作时用Te/Ti（思维），感知环境用Se/Si（感觉），做决定用Fi/Fe（情感）。不卡在某个功能上，能根据情境灵活调用。<br><br><strong>干扰项辨析：** 某一功能持续主导会导致偏颇——比如Te主导一整天会让你变成"效率机器"但忽略感受；八维全开是不可能的——能量有限；低活跃是"无精打采"而非流畅。<br><br><strong>关键区分：** 灵活切换 = 认知功能的健康状态。就像一个好工具——需要锤子时用锤子，需要螺丝刀时用螺丝刀。`
+    },
+    {type:"tf",dimension:"flow",
+      text:`从五行角度看，能量流畅的一天是五行相生循环顺畅的表现——水生木、木生火、火生土、土生金、金生水，周而复始。`,
+      correct:true,
+      explanation:`<strong>正确答案：正确</strong><br><br>五行相生的顺畅循环 = 能量流畅。水（休息/滋养）→ 木（开始/生发）→ 火（工作/绽放）→ 土（午餐/承载）→ 金（收敛/总结）→ 水（晚间/休息）。一天的能量在五行中自然流转。<br><br><strong>五行日节律：** 早晨（木/生发）→ 上午（火/绽放）→ 中午（土/承载）→ 下午（金/收敛）→ 晚上（水/休息）。能量流畅的一天符合这个自然节律。<br><br><strong>关键区分：** 五行循环不是"线性"的——它是"循环"的。一天的结束是新一天的开始——金生水、水生木，周而复始。`
+    },
+    {type:"mc",dimension:"body",
+      text:`能量流畅的一天结束时，身体最可能的状态是什么？`,
+      options:[
+        {letter:"A",text:`极度疲惫——被完全掏空`,correct:false},
+        {letter:"B",text:`毫无感觉——身体和意识分离`,correct:false},
+        {letter:"C",text:`适度疲惫但满足——身体有使用感但不过度消耗`,correct:true},
+        {letter:"D",text:`精力充沛——完全不累`,correct:false}
+      ],
+      explanation:`<strong>正确答案：C</strong><br><br>"适度疲惫但满足"是能量流畅一天的身体标志——你的身体被"使用"了（所以有疲惫感），但没有被"透支"（所以有满足感而非空虚感）。<br><br><strong>干扰项辨析：** 精力充沛说明你可能没有真正"投入"——或者你的能量储备特别充足；极度疲惫说明有某个环节过度消耗了；毫无感觉是"解离"——不健康。<br><br><strong>关键区分：** 适度疲惫 + 满足 = 能量流畅。这是身体在告诉你"今天过得很好——用了我该用的，休息了我该休的"。带着这个感觉入睡，明天又是流畅的一天。`
+    }
+  ]
+}
+];
+
+// ========== 自由问答知识库 ==========
+function generateAnswer(q) {
+  const keywords = [
+    {keys:['比劫','比劫能量'], ans:`比劫能量代表"自我"的力量。比劫旺盛时，你更有主见和边界感；比劫受压时，容易失去自我、过度迎合。在日常生活中，<strong>清晰地说出"不"</strong>就是比劫健康的表现。`},
+    {keys:['食伤','食伤能量'], ans:`食伤能量代表表达与输出。食伤流畅时，你的语言、创意、表达都自然流淌；食伤受阻时，会感到憋闷、有话说不出口。<strong>注意：食伤过度输出也会导致空虚</strong>，需要印星来滋养。`},
+    {keys:['财官','财星','官星'], ans:`财官能量代表对外部世界的掌控和秩序感。财星关注资源和价值交换，官星关注规则和结构。<strong>财官健康的人能在外部世界高效运作</strong>，同时不被外在评价绑架。`},
+    {keys:['七杀','杀星','杀能量'], ans:`杀（七杀）代表压力转化能力和深度洞察力。杀能量用得好，能在高压下保持清醒、化压力为动力。<strong>关键区分：杀和官的区别在于——官是有序规则，杀是突发挑战</strong>。`},
+    {keys:['印星','印能量'], ans:`印星代表内在安全感和滋养。印能量充足时，你有稳定的内在参照，不容易被外界动摇。<strong>印和食伤是一对互补：印是输入和滋养，食伤是输出和表达</strong>。当印不足时，过度输出会导致枯竭。<br><br><strong>印星过旺的表现：</strong>过度依赖内在安全感、缺乏行动力、过度保护自我、不愿表达和输出。印星过旺会压制食伤的表达，也会导致比劫的力量被"过度滋养"而变得懒散。`},
+    {keys:['五行','木火土金水'], ans:`五行（木火土金水）的流转对应着能量的不同状态。木主生发、火主绽放、土主承载、金主收敛、水主潜藏。<strong>五行的顺畅流转是健康能量的基础</strong>，卡在任何一环都会产生问题。`},
+    {keys:['荣格八维','八维','Se','Si','Ne','Ni','Te','Ti','Fe','Fi'], ans:`荣格八维认知功能与五类能量有对应关系：Se对应食伤（活在当下）、Si对应印（内在参照）、Ne对应食伤/印（发散联想）、Ni对应印/杀（深层洞察）、Te对应财官（外部秩序）、Ti对应印/杀（内部分析）、Fe对应食伤/杀（群体和谐）、Fi对应比劫/食伤（内在价值）。<strong>理解这个对应关系，能帮你从认知科学角度理解能量运作</strong>。`},
+    {keys:['四象','象限','风象','火象','水象','土象'], ans:`四象维度将认知分为四个层面：水象（内在感受/主观体验）、火象（外在行动/行为表现）、风象（关系沟通/共享意义）、土象（系统结构/规则秩序）。<strong>五类能量的觉察需要同时在四个维度中观察</strong>。比如你问的"风象"，它对应的是关系沟通层面——关注他人感受、群体和谐、社交互动。`},
+    {keys:['边界','边界感'], ans:`能量边界的核心是比劫力量。健康的边界意味着：<strong>你能清晰感知自己的能量状态，并有能力保护自己的能量场</strong>。这不同于封闭——边界是半透膜，不是墙。`},
+    {keys:['拖延','完美主义'], ans:`拖延往往不是懒，而是能量卡住了。常见模式：<strong>完美主义是杀能量过度（自我施压）+ 食伤受阻（不敢输出）的组合</strong>。解决方法是先让食伤流动起来——允许不完美的输出。`},
+    {keys:['情绪','感受'], ans:`情绪是能量状态的信号。比劫相关情绪：愤怒、委屈（边界被侵犯）；食伤相关情绪：兴奋或空虚（输出过多或过少）；财官相关情绪：焦虑或踏实（外部掌控感）；印星相关情绪：安全或不安（内在滋养状态）；杀相关情绪：压力或振奋（挑战应对）。`},
+    {keys:['身体','身体觉察'], ans:`身体是能量最诚实的指标。比劫——胸口的力量感或紧缩；食伤——喉咙的通畅或堵塞；财官——肩背的紧张或放松；印星——腹部的温暖或冰凉；杀——头顶的压力或清明。<strong>身体觉察比思维分析更准确</strong>。`},
+    {keys:['内疚','愧疚','自责'], ans:`内疚感的身体表现主要在<strong>肩背部</strong>，而非胸口。<br><br><strong>原因分析：</strong>内疚是"我做了不该做的事"或"我没做应该做的事"的自我评判，这属于财官/土的能量范畴——关乎规则、责任、秩序。肩背部是财官能量的身体对应区域，当内在出现"应该vs不应该"的冲突时，肩背会不自觉地紧张——这是"承担责任"的身体模式。`},
+    {keys:['胸口','胸闷','心里沉'], ans:`胸口的感受主要对应<strong>比劫</strong>和<strong>食伤</strong>的能量状态。<br><br>• 胸口有力、稳定 = 比劫健康（自我边界清晰）<br>• 胸口紧缩、发虚 = 比劫被压（不敢维护边界）<br>• 胸口堵塞、有话说不出 = 食伤受阻（表达被压抑）<br><br><strong>关键区分：</strong>如果你感到胸口闷，先辨别是"不敢说"（食伤）还是"不敢做"（比劫）。`},
+    {keys:['肩背','肩膀','背部'], ans:`肩背部是<strong>财官能量</strong>的身体对应区域。<br><br>• 肩背放松 = 财官健康（能高效运作但不被外部评价绑架）<br>• 肩背紧张、僵硬 = 财官过度（过度承担责任、过度关注外部规则）<br><br><strong>释放方法：</strong>觉察到肩背紧张时，做几个深呼吸，有意识地"放下"不属于你的责任。`},
+  ];
+  let bestMatch = null, lastPosition = -1;
+  for (const item of keywords) {
+    for (const k of item.keys) {
+      const pos = q.lastIndexOf(k);
+      if (pos !== -1 && pos > lastPosition) { lastPosition = pos; bestMatch = item; }
+    }
+  }
+  if (bestMatch) return bestMatch.ans;
+  return `这是一个很好的觉察问题。试着从"十神"和"五行流转"的角度看看：此刻是哪个能量在主导？它是在顺畅流动，还是被卡住了？<br><br>你可以描述得更具体一些（比如涉及<strong>边界、表达、身体感受、拖延</strong>等），我会给出更贴合的解读。`;
+}
+
+function getDimLabel(dim){
+  const map={shishen:'十神',xingzuo:'四象维度',zonghe:'综合',jung:'荣格八维',flow:'五行流转',body:'身体觉察'};
+  return map[dim]||'综合';
+}
+
+// ========== 状态 ==========
+const KEY='life_scene_obs_v1';
+let state = loadState();
+function loadState(){
+  try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.answers) return s; }catch(e){}
+  return {started:false, mode:'all', currentScene:0, currentQ:0, answers:{}, qaHistory:{}};
+}
+function saveState(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+function getTotalQ(){ return SCENES.reduce((s,x)=>s+x.questions.length,0); }
+function getAnswered(){ let n=0; for(const k in state.answers) n++; return n; }
+function isSceneDone(si){ return SCENES[si].questions.every((_,qi)=>state.answers[si+'_'+qi]!==undefined); }
+
+const app=document.getElementById('app');
+
+function render(){
+  if(!state.started){ renderWelcome(); return; }
+  if(state.mode==='all'){
+    if(state.currentScene>=SCENES.length){ renderResult(); return; }
+    renderScene();
+  } else {
+    renderScene();
+  }
+}
+
+function renderWelcome(){
+  const done = SCENES.filter((_,i)=>isSceneDone(i)).length;
+  let html = `<div class="welcome">
+    <h2>生活场景观察</h2>
+    <p>二十个日常瞬间，带你用「十神 · 五行 · 荣格八维 · 四象」的视角，重新看懂自己如何反应、为何反应。</p>
+    <p>每题选完即显答案与解析；随时可在场景里写自己的困惑，系统会给出能量视角的解读。</p>
+    <p style="font-size:13px;color:var(--sub);">已完成场景：${done} / ${SCENES.length}</p>
+    <button class="btn" onclick="startAll()">从头开始闯关</button>
+    <div style="height:14px"></div>
+    <button class="btn ghost" onclick="pickMode()">选择单个场景</button>
+  </div>`;
+  app.innerHTML = html;
+}
+
+function pickMode(){
+  let list = SCENES.map((s,i)=>{
+    const d = isSceneDone(i) ? '<span class="st">✓ 已完成</span>' : `<span class="st">${s.questions.length} 题</span>`;
+    return `<div class="scene-pick ${isSceneDone(i)?'done':''}" onclick="startSingle(${i})">
+      <span>${i+1}. ${s.title}</span>${d}</div>`;
+  }).join('');
+  app.innerHTML = `<div class="page-head"><h1>选择场景</h1></div>
+    <div class="scene-list">${list}</div>
+    <div class="center"><button class="btn ghost" onclick="renderWelcome()">返回</button></div>`;
+}
+
+function startAll(){ state.started=true; state.mode='all'; state.currentScene=0; state.currentQ=0; saveState(); render(); }
+function startSingle(i){ state.started=true; state.mode='single'; state.currentScene=i; state.currentQ=0; saveState(); render(); }
+
+function renderScene(){
+  const sc = SCENES[state.currentScene];
+  const total = getTotalQ();
+  const answered = getAnswered();
+  let prog = state.mode==='all'
+    ? `总进度 ${answered} / ${total} 题 · 场景 ${state.currentScene+1} / ${SCENES.length}`
+    : `场景 ${state.currentScene+1} / ${SCENES.length} · ${getDimLabel('x')}`;
+  let html = `<div class="page-head"><h1>${sc.title}</h1></div>
+    <div class="prog"><b>${prog}</b></div>
+    <div class="card scene-desc"><h2>场景</h2><p>${sc.description}</p></div>`;
+
+  sc.questions.forEach((q,qi)=>{
+    const aKey = state.currentScene+'_'+qi;
+    const ans = state.answers[aKey];
+    const dimLabel = getDimLabel(q.dimension);
+    const dimCls = 'dim-'+q.dimension;
+    let qHtml = `<div class="q">
+      <div class="q-head"><span class="q-no">${qi+1}</span><span class="q-dim ${dimCls}">${dimLabel}</span></div>
+      <div class="q-txt">${q.text}</div>`;
+    if(q.type==='mc'){
+      qHtml += `<div class="opts">`;
+      q.options.forEach((o,oi)=>{
+        let cls='opt', letter=o.letter;
+        if(ans!==undefined){
+          if(oi===ans){ cls += ans===oi&&o.correct ? ' ok':' no'; }
+          else if(o.correct){ cls += ' ok'; }
+        }
+        const mark = (ans!==undefined && o.correct) ? '✓' : (ans===oi? '✗':'');
+        qHtml += `<div class="${cls}" ${ans!==undefined?'':'onclick="selOpt('+state.currentScene+','+qi+','+oi+')"'}>
+          <span class="opt-letter">${mark||letter}</span><span>${o.text}</span></div>`;
+      });
+      qHtml += `</div>`;
+    } else {
+      const tfCls = (v)=>{ if(ans===undefined) return 'tf-btn'; const right=(v===q.correct); return 'tf-btn '+(ans===v?(right?'sel':'sel'):''); };
+      qHtml += `<div class="tf">
+        <div class="${ans!==undefined?'tf-btn sel':'tf-btn'}" ${ans!==undefined?'':'onclick="selTF('+state.currentScene+','+qi+',true)"'}>正确</div>
+        <div class="${ans!==undefined?'tf-btn sel':'tf-btn'}" ${ans!==undefined?'':'onclick="selTF('+state.currentScene+','+qi+',false)"'}>错误</div>
+      </div>`;
+      if(ans!==undefined){
+        const ok = (ans===q.correct);
+        qHtml += `<div style="margin-top:9px;font-size:13px;color:${ok?'var(--accent2)':'#c98a7a'};font-weight:600;">你的判断：${ans?'正确':'错误'} · 正确答案：${q.correct?'正确':'错误'} ${ok?'✓':'✗'}</div>`;
+      }
+    }
+    // 解析
+    const expOpen = ans!==undefined ? ' open':'';
+    qHtml += `<button class="exp-toggle${expOpen}" onclick="toggleExp(this)"><span class="ar">▶</span>${ans!==undefined?'查看解析':'选完显示解析'}</button>
+      <div class="exp-content${expOpen}">${q.explanation}</div>`;
+    qHtml += `</div>`;
+    html += qHtml;
+  });
+
+  // 自由问答
+  html += `<div class="qa"><h3>这个场景，你有什么想记录的？</h3>
+    <div class="qa-hist" id="qaHist"></div>
+    <div class="qa-row"><input class="qa-input" id="qaInput" placeholder="写下你的困惑或观察…" onkeydown="if(event.key==='Enter')sendQA()">
+    <button class="qa-send" onclick="sendQA()">解读</button></div></div>`;
+
+  // 导航
+  const isLast = state.mode==='all' && state.currentScene===SCENES.length-1;
+  html += `<div class="nav">
+    <button class="btn ghost" ${state.currentScene===0?'disabled':''} onclick="goPrev()">上一场景</button>
+    <button class="btn" onclick="goNext()">${isLast?'完成':'下一场景'}</button>
+  </div>`;
+  if(state.mode==='single'){
+    html += `<div class="center" style="margin-top:14px"><button class="btn ghost" onclick="renderWelcome()">返回首页</button></div>`;
+  }
+  app.innerHTML = html;
+  renderQA();
+}
+
+function selOpt(si,qi,oi){
+  const k=si+'_'+qi; if(state.answers[k]!==undefined) return;
+  state.answers[k]=oi; saveState(); render();
+}
+function selTF(si,qi,val){
+  const k=si+'_'+qi; if(state.answers[k]!==undefined) return;
+  state.answers[k]=val; saveState(); render();
+}
+function toggleExp(btn){ btn.classList.toggle('open'); btn.nextElementSibling.classList.toggle('open'); }
+
+function sendQA(){
+  const input=document.getElementById('qaInput');
+  const q=input.value.trim(); if(!q) return;
+  const a=generateAnswer(q);
+  const key='scene_'+state.currentScene;
+  if(!state.qaHistory[key]) state.qaHistory[key]=[];
+  state.qaHistory[key].push({q,a});
+  input.value=''; saveState(); renderQA();
+  setTimeout(()=>{ const h=document.getElementById('qaHist'); if(h) h.scrollTop=h.scrollHeight; },30);
+}
+function renderQA(){
+  const hist=document.getElementById('qaHist'); if(!hist) return;
+  const key='scene_'+state.currentScene;
+  const list=state.qaHistory[key]||[];
+  hist.innerHTML = list.map(it=>`<div class="qa-item"><div class="qa-q">问：${it.q}</div><div class="qa-a">答：${it.a}</div></div>`).join('')
+    || '<div style="font-size:13px;color:var(--sub);padding:6px 2px;">还没有记录，写下你的观察吧。</div>';
+}
+
+function goNext(){
+  if(state.mode==='single'){ renderWelcome(); return; }
+  if(state.currentScene<SCENES.length-1){ state.currentScene++; state.currentQ=0; saveState(); render(); }
+  else { renderResult(); }
+}
+function goPrev(){
+  if(state.currentScene>0){ state.currentScene--; state.currentQ=0; saveState(); render(); }
+}
+
+function renderResult(){
+  const total=getTotalQ(); const answered=getAnswered();
+  const doneScenes=SCENES.filter((_,i)=>isSceneDone(i)).length;
+  let correct=0;
+  SCENES.forEach((sc,si)=>sc.questions.forEach((q,qi)=>{
+    const a=state.answers[si+'_'+qi];
+    if(a===undefined) return;
+    if(q.type==='mc'){ if(q.options[a] && q.options[a].correct) correct++; }
+    else { if(a===q.correct) correct++; }
+  }));
+  const acc = answered? Math.round(correct/answered*100):0;
+  app.innerHTML = `<div class="result">
+    <h2>这一轮观察完成</h2>
+    <div class="score">${doneScenes}<span style="font-size:18px;color:var(--sub)"> / ${SCENES.length} 场景</span></div>
+    <p>已作答 ${answered} / ${total} 题 · 答对 ${correct} 题（${acc}%）</p>
+    <p style="font-size:13.5px;color:var(--sub);margin-top:10px;line-height:1.9;">觉察不在"答对"，而在"看见"。<br>你愿意为哪一个反应停下来，那一瞬就是成长的入口。</p>
+    <div style="height:16px"></div>
+    <button class="btn" onclick="restart()">再来一轮</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="renderWelcome()">回到首页</button>
+  </div>`;
+}
+function restart(){ state.started=false; state.mode='all'; state.currentScene=0; state.currentQ=0; state.answers={}; state.qaHistory={}; saveState(); render(); }
+
+render();
+</script>
+</body></html>
