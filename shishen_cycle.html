@@ -3,18 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>十神 · 五类能量循环图</title>
+  <title>十神 · 五类关系循环图</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --paper:#f3ecdc;
-      --paper-2:#fbf6ea;
-      --ink:#3a3329;
-      --ink-soft:#8a7c68;
-      --line:#e2d4bb;
-      --accent:#b8714e;
-      --yong-ink:#5f7a45; --yong-bd:#c9d8b6;
-      --ji-ink:#b15538;    --ji-bd:#e6c6b2;
+      --paper:#f3ecdc; --paper-2:#fbf6ea; --ink:#3a3329; --ink-soft:#8a7c68;
+      --line:#e2d4bb; --accent:#b8714e;
+      --yong-ink:#5f7a45; --yong-bd:#c9d8b6; --yong-bg:#f1f6e9;
+      --ji-ink:#b15538;    --ji-bd:#e6c6b2; --ji-bg:#fbeee8;
     }
     *{ box-sizing:border-box; }
     html,body{ margin:0; }
@@ -27,8 +23,7 @@
       padding:40px 20px 56px;
     }
 
-    /* —— 页头 —— */
-    .page-head{ text-align:center; margin-bottom:30px; }
+    .page-head{ text-align:center; margin-bottom:26px; }
     .page-head h1{
       font-family:'Noto Serif SC',serif; font-weight:700;
       font-size:30px; letter-spacing:4px; color:var(--ink);
@@ -44,7 +39,6 @@
     .page-head .sub{ margin-top:10px; color:var(--ink-soft); font-size:13.5px; letter-spacing:1px; }
     .rule{ width:120px; height:1px; margin:14px auto 0; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
 
-    /* —— 顶部标签切换 —— */
     .tabs{ display:flex; gap:10px; justify-content:center; margin:0 0 28px; flex-wrap:wrap; }
     .tab{ font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:2px; color:var(--ink-soft);
       background:var(--paper-2); border:1px solid var(--line); border-radius:30px; padding:9px 30px;
@@ -53,16 +47,8 @@
     .tab.active{ color:#fff; background:var(--accent); border-color:var(--accent);
       box-shadow:0 8px 18px -8px rgba(184,113,78,.7); }
 
-    /* —— 用忌详解（标签二） —— */
-    #tab-detail{ width:100%; }
-    .detail-god{ width:100%; max-width:1100px; margin:0 auto 36px; }
-    .god-name{ font-family:'Noto Serif SC',serif; font-size:21px; color:var(--ink); letter-spacing:2px;
-      margin:0 0 16px; display:flex; align-items:baseline; gap:10px; }
-    .god-name .gx{ font-size:12px; color:var(--ink-soft); letter-spacing:1px; font-family:'Noto Sans SC',sans-serif; }
-    .god-cards{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    @media(max-width:780px){ .god-cards{ grid-template-columns:1fr; } }
-
-    /* —— 三栏合一：用 ｜ 图 ｜ 忌 —— */
+    /* —— 关系图 —— */
+    #tab-graph{ width:100%; }
     .composition{
       display:flex; flex-wrap:wrap; align-items:stretch; justify-content:center;
       gap:26px; width:100%; max-width:1200px; margin:0 auto;
@@ -70,10 +56,10 @@
       border:1px solid var(--line); border-radius:28px; padding:26px;
       box-shadow:0 22px 50px -26px rgba(90,60,30,.45), inset 0 0 0 4px rgba(255,255,255,.3);
     }
-    .col-side{ flex:1 1 280px; min-width:255px; display:flex; }
+    .col-side{ flex:1 1 300px; min-width:260px; display:flex; }
     .col-side > .card{ width:100%; display:flex; flex-direction:column; justify-content:center; }
-    .col-center{ flex:0 0 480px; max-width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    .col-center svg{ width:100%; height:auto; max-width:480px; display:block; }
+    .col-center{ flex:0 0 460px; max-width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .col-center svg{ width:100%; height:auto; max-width:460px; display:block; }
     .cap{ margin-top:14px; text-align:center; font-size:13px; color:var(--ink-soft); letter-spacing:.5px; min-height:18px; line-height:1.6; }
     .cap b{ color:var(--accent); font-weight:700; }
 
@@ -85,7 +71,7 @@
     .dim{ opacity:.30; }
     .link.dim{ opacity:.16; }
 
-    /* —— 用 / 忌 卡片 —— */
+    /* 用 / 忌 卡片 */
     .card{
       border-radius:16px; padding:22px 20px;
       border:1px solid var(--line);
@@ -93,21 +79,23 @@
     }
     .card.yong{ background:linear-gradient(180deg,#f4f8ee,#edf2e4); border-color:var(--yong-bd); }
     .card.ji{   background:linear-gradient(180deg,#faf0e9,#f7ebe1); border-color:var(--ji-bd); }
-
-    .card-head{ display:flex; align-items:center; gap:13px; margin-bottom:16px; }
+    .card-head{ display:flex; align-items:center; gap:13px; margin-bottom:14px; }
     .badge{
-      flex:0 0 auto; width:58px; height:58px; border-radius:50%;
+      flex:0 0 auto; width:54px; height:54px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      font-family:'Noto Serif SC',serif; font-weight:700; font-size:28px;
+      font-family:'Noto Serif SC',serif; font-weight:700; font-size:26px;
     }
     .badge.yong{ background:rgba(95,122,69,.14); color:var(--yong-ink); border:2.4px solid #7d9a58; }
     .badge.ji{   background:rgba(177,85,56,.14); color:var(--ji-ink);   border:2.4px solid #c4694a; }
-    .ctitle{ font-family:'Noto Serif SC',serif; font-weight:600; font-size:17px; letter-spacing:1px; line-height:1.4; }
+    .ctitle{ font-family:'Noto Serif SC',serif; font-weight:600; font-size:17px; letter-spacing:1px; line-height:1.4; color:var(--ink); }
+    .ctitle small{ display:block; font-family:'Noto Sans SC',sans-serif; font-size:11px; color:var(--ink-soft); letter-spacing:1px; margin-top:2px; }
 
     .field{ margin-bottom:12px; }
     .field:last-child{ margin-bottom:0; }
-    .field-label{ font-size:11px; letter-spacing:2px; color:var(--ink-soft); margin-bottom:3px; }
-    .field-val{ font-size:13.5px; line-height:1.65; color:var(--ink); }
+    .field-label{ font-size:11px; letter-spacing:2px; color:var(--ink-soft); margin-bottom:6px; }
+    .points{ margin:0; padding-left:0; list-style:none; }
+    .points li{ font-size:13px; line-height:1.7; color:var(--ink); padding-left:14px; position:relative; margin-bottom:5px; }
+    .points li::before{ content:'·'; position:absolute; left:2px; color:var(--accent); font-weight:700; }
 
     .rel-grid{ display:flex; flex-wrap:wrap; gap:9px; margin-top:4px; }
     .rel-item{ flex:1 1 104px; min-width:98px; background:rgba(255,255,255,.6); border:1px solid var(--line);
@@ -115,25 +103,37 @@
       text-align:center; transition:transform .15s ease; }
     .rel-item:hover{ transform:translateY(-2px); }
     .rel-item.yong{ border-color:var(--yong-bd); }
-    .rel-item.ji{ border-color:var(--ji-bd); }
+    .rel-item.ji{ border-color:var(--ji-bd); background:rgba(177,85,56,.07); }
     .rel-role{ display:flex; align-items:center; gap:6px; }
     .rel-emoji{ font-size:22px; line-height:1; }
     .rel-name{ font-size:12.5px; color:var(--ink-soft); letter-spacing:1px; }
-    .rel-need{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center; min-height:22px; }
-    .need-ico{ font-size:20px; line-height:1; }
-    .reject-badge{ font-size:13px; }
-    .need-cap{ font-size:11px; color:var(--ink-soft); line-height:1.45; width:100%; }
-    .rel-item.reject{ background:rgba(177,85,56,.08); }
-    .rel-item.reject .rel-emoji{ filter:grayscale(.4); }
+    .rel-need{ font-size:12px; color:var(--ink); line-height:1.5; }
+    .rel-item.todo .rel-need{ color:var(--ink-soft); font-style:italic; }
 
     .fade-in{ animation:fadeIn .28s ease; }
     @keyframes fadeIn{ from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;} }
+
+    /* —— 用忌详解（标签二） —— */
+    #tab-detail{ width:100%; display:none; }
+    .detail-god{ width:100%; max-width:1100px; margin:0 auto 36px; }
+    .god-name{ font-family:'Noto Serif SC',serif; font-size:21px; color:var(--ink); letter-spacing:2px;
+      margin:0 0 16px; display:flex; align-items:baseline; gap:10px; }
+    .god-name .gx{ font-size:12px; color:var(--ink-soft); letter-spacing:1px; font-family:'Noto Sans SC',sans-serif; }
+    .god-cards{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:780px){ .god-cards{ grid-template-columns:1fr; } }
+
+    @media(max-width:680px){
+      body{ padding:24px 12px 44px; }
+      .page-head h1{ font-size:24px; }
+      .composition{ padding:16px 12px; gap:14px; }
+      .card{ padding:18px 15px; }
+    }
   </style>
 </head>
 <body>
 
   <header class="page-head">
-    <h1><span class="seal">十神</span>十神 · 五类能量循环</h1>
+    <h1><span class="seal">十神</span>十神 · 五类关系循环</h1>
     <div class="sub">官杀 → 印枭 → 比劫 → 食伤 → 财才 → 官杀</div>
     <div class="rule"></div>
   </header>
@@ -145,10 +145,7 @@
 
   <div id="tab-graph">
   <div class="composition">
-    <!-- 左：用 -->
     <div class="col-side" id="card-yong"></div>
-
-    <!-- 中：十神关系图（放大，居中） -->
     <div class="col-center">
       <svg id="cycle-svg" viewBox="0 0 520 520">
         <defs>
@@ -165,207 +162,214 @@
         </g>
         <g id="nodes-layer"></g>
       </svg>
-      <div class="cap" id="cap">将鼠标移到节点上，查看该十神的 用 / 忌 详解</div>
+      <div class="cap" id="cap">将鼠标移到节点上，查看该十神的 用 / 忌 与六亲关系</div>
     </div>
-
-    <!-- 右：忌 -->
     <div class="col-side" id="card-ji"></div>
-  </div><!-- /composition -->
-  </div><!-- /tab-graph -->
+  </div>
+  </div>
 
-  <div id="tab-detail" style="display:none"></div>
+  <div id="tab-detail"></div>
 
+  <script src="驱动力数据.js"></script>
   <script>
-    const cx = 260, cy = 260, R = 170;
-    const nodes = [
-      { key:'guansha', name:'官杀', sub:'约束 / 责任', color:'#5b6b8c', colorKey:'guansha', angle:0 },
-      { key:'yin',     name:'印枭', sub:'保护 / 思维', color:'#8a6f9e', colorKey:'yin',     angle:72 },
-      { key:'bijie',   name:'比劫', sub:'自我 / 同辈', color:'#c0563f', colorKey:'bijie',   angle:144 },
-      { key:'shishang',name:'食伤', sub:'表达 / 才华', color:'#d98b3a', colorKey:'shishang',angle:216 },
-      { key:'cai',     name:'财才', sub:'掌控 / 物质', color:'#5f8a6a', colorKey:'cai',     angle:288 }
-    ];
+  /* ============ 六亲关系（从完整资料结构化出的精华） ============ */
+  const SIXIN = {
+    qing:{ mom:{ans:'需要妈妈的「情」与温暖陪伴；若母亲也是情感驱动，则母子互相充电', detail:'情感驱动的母亲陪伴孩子是「充电」——想陪伴是因为喜欢。作为孩子，情感驱动的人需要母亲的情与温暖；情越重越怕被冤枉，被误解比什么都难受。', src:'资料：情感驱动母亲陪伴孩子是充电；越有情越不能被冤枉'},
+      dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      friend:{ans:'朋友是共情与陪伴；共情能力越强，朋友越多、越容易做生意', detail:'共情能力强的人不怕陌生人、没有距离感，很容易跟人亲近，到哪儿都能处成朋友、老板、贵人。共情能力强的女人可以做好生意。', src:'资料：社牛、共情强易有朋友、易做生意'},
+      partner:{ans:'伴侣需要「情」而非「爱」；自己开心最重要，需要伴侣尊重感受、不冷暴力', detail:'有情方推动情感，情感驱动女遇回避男基本无解。旺夫：女人的情是男人的事业。表达情感说「喜欢」不说「爱」——说爱会让男人有压迫感、感知到你在索取情。感情趋于平淡时，责任在有情的一方。', src:'资料：有情方推动情感；说喜欢不说爱；旺夫'},
+      child:{ans:'需要孩子的真情回流；作为「有情」母亲，陪伴孩子即充电', detail:'真正发自内心喜欢自己孩子的人一定是有情的女人；喜欢自己孩子=喜欢所有孩子。情感驱动的女生喜欢生孩子（是自己想生）。作为母亲，陪伴孩子是充电而非耗电。', src:'资料：喜欢孩子；生孩子开运；母亲陪伴是充电'} },
+    ziwo:{ mom:{ans:'需要妈妈的「情」（不是爱）；忍受不了母亲的控制欲；若母亲无情则痛苦', detail:'自我价值感驱动的孩子在妈妈身上找情感往往找不到，会痛苦——「要的不是妈妈的爱，是妈妈的情，但妈妈有可能没有情」。极度忍受不了母亲控制欲的人是过度的弱自我价值感驱动；被动承受大量控制欲的是强自我价值感驱动（强的能忍，弱的忍不了）。', src:'资料：自我价值感驱动与母亲关系'},
+      dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      friend:{ans:'朋友非核心需求；社交中以「被需要 / 有用」为联结', detail:'自我价值感驱动的人社交重心在确认自身价值。女NPD（自驱+弱精神）搭配过度弱情感男，需要没有情的男人的情。', src:'资料：社交以被需要为联结'},
+      partner:{ans:'伴侣关系中以「被需要、赚钱能力」确认价值；与责任感驱动伴侣互相促进', detail:'男自我价值感驱动 × 女责任感驱动：当伴侣自我价值感越强，责驱女内心更有做事冲动、更有目标感，互相促进。但不要太勉强自己追求工作/发展。砸锅卖铁养男人的女人通常是过度精神+情感驱动（配物质+责任男）。', src:'资料：自我价值感驱动伴侣关系'},
+      child:{ans:'作为父母，在孩子身上找自我价值感 / 被需要；需要孩子「被需要」来确认价值', detail:'自我价值感驱动母亲在孩子身上找自我价值感、找被需要的感觉，没有就很失落。会逗母亲开心的孩子一定是自我价值感驱动——哄母亲开心就是他自我价值感的来源。', src:'资料：自我价值感驱动与孩子的关系'} },
+    wuzhi:{ mom:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      friend:{ans:'朋友讲究「有用」，基于利益/价值联结', detail:'物质驱动的人眼里只有钱，反而很会交朋友，因为朋友对他都有用。这种人会因为目的和你成为朋友，是最会交朋友的。', src:'资料：物质驱动很会交朋友（朋友有用）'},
+      partner:{ans:'伴侣间金钱流动自然；男性易以借钱为目的；女性（物质+责任）给男人花钱是自我满足', detail:'最容易向女人借钱的男人是物质驱动（要的是钱）。物质+责任男会让女人砸锅卖铁养自己（善根浅薄时）。女性物质+责任组合谈恋爱就爱给男人花钱，越花自己越开心、越有钱。情感驱动女人花男人钱会感到惭愧，但男人很喜欢为有情女人付钱。', src:'资料：借钱；砸锅卖铁；给男人花钱'},
+      child:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'} },
+    zeren:{ mom:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      friend:{ans:'朋友 = 共同目标的合作者，靠目标维系', detail:'责任感驱动的人靠共同目标走到一起，通常把对方当实现目标的方式/伙伴，而非情感朋友关系。', src:'资料：责任感驱动非自我价值感，本质非朋友关系'},
+      partner:{ans:'伴侣是「活着的目的」；需要伴侣的关注与共同目标；失去伴侣则失去意义', detail:'责任感驱动女生开运标志是稳定伴侣；找不到/失去伴侣就找不到活着的目的。责任感男因妻子不打电话催回家而痛苦，觉得老婆不爱他了。挑毛病就事论事。与自我价值感驱动伴侣互相促进。', src:'资料：责任感驱动伴侣关系'},
+      child:{ans:'作为父母，孩子是责任；需要孩子让自己「被需要、有担当」', detail:'责任感驱动男生有孩子=事业标志。责任感母亲觉得「应该」陪伴孩子（耗电，非需求）；过度责任感母亲（多为情感驱动）需要被孩子需要，不会打骂孩子。', src:'资料：责任感驱动与孩子的关系'} },
+    jingshen:{ mom:{ans:'需要母亲「不控制、给空间」；过度精神驱动忍受不了母亲陪伴/控制欲；作为母亲希望孩子有目标感', detail:'和母亲关系不好的人往往是过度精神驱动——忍受不了母亲的陪伴、控制欲。过度精神母亲对孩子有攻击性爱（质问、愧疚式教育），平时爱陪但做错就精神攻击。积极精神母亲希望孩子有目标感、有责任感担当。', src:'资料：精神驱动与母亲关系'},
+      dad:{ans:'资料未明确覆盖，待补充', detail:'', src:'待补充'},
+      friend:{ans:'朋友 = 精神同频者；无共情维系，重精神共鸣；客观上显得不合群', detail:'精神驱动不需要人情、共情方式维系，多年不联系还能非常亲近才是真朋友，这是精神的同频和交流。无法进行精神交流的人不会有真正朋友。客观上不需要朋友，显得不合群。', src:'资料：朋友是精神同频；不合群'},
+      partner:{ans:'伴侣需要「情」（在男人身上找情）；真爱引发不配得感→回避；慕强（情绪稳定男人）', detail:'精神驱动女在男人身上找情，不抱怨变期待，找不到就加倍努力。遇对自己不动念头的男人反而动情。当男人真的有爱时引发剧烈不配得感→回避、作、反复确认。最易被渣男（有钱有势有才穷追）玩弄；慕强情绪稳定的男人。', src:'资料：精神驱动伴侣关系'},
+      child:{ans:'作为父母，因孩子需要才愿陪伴（有爱非需求）；需要孩子的精神共鸣', detail:'精神驱动母亲因孩子需要陪伴而愿意陪伴（有爱），孩子无需求时不强加陪伴。精神驱动的孩子需要母亲的陪伴（与情感驱动孩子不同）。', src:'资料：精神驱动与孩子的关系'} }
+  };
 
-    // ===== 十神详解数据（数据驱动，后续只填这里）=====
-    const REL_LABELS = [
-      { key:'partner', label:'伴侣' }, { key:'friend', label:'朋友' },
-      { key:'mom', label:'妈妈' },     { key:'dad', label:'爸爸' },
-      { key:'child', label:'孩子' }
-    ];
+  /* ============ 节点与数据绑定 ============ */
+  const cx = 260, cy = 260, R = 170;
+  const nodes = [
+    { key:'guansha', name:'官杀', sub:'约束 / 责任', god:'官杀', color:'#5b6b8c', colorKey:'guansha', angle:0 },
+    { key:'yin',     name:'印枭', sub:'保护 / 思维', god:'印枭', color:'#8a6f9e', colorKey:'yin',     angle:72 },
+    { key:'bijie',   name:'比劫', sub:'自我 / 同辈', god:'比劫', color:'#c0563f', colorKey:'bijie',   angle:144 },
+    { key:'shishang',name:'食伤', sub:'表达 / 才华', god:'食伤', color:'#d98b3a', colorKey:'shishang',angle:216 },
+    { key:'cai',     name:'财才', sub:'掌控 / 物质', god:'财才', color:'#5f8a6a', colorKey:'cai',     angle:288 }
+  ];
 
-    // 角色图标 & 需求关键词→图标 映射（用于人物关系图像化）
-    const ROLE_ICON = { partner:'💑', friend:'👯', mom:'👩', dad:'👨', child:'👶' };
-    const NEED_ICON = {
-      '物质':'💰','钱':'💰','赚钱':'💰',
-      '陪伴':'🤝','待在一起':'👥','一起':'👥',
-      '情':'❤️','爱':'💖',
-      '责任':'🛡️','担当':'🛡️',
-      '理性':'🧠','观点':'💬','焦虑':'😰',
-      '控制欲':'🔒','控制':'🔒',
-      '目标感':'🎯','目标':'🎯','压力':'⚠️'
-    };
+  const ROLES = [
+    { key:'mom', name:'妈妈', icon:'👩' },
+    { key:'dad', name:'爸爸', icon:'👨' },
+    { key:'friend', name:'朋友', icon:'👯' },
+    { key:'partner', name:'伴侣', icon:'💑' },
+    { key:'child', name:'孩子', icon:'👶' }
+  ];
 
-    const detailData = {
-      bijie: {
-        yong: { title:'自我价值感驱动', need:'被需要，想要赚钱', trait:'边界清晰，有主体性',
-          rel:{ partner:'伴侣的物质', friend:'朋友的陪伴', mom:'妈妈的情', dad:'爸爸的责任', child:'孩子的爱' } },
-        ji: { title:'过度自我价值感驱动', need:'讨厌被需要被期待，讨厌黏人', trait:'主体性弱，不配得感强，停不下来想做事',
-          rel:{ partner:'不看重伴侣的物质', friend:'不喜欢和朋友待在一起', mom:'排斥妈妈的情、控制欲', dad:'排斥爸爸的目标感、责任压力', child:'排斥孩子的理性、观点、焦虑' } }
-      },
-      // —— 以下为占位，待补充 ——
-      guansha: { yong: emptyBlock(), ji: emptyBlock() },
-      yin:     { yong: emptyBlock(), ji: emptyBlock() },
-      shishang:{ yong: emptyBlock(), ji: emptyBlock() },
-      cai:     { yong: emptyBlock(), ji: emptyBlock() }
-    };
-    function emptyBlock(){ return { title:'', need:'', trait:'', rel:{ partner:'', friend:'', mom:'', dad:'', child:'' } }; }
+  // 驱动 key（与 SIXIN / DRIVE_DATA.drivers 对应）
+  const GOD_TO_DRIVER = { '官杀':'zeren', '印枭':'jingshen', '比劫':'ziwo', '食伤':'qing', '财才':'wuzhi' };
 
-    const svg = document.getElementById('cycle-svg');
-    const linksLayer = document.getElementById('links-layer');
-    const nodesLayer = document.getElementById('nodes-layer');
-    const cardYong = document.getElementById('card-yong');
-    const cardJi = document.getElementById('card-ji');
-    const cap = document.getElementById('cap');
-
-    function toRad(deg){ return (deg - 90) * Math.PI / 180; }
-    nodes.forEach(n => { const rad = toRad(n.angle); n.x = cx + R*Math.cos(rad); n.y = cy + R*Math.sin(rad); });
-
-    // 画弧线
-    const linkOffsetDeg = 15;
-    nodes.forEach((from, i) => {
-      const to = nodes[(i + 1) % nodes.length];
-      const sr = toRad(from.angle + linkOffsetDeg), er = toRad(to.angle - linkOffsetDeg);
-      const x1 = cx + R*Math.cos(sr), y1 = cy + R*Math.sin(sr);
-      const x2 = cx + R*Math.cos(er), y2 = cy + R*Math.sin(er);
-      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      path.setAttribute('d', `M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`);
-      path.setAttribute('fill','none'); path.setAttribute('stroke','#cdbfa6'); path.setAttribute('stroke-width','2.4');
-      path.setAttribute('marker-end', `url(#arrow-${to.colorKey})`);
-      path.setAttribute('class','link'); path.dataset.from = from.key; path.dataset.to = to.key;
-      linksLayer.appendChild(path);
+  // 从 DRIVE_DATA 取用/忌要点（去除序号前缀）
+  function getDriver(god){
+    const dd = window.DRIVE_DATA || { drivers:[] };
+    return dd.drivers.find(d => d.god === god) || null;
+  }
+  function pickPoints(arr, n){
+    if(!arr || !arr.length) return ['（资料待补充）'];
+    return arr.slice(0, n).map(o => {
+      let t = o.t || '';
+      t = t.replace(/^\d+[\、\.、]/, '').replace(/^（\d+）/, ''); // 去序号
+      return t.length > 16 ? t.slice(0,16) + '…' : t;
     });
+  }
 
-    // 画节点
-    nodes.forEach(n => {
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.setAttribute('class','node'); g.setAttribute('data-key', n.key);
-      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y); circle.setAttribute('r', 44);
-      circle.setAttribute('fill', n.color); circle.setAttribute('fill-opacity','0.12');
-      circle.setAttribute('stroke', n.color); circle.setAttribute('stroke-width','2.4');
-      g.appendChild(circle);
-      const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-      text.setAttribute('x', n.x); text.setAttribute('y', n.y + 6); text.setAttribute('text-anchor','middle');
-      text.setAttribute('fill', n.color); text.setAttribute('font-family',"'Noto Serif SC',serif");
-      text.setAttribute('font-size','19'); text.setAttribute('font-weight','700'); text.textContent = n.name;
-      g.appendChild(text);
-      nodesLayer.appendChild(g);
-      g.addEventListener('mouseenter', () => highlight(n));
-      g.addEventListener('mouseleave', reset);
-    });
+  const svg = document.getElementById('cycle-svg');
+  const linksLayer = document.getElementById('links-layer');
+  const nodesLayer = document.getElementById('nodes-layer');
+  const cardYong = document.getElementById('card-yong');
+  const cardJi = document.getElementById('card-ji');
+  const cap = document.getElementById('cap');
 
-    function highlight(n){
-      document.querySelectorAll('.node').forEach(el => { el.classList.add('dim'); el.querySelector('circle').style.filter=''; });
-      document.querySelectorAll('.link').forEach(el => el.classList.add('dim'));
-      const cur = document.querySelector(`.node[data-key="${n.key}"]`); cur.classList.remove('dim');
-      const c = cur.querySelector('circle');
-      c.setAttribute('stroke-width','3.6'); c.setAttribute('r','48'); c.setAttribute('fill-opacity','0.22');
-      c.style.filter = `drop-shadow(0 0 7px ${n.color}99)`;
-      const idx = nodes.findIndex(x => x.key === n.key);
-      const incoming = nodes[(idx - 1 + nodes.length) % nodes.length];
-      const outgoing = nodes[(idx + 1) % nodes.length];
-      const inLink  = document.querySelector(`.link[data-from="${incoming.key}"][data-to="${n.key}"]`);
-      const outLink = document.querySelector(`.link[data-from="${n.key}"][data-to="${outgoing.key}"]`);
-      [inLink, outLink].forEach(el => { if(el){ el.classList.remove('dim'); el.setAttribute('stroke', n.color); el.setAttribute('stroke-width','3.4'); } });
-      updateInfo(n);
-    }
+  function toRad(deg){ return (deg - 90) * Math.PI / 180; }
+  nodes.forEach(n => { const rad = toRad(n.angle); n.x = cx + R*Math.cos(rad); n.y = cy + R*Math.sin(rad); });
 
-    function reset(){
-      document.querySelectorAll('.node').forEach(el => {
-        el.classList.remove('dim');
-        const c = el.querySelector('circle');
-        c.setAttribute('stroke-width','2.4'); c.setAttribute('r','44'); c.setAttribute('fill-opacity','0.12'); c.style.filter='';
-      });
-      document.querySelectorAll('.link').forEach(el => { el.classList.remove('dim'); el.setAttribute('stroke','#cdbfa6'); el.setAttribute('stroke-width','2.4'); });
-      // 保留两侧卡片与说明，方便阅读
-    }
-
-    function relBubble(r, text, isJi){
-      const v = (text || '').trim();
-      const reject = /不看重|不喜欢|排斥|讨厌|抗拒|不看好|疏离|拒绝/.test(v);
-      const icons = [];
-      for(const k in NEED_ICON){ if(v.indexOf(k) >= 0) icons.push(NEED_ICON[k]); }
-      const uniq = Array.from(new Set(icons));
-      const ico = uniq.length ? uniq : ['·'];
-      const cap = v || '—';
-      const cls = 'rel-item' + (reject ? ' reject' : '') + (isJi ? ' ji' : ' yong');
-      return `<div class="${cls}">
-        <div class="rel-role"><span class="rel-emoji">${ROLE_ICON[r.key] || '👤'}</span><span class="rel-name">${r.label}</span></div>
-        <div class="rel-need">${reject ? '<span class="reject-badge">🚫</span>' : ''}${ico.map(i => `<span class="need-ico">${i}</span>`).join('')}</div>
-        <div class="need-cap">${cap}</div>
-      </div>`;
-    }
-
-    function renderCard(d, mode){
-      const isJi = mode === 'ji';
-      const relTitle = isJi ? '人际关系的抗拒' : '人际关系期待';
-      const relItems = REL_LABELS.map(r => relBubble(r, (d.rel && d.rel[r.key]) || '', isJi)).join('');
-      const ink = isJi ? 'var(--ji-ink)' : 'var(--yong-ink)';
-      return `
-        <div class="card ${isJi?'ji':'yong'} fade-in">
-          <div class="card-head">
-            <div class="badge ${isJi?'ji':'yong'}">${isJi?'忌':'用'}</div>
-            <div class="ctitle" style="color:${ink}">${d.title || '待补充'}</div>
-          </div>
-          <div class="field"><div class="field-label">核心需求</div><div class="field-val">${d.need || '—'}</div></div>
-          <div class="field"><div class="field-label">性格特点</div><div class="field-val">${d.trait || '—'}</div></div>
-          <div class="field"><div class="field-label">${relTitle}</div><div class="rel-grid">${relItems}</div></div>
-        </div>`;
-    }
-
-    function updateInfo(n){
-      const idx = nodes.findIndex(x => x.key === n.key);
-      const prev = nodes[(idx - 1 + nodes.length) % nodes.length];
-      const next = nodes[(idx + 1) % nodes.length];
-      const dd = detailData[n.key] || { yong: emptyBlock(), ji: emptyBlock() };
-      cardYong.innerHTML = renderCard(dd.yong, 'yong');
-      cardJi.innerHTML = renderCard(dd.ji, 'ji');
-      cap.innerHTML = `当前：<b>${n.name}</b> · ${n.sub}　|　能量流向 ${prev.name} → <b>${n.name}</b> → ${next.name}`;
-    }
-
-    // 初始占位
-    cardYong.innerHTML = renderCard({ title:'待选择', need:'', trait:'', rel:{} }, 'yong').replace('fade-in','');
-    cardJi.innerHTML = renderCard({ title:'待选择', need:'', trait:'', rel:{} }, 'ji').replace('fade-in','');
-
-    // ===== 标签切换 =====
-    function switchTab(t){
-      document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
-      document.getElementById('tab-graph').style.display = t==='graph' ? 'block' : 'none';
-      document.getElementById('tab-detail').style.display = t==='detail' ? 'block' : 'none';
-    }
-
-    // ===== 用忌详解（全部十神平铺，无需 hover） =====
-    function renderAllDetails(){
-      const wrap = document.getElementById('tab-detail');
-      wrap.innerHTML = nodes.map(n=>{
-        const dd = detailData[n.key] || { yong: emptyBlock(), ji: emptyBlock() };
-        return `<div class="detail-god">
-          <div class="god-name"><span class="gn">${n.name}</span><span class="gx">${n.sub}</span></div>
-          <div class="god-cards">
-            ${renderCard(dd.yong,'yong')}
-            ${renderCard(dd.ji,'ji')}
-          </div>
-        </div>`;
-      }).join('');
-    }
-    renderAllDetails();
-  </script>
-<script>
-(function(){
-  window.addEventListener('message',function(e){
-    if(!e.data) return;
-    if(e.data.type==='wb-request-save'){ try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(err){} try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} }
+  // 画弧线
+  const linkOffsetDeg = 15;
+  nodes.forEach((from, i) => {
+    const to = nodes[(i + 1) % nodes.length];
+    const sr = toRad(from.angle + linkOffsetDeg), er = toRad(to.angle - linkOffsetDeg);
+    const x1 = cx + R*Math.cos(sr), y1 = cy + R*Math.sin(sr);
+    const x2 = cx + R*Math.cos(er), y2 = cy + R*Math.sin(er);
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`);
+    path.setAttribute('fill','none'); path.setAttribute('stroke','#cdbfa6'); path.setAttribute('stroke-width','2.4');
+    path.setAttribute('marker-end', `url(#arrow-${to.colorKey})`);
+    path.setAttribute('class','link'); path.dataset.from = from.key; path.dataset.to = to.key;
+    linksLayer.appendChild(path);
   });
-})();
-</script>
+
+  // 画节点
+  nodes.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','node'); g.setAttribute('data-key', n.key);
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y); circle.setAttribute('r', 44);
+    circle.setAttribute('fill', n.color); circle.setAttribute('fill-opacity','0.12');
+    circle.setAttribute('stroke', n.color); circle.setAttribute('stroke-width','2.4');
+    g.appendChild(circle);
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', n.x); text.setAttribute('y', n.y + 6); text.setAttribute('text-anchor','middle');
+    text.setAttribute('fill', n.color); text.setAttribute('font-family',"'Noto Serif SC',serif");
+    text.setAttribute('font-size','19'); text.setAttribute('font-weight','700'); text.textContent = n.name;
+    g.appendChild(text);
+    nodesLayer.appendChild(g);
+    g.addEventListener('mouseenter', () => highlight(n));
+  });
+
+  function highlight(n){
+    document.querySelectorAll('.node').forEach(el => { el.classList.add('dim'); el.querySelector('circle').style.filter=''; });
+    document.querySelectorAll('.link').forEach(el => el.classList.add('dim'));
+    const cur = document.querySelector(`.node[data-key="${n.key}"]`); cur.classList.remove('dim');
+    const c = cur.querySelector('circle');
+    c.setAttribute('stroke-width','3.6'); c.setAttribute('r','48'); c.setAttribute('fill-opacity','0.22');
+    c.style.filter = `drop-shadow(0 0 7px ${n.color}99)`;
+    const idx = nodes.findIndex(x => x.key === n.key);
+    const incoming = nodes[(idx - 1 + nodes.length) % nodes.length];
+    const outgoing = nodes[(idx + 1) % nodes.length];
+    const inLink  = document.querySelector(`.link[data-from="${incoming.key}"][data-to="${n.key}"]`);
+    const outLink = document.querySelector(`.link[data-from="${n.key}"][data-to="${outgoing.key}"]`);
+    [inLink, outLink].forEach(el => { if(el){ el.classList.remove('dim'); el.setAttribute('stroke', n.color); el.setAttribute('stroke-width','3.4'); } });
+    updateInfo(n);
+  }
+
+  function relBubble(role, ans){
+    const v = (ans || '').trim();
+    const todo = /待补充/.test(v);
+    const cap = v || '（资料待补充）';
+    const cls = 'rel-item' + (todo ? ' todo' : ' yong');
+    return `<div class="${cls}">
+      <div class="rel-role"><span class="rel-emoji">${role.icon}</span><span class="rel-name">${role.name}</span></div>
+      <div class="rel-need">${cap}</div>
+    </div>`;
+  }
+
+  function renderCard(n, mode){
+    const driver = getDriver(n.god);
+    const dkey = GOD_TO_DRIVER[n.god];
+    const sixin = (SIXIN[dkey] || {});
+    const isJi = mode === 'ji';
+    const title = driver ? (isJi ? `过度·${driver.name}` : driver.name) : n.name;
+    const points = driver ? pickPoints(isJi ? driver.negative : driver.positive, 3) : ['（资料待补充）'];
+    const relItems = ROLES.map(r => relBubble(r, (sixin[r.key] || {}).ans)).join('');
+    const ink = isJi ? 'var(--ji-ink)' : 'var(--yong-ink)';
+    return `
+      <div class="card ${isJi?'ji':'yong'} fade-in">
+        <div class="card-head">
+          <div class="badge ${isJi?'ji':'yong'}">${isJi?'忌':'用'}</div>
+          <div class="ctitle" style="color:${ink}">${title}<small>${n.name} · ${isJi?'过度态':'积极态'}</small></div>
+        </div>
+        <div class="field"><div class="field-label">${isJi?'过度表现':'核心特征'}</div>
+          <ul class="points">${points.map(p=>`<li>${p}</li>`).join('')}</ul>
+        </div>
+        <div class="field"><div class="field-label">六亲关系</div><div class="rel-grid">${relItems}</div></div>
+      </div>`;
+  }
+
+  function updateInfo(n){
+    const idx = nodes.findIndex(x => x.key === n.key);
+    const prev = nodes[(idx - 1 + nodes.length) % nodes.length];
+    const next = nodes[(idx + 1) % nodes.length];
+    cardYong.innerHTML = renderCard(n, 'yong');
+    cardJi.innerHTML = renderCard(n, 'ji');
+    cap.innerHTML = `当前：<b>${n.name}</b> · ${n.sub}　|　能量流向 ${prev.name} → <b>${n.name}</b> → ${next.name}`;
+  }
+
+  // 初始占位
+  cardYong.innerHTML = renderCard({ name:'十神', god:'比劫' }, 'yong').replace('fade-in','');
+  cardJi.innerHTML = renderCard({ name:'十神', god:'比劫' }, 'ji').replace('fade-in','');
+
+  // ===== 标签切换 =====
+  function switchTab(t){
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+    document.getElementById('tab-graph').style.display = t==='graph' ? 'block' : 'none';
+    document.getElementById('tab-detail').style.display = t==='detail' ? 'block' : 'none';
+  }
+
+  // ===== 用忌详解（全部十神平铺） =====
+  function renderAllDetails(){
+    const wrap = document.getElementById('tab-detail');
+    wrap.innerHTML = nodes.map(n=>{
+      return `<div class="detail-god">
+        <div class="god-name"><span class="gn">${n.name}</span><span class="gx">${n.sub}</span></div>
+        <div class="god-cards">
+          ${renderCard(n,'yong')}
+          ${renderCard(n,'ji')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  renderAllDetails();
+  </script>
+  <script>
+  (function(){
+    window.addEventListener('message',function(e){
+      if(!e.data) return;
+      if(e.data.type==='wb-request-save'){ try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(err){} try{ window.parent.postMessage({type:'wb-saved',msg:'已保存'},'*'); }catch(e){} }
+    });
+  })();
+  </script>
 </body>
 </html>
