@@ -111,6 +111,8 @@
   .db .bar i{ display:block; height:100%; border-radius:9px; transition:width .4s ease; }
   .db .pc{ width:46px; text-align:right; color:var(--ink-soft); }
   .db.core .nm{ color:var(--accent); font-weight:600; }
+  .db.yong .nm{ color:var(--yong-ink); font-weight:600; }
+  .db.ji .nm{ color:var(--ji-ink); }
 
   .grid2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:18px; }
   .box{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
@@ -298,26 +300,26 @@ function compute(){
 function renderCore(){
   if(!CURRENT) return;
   const { bz, res, energies, mean, maxE } = CURRENT;
-  // 核心 = 能量值最高的驱动
-  let coreKey = ORDER[0], coreVal = -1;
-  ORDER.forEach((k,i)=>{ if(energies[i] > coreVal){ coreVal = energies[i]; coreKey = k; } });
+  // 核心驱动力 = 命局「核心用神」（喜用十神第一顺位），由身强身弱判定，非能量值最高
+  const dr = bz.drive;
+  const coreKey = dr.core;          // 核心用神对应十神
+  const secondKey = dr.second;      // 喜用中次高（或忌神中最弱者）
   const coreInfo = DRIVER_INFO[coreKey];
-  const total = energies.reduce((a,b)=>a+b,0) || 1;
-  const corePct = Math.round(coreVal/total*100);
-
-  // 次要 = 第二高
-  const sorted = ORDER.map((k,i)=>({k,v:energies[i]})).sort((a,b)=>b.v-a.v);
-  const secondKey = sorted[1].k;
   const secondInfo = DRIVER_INFO[secondKey];
+  const total = energies.reduce((a,b)=>a+b,0) || 1;
 
-  // 五驱动力分布条（按能量值占比）
+  // 五驱动力分布条（按能量值占比）——仅作「分布」展示，核心高亮由用神决定
   const bars = ORDER.map((k,i)=>{
     const e = energies[i];
     const pct = Math.round(e/total*100);
     const isCore = k===coreKey;
-    return `<div class="db ${isCore?'core':''}"><span class="nm">${k}</span>
+    const isYong = bz.yongshen.xiTen.includes(k);
+    const cls = isCore ? 'core' : (isYong ? 'yong' : 'ji');
+    const label = isCore ? '★核心用神' : (isYong ? '喜用' : '忌神');
+    return `<div class="db ${cls}"><span class="nm">${k}</span>
       <span class="bar"><i style="width:${pct}%;background:${WX_COLOR[DRIVER_INFO[k].element]}"></i></span>
-      <span class="pc">${pct}%</span></div>`;
+      <span class="pc">${pct}%</span>
+      <span style="width:62px;font-size:11px;color:${isCore?'var(--accent)':(isYong?'var(--yong-ink)':'var(--ji-ink)')}">${label}</span></div>`;
   }).join('');
 
   // 日主天性
@@ -325,32 +327,32 @@ function renderCore(){
   // 成长方向（用神）
   const growTen = bz.yongshen.xiTen;
   const growWx = bz.yongshen.xiWx.map(i=>BaziEngine.WX_NAME[i]);
-  // 人生主题
-  const lv = bz.strength.level;
-  let theme = `日主${G[bz.dayMaster]}${BaziEngine.WX_NAME[bz.dmWx]}，命局${lv}。你的核心驱动力落在「${coreInfo.name}」，辅以「${secondInfo.name}」。`;
-  if(lv==='身强') theme += '自身能量足，适合主动把驱动力转化为对外产出。';
-  else if(lv==='身弱') theme += '能量需涵养，先稳住内核与依托，再让驱动力从容展开。';
-  else theme += '强弱均衡，随流年与大运在「收」与「放」之间灵活切换。';
+  // 人生主题（基于用神视角）
+  const theme = dr.theme;
 
   document.getElementById('coreOut').innerHTML = `
     <div class="core-card">
       <div class="icon">${coreInfo.icon}</div>
       <div class="body">
-        <div class="k">核心驱动力（能量值最高）</div>
-        <div class="t">${coreInfo.name}</div>
+        <div class="k">核心驱动力 ＝ 命局「核心用神」</div>
+        <div class="t">${coreInfo.name}（${coreKey}）</div>
         <div class="d">${coreInfo.yong}</div>
       </div>
-      <div class="pct"><b>${corePct}%</b><span>能量占比</span></div>
+      <div class="pct"><b>第${['一','二','三','四','五'][bz.yongshen.xiTen.indexOf(coreKey)+1]||'一'}喜用</b><span>用神顺位</span></div>
+    </div>
+    <div class="note" style="margin-top:0;margin-bottom:18px;background:var(--yong-bg);border-color:var(--yong-bd)">
+      <b>概念说明：</b>核心驱动力不是「命里出现最多的十神」，而是命局<span style="color:var(--yong-ink)">最需要、最能平衡日主</span>的「喜用十神（用神）」。
+      它由日主身强身弱决定——身强喜克泄耗（官杀/食伤/财），身弱喜生扶（印/比劫）。能量值高低只反映该驱动力的活跃度，不决定核心。
     </div>
 
     <div class="drivebars"><h3>五类驱动力分布（按能量值）</h3>${bars}</div>
 
     <div class="grid2">
-      <div class="box"><h3>次要驱动力</h3>
-        <p><span class="tag">${secondInfo.name}</span></p>
+      <div class="box"><h3>次要驱动力（喜用次位）</h3>
+        <p><span class="tag yong">${secondInfo.name}（${secondKey}）</span></p>
         <p style="margin-top:8px;color:var(--ink-soft);font-size:12.5px;">${secondInfo.yong}</p></div>
       <div class="box"><h3>日主天性</h3>
-        <p>日主 <b>${G[bz.dayMaster]}${dmNature.wx}</b>（${dmNature.yin==='阳'?'阳':'阴'}）</p>
+        <p>日主 <b>${G[bz.dayMaster]}${dmNature.wx}</b>（${dmNature.yin==='阳'?'阳':'阴'}）· 命局${bz.strength.level}</p>
         <p style="margin-top:6px;color:var(--ink-soft);font-size:12.5px;">${dmNature.txt}</p></div>
       <div class="box"><h3>成长方向（用神）</h3>
         <p><span class="tag yong">${growTen.join('</span><span class="tag yong">')}</span></p>
@@ -362,8 +364,8 @@ function renderCore(){
       <span class="tt">人生主题</span>
       <p>${theme}</p>
       <span class="tt">给你的小建议</span>
-      <p>你被「<span class="hl">${coreInfo.name}</span>」推动，但别忘了「${secondInfo.name}」也是你的一部分。
-        在 ${growTen.join('、')} 上多给自己一些空间与练习，动力会更稳、更久。</p>
+      <p>你被「<span class="hl">${coreInfo.name}</span>」这一用神推动，它是你补足命局、舒展天性的通道；「${secondInfo.name}」作为喜用次位，同样值得经营。
+        在 ${growTen.join('、')} 上多给自己空间与练习，动力会更稳、更久。</p>
       <span class="tt">与六亲的具体关系</span>
       <p>如「需要妈妈的什么」「伴侣给你什么」等，见驱动力页的「六亲关系矩阵」与十神关系图。</p>
     </div>`;
