@@ -1498,7 +1498,6 @@ function renderScene(){
   } else {
     navHtml += `<button class="btn" onclick="goNext()">下一场景</button>`;
   }
-  navHtml += `<button class="btn ghost" onclick="goHome()">返回首页</button></div>`;
   html += navHtml;
   app.innerHTML = html;
   renderQA();
@@ -1560,7 +1559,6 @@ function renderRandom(){
   html += `<div class="nav">
     <button class="btn ghost" ${state.currentQ===0?'disabled':''} onclick="randPrev()">上一题</button>
     <button class="btn" onclick="goNext()">${isLast?'完成':'下一题'}</button>
-    <button class="btn ghost" onclick="goHome()">返回首页</button>
   </div>`;
   app.innerHTML = html;
 }
