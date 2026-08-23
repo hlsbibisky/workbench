@@ -291,6 +291,11 @@
   }
 
   // ---------- 核心驱动力分析 ----------
+  // 命理定义：核心驱动力 = 「核心用神」之十神，即命局最需要、最能平衡日主的喜用十神，
+  //   而非十神出现最多 / 能量值最高的那一个。
+  // 算法：取 profile.yongshen.xiTen（喜用十神，按身强身弱已定），
+  //   核心 = 喜用中第一顺位；次要 = 喜用中能量值次高者（避免选到命局几乎不存的）。
+  // 能量值（computeDriveEnergies）只用于「分布/占比」展示，不用于判定核心。
   const DRIVE_INFO = {
     '食伤': { title:'表达与创造', icon:'✎',
       desc:'你天生的发动机是「我想表达、我想创造」。食伤代表才华、创意、自由与输出欲——你渴望把自己的想法具象化，讨厌被框死。',
@@ -310,16 +315,31 @@
   };
 
   function analyzeDrive(p) {
-    const w = p.driveW;
-    const entries = Object.entries(w).sort((a,b)=>b[1]-a[1]);
-    const core = entries[0][0];
-    const second = entries[1][0];
-    const total = entries.reduce((s,e)=>s+e[1],0) || 1;
+    const w = p.driveW;                       // 旧权重模型（仅作占比展示，不再判定核心）
+    const xiTen = p.yongshen.xiTen;           // 喜用十神（核心用神候选，已按身强身弱定）
+    const total = Object.values(w).reduce((a,b)=>a+b,0) || 1;
     const pct = {};
     Object.keys(w).forEach(k => pct[k] = Math.round(w[k]/total*100));
+
+    // 能量值（用于次要驱动择优）
+    const energies = computeDriveEnergies(p).energies;
+
+    // 核心驱动力 = 喜用第一顺位（核心用神）
+    const core = xiTen[0];
+    // 次要驱动 = 喜用中（除核心外）能量值最高者；若喜用仅一个则用忌神里能量最低者兜底
+    let second = null;
+    const restXi = xiTen.slice(1);
+    if (restXi.length) {
+      second = restXi.slice().sort((a,b)=>energies[b]-energies[a])[0];
+    } else {
+      // 极端情况：喜用只有1个，次要取忌神里能量值最低（最弱、影响最小）的，避免重复
+      second = p.yongshen.jiTen.slice().sort((a,b)=>energies[a]-energies[b])[0];
+    }
+    if (!second) second = core;
+
     // 日主天性
     const dmNature = DAY_MASTER[GAN[p.dayMaster]];
-    // 成长方向 = 用神十神
+    // 成长方向 = 用神十神（喜用全部）
     const grow = p.yongshen.xiTen;
     return {
       core, second, weights:w, pct,
@@ -328,6 +348,9 @@
       dmNature,
       growTen: grow,
       growWx: p.yongshen.xiWx.map(i=>WX_NAME[i]),
+      isYong: true,                            // 标记：核心=核心用神（非能量最高）
+      yongshen: p.yongshen,
+      energies,
       theme: buildTheme(p, core, second)
     };
   }
@@ -335,10 +358,11 @@
   function buildTheme(p, core, second) {
     const lv = p.strength.level;
     let t = `日主${GAN[p.dayMaster]}${WX_NAME[p.dmWx]}，命局${lv}。`;
-    t += `你的核心驱动力落在「${DRIVE_INFO[core].title}」，辅以「${DRIVE_INFO[second].title}」。`;
-    if (lv === '身强') t += '自身能量足，适合主动出击、把驱动力转化为对外产出。';
-    else if (lv === '身弱') t += '能量需涵养，先稳住内核与依托，再让驱动力从容展开。';
-    else t += '强弱均衡，随流年与大运在「收」与「放」之间灵活切换。';
+    t += `你的核心驱动力是命局的「核心用神」——${DRIVE_INFO[core].title}（喜用十神），`;
+    t += `辅以「${DRIVE_INFO[second].title}」。`;
+    if (lv === '身强') t += '身强喜克泄耗，把核心用神化为对外产出，正是你舒展的通道。';
+    else if (lv === '身弱') t += '身弱喜生扶，核心用神给你底气与依托，先养住再谈展开。';
+    else t += '强弱均衡，核心用神随流年与大运在「收」与「放」之间灵活显用。';
     return t;
   }
 
