@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>八字能量分布 · 驱动力</title>
+<title>八字能量分布 · 核心驱动力</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
   :root{
@@ -31,6 +31,15 @@
   .page-h .sub{ font-size:13px; color:var(--ink-soft); letter-spacing:2px; margin-top:6px; }
   .rule{ width:140px; height:1px; margin:14px auto 22px; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
 
+  /* 顶部标签切换 */
+  .tabs{ display:flex; gap:10px; justify-content:center; margin:0 0 24px; flex-wrap:wrap; }
+  .tab{ font-family:'Noto Serif SC',serif; font-size:15px; letter-spacing:2px; color:var(--ink-soft);
+    background:var(--paper-2); border:1px solid var(--line); border-radius:30px; padding:9px 30px;
+    cursor:pointer; transition:all .2s ease; }
+  .tab:hover{ color:var(--accent); border-color:var(--accent); }
+  .tab.active{ color:#fff; background:var(--accent); border-color:var(--accent);
+    box-shadow:0 8px 18px -8px rgba(184,113,78,.7); }
+
   /* 输入卡片 */
   .input-card{ background:var(--paper-2); border:1px solid var(--line); border-radius:16px;
     padding:22px 24px; max-width:640px; margin:0 auto 26px; box-shadow:0 6px 20px rgba(120,90,60,.10); }
@@ -49,6 +58,7 @@
   #result.on{ display:block; animation:fade .3s ease; }
   @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
+  /* —— 能量分布视图 —— */
   .bazi-bar{ text-align:center; background:var(--paper-2); border:1px solid var(--line);
     border-radius:14px; padding:16px; margin-bottom:22px; }
   .bazi-bar .pillars{ font-family:'Noto Serif SC',serif; font-size:22px; letter-spacing:6px; color:var(--ink); }
@@ -79,15 +89,65 @@
   .note{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:22px; line-height:1.8;
     background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:14px 18px; }
   .note b{ color:var(--accent); }
+
+  /* —— 核心驱动力视图 —— */
+  .core-card{ background:linear-gradient(135deg,#fffdf9,#f6ece2); border:1px solid var(--line);
+    border-radius:16px; padding:22px 24px; margin-bottom:18px; display:flex; gap:20px; align-items:flex-start;
+    border-left:5px solid var(--accent); }
+  .core-card .icon{ font-size:40px; line-height:1; }
+  .core-card .body{ flex:1; }
+  .core-card .k{ font-size:12px; letter-spacing:2px; color:var(--ink-soft); }
+  .core-card .t{ font-family:'Noto Serif SC',serif; font-size:23px; font-weight:700; color:var(--accent); margin:2px 0 8px; }
+  .core-card .d{ font-size:14px; color:var(--ink); line-height:1.7; }
+  .core-card .pct{ margin-left:auto; text-align:center; flex:0 0 auto; }
+  .core-card .pct b{ font-family:'Noto Serif SC',serif; font-size:30px; color:var(--yong-ink); }
+  .core-card .pct span{ font-size:12px; color:var(--ink-soft); display:block; }
+
+  .drivebars{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:18px; }
+  .drivebars h3{ font-family:'Noto Serif SC',serif; font-size:14px; letter-spacing:1px; color:var(--accent); margin:0 0 14px; }
+  .db{ display:flex; align-items:center; gap:12px; margin:10px 0; font-size:13px; }
+  .db .nm{ width:96px; font-family:'Noto Serif SC',serif; }
+  .db .bar{ flex:1; height:16px; background:var(--line); border-radius:9px; overflow:hidden; }
+  .db .bar i{ display:block; height:100%; border-radius:9px; transition:width .4s ease; }
+  .db .pc{ width:46px; text-align:right; color:var(--ink-soft); }
+  .db.core .nm{ color:var(--accent); font-weight:600; }
+
+  .grid2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:18px; }
+  .box{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .box h3{ font-family:'Noto Serif SC',serif; font-size:14px; letter-spacing:1px; color:var(--accent); margin:0 0 10px; }
+  .box p{ font-size:13.5px; margin:0; color:var(--ink); line-height:1.7; }
+  .tag{ display:inline-block; margin:3px 4px 0 0; padding:4px 12px; border-radius:11px; background:var(--paper); color:var(--ink); font-size:13px; }
+  .tag.wx{ background:#efe6da; }
+  .tag.yong{ background:var(--yong-bg); color:var(--yong-ink); border:1px solid var(--yong-bd); }
+
+  .read{ background:var(--paper-2); border:1px solid var(--line); border-radius:14px; padding:18px 22px; font-size:14px; line-height:1.9; }
+  .read .tt{ font-family:'Noto Serif SC',serif; font-size:15px; font-weight:700; display:block; margin:14px 0 6px; letter-spacing:1px; }
+  .read .tt:first-child{ margin-top:0; }
+  .read .hl{ color:var(--accent); font-weight:600; }
+
+  @media (max-width:680px){
+    .core-card{ flex-direction:column; gap:12px; padding:18px 16px; }
+    .core-card .icon{ font-size:32px; }
+    .core-card .pct{ margin-left:0; text-align:left; }
+    .core-card .pct b{ font-size:26px; }
+    .db .nm{ width:72px; }
+    .db .pc{ width:40px; }
+    .grid2{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="page-h">
     <h1>八字能量分布</h1>
-    <div class="sub">输入出生信息 → 看五种驱动力的能量值</div>
+    <div class="sub">输入出生信息 → 看五种驱动力的能量值与核心驱动力</div>
   </div>
   <div class="rule"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-view="energy" onclick="switchView('energy')">能量分布</button>
+    <button class="tab" data-view="core" onclick="switchView('core')">核心驱动力</button>
+  </div>
 
   <div class="input-card">
     <h3>输入出生信息</h3>
@@ -124,15 +184,22 @@
   </div>
 
   <div id="result">
-    <div class="bazi-bar">
-      <div class="pillars" id="pillars"></div>
-      <div class="dm" id="dmLine"></div>
+    <!-- 视图一：能量分布 -->
+    <div id="view-energy">
+      <div class="bazi-bar">
+        <div class="pillars" id="pillars"></div>
+        <div class="dm" id="dmLine"></div>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div class="note">
+        <b>怎么读：</b>能量值越高，该驱动力在这人命局里越活跃。强度为正（绿）表示偏强，为负（红）表示偏弱。
+        标「<b>核心</b>」＝最强驱动力；标「<b>过度</b>」＝该驱动力过强或过弱（极端态，易显失衡面）。
+      </div>
     </div>
-    <div class="cards" id="cards"></div>
-    <div class="note">
-      <b>怎么读：</b>能量值越高，该驱动力在这人命局里越活跃。强度为正（绿）表示偏强，为负（红）表示偏弱。
-      标「<b>核心</b>」＝最强驱动力；标「<b>过度</b>」＝该驱动力过强或过弱（极端态，易显失衡面）。
-      与六亲的具体关系（如「需要妈妈的什么」）见驱动力页的「六亲关系矩阵」。
+
+    <!-- 视图二：核心驱动力 -->
+    <div id="view-core" style="display:none">
+      <div id="coreOut"></div>
     </div>
   </div>
 </div>
@@ -141,27 +208,36 @@
 <script>
 /* 十神组 → 驱动力信息（与 驱动力.html 的 DRIVERS 映射一致） */
 const DRIVER_INFO = {
-  '比劫': { name:'自我价值感驱动', element:'木', color:'var(--wx-mu)',
+  '比劫': { name:'自我价值感驱动', element:'木', color:'var(--wx-mu)', icon:'🌱',
     yong:'靠赚钱与被需要确认价值、能主动表达需求、会逗母亲开心',
     ji:'不停找事证明自己、忍受不了控制欲、自私、不配得感' },
-  '食伤': { name:'情感驱动', element:'火', color:'var(--wx-huo)',
+  '食伤': { name:'情感驱动', element:'火', color:'var(--wx-huo)', icon:'🔥',
     yong:'有情、容易开心、共情强、旺夫、社牛',
     ji:'带怨念嗔恨、最会吵架、翻旧账、在男人身上找情变怨恨' },
-  '财':   { name:'物质驱动', element:'土', color:'var(--wx-tu)',
+  '财':   { name:'物质驱动', element:'土', color:'var(--wx-tu)', icon:'⛰️',
     yong:'花钱开心、招感财富、对价值敏感、适合价值投资',
     ji:'眼里只有钱、以借钱/目的交友恋爱' },
-  '官杀': { name:'责任感驱动', element:'金', color:'var(--wx-jin)',
+  '官杀': { name:'责任感驱动', element:'金', color:'var(--wx-jin)', icon:'🛡️',
     yong:'最靠谱、规划目标、领导力驾驭、稳定伴侣=意义',
     ji:'回避责任、讨厌被要求、男回避（承担不了责任）' },
-  '印':   { name:'精神驱动', element:'水', color:'var(--wx-shui)',
+  '印':   { name:'精神驱动', element:'水', color:'var(--wx-shui)', icon:'💧',
     yong:'理性目标感、智慧、杀印相生成就霸业、朋友精神同频',
     ji:'无情无爱、忍受不了陪伴/控制、攻击性爱、最易被渣男玩弄' },
 };
 /* 五行顺序：木→火→土→金→水 */
 const ORDER = ['比劫','食伤','财','官杀','印'];
+const WX_COLOR = {'木':'#5b8c7b','火':'#c8694e','土':'#b8924a','金':'#8a837a','水':'#4a7fb8'};
 
 const G = BaziEngine.GAN, Z = BaziEngine.ZHI;
 const gz = p => G[p.gan] + Z[p.zhi];
+
+let CURRENT = null; // 缓存当前计算结果
+
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('view-energy').style.display = v==='core' ? 'none' : 'block';
+  document.getElementById('view-core').style.display = v==='core' ? 'block' : 'none';
+}
 
 function compute(){
   const dt = document.getElementById('birth').value;
@@ -209,10 +285,88 @@ function compute(){
       <div class="desc">${desc}</div>
     </div>`;
   }).join('');
-
   document.getElementById('cards').innerHTML = cardsHtml;
+
+  // 缓存并渲染核心驱动力视图
+  CURRENT = { bz, res, energies, mean, maxE };
+  renderCore();
+
   document.getElementById('result').classList.add('on');
   document.getElementById('result').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderCore(){
+  if(!CURRENT) return;
+  const { bz, res, energies, mean, maxE } = CURRENT;
+  // 核心 = 能量值最高的驱动
+  let coreKey = ORDER[0], coreVal = -1;
+  ORDER.forEach((k,i)=>{ if(energies[i] > coreVal){ coreVal = energies[i]; coreKey = k; } });
+  const coreInfo = DRIVER_INFO[coreKey];
+  const total = energies.reduce((a,b)=>a+b,0) || 1;
+  const corePct = Math.round(coreVal/total*100);
+
+  // 次要 = 第二高
+  const sorted = ORDER.map((k,i)=>({k,v:energies[i]})).sort((a,b)=>b.v-a.v);
+  const secondKey = sorted[1].k;
+  const secondInfo = DRIVER_INFO[secondKey];
+
+  // 五驱动力分布条（按能量值占比）
+  const bars = ORDER.map((k,i)=>{
+    const e = energies[i];
+    const pct = Math.round(e/total*100);
+    const isCore = k===coreKey;
+    return `<div class="db ${isCore?'core':''}"><span class="nm">${k}</span>
+      <span class="bar"><i style="width:${pct}%;background:${WX_COLOR[DRIVER_INFO[k].element]}"></i></span>
+      <span class="pc">${pct}%</span></div>`;
+  }).join('');
+
+  // 日主天性
+  const dmNature = BaziEngine.DAY_MASTER[G[bz.dayMaster]];
+  // 成长方向（用神）
+  const growTen = bz.yongshen.xiTen;
+  const growWx = bz.yongshen.xiWx.map(i=>BaziEngine.WX_NAME[i]);
+  // 人生主题
+  const lv = bz.strength.level;
+  let theme = `日主${G[bz.dayMaster]}${BaziEngine.WX_NAME[bz.dmWx]}，命局${lv}。你的核心驱动力落在「${coreInfo.name}」，辅以「${secondInfo.name}」。`;
+  if(lv==='身强') theme += '自身能量足，适合主动把驱动力转化为对外产出。';
+  else if(lv==='身弱') theme += '能量需涵养，先稳住内核与依托，再让驱动力从容展开。';
+  else theme += '强弱均衡，随流年与大运在「收」与「放」之间灵活切换。';
+
+  document.getElementById('coreOut').innerHTML = `
+    <div class="core-card">
+      <div class="icon">${coreInfo.icon}</div>
+      <div class="body">
+        <div class="k">核心驱动力（能量值最高）</div>
+        <div class="t">${coreInfo.name}</div>
+        <div class="d">${coreInfo.yong}</div>
+      </div>
+      <div class="pct"><b>${corePct}%</b><span>能量占比</span></div>
+    </div>
+
+    <div class="drivebars"><h3>五类驱动力分布（按能量值）</h3>${bars}</div>
+
+    <div class="grid2">
+      <div class="box"><h3>次要驱动力</h3>
+        <p><span class="tag">${secondInfo.name}</span></p>
+        <p style="margin-top:8px;color:var(--ink-soft);font-size:12.5px;">${secondInfo.yong}</p></div>
+      <div class="box"><h3>日主天性</h3>
+        <p>日主 <b>${G[bz.dayMaster]}${dmNature.wx}</b>（${dmNature.yin==='阳'?'阳':'阴'}）</p>
+        <p style="margin-top:6px;color:var(--ink-soft);font-size:12.5px;">${dmNature.txt}</p></div>
+      <div class="box"><h3>成长方向（用神）</h3>
+        <p><span class="tag yong">${growTen.join('</span><span class="tag yong">')}</span></p>
+        <p style="margin-top:8px;color:var(--ink-soft);font-size:12.5px;">补运五行：
+          <span class="tag wx">${growWx.join('</span><span class="tag wx">')}</span></p></div>
+    </div>
+
+    <div class="read">
+      <span class="tt">人生主题</span>
+      <p>${theme}</p>
+      <span class="tt">给你的小建议</span>
+      <p>你被「<span class="hl">${coreInfo.name}</span>」推动，但别忘了「${secondInfo.name}」也是你的一部分。
+        在 ${growTen.join('、')} 上多给自己一些空间与练习，动力会更稳、更久。</p>
+      <span class="tt">与六亲的具体关系</span>
+      <p>如「需要妈妈的什么」「伴侣给你什么」等，见驱动力页的「六亲关系矩阵」与十神关系图。</p>
+    </div>`;
 }
 
 document.getElementById('genBtn').onclick = compute;
