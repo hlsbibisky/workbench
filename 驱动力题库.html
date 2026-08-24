@@ -101,6 +101,8 @@
   let chosen = [];
   let revealed = false;
   let answers = {};
+  let history = [];      // 访问历史栈（按实际看到的顺序）
+  let historyIdx = -1;   // 当前在历史栈中的位置
   const qmap = new Map();
   DATA.questions.forEach(q=>qmap.set(q.id, q));
   const CATS = DATA.categories;
@@ -160,27 +162,54 @@
     if(!pool.length) pool=shuffle(idsWhere());
     if(!pool.length) return card(flush('当前分类下暂无题目'));
     const qid=pool.shift(); pool.push(qid);
-    showQuestion(qid);
+    showQuestion(qid, false);
   }
   function drawAll(){
     pool=shuffle(idsWhere()); idx=0;
+    history=[]; historyIdx=-1;
     if(pool.length) next(); else card(flush('当前分类下暂无题目'));
   }
   function next(){
+    // 如果当前在历史中间，先向前走历史
+    if(historyIdx < history.length-1){
+      historyIdx++;
+      showQuestion(history[historyIdx], true);
+      return;
+    }
+    // 否则从 pool 抽新题
     if(!pool.length){ card(flush('本轮已抽完，点「抽一题」或「全部打乱」重新开始')); return; }
     const qid=pool[idx]; idx=(idx+1)%pool.length;
-    showQuestion(qid);
+    showQuestion(qid, false);
+  }
+  function prev(){
+    if(historyIdx <= 0) return;
+    historyIdx--;
+    showQuestion(history[historyIdx], true);
   }
 
   function humanType(t){ return {judge:'是非题',single:'单选题',multi:'多选题',short:'简答题'}[t]||t; }
   function chipTypeName(t){ return {judge:'是非',single:'单选',multi:'多选',short:'简答'}[t]; }
   function catName(id){ if(id==='all')return '全部'; const c=CATS.find(x=>x.id===id); return c?c.name:id; }
 
-  function showQuestion(qid){
+  function showQuestion(qid, fromHistory){
     const q=qmap.get(qid); if(!q) return;
+
+    // 维护访问历史（仅在不是由「上一题」回退触发时入栈）
+    if(!fromHistory){
+      if(historyIdx < history.length-1) history = history.slice(0, historyIdx+1);
+      history.push(qid);
+      historyIdx = history.length-1;
+    }
+
     order = shuffle(q.options ? q.options.map((_,i)=>i) : [0,1]);
-    chosen=[]; revealed=false;
-    renderCard(q);
+
+    // 如果已经答过，直接显示只读结果；否则显示可作答卡片
+    if(answers[qid] && answers[qid]._s){
+      renderReviewCard(q, answers[qid]);
+    } else {
+      chosen=[]; revealed=false;
+      renderCard(q);
+    }
   }
 
   function correctIndices(q){
@@ -201,6 +230,34 @@
     if(q.type==='single'){ return picked.length===1 && picked[0]===q.ans; }
     if(q.type==='multi'){ return picked.slice().sort().join()===q.ans.slice().sort().join(); }
     return false;
+  }
+
+  // ===== 简答题相似度判分 =====
+  function normalizeText(s){
+    return String(s).toLowerCase()
+      .replace(/[^\u4e00-\u9fa5a-z0-9]/g,'')
+      .trim();
+  }
+  function bigrams(s){
+    const arr=[];
+    for(let i=0;i<s.length-1;i++) arr.push(s.slice(i,i+2));
+    return arr;
+  }
+  function jaccard(a,b){
+    if(!a.length || !b.length) return 0;
+    const sa=new Set(a), sb=new Set(b);
+    let inter=0;
+    sa.forEach(x=>{ if(sb.has(x)) inter++; });
+    return inter/(sa.size+sb.size-inter);
+  }
+  function matchShortAnswer(input, ans){
+    const ni=normalizeText(input);
+    const na=normalizeText(ans);
+    if(!ni) return {ok:false, score:0};
+    if(ni===na) return {ok:true, score:1};
+    if(ni.includes(na) || na.includes(ni)) return {ok:true, score:0.95};
+    const score=jaccard(bigrams(ni), bigrams(na));
+    return {ok: score>=0.5, score: score};
   }
   function race(n){ return 'ABCDEFGHIJ'[n]; }
   function optText(q,oi){
@@ -224,8 +281,11 @@
     } else {
       inner+=`<textarea class="short-in" id="shortIn" placeholder="在脑海或此处写下你的答案…"></textarea>`;
     }
-    inner+=`<div class="toolbar" style="margin:6px 0 0">
-      <button class="btn ghost" id="actBtn" style="${q.type==='short'||q.type==='multi'?'':''}">${q.type==='short'?'显示答案':(q.type==='multi'?'提交答案':'')}</button>
+    const hasPrev = historyIdx > 0;
+    const actText = q.type==='short' ? '提交答案' : (q.type==='multi' ? '提交答案' : '');
+    inner+=`<div class="toolbar" style="margin:6px 0 0;gap:10px">
+      ${hasPrev ? '<button class="btn ghost" id="prevBtn">上一题</button>' : ''}
+      <button class="btn ghost" id="actBtn" style="${actText?'':'display:none'}">${actText}</button>
       <button class="btn ghost" id="skipBtn">下一题</button>
     </div>`;
     inner+=`<div id="ansArea"></div>`;
@@ -253,19 +313,82 @@
     // action button
     const actBtn=document.getElementById('actBtn');
     if(actBtn){
-      actBtn.style.display = (q.type==='short'||q.type==='multi') ? '' : 'none';
       actBtn.addEventListener('click',()=>{ if(!revealed) revealAnswer(q); });
     }
+    const prevBtn=document.getElementById('prevBtn');
+    if(prevBtn){ prevBtn.addEventListener('click',()=>prev()); }
     document.getElementById('skipBtn').addEventListener('click',()=>next());
+  }
+
+  // 回看已答过的题（只读）
+  function renderReviewCard(q, rec){
+    const area=document.getElementById('cardArea');
+    let inner='';
+    inner+=`<div class="card" id="qcard">`;
+    inner+=`<div class="qmeta"><span class="chip">${catName(q.cat)}</span><span class="chip t">${chipTypeName(q.type)}</span><span class="qnum">${q.id}</span><span class="chip" style="background:#faf3e0;color:#b8714e;margin-left:auto">已作答</span></div>`;
+    inner+=`<div class="q">${q.q}</div>`;
+    if(q.type!=='short'){
+      inner+=`<div class="options" id="opts">`;
+      const ci=correctIndices(q);
+      const correctPos = new Set(ci.map(i=>order.indexOf(i)));
+      for(let k=0;k<order.length;k++){
+        const oi=order[k]; const isCorr=correctPos.has(k);
+        const isPicked = rec.chosen && rec.chosen.includes(oi);
+        let cls='opt readonly' + (isCorr?' ok':'') + (isPicked&&!isCorr?' bad':'');
+        inner+=`<div class="${cls}" data-pos="${k}"><span class="key">${race(k)}</span><span>${optText(q,oi)}</span></div>`;
+      }
+      inner+=`</div>`;
+    } else {
+      inner+=`<div style="background:#fbf7ec;border:1px solid var(--rule);border-radius:10px;padding:12px 14px;margin:10px 0;font-size:15px;color:var(--ink)">${rec.input ? escHtml(rec.input) : '<span style="color:var(--muted)">（未填写）</span>'}</div>`;
+    }
+    const hasPrev = historyIdx > 0;
+    inner+=`<div class="toolbar" style="margin:6px 0 0;gap:10px">
+      ${hasPrev ? '<button class="btn ghost" id="prevBtn">上一题</button>' : ''}
+      <button class="btn ghost" id="skipBtn">下一题</button>
+    </div>`;
+    inner+=`<div id="ansArea"></div>`;
+    inner+=`</div>`;
+    area.innerHTML=inner;
+
+    // 直接渲染答案区
+    const aa=document.createElement('div');
+    aa.className='ans-show';
+    const right = rec.right;
+    const verdict = right
+      ? '<div class="alabel" style="color:var(--ok)">✔ 答对了</div>'
+      : '<div class="alabel" style="color:var(--no)">✘ 答错了</div>';
+    const ansLine = q.type==='short' ? '' : '<div class="alabel">正确答案</div>';
+    aa.innerHTML = verdict + ansLine +
+      `<div class="ansline">${correctText(q)}</div>` +
+      `<div class="explain"><b>解析：</b>${q.exp}</div>`;
+    const c=document.querySelector('#ansArea');
+    c.innerHTML=''; c.appendChild(aa);
+
+    const prevBtn=document.getElementById('prevBtn');
+    if(prevBtn){ prevBtn.addEventListener('click',()=>prev()); }
+    document.getElementById('skipBtn').addEventListener('click',()=>next());
+  }
+
+  function escHtml(s){
+    return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
   function revealAnswer(q){
     revealed=true;
     const qid=q.id;
     let right=null;
-    if(q.type!=='short'){
+    let userInput='';
+    if(q.type==='short'){
+      const ta=document.getElementById('shortIn');
+      userInput = ta ? ta.value.trim() : '';
+      if(userInput){
+        const m = matchShortAnswer(userInput, q.ans);
+        right = m.ok;
+      }
+    } else {
       if(chosen.length) right=isAnsCorrect(q,chosen);
     }
+
     if(q.type!=='short'){
       const ci = correctIndices(q);
       const correctOrderPos = ci.map(i=>order.indexOf(i));
@@ -277,6 +400,7 @@
         o.classList.remove('picked'); o.classList.add('readonly');
       });
     }
+
     const aa=document.createElement('div');
     aa.className='ans-show';
     let verdictTxt='';
@@ -285,6 +409,9 @@
                        : '<div class="alabel" style="color:var(--no)">✘ 答错了</div>';
       if(!answers[qid]) answers[qid]={right:false,wrong:0};
       const rec=answers[qid];
+      rec._s = true;                 // 标记已提交
+      rec.input = userInput;         // 简答题保存用户输入
+      rec.chosen = chosen.slice();   // 选择题保存选项
       if(right){ if(!rec._r){rec.right=true; rec._r=true;} }
       else rec.wrong++;
       const r2=Object.entries(answers).filter(([,v])=>v.right).length;
@@ -309,11 +436,11 @@
 
   document.getElementById('drawBtn').addEventListener('click',()=>drawOne());
   document.getElementById('shuffleBtn').addEventListener('click',()=>drawAll());
-  document.getElementById('resetBtn').addEventListener('click',()=>{ answers={}; pool=shuffle(idsWhere()); idx=0; recalcGlobal(); card(''); });
+  document.getElementById('resetBtn').addEventListener('click',()=>{ answers={}; pool=shuffle(idsWhere()); idx=0; history=[]; historyIdx=-1; recalcGlobal(); card(''); });
 
   pool=shuffle(DATA.questions.map(q=>q.id));
   recalcGlobal();
-  card(`<div class="flush-centered">点上方「抽一题」开始随机自测，或点标签按主题切换。<br>选择题 / 是非题：<b>选中即判对错</b>并给出正确答案与解析；多选需点「提交答案」，简答点「显示答案」对照。</div>`);
+  card(`<div class="flush-centered">点上方「抽一题」开始随机自测，或点标签按主题切换。<br>选择题 / 是非题：<b>选中即判对错</b>；多选与简答需点「提交答案」，简答题会根据语义相似度自动判定对错。</div>`);
 })();
 </script>
 
