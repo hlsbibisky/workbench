@@ -98,6 +98,7 @@
   .badge.零食{ background:#f1e6f3; color:#7a4f86; }
   /* 零食分类配色 */
   .badge.甜{ background:#f7e3ec; color:#b5497a; }
+  .badge.酸{ background:#eef6dc; color:#7a9a2f; }
   .badge.咸{ background:#e3eef3; color:#3f7a9a; }
   .badge.脆{ background:#f3ecd9; color:#9a7b3a; }
   .badge.辣{ background:#fbe0da; color:#c0392b; }
@@ -168,6 +169,7 @@
   .rtype-badge.主食{ background:rgba(138,109,59,.82); }
   .rtype-badge.零食{ background:rgba(122,79,134,.82); }
   .rtype-badge.甜{ background:rgba(181,73,122,.82); }
+  .rtype-badge.酸{ background:rgba(122,154,47,.82); }
   .rtype-badge.咸{ background:rgba(63,122,154,.82); }
   .rtype-badge.脆{ background:rgba(154,123,58,.82); }
   .rtype-badge.辣{ background:rgba(192,57,43,.82); }
@@ -203,6 +205,7 @@
   .pick-meta .badge.汤{ background:rgba(120,140,170,.14); color:#5a6b86; }
   .pick-meta .badge.主食{ background:rgba(180,150,90,.16); color:#9a7b3a; }
   .pick-meta .badge.甜{ background:rgba(181,73,122,.14); color:#b5497a; }
+  .pick-meta .badge.酸{ background:rgba(122,154,47,.14); color:#7a9a2f; }
   .pick-meta .badge.咸{ background:rgba(63,122,154,.14); color:#3f7a9a; }
   .pick-meta .badge.脆{ background:rgba(154,123,58,.14); color:#9a7b3a; }
   .pick-meta .badge.辣{ background:rgba(192,57,43,.12); color:#c0392b; }
@@ -2202,7 +2205,7 @@ function openDrinkViewer(id){
 }
 
 /* ============ 零食库（结构同饮品库；分类/字段为占位，待用户细化） ============ */
-const SNACK_TYPES = ['甜','咸','脆','辣','肉制品','水果'];
+const SNACK_TYPES = ['甜','酸','咸','脆','辣','肉制品','水果'];
 const SNACK_FORMS = [['即食',1],['需加工',3],['冷藏',5]];
 function snackFormLabel(v){
   const n = parseInt(v)||1;
@@ -2216,6 +2219,7 @@ function renderSnacks(){
   const cats = [
     {type:'all', label:'全部'},
     {type:'甜', label:'甜'},
+    {type:'酸', label:'酸'},
     {type:'咸', label:'咸'},
     {type:'脆', label:'脆'},
     {type:'辣', label:'辣'},
