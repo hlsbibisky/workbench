@@ -104,6 +104,7 @@
   .badge.辣{ background:#fbe0da; color:#c0392b; }
   .badge.肉制品{ background:#f6e2da; color:#b5532e; }
   .badge.水果{ background:#fdeede; color:#c8761f; }
+  .badge.充饥{ background:#e9e0d0; color:#8a6d3b; }
   /* 饮品分类配色 */
   .badge.养生茶{ background:#e7f3ec; color:#3f9d6b; }
   .badge.茶叶{ background:#eef0e3; color:#6f8a3f; }
@@ -175,6 +176,7 @@
   .rtype-badge.辣{ background:rgba(192,57,43,.82); }
   .rtype-badge.肉制品{ background:rgba(181,83,46,.82); }
   .rtype-badge.水果{ background:rgba(200,118,31,.82); }
+  .rtype-badge.充饥{ background:rgba(138,109,59,.82); }
   .rtype-badge.养生茶{ background:rgba(63,157,107,.82); }
   .rtype-badge.茶叶{ background:rgba(111,138,63,.82); }
   .rtype-badge.水饮料{ background:rgba(63,106,163,.82); }
@@ -211,6 +213,7 @@
   .pick-meta .badge.辣{ background:rgba(192,57,43,.12); color:#c0392b; }
   .pick-meta .badge.肉制品{ background:rgba(181,83,46,.12); color:#b5532e; }
   .pick-meta .badge.水果{ background:rgba(200,118,31,.14); color:#c8761f; }
+  .pick-meta .badge.充饥{ background:rgba(138,109,59,.14); color:#8a6d3b; }
   .pick-meta .badge.海鲜{ background:rgba(80,150,170,.16); color:#3f8aa0; }
   .pick-like{ position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#fff; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--accent); line-height:1; }
   .pick-like:hover{ background:var(--accent); color:#fff; }
@@ -2205,7 +2208,7 @@ function openDrinkViewer(id){
 }
 
 /* ============ 零食库（结构同饮品库；分类/字段为占位，待用户细化） ============ */
-const SNACK_TYPES = ['甜','酸','咸','脆','辣','肉制品','水果'];
+const SNACK_TYPES = ['甜','酸','咸','脆','辣','肉制品','水果','充饥'];
 const SNACK_FORMS = [['即食',1],['需加工',3],['冷藏',5]];
 function snackFormLabel(v){
   const n = parseInt(v)||1;
@@ -2224,7 +2227,8 @@ function renderSnacks(){
     {type:'脆', label:'脆'},
     {type:'辣', label:'辣'},
     {type:'肉制品', label:'肉制品'},
-    {type:'水果', label:'水果'}
+    {type:'水果', label:'水果'},
+    {type:'充饥', label:'充饥'}
   ];
   const cntOf = t => t==='all' ? state.snacks.length : state.snacks.filter(r=>r.type===t).length;
   const catBar = '<div class="catbar">' + cats.map(c=>{
