@@ -97,6 +97,12 @@
   .badge.主食{ background:#f3ecdf; color:#8a6d3b; }
   .badge.零食{ background:#f1e6f3; color:#7a4f86; }
   .badge.水果{ background:#fdeede; color:#c8761f; }
+  /* 零食分类配色 */
+  .badge.坚果炒货{ background:#f3ecd9; color:#9a7b3a; }
+  .badge.糖果巧克力{ background:#f7e3ec; color:#b5497a; }
+  .badge.饼干糕点{ background:#f0e6d2; color:#a9792f; }
+  .badge.肉脯肉干{ background:#f6e2da; color:#b5532e; }
+  .badge.果干蜜饯{ background:#efe6f4; color:#7a4f86; }
   /* 饮品分类配色 */
   .badge.养生茶{ background:#e7f3ec; color:#3f9d6b; }
   .badge.茶叶{ background:#eef0e3; color:#6f8a3f; }
@@ -162,6 +168,11 @@
   .rtype-badge.主食{ background:rgba(138,109,59,.82); }
   .rtype-badge.零食{ background:rgba(122,79,134,.82); }
   .rtype-badge.水果{ background:rgba(200,118,31,.82); }
+  .rtype-badge.坚果炒货{ background:rgba(154,123,58,.82); }
+  .rtype-badge.糖果巧克力{ background:rgba(181,73,122,.82); }
+  .rtype-badge.饼干糕点{ background:rgba(169,121,47,.82); }
+  .rtype-badge.肉脯肉干{ background:rgba(181,83,46,.82); }
+  .rtype-badge.果干蜜饯{ background:rgba(122,79,134,.82); }
   .rtype-badge.养生茶{ background:rgba(63,157,107,.82); }
   .rtype-badge.茶叶{ background:rgba(111,138,63,.82); }
   .rtype-badge.水饮料{ background:rgba(63,106,163,.82); }
@@ -187,6 +198,11 @@
   .pick-meta .badge.汤{ background:rgba(120,140,170,.14); color:#5a6b86; }
   .pick-meta .badge.主食{ background:rgba(180,150,90,.16); color:#9a7b3a; }
   .pick-meta .badge.水果{ background:rgba(200,118,31,.14); color:#c8761f; }
+  .pick-meta .badge.坚果炒货{ background:rgba(154,123,58,.14); color:#9a7b3a; }
+  .pick-meta .badge.糖果巧克力{ background:rgba(181,73,122,.14); color:#b5497a; }
+  .pick-meta .badge.饼干糕点{ background:rgba(169,121,47,.16); color:#a9792f; }
+  .pick-meta .badge.肉脯肉干{ background:rgba(181,83,46,.12); color:#b5532e; }
+  .pick-meta .badge.果干蜜饯{ background:rgba(122,79,134,.14); color:#7a4f86; }
   .pick-meta .badge.海鲜{ background:rgba(80,150,170,.16); color:#3f8aa0; }
   .pick-like{ position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#fff; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--accent); line-height:1; }
   .pick-like:hover{ background:var(--accent); color:#fff; }
@@ -522,6 +538,7 @@
       <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
       <button class="subtab" data-tab="menu" onclick="switchTab('menu')"><span class="pip"></span>菜品库</button>
       <button class="subtab" data-tab="drinks" onclick="switchTab('drinks')"><span class="pip"></span>饮品库</button>
+      <button class="subtab" data-tab="snacks" onclick="switchTab('snacks')"><span class="pip"></span>零食库</button>
       <button class="subtab" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
       <button class="subtab" data-tab="taste" onclick="switchTab('taste')"><span class="pip"></span>我的口味</button>
     </div>
@@ -632,7 +649,8 @@ const TASTE_GROUPS = [
 const K = {
   taste:'food_taste', menu:'food_menu', userDishes:'food_userdishes',
   disliked:'food_disliked', checkin:'food_checkin', dishCover:'food_dishcover',
-  drinks:'food_drinks'
+  drinks:'food_drinks',
+  snacks:'food_snacks'
 };
 
 // 图标候选集（菜谱/菜品编辑器点选用）
@@ -688,6 +706,7 @@ function autoShrinkImagesAsync(){
     const targets = [];
     (state.menu||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
     (state.drinks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
+    (state.snacks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
     Object.keys(state.dishCover||{}).forEach(id=>{ if(state.dishCover[id]) targets.push({src:state.dishCover[id], set:(s)=>state.dishCover[id]=s}); });
     (state.checkin||[]).forEach(c=>{ (c.photos||[]).forEach((p,pi)=>{ if(p) targets.push({src:p, set:(s)=>c.photos[pi]=s}); }); });
     let i=0, before=0, after=0;
@@ -697,6 +716,7 @@ function autoShrinkImagesAsync(){
         try{
           if(state.menu.length) save(K.menu, state.menu);
           if(state.drinks.length) save(K.drinks, state.drinks);
+          if(state.snacks.length) save(K.snacks, state.snacks);
           if(Object.keys(state.dishCover||{}).length) save(K.dishCover, state.dishCover);
           if(state.checkin.length) save(K.checkin, state.checkin);
           console.log('auto shrink', Math.round(before/1024)+'KB -> '+Math.round(after/1024)+'KB');
@@ -828,6 +848,7 @@ async function collectFoodForExport(){
     [K.taste]:state.taste, [K.menu]:state.menu, [K.userDishes]:state.userDishes,
     [K.disliked]:state.disliked, [K.checkin]:state.checkin, [K.dishCover]:state.dishCover,
     [K.drinks]:state.drinks,
+    [K.snacks]:state.snacks,
     [K_SYNC]:syncCfg
   };
   await hydrateStateImages(snap);
@@ -853,11 +874,13 @@ const state = {
   disliked: load(K.disliked, []),
   dishCover: load(K.dishCover, {}),
   drinks: load(K.drinks, []),
+  snacks: load(K.snacks, []),
   skipSession: new Set(),
   queue: [], queueIdx: 0,
   tab: 'checkin',
   menuCat: 'all',
   drinksCat: 'all',
+  snacksCat: 'all',
   checkin: load(K.checkin, [])
 };
 
@@ -1392,7 +1415,7 @@ function renderCheckin(){
     const wd = WD[d.getDay()];
     const isToday = c.date === todayStr();
 
-    const TAGS = ['早餐','午餐','晚餐','夜宵','零食'];
+    const TAGS = ['早餐','午餐','晚餐','夜宵','零食','茶饮'];
     // 食材行
     const itemsHtml = c.items.length === 0
       ? '<div style="color:var(--sub);font-size:13px;padding:6px 0;">还没有添加菜品，点下面「从菜品库选」带出食材与做法～</div>'
@@ -1434,10 +1457,12 @@ function renderCheckin(){
     // 备注
     const noteHtml = c.note ? '<div class="ck-note">📝 '+esc(c.note)+'</div>' : '';
 
-    // 添加新菜品：只保留从菜品库选择
+    // 添加新菜品：从菜品库 / 饮品库 / 零食库 选择
     const addRow =
-      '<div style="margin-top:10px;">'
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
       + '<button class="btn btn-sm btn-primary" onclick="openCkPicker(\''+c.id+'\')">🍽️ 从菜品库选</button>'
+      + '<button class="btn btn-sm" onclick="openCkDrinkPicker(\''+c.id+'\')">🥤 从饮品库选</button>'
+      + '<button class="btn btn-sm" onclick="openCkSnackPicker(\''+c.id+'\')">🍪 从零食库选</button>'
       + '</div>';
 
     // 旧照片清理入口（不再提供上传）
@@ -1539,6 +1564,84 @@ function pickCkDish(name){
   const c = state.checkin.find(cc=>cc.id===window.__ckPicker.ckId);
   if(!c){ closeModal(); return; }
   if(c.items.some(it=>it.name===name)){ toast('该菜品已在列表中'); return; }
+  c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', tag:'', checked:true });
+  save(K.checkin, state.checkin);
+  closeModal();
+  renderCheckin();
+  toast('已添加：'+name);
+}
+
+// 打卡：从饮品库选择
+function openCkDrinkPicker(ckId){
+  const list = (state.drinks||[]).map(r=>({src:'drink', name:r.name, emoji:r.emoji, type:r.type, ing:(r.materials||[]).map(m=>m.n), seasonings:[], steps:[], cover:r.image||''}));
+  window.__ckDrinkPicker = { ckId, all: list };
+  document.getElementById('modalBody').innerHTML =
+    '<h2>从饮品库选择</h2>'
+    + '<input id="ckDrinkSearch" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;" placeholder="搜索饮品名…" oninput="renderCkDrinkPicker()">'
+    + '<div id="ckDrinkList" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button></div>';
+  showModal();
+  renderCkDrinkPicker();
+}
+function renderCkDrinkPicker(){
+  const box = document.getElementById('ckDrinkList');
+  if(!box) return;
+  const q = (document.getElementById('ckDrinkSearch').value||'').trim();
+  const data = (window.__ckDrinkPicker.all||[]).filter(x=> !q || x.name.indexOf(q)>=0);
+  if(data.length===0){ box.innerHTML = '<div style="color:var(--sub);padding:12px;text-align:center">没有匹配的饮品'+(q?'：'+q:'')+'</div>'; return; }
+  box.innerHTML = data.map(x=>{
+    const cov = x.cover || '';
+    const thumb = cov ? imgTag(cov,'','style="width:30px;height:30px;object-fit:cover;border-radius:7px;"') : '<span style="font-size:22px">'+x.emoji+'</span>';
+    return '<div class="ck-pick-item" onclick="pickCkDrink(\''+jq(x.name)+'\')">'+thumb+'<span style="margin-left:8px">'+esc(x.name)+'</span><span style="margin-left:auto;color:var(--sub);font-size:12px">'+x.type+'</span></div>';
+  }).join('');
+  hydrateImgs(box);
+}
+function pickCkDrink(name){
+  const data = window.__ckDrinkPicker.all||[];
+  const x = data.find(d=>d.name===name);
+  if(!x){ closeModal(); return; }
+  const c = state.checkin.find(cc=>cc.id===window.__ckDrinkPicker.ckId);
+  if(!c){ closeModal(); return; }
+  if(c.items.some(it=>it.name===name)){ toast('该饮品已在列表中'); return; }
+  c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', tag:'', checked:true });
+  save(K.checkin, state.checkin);
+  closeModal();
+  renderCheckin();
+  toast('已添加：'+name);
+}
+
+// 打卡：从零食库选择
+function openCkSnackPicker(ckId){
+  const list = (state.snacks||[]).map(r=>({src:'snack', name:r.name, emoji:r.emoji, type:r.type, ing:(r.materials||[]).map(m=>m.n), seasonings:[], steps:[], cover:r.image||''}));
+  window.__ckSnackPicker = { ckId, all: list };
+  document.getElementById('modalBody').innerHTML =
+    '<h2>从零食库选择</h2>'
+    + '<input id="ckSnackSearch" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;" placeholder="搜索零食名…" oninput="renderCkSnackPicker()">'
+    + '<div id="ckSnackList" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button></div>';
+  showModal();
+  renderCkSnackPicker();
+}
+function renderCkSnackPicker(){
+  const box = document.getElementById('ckSnackList');
+  if(!box) return;
+  const q = (document.getElementById('ckSnackSearch').value||'').trim();
+  const data = (window.__ckSnackPicker.all||[]).filter(x=> !q || x.name.indexOf(q)>=0);
+  if(data.length===0){ box.innerHTML = '<div style="color:var(--sub);padding:12px;text-align:center">没有匹配的零食'+(q?'：'+q:'')+'</div>'; return; }
+  box.innerHTML = data.map(x=>{
+    const cov = x.cover || '';
+    const thumb = cov ? imgTag(cov,'','style="width:30px;height:30px;object-fit:cover;border-radius:7px;"') : '<span style="font-size:22px">'+x.emoji+'</span>';
+    return '<div class="ck-pick-item" onclick="pickCkSnack(\''+jq(x.name)+'\')">'+thumb+'<span style="margin-left:8px">'+esc(x.name)+'</span><span style="margin-left:auto;color:var(--sub);font-size:12px">'+x.type+'</span></div>';
+  }).join('');
+  hydrateImgs(box);
+}
+function pickCkSnack(name){
+  const data = window.__ckSnackPicker.all||[];
+  const x = data.find(d=>d.name===name);
+  if(!x){ closeModal(); return; }
+  const c = state.checkin.find(cc=>cc.id===window.__ckSnackPicker.ckId);
+  if(!c){ closeModal(); return; }
+  if(c.items.some(it=>it.name===name)){ toast('该零食已在列表中'); return; }
   c.items.push({ name:x.name, emoji:x.emoji, type:x.type, ing:x.ing||[], seasonings:x.seasonings||[], steps:x.steps||[], cover:x.cover||'', tag:'', checked:true });
   save(K.checkin, state.checkin);
   closeModal();
@@ -2083,6 +2186,187 @@ function openDrinkViewer(id){
   showModal();
 }
 
+/* ============ 零食库（结构同饮品库；分类/字段为占位，待用户细化） ============ */
+const SNACK_TYPES = ['坚果炒货','糖果巧克力','饼干糕点','肉脯肉干','果干蜜饯'];
+const SNACK_FORMS = [['即食',1],['需加工',3],['冷藏',5]];
+function snackFormLabel(v){
+  const n = parseInt(v)||1;
+  if(n<=2) return '即食';
+  if(n===3) return '需加工';
+  return '冷藏';
+}
+
+function renderSnacks(){
+  const body = document.getElementById('modbody');
+  const cats = [
+    {type:'all', label:'全部'},
+    {type:'坚果炒货', label:'坚果炒货'},
+    {type:'糖果巧克力', label:'糖果巧克力'},
+    {type:'饼干糕点', label:'饼干糕点'},
+    {type:'肉脯肉干', label:'肉脯肉干'},
+    {type:'果干蜜饯', label:'果干蜜饯'}
+  ];
+  const cntOf = t => t==='all' ? state.snacks.length : state.snacks.filter(r=>r.type===t).length;
+  const catBar = '<div class="catbar">' + cats.map(c=>{
+    const on = state.snacksCat===c.type ? ' on':'';
+    return '<button class="catbtn'+on+'" onclick="setSnacksCat(\''+c.type+'\')">'+c.label
+      + '<span class="cnt">'+cntOf(c.type)+'</span></button>';
+  }).join('') + '</div>';
+
+  const list = state.snacksCat==='all' ? state.snacks : state.snacks.filter(r=>r.type===state.snacksCat);
+
+  let inner;
+  if(state.snacks.length === 0){
+    inner = '<div class="empty"><p>你的零食库还是空的。</p>'
+      + '<p>点右侧「＋ 新建零食」开始添加第一款吧。</p></div>';
+  } else if(list.length === 0){
+    inner = '<div class="empty"><p>该分类下还没有零食。</p>'
+      + '<p>点右侧「＋ 新建零食」并选分类为「'+state.snacksCat+'」即可。</p></div>';
+  } else {
+    inner = '<div class="grid">' + list.map(r=>{
+      const imgSrc = r.image || '';
+      const coverHtml = imgSrc
+        ? imgTag(imgSrc, 'rcover-img', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"')
+          + '<div class="remoji-fallback" style="display:none">'+esc(r.emoji)+'</div>'
+        : '<div class="remoji-fallback">'+esc(r.emoji)+'</div>';
+      const tagItems = (r.materials||[]).slice(0,5).map(m=>'<span class="rtag">'+esc(m.n)+'</span>');
+      if((r.materials||[]).length > 5) tagItems.push('<span class="rtag" style="opacity:.55">+'+(r.materials.length-5)+'</span>');
+      return '<div class="rcard">'
+        + '<div class="rcover">'+coverHtml
+          + '<span class="rtype-badge '+cssClass(r.type)+'">'+esc(r.type)+'</span>'
+          + '</div>'
+        + '<div class="rbody">'
+        + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
+        + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · '+snackFormLabel(r.difficulty)+'</div>'
+        + (tagItems.length ? '<div class="rtags">'+tagItems.join('')+'</div>' : '')
+        + '<div class="rbar">'
+        +   '<button class="rbtn primary" onclick="openSnackViewer(\''+r.id+'\')">📖 查看</button>'
+        +   '<button class="rbtn" onclick="openSnackEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn danger" onclick="delSnack(\''+r.id+'\')">🗑</button>'
+        + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  body.innerHTML =
+    catBar
+    + '<div class="row spread" style="margin-bottom:14px">'
+    + '<div class="moddesc" style="margin:0">共 '+list.length+' 款零食'
+      + (state.snacksCat!=='all' ? '（'+state.snacks.length+' 款中筛选）' : '') + '</div>'
+    + '<button class="btn btn-primary" onclick="openSnackEditor(null)">＋ 新建零食</button>'
+    + '</div>' + inner;
+  hydrateImgs(body);
+}
+function setSnacksCat(t){ state.snacksCat = t; renderSnacks(); }
+function delSnack(id){
+  myConfirm('确定删除这款零食？', function(){
+    state.snacks = state.snacks.filter(r=>r.id!==id);
+    save(K.snacks, state.snacks); renderSnacks(); toast('已删除');
+  });
+}
+
+/* ============ 弹窗：零食编辑（带图片字段；无制作方法；难度=形态/状态） ============ */
+let snackBuf = null;
+function openSnackEditor(id){
+  let r;
+  if(id){ r = state.snacks.find(x=>x.id===id); if(!r) return; }
+  else {
+    r = {
+      id:rid(), name:'', emoji:'🍪', type:'坚果炒货', image:'',
+      difficulty:1,
+      materials:[
+        {n:'', qty:'', skip:false, note:''},
+        {n:'', qty:'', skip:false, note:''}
+      ],
+      created:Date.now()
+    };
+  }
+  snackBuf = clone(r);
+  snackBuf._cover = snackBuf.image || '';
+  activeCoverTarget = 'snack';
+  renderSnackEditor();
+  showModal();
+}
+function renderSnackEditor(){
+  const r = snackBuf;
+  const curForm = SNACK_FORMS.find(d=>d[1]===r.difficulty) || SNACK_FORMS[0];
+  const heroHtml = snackBuf._cover
+    ? imgTag(snackBuf._cover, 're-hero', 'id="snHero" onclick="snPickCover()" title="点击更换图片"')
+    : '<div class="re-hero-placeholder" onclick="snPickCover()" title="点击上传图片"><div class="big">'+esc(snackBuf.emoji||'🍪')+'</div><span>点击上传零食图片</span></div>';
+  const matRows = (r.materials||[]).map((m,idx)=>
+    '<div class="re-mat-row">'
+    + '<input value="'+esc(m.n)+'" placeholder="如：巴旦木、海苔" oninput="editSnackMat('+idx+',this.value)">'
+    + '<button class="row-del" onclick="delSnackMat('+idx+')" title="删除">✕</button>'
+    + '</div>'
+  ).join('');
+  document.getElementById('modalBody').innerHTML =
+    '<h2>'+(r.name?'编辑零食':'新建零食')+'</h2>'
+    + heroHtml
+    + '<input type="file" id="snCoverFile" accept="image/*" style="display:none" onchange="setSnackCoverUpload(this.files[0])">'
+    + '<div class="field"><label>名称</label>'
+    +   '<input id="sn_name" placeholder="如：每日坚果" value="'+esc(r.name)+'"></div>'
+    + '<div class="re-row">'
+    +   '<div class="field"><label>分类</label><select id="sn_type">'+SNACK_TYPES.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field"><label>形态/状态</label><select id="sn_form">'+SNACK_FORMS.map(d=>'<option value="'+d[1]+'" '+(d[1]===curForm[1]?'selected':'')+'>'+d[0]+'</option>').join('')+'</select></div>'
+    + '</div>'
+    + '<div class="field"><label>零食成分（每行一种，如配料、基底）</label>'
+    +   '<div class="re-mat-list" id="snMatWrap">'+matRows+'</div>'
+    +   '<button class="re-add" onclick="addSnackMat()">＋ 添加成分</button></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
+    +   '<button class="btn btn-primary" onclick="saveSnack()">保存</button></div>';
+  hydrateImgs(document.getElementById('modalBody'));
+}
+function snPickCover(){ document.getElementById('snCoverFile').click(); }
+function editSnackMat(idx, val){ snackBuf.materials[idx].n = val; }
+function addSnackMat(){ snackBuf.materials.push({n:'',qty:'',skip:false,note:''}); renderSnackEditor(); }
+function delSnackMat(idx){ snackBuf.materials.splice(idx,1); renderSnackEditor(); }
+function setSnackCoverUpload(file){
+  if(!file) return;
+  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
+  compressImage(file, function(dataUrl){ snackBuf._cover = dataUrl; renderSnackEditor(); }, {maxWidth:640, maxHeight:640, quality:0.6});
+}
+async function saveSnack(){
+  const r = snackBuf;
+  r.name = document.getElementById('sn_name').value.trim() || '未命名零食';
+  r.type = document.getElementById('sn_type').value;
+  r.difficulty = parseInt(document.getElementById('sn_form').value) || 1;
+  r.image = snackBuf._cover || '';
+  const inputs = document.querySelectorAll('#snMatWrap .re-mat-row input');
+  const newMats = [];
+  inputs.forEach((input, idx)=>{
+    const n = input.value.trim();
+    if(!n) return;
+    const old = r.materials[idx] || {qty:'',skip:false,note:''};
+    newMats.push({n:n, qty:old.qty||'', skip:!!old.skip, note:old.note||''});
+  });
+  r.materials = newMats;
+  const exist = state.snacks.find(x=>x.id===r.id);
+  if(exist){ Object.assign(exist, r); } else { state.snacks.unshift(r); }
+  save(K.snacks, state.snacks);
+  closeModal(); renderSnacks(); toast('零食已保存');
+}
+
+/* ============ 零食查看器（简洁：无制作方法） ============ */
+function openSnackViewer(id){
+  const r = state.snacks.find(x=>x.id===id); if(!r) return;
+  const heroHtml = r.image
+    ? imgTag(r.image, 'rv-hero', 'alt="'+esc(r.name)+'" onerror="this.style.display=\'none\'"')
+    : '<div class="rv-hero" style="display:flex;align-items:center;justify-content:center;font-size:90px;background:linear-gradient(145deg,#f3e6d6,#ede4d4)">'+(r.emoji||'🍪')+'</div>';
+  const matItems = (r.materials||[]).map(m=>'<span class="rv-mat">'+esc(m.n)+(m.qty?'<span class="qty">'+esc(m.qty)+'</span>':'')+'</span>').join('');
+  document.getElementById('modalBody').innerHTML =
+    '<div class="recipe-simple">'
+    + heroHtml
+    + '<div class="rv-title">'+esc(r.name)+'</div>'
+    + '<div class="rv-meta">'
+    +   '<span><b>分类</b>'+esc(r.type||'—')+'</span>'
+    +   '<span><b>形态/状态</b>'+snackFormLabel(r.difficulty)+'</span>'
+    + '</div>'
+    + '<div class="rv-section">'
+    +   '<div class="rv-section-title">🍪 零食成分</div>'
+    +   '<div class="rv-mats">'+(matItems || '<span style="color:var(--sub)">暂无成分</span>')+'</div></div>'
+    + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openSnackEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
+  showModal();
+}
+
 /* ============ 工具 ============ */
 function showModal(){ document.getElementById('modal').classList.remove('hidden'); const b=document.getElementById('modalBody'); if(b) setTimeout(()=>hydrateImgs(b),0); }
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
@@ -2101,6 +2385,7 @@ document.addEventListener('paste', function(e){
         if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; renderEditor(); }
         else if(activeCoverTarget==='dish'){ dishEditorCover = dataUrl; updateCoverPreview(); }
         else if(activeCoverTarget==='drink'){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }
+        else if(activeCoverTarget==='snack'){ snackBuf._cover = dataUrl; renderSnackEditor(); }
       });
       e.preventDefault();
       toast('已粘贴截图');
@@ -2160,6 +2445,7 @@ function switchTab(tab){
   if(tab==='today'){ if(state.queue.length===0) buildQueue(); renderToday(); }
   else if(tab==='menu') renderMenu();
   else if(tab==='drinks') renderDrinks();
+  else if(tab==='snacks') renderSnacks();
   else if(tab==='taste') renderTaste();
   else if(tab==='checkin') renderCheckin();
 }
@@ -2207,6 +2493,7 @@ function openDataMgr(){
   ck.forEach(c=>{ (c.photos||[]).forEach(p=>{ if(p){ photoBytes += p.length; photoCount++; } }); });
   const menuCoverBytes = (state.menu||[]).reduce((a,r)=>a+((r.image||'').length),0);
   const drinkCoverBytes = (state.drinks||[]).reduce((a,r)=>a+((r.image||'').length),0);
+  const snackCoverBytes = (state.snacks||[]).reduce((a,r)=>a+((r.image||'').length),0);
   const dishCoverBytes = Object.values(state.dishCover||{}).reduce((a,v)=>a+(v?v.length:0),0);
   document.getElementById('modalBody').innerHTML =
     '<h2>数据管理与备份</h2>'
@@ -2216,7 +2503,7 @@ function openDataMgr(){
     +   '<label class="btn" style="cursor:pointer">⬆ 导入备份文件<input type="file" accept="application/json" style="display:none" onchange="importFood(this.files[0])"></label>'
     + '</div>'
     + '<h3 style="font-size:15px;margin:16px 0 8px">存储占用</h3>'
-    + '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b> · 菜谱封面约 <b>'+Math.round(menuCoverBytes/1024)+' KB</b> · 饮品封面约 <b>'+Math.round(drinkCoverBytes/1024)+' KB</b> · 菜品封面约 <b>'+Math.round(dishCoverBytes/1024)+' KB</b> · 打卡照片约 <b>'+Math.round(photoBytes/1024)+' KB</b> ('+photoCount+'张)</p>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b> · 菜谱封面约 <b>'+Math.round(menuCoverBytes/1024)+' KB</b> · 饮品封面约 <b>'+Math.round(drinkCoverBytes/1024)+' KB</b> · 零食封面约 <b>'+Math.round(snackCoverBytes/1024)+' KB</b> · 菜品封面约 <b>'+Math.round(dishCoverBytes/1024)+' KB</b> · 打卡照片约 <b>'+Math.round(photoBytes/1024)+' KB</b> ('+photoCount+'张)</p>'
     + '<div style="max-height:220px;overflow:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:10px;background:#fff">'
     +   '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">key</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
     + '</div>'
@@ -2225,6 +2512,7 @@ function openDataMgr(){
     +   (photoCount>0 ? '<button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button>' : '')
     +   (state.menu.some(r=>r.image) ? '<button class="btn" onclick="compressMenuCovers();closeModal();">🗜 压缩所有菜谱封面</button>' : '')
     +   (state.drinks.some(r=>r.image) ? '<button class="btn" onclick="compressDrinkCovers();closeModal();">🗜 压缩所有饮品封面</button>' : '')
+    +   (state.snacks.some(r=>r.image) ? '<button class="btn" onclick="compressSnackCovers();closeModal();">🗜 压缩所有零食封面</button>' : '')
     +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面</button>'
     + '</div>'
     + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
@@ -2373,6 +2661,51 @@ function compressDrinkCovers(){
       ctx.drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL('image/jpeg',0.72);
       state.drinks[t.ri].image=dataUrl;
+      after += dataUrl.length; done++;
+      progress.textContent='正在压缩 '+done+'/'+tasks.length+' …';
+      setTimeout(next,15);
+    };
+    img.onerror=function(){ done++; setTimeout(next,15); };
+    img.src=t.src;
+  }
+  next();
+}
+function compressSnackCovers(){
+  const tasks=[];
+  (state.snacks||[]).forEach((r,ri)=>{ if(r.image && r.image.indexOf('data:image')===0) tasks.push({ri,src:r.image}); });
+  if(tasks.length===0){ toast('没有可压缩的零食封面'); return; }
+  let done=0, before=0, after=0;
+  tasks.forEach(t=>before += t.src.length);
+  const progress=document.createElement('div');
+  progress.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
+  progress.textContent='正在压缩 0/'+tasks.length+' …';
+  document.body.appendChild(progress);
+  let i=0;
+  function next(){
+    if(i>=tasks.length){
+      if(save(K.snacks, state.snacks)){
+        progress.textContent='完成：'+tasks.length+' 张零食封面，'+Math.round(before/1024)+'KB → '+Math.round(after/1024)+'KB';
+        setTimeout(()=>progress.remove(),1800);
+        renderSnacks();
+      } else {
+        progress.textContent='压缩完成但保存失败，请导出备份后清理';
+        setTimeout(()=>progress.remove(),3000);
+      }
+      return;
+    }
+    const t=tasks[i++];
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      const scale=Math.min(1, 800/w, 800/h);
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.72);
+      state.snacks[t.ri].image=dataUrl;
       after += dataUrl.length; done++;
       progress.textContent='正在压缩 '+done+'/'+tasks.length+' …';
       setTimeout(next,15);
