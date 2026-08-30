@@ -681,67 +681,117 @@ function save(key, v){
   try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
   catch(e){
     console.error(e);
-    // 写入失败：立即后台自动压缩所有图片，压缩完再重试；不再直接弹窗打扰
+    // 写入失败：自动深度压缩后再重试，尽量不让弹窗出来
     runAutoShrinkAndRetry(key, v);
     return false;
   }
 }
 let __storageAlertShown = false;
 function runAutoShrinkAndRetry(key, v){
-  // 防止重复弹窗
   if(__storageAlertShown) return;
-  const progress = document.createElement('div');
-  progress.id='autoShrinkProgress'; progress.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
-  progress.textContent = '本地空间不足，正在自动压缩图片…';
-  document.body.appendChild(progress);
-  autoShrinkImagesAsync().then(()=>{
+  showShrinkProgress('本地空间不足，正在自动压缩图片…');
+  deepShrinkUntilUnder(3.8*1024*1024, function(ok){
+    if(!ok){ hideShrinkProgress(); showStorageAlert(); return; }
     try{
       localStorage.setItem(key, JSON.stringify(v));
       scheduleCloudPush();
-      progress.textContent = '已自动压缩并保存成功';
-      setTimeout(()=>progress.remove(), 1500);
-      // 刷新当前页视图
-      if(state.tab==='menu') renderMenu();
-      else if(state.tab==='drinks') renderDrinks();
-      else if(state.tab==='checkin') renderCheckin();
+      hideShrinkProgress();
+      toast('空间紧张，已自动压缩图片并保存');
+      refreshCurrentTab();
     }catch(e2){
-      console.error(e2); progress.remove(); showStorageAlert();
+      console.error(e2);
+      hideShrinkProgress();
+      showStorageAlert();
     }
-  }).catch(err=>{
-    console.error(err); progress.remove(); showStorageAlert();
   });
+}
+function refreshCurrentTab(){
+  if(state.tab==='menu') renderMenu();
+  else if(state.tab==='drinks') renderDrinks();
+  else if(state.tab==='snacks') renderSnacks();
+  else if(state.tab==='checkin') renderCheckin();
+}
+function showShrinkProgress(msg){
+  let p = document.getElementById('autoShrinkProgress');
+  if(!p){
+    p = document.createElement('div');
+    p.id='autoShrinkProgress';
+    p.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
+    document.body.appendChild(p);
+  }
+  p.textContent = msg;
+}
+function hideShrinkProgress(){
+  const p = document.getElementById('autoShrinkProgress');
+  if(p) p.remove();
+}
+// 多轮递进式压缩：640/0.58 → 480/0.5 → 400/0.45 → 320/0.4，直到低于 targetBytes
+function deepShrinkUntilUnder(targetBytes, callback){
+  const passes = [
+    {maxWidth:640, maxHeight:640, quality:0.58, label:'标准压缩'},
+    {maxWidth:480, maxHeight:480, quality:0.5, label:'中等压缩'},
+    {maxWidth:400, maxHeight:400, quality:0.45, label:'较强压缩'},
+    {maxWidth:320, maxHeight:320, quality:0.4, label:'深度压缩'}
+  ];
+  let passIdx = 0;
+  function tryPass(){
+    const d = storageDiagnostics();
+    if(d.total <= targetBytes){ callback(true); return; }
+    if(passIdx >= passes.length){ callback(false); return; }
+    const opts = passes[passIdx++];
+    showShrinkProgress('空间紧张：'+opts.label+'（第'+passIdx+'/4轮）…');
+    shrinkAllImages(opts, function(){
+      saveSilent(K.menu, state.menu);
+      saveSilent(K.drinks, state.drinks);
+      saveSilent(K.snacks, state.snacks);
+      saveSilent(K.dishCover, state.dishCover);
+      saveSilent(K.checkin, state.checkin);
+      setTimeout(tryPass, 80);
+    });
+  }
+  tryPass();
+}
+function shrinkAllImages(opts, callback){
+  const targets = collectImageTargets();
+  let i=0;
+  function next(){
+    if(i>=targets.length){ callback(); return; }
+    const t = targets[i++];
+    compressDataUrl(t.src, opts, function(s){ t.set(s); setTimeout(next, 0); });
+  }
+  next();
+}
+function collectImageTargets(){
+  const targets = [];
+  (state.menu||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
+  (state.drinks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
+  (state.snacks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
+  Object.keys(state.dishCover||{}).forEach(id=>{ if(state.dishCover[id]) targets.push({src:state.dishCover[id], set:(s)=>state.dishCover[id]=s}); });
+  (state.checkin||[]).forEach(c=>{ (c.photos||[]).forEach((p,pi)=>{ if(p) targets.push({src:p, set:(s)=>c.photos[pi]=s}); }); });
+  return targets;
+}
+function saveSilent(key, v){
+  try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){}
 }
 // 真正异步压缩所有 base64 图片（封面 + 打卡照片），压缩完再保存
 function autoShrinkImagesAsync(){
   return new Promise((resolve, reject)=>{
-    const targets = [];
-    (state.menu||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
-    (state.drinks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
-    (state.snacks||[]).forEach(r=>{ if(r.image) targets.push({src:r.image, set:(s)=>r.image=s}); });
-    Object.keys(state.dishCover||{}).forEach(id=>{ if(state.dishCover[id]) targets.push({src:state.dishCover[id], set:(s)=>state.dishCover[id]=s}); });
-    (state.checkin||[]).forEach(c=>{ (c.photos||[]).forEach((p,pi)=>{ if(p) targets.push({src:p, set:(s)=>c.photos[pi]=s}); }); });
-    let i=0, before=0, after=0;
-    function next(){
-      if(i>=targets.length){
-        // 全部压缩完成，统一保存
-        try{
-          if(state.menu.length) save(K.menu, state.menu);
-          if(state.drinks.length) save(K.drinks, state.drinks);
-          if(state.snacks.length) save(K.snacks, state.snacks);
-          if(Object.keys(state.dishCover||{}).length) save(K.dishCover, state.dishCover);
-          if(state.checkin.length) save(K.checkin, state.checkin);
-          console.log('auto shrink', Math.round(before/1024)+'KB -> '+Math.round(after/1024)+'KB');
-          resolve({before, after});
-        }catch(e){ reject(e); }
-        return;
-      }
-      const t = targets[i++];
-      before += t.src.length;
-      compressDataUrl(t.src, {maxWidth:640, maxHeight:640, quality:0.58}, (s)=>{
-        after += s.length; t.set(s); next();
-      });
-    }
-    next();
+    deepShrinkUntilUnder(3.5*1024*1024, function(ok){
+      if(ok) resolve(storageDiagnostics());
+      else reject(new Error('无法压缩到目标大小'));
+    });
+  });
+}
+// 一键深度压缩：把图片压到很小，用于紧急释放空间
+function deepCleanAll(callback){
+  showShrinkProgress('正在一键深度压缩…');
+  __storageAlertShown = false;
+  deepShrinkUntilUnder(3*1024*1024, function(ok){
+    hideShrinkProgress();
+    refreshCurrentTab();
+    if(ok) toast('已深度压缩，空间已释放');
+    else toast('已压缩到极限，仍不足请导出备份');
+    if(callback) callback(ok);
   });
 }
 function compressDataUrl(src, opts, callback){
@@ -780,9 +830,10 @@ function showStorageAlert(){
     '<h2>保存失败：本地存储已满</h2>'
     + '<p style="margin:0 0 12px;line-height:1.6">你的浏览器本地存储已经达到上限，新的菜谱/图片写不进去。常见原因是<strong>打卡照片</strong>或<strong>菜谱封面</strong>太大。</p>'
     + '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 16px;background:#fff;border-radius:10px;overflow:hidden"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">数据项</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    + '<p style="color:var(--sub);font-size:12.5px;margin-bottom:14px">总计约 <b>'+Math.round(d.total/1024)+' KB</b>。可先「压缩封面/照片」或「导出备份后清理」。</p>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin-bottom:14px">总计约 <b>'+Math.round(d.total/1024)+' KB</b>。点「立即深度压缩」会自动把图片压到很小，通常能释放一半以上空间。</p>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-    +   '<button class="btn btn-primary" onclick="openDataMgr();">打开数据管理</button>'
+    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="__storageAlertShown=false;deepCleanAll(function(){ closeModal(); });">🗜 立即深度压缩</button>'
+    +   '<button class="btn" onclick="openDataMgr();">打开数据管理</button>'
     +   '<button class="btn" onclick="closeModal()">稍后再说</button>'
     + '</div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
@@ -1854,13 +1905,20 @@ async function saveRecipe(){
 }
 
 // 菜谱编辑器：封面上传/粘贴
+function coverCompressOpts(){
+  const t = storageDiagnostics().total;
+  if(t < 3*1024*1024) return {maxWidth:800, maxHeight:800, quality:0.72};
+  if(t < 4*1024*1024) return {maxWidth:640, maxHeight:640, quality:0.6};
+  if(t < 4.7*1024*1024) return {maxWidth:480, maxHeight:480, quality:0.5};
+  return {maxWidth:400, maxHeight:400, quality:0.45};
+}
 function setRecCoverUpload(file){
   if(!file) return;
   if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
   compressImage(file, function(dataUrl){
     editBuf._cover = dataUrl;
     renderEditor();
-  }, {maxWidth:640, maxHeight:640, quality:0.6});
+  }, coverCompressOpts());
 }
 
 /* ============ 菜谱查看器：简洁版 ============ */
@@ -2160,7 +2218,7 @@ function delDrinkMat(idx){ drinkBuf.materials.splice(idx,1); renderDrinkEditor()
 function setDrinkCoverUpload(file){
   if(!file) return;
   if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }, {maxWidth:640, maxHeight:640, quality:0.6});
+  compressImage(file, function(dataUrl){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }, coverCompressOpts());
 }
 async function saveDrink(){
   const r = drinkBuf;
@@ -2414,7 +2472,7 @@ function selMoveLib(k){
   moveCtx.toLib = k;
   const cats = k==='menu' ? ['荤','素','汤','主食','零食']
     : k==='drinks' ? ['养生茶','茶叶','水/饮料','酒','调制酒']
-    : ['甜','咸','脆','辣','肉制品','水果'];
+    : ['甜','酸','咸','脆','辣','肉制品','水果','充饥'];
   document.querySelectorAll('#modalBody .catbtn').forEach(b=> b.classList.toggle('on', b.dataset.k===k));
   document.getElementById('mvCatWrap').innerHTML =
     '<div class="field"><label>目标分类</label><select id="mv_type">'+cats.map(t=>'<option>'+t+'</option>').join('')+'</select></div>';
@@ -2560,23 +2618,15 @@ tick(); setInterval(tick, 30000);
 ensureTagStore();
 migrateImagesToIdb().then(function(){
   buildQueue(); switchTab('checkin');
-  // 启动自动瘦身：空间紧张时后台压缩所有图片，避免后续频繁弹窗
+  // 启动自动瘦身：空间紧张时后台深度压缩所有图片，避免后续频繁弹窗
   const d = storageDiagnostics();
-  if(d.total > 3.5*1024*1024){
+  if(d.total > 3*1024*1024){
     setTimeout(function(){
-      const p = document.createElement('div');
-      p.id='autoShrinkProgress'; p.style.cssText='position:fixed;left:50%;top:40%;transform:translateX(-50%);background:#2c241b;color:#fff;padding:14px 22px;border-radius:12px;z-index:9999;font-size:14px;';
-      p.textContent = '本地空间较满，正在自动压缩旧图片…';
-      document.body.appendChild(p);
-      autoShrinkImagesAsync().then(res=>{
-        p.textContent = '已释放空间：'+Math.round(res.before/1024)+'KB → '+Math.round(res.after/1024)+'KB';
-        setTimeout(()=>p.remove(), 1800);
-        if(state.tab==='menu') renderMenu();
-        else if(state.tab==='drinks') renderDrinks();
-        else if(state.tab==='checkin') renderCheckin();
-      }).catch(err=>{
-        console.error(err); p.remove();
-        if(d.total > 4.8*1024*1024) showStorageAlert();
+      showShrinkProgress('本地空间较满，正在自动压缩旧图片…');
+      deepShrinkUntilUnder(3*1024*1024, function(ok){
+        hideShrinkProgress();
+        if(ok){ toast('已自动压缩释放空间'); refreshCurrentTab(); }
+        else if(d.total > 4.8*1024*1024) showStorageAlert();
       });
     }, 800);
   }
@@ -2607,6 +2657,7 @@ function openDataMgr(){
     + '</div>'
     + '<h3 style="font-size:15px;margin:16px 0 8px">清理工具</h3>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="deepCleanAll(function(){ openDataMgr(); });">🗜 一键深度压缩</button>'
     +   (photoCount>0 ? '<button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button>' : '')
     +   (state.menu.some(r=>r.image) ? '<button class="btn" onclick="compressMenuCovers();closeModal();">🗜 压缩所有菜谱封面</button>' : '')
     +   (state.drinks.some(r=>r.image) ? '<button class="btn" onclick="compressDrinkCovers();closeModal();">🗜 压缩所有饮品封面</button>' : '')
