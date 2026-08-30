@@ -98,6 +98,23 @@
     .points li::before{ content:'·'; position:absolute; left:2px; color:var(--accent); font-weight:700; }
 
     .rel-grid{ display:flex; flex-wrap:wrap; gap:9px; margin-top:4px; }
+    /* 六亲等价条目 */
+    .eq-item{ flex:1 1 148px; min-width:132px; background:rgba(255,255,255,.66); border:1px solid var(--line);
+      border-radius:12px; padding:9px 11px; display:flex; align-items:center; gap:8px;
+      transition:transform .15s ease; }
+    .eq-item:hover{ transform:translateY(-2px); }
+    .card.ji .eq-item{ background:rgba(177,85,56,.06); border-color:var(--ji-bd); }
+    .card.yong .eq-item{ border-color:var(--yong-bd); }
+    .eq-who{ flex:0 0 auto; font-size:12px; color:var(--ink-soft); letter-spacing:.5px;
+      padding-right:8px; border-right:1px solid var(--line); }
+    .eq-what{ font-size:13px; font-weight:600; color:var(--ink); line-height:1.4; }
+    .card.ji .eq-what{ color:var(--ji-ink); }
+    .eq-note{ font-size:12px; line-height:1.6; color:var(--ink-soft); margin:2px 0 7px; }
+    .eq-note b{ font-weight:600; }
+    .eq-note.yong b{ color:var(--yong-ink); }
+    .eq-note.ji b{ color:var(--ji-ink); }
+    .self-line{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+    .self-line b{ color:var(--ink); font-weight:600; }
     .rel-item{ flex:1 1 104px; min-width:98px; background:rgba(255,255,255,.6); border:1px solid var(--line);
       border-radius:14px; padding:10px 8px 9px; display:flex; flex-direction:column; align-items:center; gap:6px;
       text-align:center; transition:transform .15s ease; }
@@ -196,33 +213,66 @@
     }
   };
 
-  /* ============ 六亲关系：need=一句话核心，note=一句补充（可空） ============ */
-  const SIXIN = {
-    qing:{ mom:{need:'需要妈妈的「情」与温暖陪伴', note:'情越重越怕被冤枉，被误解比什么都难受'},
-      dad:{need:'待补充', note:''},
-      friend:{need:'朋友是共情与陪伴', note:'共情能力强的人到哪儿都能处成朋友、贵人'},
-      partner:{need:'伴侣需要「情」而非「爱」', note:'说「喜欢」不说「爱」，情感趋于平淡时责任在有情的一方'},
-      child:{need:'需要孩子的真情回流', note:'作为有情母亲，陪伴孩子本身就是充电'} },
-    ziwo:{ mom:{need:'需要妈妈的「情」，忍受不了控制', note:'在妈妈身上找情往往找不到，会痛苦'},
-      dad:{need:'待补充', note:''},
-      friend:{need:'朋友以「被需要 / 有用」为联结', note:'社交重心在确认自身价值'},
-      partner:{need:'伴侣关系中以「被需要」确认价值', note:'与责任感驱动伴侣可互相促进'},
-      child:{need:'在孩子身上找被需要感', note:'需要孩子「被需要」来确认价值'} },
-    wuzhi:{ mom:{need:'待补充', note:''},
-      dad:{need:'待补充', note:''},
-      friend:{need:'朋友讲究「有用」', note:'基于利益与价值联结'},
-      partner:{need:'伴侣间金钱流动自然', note:'男性易以借钱为目的，女性（物质+责任）给男人花钱是自我满足'},
-      child:{need:'待补充', note:''} },
-    zeren:{ mom:{need:'待补充', note:''},
-      dad:{need:'待补充', note:''},
-      friend:{need:'朋友 = 共同目标的合作者', note:'靠目标维系，而非情感朋友关系'},
-      partner:{need:'伴侣是「活着的目的」', note:'需要伴侣的关注与共同目标'},
-      child:{need:'作为父母，孩子是责任', note:'需要孩子让自己「被需要、有担当」'} },
-    jingshen:{ mom:{need:'需要母亲「不控制、给空间」', note:'过度精神驱动忍受不了母亲陪伴或控制欲'},
-      dad:{need:'待补充', note:''},
-      friend:{need:'朋友 = 精神同频者', note:'无法进行精神交流的人不会有真正朋友'},
-      partner:{need:'伴侣需要「情」与情绪稳定', note:'真爱引发不配得感，易慕强、被渣男吸引'},
-      child:{need:'因孩子需要才愿陪伴', note:'需要孩子的精神共鸣，无需求时不强加陪伴'} }
+  /* ============ 十神六亲等价关系（依据《十神关系》资料） ============
+     self = 该十神「代表」谁；items = 等价于「某六亲的某种能量」 */
+  const SHISHEN_REL = {
+    '比劫': {
+      self: '我自己',
+      items: [
+        {who:'妈妈', what:'情'},
+        {who:'孩子', what:'爱'},
+        {who:'爸爸', what:'责任'},
+        {who:'伴侣', what:'物质财富（花钱）'},
+        {who:'朋友', what:'陪伴 / 存在'}
+      ]
+    },
+    '食伤': {
+      self: '孩子',
+      items: [
+        {who:'孩子', what:'陪伴 / 存在'},
+        {who:'我',   what:'情'},
+        {who:'朋友', what:'情'},
+        {who:'妈妈', what:'物质财富（花钱）'},
+        {who:'爸爸', what:'爱'},
+        {who:'伴侣', what:'责任'}
+      ]
+    },
+    '财才': {
+      self: '爸爸 · 男命的伴侣',
+      items: [
+        {who:'爸爸',     what:'陪伴 / 存在'},
+        {who:'男命伴侣', what:'陪伴 / 存在'},
+        {who:'我',       what:'物质财富（花钱）'},
+        {who:'朋友',     what:'物质财富（花钱）'},
+        {who:'孩子',     what:'情'},
+        {who:'妈妈',     what:'责任'},
+        {who:'女命伴侣', what:'爱'},
+        {who:'女命婆婆', what:'陪伴 / 存在'}
+      ]
+    },
+    '官杀': {
+      self: '女命的伴侣',
+      items: [
+        {who:'女命伴侣', what:'陪伴 / 存在'},
+        {who:'爸爸',     what:'情'},
+        {who:'妈妈',     what:'爱'},
+        {who:'我',       what:'责任'},
+        {who:'朋友',     what:'责任'},
+        {who:'孩子',     what:'物质财富（花钱）'},
+        {who:'女性朋友', what:'伴侣'}
+      ]
+    },
+    '印枭': {
+      self: '妈妈',
+      items: [
+        {who:'我',       what:'爱'},
+        {who:'妈妈',     what:'陪伴 / 存在'},
+        {who:'女命伴侣', what:'情'},
+        {who:'朋友',     what:'爱'},
+        {who:'爸爸',     what:'物质财富（花钱）'},
+        {who:'孩子',     what:'责任'}
+      ]
+    }
   };
 
   /* ============ 节点与数据绑定 ============ */
@@ -243,7 +293,7 @@
     { key:'child', name:'孩子', icon:'👶' }
   ];
 
-  // 驱动 key（与 SIXIN / DRIVE_DATA.drivers 对应）
+  // 十神 → 驱动力 key（备用映射，当前卡片展示以 CARD_DATA / SHISHEN_REL 为准）
   const GOD_TO_DRIVER = { '官杀':'zeren', '印枭':'jingshen', '比劫':'ziwo', '食伤':'qing', '财才':'wuzhi' };
 
   // 从 DRIVE_DATA 取用/忌要点（去除序号前缀）
@@ -319,27 +369,19 @@
     updateInfo(n);
   }
 
-  function relBubble(role, item){
-    const it = item || {};
-    const need = (it.need || '待补充').trim();
-    const note = (it.note || '').trim();
-    const todo = /待补充/.test(need);
-    const cls = 'rel-item' + (todo ? ' todo' : ' yong');
-    return `<div class="${cls}">
-      <div class="rel-role"><span class="rel-emoji">${role.icon}</span><span class="rel-name">${role.name}</span></div>
-      <div class="rel-need">${need}${note ? '<br><span style="font-size:11px;color:var(--ink-soft);margin-top:4px;display:block">' + note + '</span>' : ''}</div>
-    </div>`;
-  }
-
   function renderCard(n, mode){
-    const dkey = GOD_TO_DRIVER[n.god];
     const data = CARD_DATA[n.god] || {};
-    const sixin = (SIXIN[dkey] || {});
+    const rel = SHISHEN_REL[n.god] || { self:'', items:[] };
     const isJi = mode === 'ji';
     const title = isJi ? `过度·${n.name}` : n.name;
     const points = (isJi ? data.ji : data.yong) || ['（资料待补充）'];
-    const relItems = ROLES.map(r => relBubble(r, sixin[r.key])).join('');
     const ink = isJi ? 'var(--ji-ink)' : 'var(--yong-ink)';
+    const eqItems = rel.items.map(it =>
+      `<div class="eq-item"><span class="eq-who">${it.who}</span><span class="eq-what">${it.what}</span></div>`
+    ).join('');
+    const noteTxt = isJi
+      ? '为忌 → 以下能量<b>都不是我需要的、也不是我喜欢的</b>'
+      : '为用 → 以下能量<b>都是我需要的</b>';
     return `
       <div class="card ${isJi?'ji':'yong'} fade-in">
         <div class="card-head">
@@ -349,7 +391,12 @@
         <div class="field"><div class="field-label">${isJi?'过度表现':'核心特征'}</div>
           <ul class="points">${points.map(p=>`<li>${p}</li>`).join('')}</ul>
         </div>
-        <div class="field"><div class="field-label">六亲关系</div><div class="rel-grid">${relItems}</div></div>
+        <div class="field">
+          <div class="field-label">六亲等价关系</div>
+          <div class="self-line">${n.name} 代表：<b>${rel.self || '—'}</b></div>
+          <div class="eq-note ${isJi?'ji':'yong'}">${noteTxt}</div>
+          <div class="rel-grid">${eqItems}</div>
+        </div>
       </div>`;
   }
 
