@@ -681,30 +681,13 @@ function save(key, v){
   try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
   catch(e){
     console.error(e);
-    // 写入失败：自动深度压缩后再重试，尽量不让弹窗出来
-    runAutoShrinkAndRetry(key, v);
+    // 写入失败：仅提示，绝不自动压缩（尊重原图）
+    handleStorageFull();
     return false;
   }
 }
 let __storageAlertShown = false;
-function runAutoShrinkAndRetry(key, v){
-  if(__storageAlertShown) return;
-  showShrinkProgress('本地空间不足，正在自动压缩图片…');
-  deepShrinkUntilUnder(3.8*1024*1024, function(ok){
-    if(!ok){ hideShrinkProgress(); showStorageAlert(); return; }
-    try{
-      localStorage.setItem(key, JSON.stringify(v));
-      scheduleCloudPush();
-      hideShrinkProgress();
-      toast('空间紧张，已自动压缩图片并保存');
-      refreshCurrentTab();
-    }catch(e2){
-      console.error(e2);
-      hideShrinkProgress();
-      showStorageAlert();
-    }
-  });
-}
+function handleStorageFull(){ showStorageAlert(); }
 function refreshCurrentTab(){
   if(state.tab==='menu') renderMenu();
   else if(state.tab==='drinks') renderDrinks();
@@ -828,17 +811,24 @@ function showStorageAlert(){
   const rows=d.list.slice(0,8).map(x=>'<tr><td style="padding:5px 8px">'+esc(x.k)+'</td><td style="padding:5px 8px;text-align:right;font-variant-numeric:tabular-nums">'+Math.round(x.s/1024)+' KB</td></tr>').join('');
   document.getElementById('modalBody').innerHTML =
     '<h2>保存失败：本地存储已满</h2>'
-    + '<p style="margin:0 0 12px;line-height:1.6">你的浏览器本地存储已经达到上限，新的菜谱/图片写不进去。常见原因是<strong>打卡照片</strong>或<strong>菜谱封面</strong>太大。</p>'
+    + '<p style="margin:0 0 12px;line-height:1.6">浏览器本地存储空间已达上限（约 5MB），新内容暂时写不进去。这是浏览器限制，<strong>应用不会再自动压缩你的图片、也不会动你的原图</strong>。</p>'
     + '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 16px;background:#fff;border-radius:10px;overflow:hidden"><thead><tr style="background:var(--line)"><th style="padding:6px 8px;text-align:left">数据项</th><th style="padding:6px 8px;text-align:right">大小</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    + '<p style="color:var(--sub);font-size:12.5px;margin-bottom:14px">总计约 <b>'+Math.round(d.total/1024)+' KB</b>。点「立即深度压缩」会自动把图片压到很小，通常能释放一半以上空间。</p>'
+    + '<p style="color:var(--sub);font-size:12.5px;margin-bottom:14px">美食记录总计约 <b>'+Math.round(d.total/1024)+' KB</b>。腾空间办法：① 到「数据管理」删除不用的图片或清理未引用封面；② 若你之前导出过备份文件，重新导入即可恢复被压缩前的原图。</p>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="__storageAlertShown=false;deepCleanAll(function(){ closeModal(); });">🗜 立即深度压缩</button>'
-    +   '<button class="btn" onclick="openDataMgr();">打开数据管理</button>'
+    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="openDataMgr();">打开数据管理</button>'
     +   '<button class="btn" onclick="closeModal()">稍后再说</button>'
     + '</div>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
 }
+// 原图直存：直接读成 base64，不做任何缩放/重编码，保留原始画质
+function readFileRaw(file, cb){
+  const reader = new FileReader();
+  reader.onload = function(e){ cb(e.target.result); };
+  reader.onerror = function(){ cb(null); };
+  reader.readAsDataURL(file);
+}
+
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function rid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
@@ -1914,11 +1904,12 @@ function coverCompressOpts(){
 }
 function setRecCoverUpload(file){
   if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){
+  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  readFileRaw(file, function(dataUrl){
+    if(!dataUrl) return;
     editBuf._cover = dataUrl;
     renderEditor();
-  }, coverCompressOpts());
+  });
 }
 
 /* ============ 菜谱查看器：简洁版 ============ */
@@ -2033,8 +2024,11 @@ function setCoverMode(mode){
 }
 function setCoverUpload(file){
   if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){ dishEditorCover = dataUrl; updateCoverPreview(); });
+  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  readFileRaw(file, function(dataUrl){
+    if(!dataUrl) return;
+    dishEditorCover = dataUrl; updateCoverPreview();
+  });
 }
 function updateCoverPreview(){
   const box = document.getElementById('coverPreview');
@@ -2217,8 +2211,11 @@ function addDrinkMat(){ drinkBuf.materials.push({n:'',qty:'',skip:false,note:''}
 function delDrinkMat(idx){ drinkBuf.materials.splice(idx,1); renderDrinkEditor(); }
 function setDrinkCoverUpload(file){
   if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }, coverCompressOpts());
+  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  readFileRaw(file, function(dataUrl){
+    if(!dataUrl) return;
+    drinkBuf._cover = dataUrl; renderDrinkEditor();
+  });
 }
 async function saveDrink(){
   const r = drinkBuf;
@@ -2403,8 +2400,11 @@ function addSnackMat(){ snackBuf.materials.push({n:'',qty:'',skip:false,note:''}
 function delSnackMat(idx){ snackBuf.materials.splice(idx,1); renderSnackEditor(); }
 function setSnackCoverUpload(file){
   if(!file) return;
-  if(file.size > 5*1024*1024){ toast('原图不能超过 5MB'); return; }
-  compressImage(file, function(dataUrl){ snackBuf._cover = dataUrl; renderSnackEditor(); }, {maxWidth:640, maxHeight:640, quality:0.6});
+  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  readFileRaw(file, function(dataUrl){
+    if(!dataUrl) return;
+    snackBuf._cover = dataUrl; renderSnackEditor();
+  });
 }
 async function saveSnack(){
   const r = snackBuf;
@@ -2528,7 +2528,7 @@ function showModal(){ document.getElementById('modal').classList.remove('hidden'
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); editBuf=null; activeCoverTarget=null; }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
 
-// 全局：在封面编辑区时，Ctrl+V 粘贴截图作为封面（自动压缩）
+// 全局：在封面编辑区时，Ctrl+V 粘贴截图作为封面（按原图保存，不压缩）
 document.addEventListener('paste', function(e){
   if(!activeCoverTarget) return;
   const cd = e.clipboardData || window.clipboardData;
@@ -2537,7 +2537,8 @@ document.addEventListener('paste', function(e){
     if(cd.items[i].type && cd.items[i].type.indexOf('image')===0){
       const f = cd.items[i].getAsFile();
       if(!f) return;
-      compressImage(f, function(dataUrl){
+      readFileRaw(f, function(dataUrl){
+        if(!dataUrl) return;
         if(activeCoverTarget==='recipe'){ editBuf._cover = dataUrl; renderEditor(); }
         else if(activeCoverTarget==='dish'){ dishEditorCover = dataUrl; updateCoverPreview(); }
         else if(activeCoverTarget==='drink'){ drinkBuf._cover = dataUrl; renderDrinkEditor(); }
@@ -2618,18 +2619,6 @@ tick(); setInterval(tick, 30000);
 ensureTagStore();
 migrateImagesToIdb().then(function(){
   buildQueue(); switchTab('checkin');
-  // 启动自动瘦身：空间紧张时后台深度压缩所有图片，避免后续频繁弹窗
-  const d = storageDiagnostics();
-  if(d.total > 3*1024*1024){
-    setTimeout(function(){
-      showShrinkProgress('本地空间较满，正在自动压缩旧图片…');
-      deepShrinkUntilUnder(3*1024*1024, function(ok){
-        hideShrinkProgress();
-        if(ok){ toast('已自动压缩释放空间'); refreshCurrentTab(); }
-        else if(d.total > 4.8*1024*1024) showStorageAlert();
-      });
-    }, 800);
-  }
 });
 
 /* ============ 数据备份与跨设备同步（手动导出/导入） ============ */
@@ -2657,13 +2646,10 @@ function openDataMgr(){
     + '</div>'
     + '<h3 style="font-size:15px;margin:16px 0 8px">清理工具</h3>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="deepCleanAll(function(){ openDataMgr(); });">🗜 一键深度压缩</button>'
-    +   (photoCount>0 ? '<button class="btn" onclick="compressHistoryPhotos();closeModal();">🗜 压缩历史打卡照片</button>' : '')
-    +   (state.menu.some(r=>r.image) ? '<button class="btn" onclick="compressMenuCovers();closeModal();">🗜 压缩所有菜谱封面</button>' : '')
-    +   (state.drinks.some(r=>r.image) ? '<button class="btn" onclick="compressDrinkCovers();closeModal();">🗜 压缩所有饮品封面</button>' : '')
-    +   (state.snacks.some(r=>r.image) ? '<button class="btn" onclick="compressSnackCovers();closeModal();">🗜 压缩所有零食封面</button>' : '')
-    +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面</button>'
+    +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面（释放空间，不动原图）</button>'
+    +   '<button class="btn" onclick="exportFood();">⬇ 导出备份（留原图底稿）</button>'
     + '</div>'
+    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">说明：本应用已关闭所有图片压缩，上传与粘贴都按<strong>原图</strong>保存。本地空间上限约 5MB，图片多了需手动删减来腾位置。</p>'
     + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
