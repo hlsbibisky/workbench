@@ -72,7 +72,9 @@
   .ec .wx{ position:absolute; top:8px; right:12px; font-family:'Noto Serif SC',serif; font-size:38px;
     color:var(--c, var(--accent)); opacity:.16; font-weight:700; }
   .ec .god{ font-family:'Noto Serif SC',serif; font-size:13px; color:var(--c, var(--accent)); letter-spacing:2px; }
-  .ec .name{ font-family:'Noto Serif SC',serif; font-size:17px; margin:2px 0 12px; color:var(--ink); }
+  .ec .name{ font-family:'Noto Serif SC',serif; font-size:17px; margin:2px 0 4px; color:var(--ink); }
+  .ec .godself{ font-size:11.5px; color:var(--sub, #8a837a); margin:0 0 12px; letter-spacing:.5px; }
+  .ec .godself b{ color:var(--c, var(--accent)); font-weight:600; }
   .ec .energy{ font-family:'Noto Serif SC',serif; font-size:46px; font-weight:700; line-height:1;
     color:var(--c, var(--accent)); }
   .ec .energy small{ font-size:14px; font-weight:400; color:var(--ink-soft); margin-left:6px; letter-spacing:1px; }
@@ -210,19 +212,19 @@
 <script>
 /* 十神组 → 驱动力信息（与 驱动力.html 的 DRIVERS 映射一致） */
 const DRIVER_INFO = {
-  '比劫': { name:'自我价值感驱动', element:'木', color:'var(--wx-mu)', icon:'🌱',
+  '比劫': { name:'自我价值感驱动', element:'木', color:'var(--wx-mu)', icon:'🌱', self:'我自己',
     yong:'靠赚钱与被需要确认价值、能主动表达需求、会逗母亲开心',
     ji:'不停找事证明自己、忍受不了控制欲、自私、不配得感' },
-  '食伤': { name:'情感驱动', element:'火', color:'var(--wx-huo)', icon:'🔥',
+  '食伤': { name:'情感驱动', element:'火', color:'var(--wx-huo)', icon:'🔥', self:'孩子',
     yong:'有情、容易开心、共情强、旺夫、社牛',
     ji:'带怨念嗔恨、最会吵架、翻旧账、在男人身上找情变怨恨' },
-  '财':   { name:'物质驱动', element:'土', color:'var(--wx-tu)', icon:'⛰️',
+  '财':   { name:'物质驱动', element:'土', color:'var(--wx-tu)', icon:'⛰️', self:'爸爸 · 男命的伴侣',
     yong:'花钱开心、招感财富、对价值敏感、适合价值投资',
     ji:'眼里只有钱、以借钱/目的交友恋爱' },
-  '官杀': { name:'责任感驱动', element:'金', color:'var(--wx-jin)', icon:'🛡️',
+  '官杀': { name:'责任感驱动', element:'金', color:'var(--wx-jin)', icon:'🛡️', self:'女命的伴侣',
     yong:'最靠谱、规划目标、领导力驾驭、稳定伴侣=意义',
     ji:'回避责任、讨厌被要求、男回避（承担不了责任）' },
-  '印':   { name:'精神驱动', element:'水', color:'var(--wx-shui)', icon:'💧',
+  '印':   { name:'精神驱动', element:'水', color:'var(--wx-shui)', icon:'💧', self:'妈妈',
     yong:'理性目标感、智慧、杀印相生成就霸业、朋友精神同频',
     ji:'无情无爱、忍受不了陪伴/控制、攻击性爱、最易被渣男玩弄' },
 };
@@ -281,6 +283,7 @@ function compute(){
       <div class="wx">${info.element}</div>
       <div class="god">${k}</div>
       <div class="name">${info.name}</div>
+      <div class="godself">${k} 代表：<b>${info.self||'—'}</b></div>
       <div class="energy">${e}<small>能量值</small></div>
       <div class="intensity ${intensity>=0?'up':'down'}">强度 ${level}（${intensity>=0?'+':''}${intensity}%）</div>
       <div class="tags">${tags.join('')}</div>
