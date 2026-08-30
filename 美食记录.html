@@ -182,6 +182,11 @@
   .rcard .rbody{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .rcard .rhead{ display:flex; align-items:center; gap:9px; }
   .rcard .rname{ font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.3px; line-height:1.3; }
+  /* 菜品「来源」标签（自制/预制/购入），显示在菜名旁 */
+  .rcard .made-badge{ flex:none; font-size:11px; font-weight:600; padding:2px 8px; border-radius:9px; letter-spacing:.3px; }
+  .made-badge.自制{ background:#e3f1e6; color:#3f8a55; }
+  .made-badge.预制{ background:#fbeede; color:#c8761f; }
+  .made-badge.购入{ background:#e8eef5; color:#4a6fa5; }
   /* ===== 今天吃什么·候选清单 ===== */
   .pick-wrap{ margin-top:22px; border-top:1px dashed var(--line); padding-top:16px; }
   .pick-head{ font-size:14px; color:var(--sub); margin-bottom:12px; font-weight:600; }
@@ -1122,7 +1127,9 @@ function renderMenu(){
           + '<span class="rtype-badge '+r.type+'">'+r.type+'</span>'
           + '</div>'
         + '<div class="rbody">'
-        + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div></div>'
+        + '<div class="rhead"><div class="rname">'+esc(r.name)+'</div>'
+        +   '<span class="made-badge '+madeLabel(r.made)+'">'+madeLabel(r.made)+'</span>'
+        + '</div>'
         + '<div class="rmeta-line">'+esc(r.type||'未分类')+' · '+diffLabel(r.difficulty)+'</div>'
         + '<div class="rtags">'+tagItems.join('')+'</div>'
         + '<div class="rbar">'
@@ -1754,7 +1761,7 @@ function openRecipeEditor(id, isNewFromDish){
   if(id){ r = state.menu.find(x=>x.id===id); if(!r) return; }
   else {
     r = {
-      id:rid(), name:'', emoji:'🍽️', type:'荤', image:'',
+      id:rid(), name:'', emoji:'🍽️', type:'荤', made:'自制', image:'',
       duration:20, difficulty:2,
       materials:[
         {n:'', qty:'', skip:false, note:''},
@@ -1800,6 +1807,7 @@ function renderEditor(){
     +   '<div class="field"><label>分类</label><select id="f_type">'+types.map(t=>'<option '+(t===r.type?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +   '<div class="field"><label>难度</label><select id="f_diff">'+diffs.map(d=>'<option value="'+d[1]+'" '+(d[1]===curDiff[1]?'selected':'')+'>'+d[0]+'</option>').join('')+'</select></div>'
     + '</div>'
+    + '<div class="field"><label>来源（自制 / 预制 / 购入）</label><select id="f_made">'+['自制','预制','购入'].map(t=>'<option '+(t===(r.made||'自制')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     + '<div class="field"><label>食材清单（每行一种）</label>'
     +   '<div class="re-mat-list" id="matWrap">'+matRows+'</div>'
     +   '<button class="re-add" onclick="addMat()">＋ 添加食材</button></div>'
@@ -1817,6 +1825,7 @@ async function saveRecipe(){
   const r = editBuf;
   r.name = document.getElementById('f_name').value.trim() || '未命名菜谱';
   r.type = document.getElementById('f_type').value;
+  r.made = document.getElementById('f_made').value || '自制';
   r.difficulty = parseInt(document.getElementById('f_diff').value) || 3;
   r.image = editBuf._cover || '';
   r.steps = document.getElementById('f_steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -1862,6 +1871,8 @@ function tempLabel(v){
   if(n===3) return '常温冷饮';
   return '冰冻';
 }
+// 菜品「来源」标签（自制 / 预制 / 购入），缺省视为自制
+function madeLabel(v){ return v||'自制'; }
 function openRecipeViewer(id){
   const r = state.menu.find(x=>x.id===id); if(!r) return;
   const av = avoidSet();
@@ -1887,6 +1898,7 @@ function openRecipeViewer(id){
     + '<div class="rv-title">'+esc(r.name)+'</div>'
     + '<div class="rv-meta">'
     +   '<span><b>分类</b>'+esc(r.type||'—')+'</span>'
+    +   '<span><b>来源</b>'+madeLabel(r.made)+'</span>'
     +   '<span><b>难度</b>'+diffLabel(r.difficulty)+'</span>'
     + '</div>'
     + (warns.length ? '<div class="warnbox">⚠ 含你忌口的：'+warns.join('、')+'。建议做时省略。</div>' : '')
@@ -2426,6 +2438,7 @@ function confirmMove(){
   if(toLib==='menu'){
     ni.duration = src.duration||'';
     ni.difficulty = parseInt(src.difficulty)||3;
+    ni.made = src.made || '自制';
     ni.steps = Array.isArray(src.steps)?src.steps.slice():[];
     ni.tips = src.tips||'';
     ni.fromDish = src.fromDish||false;
