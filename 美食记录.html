@@ -96,13 +96,13 @@
   .badge.汤{ background:#e8eef6; color:#3f6aa3; }
   .badge.主食{ background:#f3ecdf; color:#8a6d3b; }
   .badge.零食{ background:#f1e6f3; color:#7a4f86; }
-  .badge.水果{ background:#fdeede; color:#c8761f; }
   /* 零食分类配色 */
-  .badge.坚果炒货{ background:#f3ecd9; color:#9a7b3a; }
-  .badge.糖果巧克力{ background:#f7e3ec; color:#b5497a; }
-  .badge.饼干糕点{ background:#f0e6d2; color:#a9792f; }
-  .badge.肉脯肉干{ background:#f6e2da; color:#b5532e; }
-  .badge.果干蜜饯{ background:#efe6f4; color:#7a4f86; }
+  .badge.甜{ background:#f7e3ec; color:#b5497a; }
+  .badge.咸{ background:#e3eef3; color:#3f7a9a; }
+  .badge.脆{ background:#f3ecd9; color:#9a7b3a; }
+  .badge.辣{ background:#fbe0da; color:#c0392b; }
+  .badge.肉制品{ background:#f6e2da; color:#b5532e; }
+  .badge.水果{ background:#fdeede; color:#c8761f; }
   /* 饮品分类配色 */
   .badge.养生茶{ background:#e7f3ec; color:#3f9d6b; }
   .badge.茶叶{ background:#eef0e3; color:#6f8a3f; }
@@ -167,12 +167,12 @@
   .rtype-badge.汤{ background:rgba(63,106,163,.82); }
   .rtype-badge.主食{ background:rgba(138,109,59,.82); }
   .rtype-badge.零食{ background:rgba(122,79,134,.82); }
+  .rtype-badge.甜{ background:rgba(181,73,122,.82); }
+  .rtype-badge.咸{ background:rgba(63,122,154,.82); }
+  .rtype-badge.脆{ background:rgba(154,123,58,.82); }
+  .rtype-badge.辣{ background:rgba(192,57,43,.82); }
+  .rtype-badge.肉制品{ background:rgba(181,83,46,.82); }
   .rtype-badge.水果{ background:rgba(200,118,31,.82); }
-  .rtype-badge.坚果炒货{ background:rgba(154,123,58,.82); }
-  .rtype-badge.糖果巧克力{ background:rgba(181,73,122,.82); }
-  .rtype-badge.饼干糕点{ background:rgba(169,121,47,.82); }
-  .rtype-badge.肉脯肉干{ background:rgba(181,83,46,.82); }
-  .rtype-badge.果干蜜饯{ background:rgba(122,79,134,.82); }
   .rtype-badge.养生茶{ background:rgba(63,157,107,.82); }
   .rtype-badge.茶叶{ background:rgba(111,138,63,.82); }
   .rtype-badge.水饮料{ background:rgba(63,106,163,.82); }
@@ -197,12 +197,12 @@
   .pick-meta .badge.素{ background:rgba(91,140,123,.14); color:var(--accent2); }
   .pick-meta .badge.汤{ background:rgba(120,140,170,.14); color:#5a6b86; }
   .pick-meta .badge.主食{ background:rgba(180,150,90,.16); color:#9a7b3a; }
+  .pick-meta .badge.甜{ background:rgba(181,73,122,.14); color:#b5497a; }
+  .pick-meta .badge.咸{ background:rgba(63,122,154,.14); color:#3f7a9a; }
+  .pick-meta .badge.脆{ background:rgba(154,123,58,.14); color:#9a7b3a; }
+  .pick-meta .badge.辣{ background:rgba(192,57,43,.12); color:#c0392b; }
+  .pick-meta .badge.肉制品{ background:rgba(181,83,46,.12); color:#b5532e; }
   .pick-meta .badge.水果{ background:rgba(200,118,31,.14); color:#c8761f; }
-  .pick-meta .badge.坚果炒货{ background:rgba(154,123,58,.14); color:#9a7b3a; }
-  .pick-meta .badge.糖果巧克力{ background:rgba(181,73,122,.14); color:#b5497a; }
-  .pick-meta .badge.饼干糕点{ background:rgba(169,121,47,.16); color:#a9792f; }
-  .pick-meta .badge.肉脯肉干{ background:rgba(181,83,46,.12); color:#b5532e; }
-  .pick-meta .badge.果干蜜饯{ background:rgba(122,79,134,.14); color:#7a4f86; }
   .pick-meta .badge.海鲜{ background:rgba(80,150,170,.16); color:#3f8aa0; }
   .pick-like{ position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#fff; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--accent); line-height:1; }
   .pick-like:hover{ background:var(--accent); color:#fff; }
@@ -1084,8 +1084,7 @@ function renderMenu(){
     {type:'素', label:'素菜'},
     {type:'汤', label:'汤'},
     {type:'主食', label:'主食'},
-    {type:'零食', label:'零食'},
-    {type:'水果', label:'水果'}
+    {type:'零食', label:'零食'}
   ];
   const cntOf = t => t==='all' ? state.menu.length : state.menu.filter(r=>r.type===t).length;
   const catBar = '<div class="catbar">' + cats.map(c=>{
@@ -1129,6 +1128,7 @@ function renderMenu(){
         + '<div class="rbar">'
         +   '<button class="rbtn primary" onclick="openRecipeViewer(\''+r.id+'\')">📖 查看</button>'
         +   '<button class="rbtn" onclick="openRecipeEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn" onclick="openMoveDialog(\'menu\',\''+r.id+'\')">🔄 移动</button>'
         +   '<button class="rbtn danger" onclick="delRecipe(\''+r.id+'\')">🗑</button>'
         + '</div></div></div>';
     }).join('') + '</div>';
@@ -1773,7 +1773,7 @@ function openRecipeEditor(id, isNewFromDish){
 }
 function renderEditor(){
   const r = editBuf;
-  const types = ['荤','素','汤','主食','零食','水果'];
+  const types = ['荤','素','汤','主食','零食'];
   const diffs = [['简单',1],['复杂',3],['困难',5]];
   const curDiff = diffs.find(d=>d[1]===dishDifficulty(r)) || diffs[1];
 
@@ -1897,6 +1897,7 @@ function openRecipeViewer(id){
     +   '<div class="rv-section-title">👨‍🍳 制作方法</div>'
     +   '<div class="rv-steps">'+stepItems+'</div></div>'
     + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openRecipeEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn" onclick="openMoveDialog(\'menu\',\''+r.id+'\')">🔄 移动</button>'
     +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
   showModal();
 }
@@ -1923,7 +1924,7 @@ function openDishEditor(d){
     + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填，已自动带入当前菜品）</span></label><input id="d_name" placeholder="如：干煸杏鲍菇" value="'+esc(dd.name||'')+'"></div>'
     + '<div class="row" style="gap:12px">'
     +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(dishEditorEmoji,'pickDishEmoji')+'</div>'
-    +   '<div class="field" style="flex:1"><label>分类</label><select id="d_type">'+['荤','素','汤','主食','零食','水果'].map(t=>'<option '+(t===(dd.type||'荤')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field" style="flex:1"><label>分类</label><select id="d_type">'+['荤','素','汤','主食','零食'].map(t=>'<option '+(t===(dd.type||'荤')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +   '<div class="field" style="width:100px"><label>备料分</label><input id="d_prep" type="number" value="'+(dd.prep||10)+'"></div>'
     +   '<div class="field" style="width:100px"><label>烹饪分</label><input id="d_cook" type="number" value="'+(dd.cook||15)+'"></div>'
     + '</div>'
@@ -2060,6 +2061,7 @@ function renderDrinks(){
         + '<div class="rbar">'
         +   '<button class="rbtn primary" onclick="openDrinkViewer(\''+r.id+'\')">📖 查看</button>'
         +   '<button class="rbtn" onclick="openDrinkEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn" onclick="openMoveDialog(\'drinks\',\''+r.id+'\')">🔄 移动</button>'
         +   '<button class="rbtn danger" onclick="delDrink(\''+r.id+'\')">🗑</button>'
         + '</div></div></div>';
     }).join('') + '</div>';
@@ -2182,12 +2184,13 @@ function openDrinkViewer(id){
     +   '<div class="rv-section-title">🥤 饮品成分</div>'
     +   '<div class="rv-mats">'+(matItems || '<span style="color:var(--sub)">暂无成分</span>')+'</div></div>'
     + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openDrinkEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn" onclick="openMoveDialog(\'drinks\',\''+r.id+'\')">🔄 移动</button>'
     +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
   showModal();
 }
 
 /* ============ 零食库（结构同饮品库；分类/字段为占位，待用户细化） ============ */
-const SNACK_TYPES = ['坚果炒货','糖果巧克力','饼干糕点','肉脯肉干','果干蜜饯'];
+const SNACK_TYPES = ['甜','咸','脆','辣','肉制品','水果'];
 const SNACK_FORMS = [['即食',1],['需加工',3],['冷藏',5]];
 function snackFormLabel(v){
   const n = parseInt(v)||1;
@@ -2200,11 +2203,12 @@ function renderSnacks(){
   const body = document.getElementById('modbody');
   const cats = [
     {type:'all', label:'全部'},
-    {type:'坚果炒货', label:'坚果炒货'},
-    {type:'糖果巧克力', label:'糖果巧克力'},
-    {type:'饼干糕点', label:'饼干糕点'},
-    {type:'肉脯肉干', label:'肉脯肉干'},
-    {type:'果干蜜饯', label:'果干蜜饯'}
+    {type:'甜', label:'甜'},
+    {type:'咸', label:'咸'},
+    {type:'脆', label:'脆'},
+    {type:'辣', label:'辣'},
+    {type:'肉制品', label:'肉制品'},
+    {type:'水果', label:'水果'}
   ];
   const cntOf = t => t==='all' ? state.snacks.length : state.snacks.filter(r=>r.type===t).length;
   const catBar = '<div class="catbar">' + cats.map(c=>{
@@ -2242,6 +2246,7 @@ function renderSnacks(){
         + '<div class="rbar">'
         +   '<button class="rbtn primary" onclick="openSnackViewer(\''+r.id+'\')">📖 查看</button>'
         +   '<button class="rbtn" onclick="openSnackEditor(\''+r.id+'\')">✎ 编辑</button>'
+        +   '<button class="rbtn" onclick="openMoveDialog(\'snacks\',\''+r.id+'\')">🔄 移动</button>'
         +   '<button class="rbtn danger" onclick="delSnack(\''+r.id+'\')">🗑</button>'
         + '</div></div></div>';
     }).join('') + '</div>';
@@ -2270,7 +2275,7 @@ function openSnackEditor(id){
   if(id){ r = state.snacks.find(x=>x.id===id); if(!r) return; }
   else {
     r = {
-      id:rid(), name:'', emoji:'🍪', type:'坚果炒货', image:'',
+      id:rid(), name:'', emoji:'🍪', type:'甜', image:'',
       difficulty:1,
       materials:[
         {n:'', qty:'', skip:false, note:''},
@@ -2363,8 +2368,80 @@ function openSnackViewer(id){
     +   '<div class="rv-section-title">🍪 零食成分</div>'
     +   '<div class="rv-mats">'+(matItems || '<span style="color:var(--sub)">暂无成分</span>')+'</div></div>'
     + '<div class="modal-act" style="margin-top:22px"><button class="btn" onclick="openSnackEditor(\''+r.id+'\')">✎ 编辑</button>'
+    +   '<button class="btn" onclick="openMoveDialog(\'snacks\',\''+r.id+'\')">🔄 移动</button>'
     +   '<button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div>';
   showModal();
+}
+
+/* ============ 跨库移动（菜品库 ↔ 饮品库 ↔ 零食库 任意互转） ============ */
+let moveCtx = null;
+function openMoveDialog(lib, id){
+  const targets = [
+    {k:'menu', n:'菜品库'},{k:'drinks', n:'饮品库'},{k:'snacks', n:'零食库'}
+  ].filter(t=>t.k!==lib);
+  moveCtx = { lib, id };
+  const libBtns = targets.map(t=>'<button class="catbtn" data-k="'+t.k+'" onclick="selMoveLib(\''+t.k+'\')">'+t.n+'</button>').join('');
+  document.getElementById('modalBody').innerHTML =
+    '<h2>🔄 移动到其他库</h2>'
+    + '<p style="color:var(--sub);margin:0 0 12px">选择要移到的库，再选目标分类。当前库没有的字段会自动留空，不影响查看。</p>'
+    + '<div class="catbar" style="margin-bottom:14px">'+libBtns+'</div>'
+    + '<div id="mvCatWrap"></div>'
+    + '<div class="modal-act"><button class="btn" onclick="closeModal()">取消</button>'
+    + '<button class="btn btn-primary" id="mvConfirm" onclick="confirmMove()" disabled style="opacity:.5">确认移动</button></div>';
+  showModal();
+}
+function selMoveLib(k){
+  moveCtx.toLib = k;
+  const cats = k==='menu' ? ['荤','素','汤','主食','零食']
+    : k==='drinks' ? ['养生茶','茶叶','水/饮料','酒','调制酒']
+    : ['甜','咸','脆','辣','肉制品','水果'];
+  document.querySelectorAll('#modalBody .catbtn').forEach(b=> b.classList.toggle('on', b.dataset.k===k));
+  document.getElementById('mvCatWrap').innerHTML =
+    '<div class="field"><label>目标分类</label><select id="mv_type">'+cats.map(t=>'<option>'+t+'</option>').join('')+'</select></div>';
+  const c = document.getElementById('mvConfirm'); c.disabled=false; c.style.opacity='1';
+}
+function confirmMove(){
+  const ctx = moveCtx; if(!ctx){ closeModal(); return; }
+  const {lib, id, toLib} = ctx;
+  if(!toLib){ toast('请先选择要移到的库'); return; }
+  const toType = document.getElementById('mv_type').value;
+  let arr;
+  if(lib==='menu') arr=state.menu;
+  else if(lib==='drinks') arr=state.drinks;
+  else arr=state.snacks;
+  const idx = arr.findIndex(x=>x.id===id);
+  if(idx<0){ closeModal(); return; }
+  const src = arr[idx];
+  arr.splice(idx,1);
+  if(lib==='menu') save(K.menu, state.menu);
+  else if(lib==='drinks') save(K.drinks, state.drinks);
+  else save(K.snacks, state.snacks);
+  const ni = {
+    id:'mv'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    name: src.name||'未命名', emoji: src.emoji||'🍴',
+    image: src.image||'', type: toType,
+    materials: (src.materials||[]).map(m=>({n:m.n||'', qty:m.qty||'', skip:!!m.skip, note:m.note||''})),
+    created: src.created||Date.now()
+  };
+  if(toLib==='menu'){
+    ni.duration = src.duration||'';
+    ni.difficulty = parseInt(src.difficulty)||3;
+    ni.steps = Array.isArray(src.steps)?src.steps.slice():[];
+    ni.tips = src.tips||'';
+    ni.fromDish = src.fromDish||false;
+    state.menu.unshift(ni); save(K.menu, state.menu);
+  } else if(toLib==='drinks'){
+    ni.difficulty = parseInt(src.difficulty)||3;
+    state.drinks.unshift(ni); save(K.drinks, state.drinks);
+  } else {
+    ni.difficulty = parseInt(src.difficulty)||1;
+    state.snacks.unshift(ni); save(K.snacks, state.snacks);
+  }
+  closeModal();
+  if(state.tab==='menu') renderMenu();
+  else if(state.tab==='drinks') renderDrinks();
+  else if(state.tab==='snacks') renderSnacks();
+  toast('已移动到'+(toLib==='menu'?'菜品库':toLib==='drinks'?'饮品库':'零食库')+' · '+toType);
 }
 
 /* ============ 工具 ============ */
