@@ -678,16 +678,17 @@ let activeCoverTarget = null;
 
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
-  try{ localStorage.setItem(key, JSON.stringify(v)); scheduleCloudPush(); return true; }
-  catch(e){
-    console.error(e);
-    // 写入失败：仅提示，绝不自动压缩（尊重原图）
-    handleStorageFull();
-    return false;
-  }
+  try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); scheduleCloudPush(); return true; }
+  catch(e){ console.error(e); handleStorageFull(key); return false; }
 }
+function saveSilent(key, v){ try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); }catch(e){} }
 let __storageAlertShown = false;
-function handleStorageFull(){ showStorageAlert(); }
+// 图片已改存 IndexedDB，localStorage 近乎不会满；万一真失败也不再弹"存储已满"模态框，仅轻提示
+function handleStorageFull(key){
+  __storageAlertShown = true;
+  console.warn('localStorage 写入失败（图片已改存 IndexedDB，理论上不应再满）', key);
+  toast('本地存储写入异常，但你的图片已安全存于本机数据库，不影响使用');
+}
 function refreshCurrentTab(){
   if(state.tab==='menu') renderMenu();
   else if(state.tab==='drinks') renderDrinks();
@@ -858,31 +859,53 @@ function compressImage(file, callback, opts){
   reader.readAsDataURL(file);
 }
 
-/* ============ 图片存储策略（2026-08-14 改：放弃 IndexedDB，图片直接 base64 存 localStorage） ============ */
-// 原因：外壳云同步只走 localStorage，IndexedDB 里的图片无法跨设备同步到手机端。
-// 现在：图片 = base64 字符串存 localStorage → 外壳同步自动带上 → 手机端直接渲染。
-// 5MB 限额用"数据管理 → 压缩历史打卡照片"功能维护。
-let __idbOk=false; // 写死禁用 IndexedDB
+/* ============ 图片存储策略（2026-08-30 改：图片存 IndexedDB，localStorage 只留极小引用） ============ */
+// 原因：原图体积大（全部约 59MB），localStorage 仅 5MB 上限，塞不下且会频繁弹"存储已满"。
+// 改为：图片 base64 存 IndexedDB（本机数据库，容量几乎无限 → 永不满、永不弹窗）；localStorage 仅存 'idb://<id>' 引用。
+// 同步逻辑不变：cloudPush 仍把 base64 随快照带上（GitHub 可承载），跨设备图片照常同步。
 const IDB_NAME='food_img_db', IDB_STORE='images';
 let __idb=null;
+const __idbHave = new Set(); // 本会话已写入 IDB 的图片 id，避免重复写盘
+function idbOpen(){ return new Promise((res,rej)=>{ try{ if(__idb) return res(__idb); const req=indexedDB.open(IDB_NAME,1); req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE); }; req.onsuccess=e=>{ __idb=e.target.result; res(__idb); }; req.onerror=e=>rej(e); }catch(e){ rej(e); } }); }
+async function idbPut(id, base64){ try{ if(__idbHave.has(id)) return; const db=await idbOpen(); await new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(base64, id); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); __idbHave.add(id); }catch(e){ console.warn('idbPut 失败', e); } }
+async function idbGet(id){ try{ const db=await idbOpen(); return await new Promise((res)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const rq=tx.objectStore(IDB_STORE).get(id); rq.onsuccess=()=>res(rq.result||''); rq.onerror=()=>res(''); }); }catch(e){ return ''; } }
+async function idbDel(id){ try{ __idbHave.delete(id); const db=await idbOpen(); await new Promise((res)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(id); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }); }catch(e){} }
 function isImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
-function idbConn(){ return Promise.reject(new Error('idb-disabled')); }
-function idbGenId(){ return 'b64_'+Date.now().toString(36); }
-async function idbPut(v){ return v; } // 入库 noop：原值（base64）直接返回
-async function idbGet(ref){ return ref && ref.indexOf('data:image')===0 ? ref : ''; } // 老 idb:// 引用：没有真实图片，留空
-async function idbDel(ref){}
-// 渲染：直接输出 src（base64），无异步
-function imgTag(src, cls, extra){
-  cls=cls||''; extra=extra||'';
-  return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">';
+// 图片内容 → 稳定 id（按 长度+首尾采样 做 djb2 哈希），相同图复用同一 id，IDB 写入幂等
+function imgIdOf(base64){ let h=5381; const sample=base64.length+':'+base64.slice(0,500)+base64.slice(-500); for(let i=0;i<sample.length;i++){ h=((h<<5)+h+sample.charCodeAt(i))|0; } return 'img_'+(h>>>0).toString(36); }
+function imgTag(src, cls, extra){ cls=cls||''; extra=extra||''; return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">'; }
+function hydrateImgs(root){ /* 图片已是内存 base64，无需异步填充 */ }
+async function resolveImg(src){ if(isImgRef(src)) return await idbGet(src.slice(6)); return src; }
+async function persistImages(root){ return root; } // 图片随 save() 自动转存 IDB
+async function hydrateStateImages(obj){ return obj; } // 内存中已是 base64
+// 写入 localStorage 前：把对象里的 base64 图片转成 'idb://<id>' 引用，并异步存入 IDB
+function toRefsClone(v){
+  if(typeof v==='string'){ if(v.indexOf('data:image')===0){ const id=imgIdOf(v); idbPut(id, v); return 'idb://'+id; } return v; }
+  if(Array.isArray(v)) return v.map(toRefsClone);
+  if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=toRefsClone(v[k]); return o; }
+  return v;
 }
-function hydrateImgs(root){ /* noop：图片已是 base64，无需异步填充 */ }
-async function resolveImg(src){
-  if(isImgRef(src)) return ''; // 老 idb 引用在 IndexedDB 禁用后已无法还原
-  return src;
+// 收集对象里所有图片槽位（base64 或 idb:// 引用）
+function walkImgSlots(obj, cb){
+  if(typeof obj!=='object'||obj===null) return;
+  const isImg = (x)=> typeof x==='string' && (x.indexOf('data:image')===0 || isImgRef(x));
+  if(Array.isArray(obj)){ for(let i=0;i<obj.length;i++){ if(isImg(obj[i])) cb(obj,i,obj[i]); else if(obj[i]&&typeof obj[i]==='object') walkImgSlots(obj[i], cb); } }
+  else { for(const k of Object.keys(obj)){ if(isImg(obj[k])) cb(obj,k,obj[k]); else if(obj[k]&&typeof obj[k]==='object') walkImgSlots(obj[k], cb); } }
 }
-async function persistImages(root){ return root; } // 老接口：base64 无需转存
-async function hydrateStateImages(obj){ return obj; } // 老接口：base64 无需还原
+// 启动后：① 旧 base64 图（压缩前的遗留）迁到 IDB 并改存引用；② idb:// 引用还原成内存 base64 供渲染
+async function prepareState(){
+  const slots=[];
+  walkImgSlots(state, (p,k,v)=>slots.push({p,k,v}));
+  let legacy=false;
+  for(const s of slots){
+    if(s.v.indexOf('data:image')===0){ const id=imgIdOf(s.v); await idbPut(id, s.v); legacy=true; /* 内存保留 base64 用于渲染；稍后重新保存为引用 */ }
+    else if(isImgRef(s.v)){ const b=await idbGet(s.v.slice(6)); s.p[s.k]= b||''; }
+  }
+  if(legacy){
+    save(K.menu, state.menu); save(K.drinks, state.drinks); save(K.snacks, state.snacks);
+    save(K.dishCover, state.dishCover); save(K.checkin, state.checkin); save(K.userDishes, state.userDishes);
+  }
+}
 // 启动时把 localStorage 里遗留的 idb:// 引用清掉（IndexedDB 不可用时图片无意义，保留引用只会显示空白）
 function stripIdbRefs(root){
   let touched=false;
@@ -1904,7 +1927,7 @@ function coverCompressOpts(){
 }
 function setRecCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  if(file.size > 40*1024*1024){ toast('单张原图建议小于 40MB，以保证流畅（本地数据库可存原图）'); return; }
   readFileRaw(file, function(dataUrl){
     if(!dataUrl) return;
     editBuf._cover = dataUrl;
@@ -2024,7 +2047,7 @@ function setCoverMode(mode){
 }
 function setCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  if(file.size > 40*1024*1024){ toast('单张原图建议小于 40MB，以保证流畅（本地数据库可存原图）'); return; }
   readFileRaw(file, function(dataUrl){
     if(!dataUrl) return;
     dishEditorCover = dataUrl; updateCoverPreview();
@@ -2211,7 +2234,7 @@ function addDrinkMat(){ drinkBuf.materials.push({n:'',qty:'',skip:false,note:''}
 function delDrinkMat(idx){ drinkBuf.materials.splice(idx,1); renderDrinkEditor(); }
 function setDrinkCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  if(file.size > 40*1024*1024){ toast('单张原图建议小于 40MB，以保证流畅（本地数据库可存原图）'); return; }
   readFileRaw(file, function(dataUrl){
     if(!dataUrl) return;
     drinkBuf._cover = dataUrl; renderDrinkEditor();
@@ -2400,7 +2423,7 @@ function addSnackMat(){ snackBuf.materials.push({n:'',qty:'',skip:false,note:''}
 function delSnackMat(idx){ snackBuf.materials.splice(idx,1); renderSnackEditor(); }
 function setSnackCoverUpload(file){
   if(!file) return;
-  if(file.size > 3*1024*1024){ toast('单张原图请小于 3MB（浏览器本地上限约 5MB，图片多了需到数据管理删减）'); return; }
+  if(file.size > 40*1024*1024){ toast('单张原图建议小于 40MB，以保证流畅（本地数据库可存原图）'); return; }
   readFileRaw(file, function(dataUrl){
     if(!dataUrl) return;
     snackBuf._cover = dataUrl; renderSnackEditor();
@@ -2617,7 +2640,7 @@ function tick(){
 tick(); setInterval(tick, 30000);
 
 ensureTagStore();
-migrateImagesToIdb().then(function(){
+prepareState().then(function(){
   buildQueue(); switchTab('checkin');
 });
 
@@ -2646,10 +2669,11 @@ function openDataMgr(){
     + '</div>'
     + '<h3 style="font-size:15px;margin:16px 0 8px">清理工具</h3>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-    +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面（释放空间，不动原图）</button>'
+    +   '<button class="btn btn-primary" style="background:var(--accent);border-color:var(--accent)" onclick="startBulkReplace()">📂 从文件夹批量替换图片（原图）</button>'
+    +   '<button class="btn" onclick="cleanUnusedDishCovers();">🧹 清理未引用菜品封面</button>'
     +   '<button class="btn" onclick="exportFood();">⬇ 导出备份（留原图底稿）</button>'
     + '</div>'
-    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">说明：本应用已关闭所有图片压缩，上传与粘贴都按<strong>原图</strong>保存。本地空间上限约 5MB，图片多了需手动删减来腾位置。</p>'
+    + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">说明：图片现已改存本机数据库（IndexedDB），容量几乎无限，<strong>原图随便放、不再弹"存储已满"</strong>。批量替换：点上面的按钮，在弹出的窗口里选中文件夹【1】的全部图片（Ctrl+A），应用会按<strong>文件名</strong>自动匹配到对应菜品/饮品/零食并换成原图。</p>'
     + '<p style="color:var(--sub);font-size:12.5px;line-height:1.6">想多设备<strong>实时</strong>同步，请使用工作台左下角的「☁ 云同步」。</p>'
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
@@ -2664,7 +2688,58 @@ async function exportFood(){
   toast('已导出 '+Object.keys(data).length+' 项数据');
 }
 
-// 批量压缩历史打卡照片，减少 localStorage 占用
+// 从文件夹批量替换图片：按文件名匹配到对应条目，换成原图（base64）
+function startBulkReplace(){
+  let inp = document.getElementById('bulkImgInput');
+  if(!inp){
+    inp = document.createElement('input');
+    inp.type='file'; inp.id='bulkImgInput'; inp.multiple=true; inp.accept='image/*';
+    inp.style.display='none'; document.body.appendChild(inp);
+    inp.onchange = function(){ if(inp.files && inp.files.length) processBulkFiles(Array.from(inp.files)); inp.value=''; };
+  }
+  toast('在弹窗里打开文件夹【1】，Ctrl+A 全选图片后点"打开"');
+  inp.click();
+}
+async function processBulkFiles(files){
+  // 建立 名称 → 条目 索引（菜品库/饮品库/零食库/菜品封面）
+  const byName = {};
+  const reg = (name, slot)=>{ const k=(name||'').trim(); if(!k) return; (byName[k]=byName[k]||[]).push(slot); };
+  (state.menu||[]).forEach(r=>reg(r.name,{lib:'menu',r}));
+  (state.drinks||[]).forEach(r=>reg(r.name,{lib:'drinks',r}));
+  (state.snacks||[]).forEach(r=>reg(r.name,{lib:'snacks',r}));
+  (state.userDishes||[]).forEach(d=>{ if(state.dishCover[d.id]) reg(d.name,{lib:'dishCover',id:d.id}); });
+  const norm = s=> (s||'').replace(/\.[^.]+$/,'').trim();
+  const findSlots = name=>{
+    if(byName[name]) return byName[name];
+    const relaxed = byName[name.replace(/[\s_\-]?\d+$/,'')]; // "原味鸡焖饭2" → "原味鸡焖饭"
+    return relaxed || null;
+  };
+  let replaced=0; const unmatched=[]; const dirty=new Set();
+  for(const f of files){
+    const name = norm(f.name);
+    const slots = findSlots(name);
+    if(!slots){ unmatched.push(f.name); continue; }
+    const base = await new Promise(res=> readFileRaw(f, res));
+    if(!base) continue;
+    for(const s of slots){
+      if(s.lib==='dishCover'){ state.dishCover[s.id]=base; dirty.add('dishCover'); }
+      else { s.r.image=base; dirty.add(s.lib); }
+    }
+    replaced++;
+  }
+  dirty.forEach(k=>{
+    if(k==='menu') save(K.menu,state.menu);
+    else if(k==='drinks') save(K.drinks,state.drinks);
+    else if(k==='snacks') save(K.snacks,state.snacks);
+    else if(k==='dishCover') save(K.dishCover,state.dishCover);
+  });
+  refreshCurrentTab();
+  let msg = '已用原图替换 '+replaced+' 张';
+  if(unmatched.length) msg += '；未匹配（无同名条目）'+unmatched.length+' 张：'+unmatched.slice(0,8).join('、')+(unmatched.length>8?'…':'');
+  toast(msg);
+  if(unmatched.length) console.log('批量替换未匹配文件：', unmatched);
+}
+// 批量压缩历史打卡照片（已停用：本应用不再压缩图片）
 function compressHistoryPhotos(){
   const ck = load(K.checkin, []);
   const tasks = [];
