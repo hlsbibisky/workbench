@@ -96,6 +96,7 @@
   .badge.汤{ background:#e8eef6; color:#3f6aa3; }
   .badge.主食{ background:#f3ecdf; color:#8a6d3b; }
   .badge.零食{ background:#f1e6f3; color:#7a4f86; }
+  .badge.水果{ background:#fdeede; color:#c8761f; }
   /* 饮品分类配色 */
   .badge.养生茶{ background:#e7f3ec; color:#3f9d6b; }
   .badge.茶叶{ background:#eef0e3; color:#6f8a3f; }
@@ -160,6 +161,7 @@
   .rtype-badge.汤{ background:rgba(63,106,163,.82); }
   .rtype-badge.主食{ background:rgba(138,109,59,.82); }
   .rtype-badge.零食{ background:rgba(122,79,134,.82); }
+  .rtype-badge.水果{ background:rgba(200,118,31,.82); }
   .rtype-badge.养生茶{ background:rgba(63,157,107,.82); }
   .rtype-badge.茶叶{ background:rgba(111,138,63,.82); }
   .rtype-badge.水饮料{ background:rgba(63,106,163,.82); }
@@ -184,6 +186,7 @@
   .pick-meta .badge.素{ background:rgba(91,140,123,.14); color:var(--accent2); }
   .pick-meta .badge.汤{ background:rgba(120,140,170,.14); color:#5a6b86; }
   .pick-meta .badge.主食{ background:rgba(180,150,90,.16); color:#9a7b3a; }
+  .pick-meta .badge.水果{ background:rgba(200,118,31,.14); color:#c8761f; }
   .pick-meta .badge.海鲜{ background:rgba(80,150,170,.16); color:#3f8aa0; }
   .pick-like{ position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#fff; border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px; color:var(--accent); line-height:1; }
   .pick-like:hover{ background:var(--accent); color:#fff; }
@@ -1058,7 +1061,8 @@ function renderMenu(){
     {type:'素', label:'素菜'},
     {type:'汤', label:'汤'},
     {type:'主食', label:'主食'},
-    {type:'零食', label:'零食'}
+    {type:'零食', label:'零食'},
+    {type:'水果', label:'水果'}
   ];
   const cntOf = t => t==='all' ? state.menu.length : state.menu.filter(r=>r.type===t).length;
   const catBar = '<div class="catbar">' + cats.map(c=>{
@@ -1666,7 +1670,7 @@ function openRecipeEditor(id, isNewFromDish){
 }
 function renderEditor(){
   const r = editBuf;
-  const types = ['荤','素','汤','主食','零食'];
+  const types = ['荤','素','汤','主食','零食','水果'];
   const diffs = [['简单',1],['复杂',3],['困难',5]];
   const curDiff = diffs.find(d=>d[1]===dishDifficulty(r)) || diffs[1];
 
@@ -1816,7 +1820,7 @@ function openDishEditor(d){
     + '<div class="field"><label>菜名 <span style="color:var(--sub);font-weight:400;font-size:12px">（必填，已自动带入当前菜品）</span></label><input id="d_name" placeholder="如：干煸杏鲍菇" value="'+esc(dd.name||'')+'"></div>'
     + '<div class="row" style="gap:12px">'
     +   '<div class="field" style="flex:1;min-width:200px"><label>图标 <span style="color:var(--sub);font-weight:400;font-size:12px">（点选一个）</span></label>'+emojiGridHtml(dishEditorEmoji,'pickDishEmoji')+'</div>'
-    +   '<div class="field" style="flex:1"><label>分类</label><select id="d_type">'+['荤','素','汤','主食','零食'].map(t=>'<option '+(t===(dd.type||'荤')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +   '<div class="field" style="flex:1"><label>分类</label><select id="d_type">'+['荤','素','汤','主食','零食','水果'].map(t=>'<option '+(t===(dd.type||'荤')?'selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +   '<div class="field" style="width:100px"><label>备料分</label><input id="d_prep" type="number" value="'+(dd.prep||10)+'"></div>'
     +   '<div class="field" style="width:100px"><label>烹饪分</label><input id="d_cook" type="number" value="'+(dd.cook||15)+'"></div>'
     + '</div>'
