@@ -5,74 +5,83 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>个股分析 · 全维估值体检</title>
 <style>
-:root{--bg:#0a0e17;--panel:#111a28;--panel2:#0d1521;--line:#1e2a3a;--ink:#e6edf3;--sub:#8b98a9;
---red:#ff4d5e;--green:#19c37d;--cyan:#2bd4c4;--gold:#f0b429;--blue:#4d8dff;}
+:root{
+  --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+  --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b;
+  --up:#c0392b; --down:#2e9e5b; --amber:#e0a52e;
+  --mark:rgba(184,113,78,.06);
+  --shadow:0 2px 12px rgba(184,113,78,.10);
+  --lowBg:#e8f5e9; --midBg:#fff8e1; --highBg:#fce4ec;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;}
-body{padding:14px 16px 60px;max-width:1100px;margin:0 auto;font-size:13px;line-height:1.5}
-a{color:var(--cyan);text-decoration:none}
-.up{color:var(--red)}.dn{color:var(--green)}.mut{color:var(--sub)}
-.topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0a0e17 70%,rgba(10,14,23,.85));
-padding:10px 0 8px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.topbar .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.tname{font-size:21px;font-weight:800;letter-spacing:.5px}
-.tcode{font-size:12px;color:var(--sub);background:var(--panel);padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
-input.code{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
-padding:7px 10px;font-size:13px;width:130px;outline:none}
-input.code:focus{border-color:var(--cyan)}
-button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;
-padding:7px 12px;font-size:12px;cursor:pointer;transition:.15s}
-button:hover{border-color:var(--cyan);color:var(--cyan)}
-button.primary{background:linear-gradient(135deg,#2bd4c4,#4d8dff);color:#04121a;border:none;font-weight:700}
-.tag{font-size:11px;color:var(--sub);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:20px}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden}
-.card h3{font-size:13px;font-weight:700;margin-bottom:9px;color:var(--ink);display:flex;align-items:center;gap:7px}
-.card h3 .bar{width:3px;height:13px;background:var(--cyan);border-radius:2px;display:inline-block}
-.card h3 .src{margin-left:auto;font-size:10px;color:var(--sub);font-weight:400}
+html,body{background:var(--bg);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;}
+body{padding:18px 16px 60px;max-width:1180px;margin:0 auto;font-size:14px;line-height:1.55}
+a{color:var(--accent2);text-decoration:none}
+.up{color:var(--up)}.dn{color:var(--down)}.mut{color:var(--sub)}
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--line)}
+.topbar-left h1{font-size:24px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.topbar-left .sub{font-size:13px;color:var(--sub);margin-top:4px}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input.code{background:var(--card);border:1.5px solid var(--line);color:var(--ink);border-radius:9px;padding:7px 11px;font-size:13px;width:155px;outline:none;font-family:inherit}
+input.code:focus{border-color:var(--accent)}
+.btn{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit;font-weight:600}
+.btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#a5633f;color:#fff}
+.tag{font-size:12px;color:var(--sub);background:var(--mark);border:1px solid #ecd9c6;padding:3px 10px;border-radius:20px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;transition:.2s}
+.card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.card h3{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.card h3 .bar{width:4px;height:14px;background:var(--accent);border-radius:2px;display:inline-block}
+.card h3 .src{margin-left:auto;font-size:11px;color:var(--sub);font-weight:400}
 .c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}
 .c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
 .kpi{display:flex;flex-direction:column;gap:3px}
-.kpi .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
-.kpi .l{font-size:11px;color:var(--sub)}
-.kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #1a2533;font-size:12px}
+.kpi .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .l{font-size:12px;color:var(--sub)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1ece3;font-size:13px}
 .kv:last-child{border-bottom:none}
 .kv .k{color:var(--sub)}.kv .val{font-variant-numeric:tabular-nums;font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:11.5px}
-th,td{padding:5px 6px;text-align:left;border-bottom:1px solid #16202e}
-th{color:var(--sub);font-weight:600;position:sticky;top:0;background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--sub);font-weight:700;position:sticky;top:0;background:linear-gradient(180deg,#faf7f2,var(--card))}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.scroll{max-height:230px;overflow:auto}
-.verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.vbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
-.vbox .vt{font-size:12px;color:var(--sub);margin-bottom:5px}
-.vbox .vv{font-size:15px;font-weight:800;margin-bottom:4px}
-.vbox .vd{font-size:11.5px;color:var(--sub);line-height:1.55}
-.badge{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:700}
-.b-buy{background:rgba(25,195,125,.15);color:var(--green)}
-.b-add{background:rgba(77,141,255,.15);color:var(--blue)}
-.b-hold{background:rgba(240,180,41,.15);color:var(--gold)}
-.b-neutral{background:rgba(139,152,169,.15);color:var(--sub)}
+tr:hover td{background:var(--mark)}
+.scroll{max-height:240px;overflow:auto}
+.verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.vbox{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;transition:.2s}
+.vbox:hover{box-shadow:var(--shadow)}
+.vbox .vt{font-size:12px;color:var(--sub);margin-bottom:6px}
+.vbox .vv{font-size:16px;font-weight:800;margin-bottom:5px;color:var(--ink)}
+.vbox .vd{font-size:12.5px;color:var(--sub);line-height:1.6}
+.badge{display:inline-block;padding:2px 9px;border-radius:7px;font-size:11.5px;font-weight:700}
+.b-buy{background:var(--lowBg);color:var(--down);border:1px solid rgba(46,158,91,.25)}
+.b-add{background:#e7f0f3;color:var(--accent2);border:1px solid rgba(91,140,123,.30)}
+.b-hold{background:var(--midBg);color:var(--amber);border:1px solid rgba(224,165,46,.25)}
+.b-neutral{background:var(--mark);color:var(--sub);border:1px solid var(--line)}
 .svgbox{width:100%;display:block}
-.note{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.5}
-.foot{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:10.5px;color:var(--sub);line-height:1.7}
-.pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 9px;font-size:10.5px;color:var(--sub);margin:2px 3px 0 0}
-#status{font-size:11px;color:var(--gold);min-height:16px;margin-top:4px}
-@media(max-width:760px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.verdict{grid-template-columns:1fr}}
+.note{font-size:11.5px;color:var(--sub);margin-top:7px;line-height:1.6}
+.foot{margin-top:22px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;font-size:12.5px;color:var(--sub);line-height:1.85}
+.pill{display:inline-block;background:var(--mark);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--sub);margin:3px 4px 0 0}
+#status{font-size:12px;color:var(--accent);min-height:16px;margin-top:8px}
+@media(max-width:760px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.verdict{grid-template-columns:1fr}.topbar-left h1{font-size:20px}}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div class="row">
-    <span class="tname" id="tname">—</span>
-    <span class="tcode" id="tcode">—</span>
+  <div class="topbar-left">
+    <h1 id="tname">—</h1>
+    <div class="sub" id="tcode">—</div>
+  </div>
+  <div class="topbar-right">
     <input class="code" id="codeInput" placeholder="输入代码 如600009" value="">
-    <button class="primary" onclick="genFromInput()">生成报告</button>
-    <button onclick="loadSnapshot()">恢复上海机场示例</button>
+    <button class="btn primary" onclick="genFromInput()">生成报告</button>
+    <button class="btn" onclick="loadSnapshot()">恢复示例</button>
     <span class="tag" id="datetag">—</span>
   </div>
-  <div id="status"></div>
 </div>
+<div id="status"></div>
 
 <div class="grid" id="app"></div>
 
@@ -84,7 +93,7 @@ const SNAP_DERIVED = {"fwd_pe_0": 22.87, "cagr": 12.46, "peg": 1.84, "years_to_3
 let DATA = JSON.parse(JSON.stringify(SNAPSHOT));
 let DERIVED = JSON.parse(JSON.stringify(SNAP_DERIVED));
 
-const C = {up:'#ff4d5e',dn:'#19c37d',cyan:'#2bd4c4',gold:'#f0b429',blue:'#4d8dff',sub:'#8b98a9',line:'#1e2a3a',ink:'#e6edf3'};
+const C = {up:'#c0392b',dn:'#2e9e5b',cyan:'#b8714e',gold:'#e0a52e',blue:'#5b8c7b',sub:'#8a837a',line:'#ece5da',ink:'#3a3631'};
 const fmtYi = v => v==null?'—':(Math.abs(v)>=1e8?(v/1e8).toFixed(2)+'亿':(v/1e4).toFixed(1)+'万');
 const fmtY = v => v==null?'—':(v/1e8).toFixed(2)+'亿';
 const sign = v => v>0?'+':'';
@@ -102,7 +111,7 @@ function render(){
 
   // 1. 实时行情
   const c1=card('实时行情','腾讯财经',[
-    kpi(q.price.toFixed(2),'现价',cls(q.change_pct)),
+    kpi(q.price.toFixed(2),'现价',''),
     kpi(sign(q.change_amt)+q.change_amt.toFixed(2)+' ('+sign(q.change_pct)+q.change_pct.toFixed(2)+'%)','涨跌',cls(q.change_pct)),
   ],'c4');
   const c1b=card('核心估值','腾讯财经',[
