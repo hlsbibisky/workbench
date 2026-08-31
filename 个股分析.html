@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>个股分析 · 全维估值体检</title>
+<style>
+:root{--bg:#0a0e17;--panel:#111a28;--panel2:#0d1521;--line:#1e2a3a;--ink:#e6edf3;--sub:#8b98a9;
+--red:#ff4d5e;--green:#19c37d;--cyan:#2bd4c4;--gold:#f0b429;--blue:#4d8dff;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;}
+body{padding:14px 16px 60px;max-width:1100px;margin:0 auto;font-size:13px;line-height:1.5}
+a{color:var(--cyan);text-decoration:none}
+.up{color:var(--red)}.dn{color:var(--green)}.mut{color:var(--sub)}
+.topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0a0e17 70%,rgba(10,14,23,.85));
+padding:10px 0 8px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.topbar .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tname{font-size:21px;font-weight:800;letter-spacing:.5px}
+.tcode{font-size:12px;color:var(--sub);background:var(--panel);padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+input.code{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+padding:7px 10px;font-size:13px;width:130px;outline:none}
+input.code:focus{border-color:var(--cyan)}
+button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+padding:7px 12px;font-size:12px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--cyan);color:var(--cyan)}
+button.primary{background:linear-gradient(135deg,#2bd4c4,#4d8dff);color:#04121a;border:none;font-weight:700}
+.tag{font-size:11px;color:var(--sub);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:20px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden}
+.card h3{font-size:13px;font-weight:700;margin-bottom:9px;color:var(--ink);display:flex;align-items:center;gap:7px}
+.card h3 .bar{width:3px;height:13px;background:var(--cyan);border-radius:2px;display:inline-block}
+.card h3 .src{margin-left:auto;font-size:10px;color:var(--sub);font-weight:400}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}
+.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+.kpi{display:flex;flex-direction:column;gap:3px}
+.kpi .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:11px;color:var(--sub)}
+.kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #1a2533;font-size:12px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--sub)}.kv .val{font-variant-numeric:tabular-nums;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th,td{padding:5px 6px;text-align:left;border-bottom:1px solid #16202e}
+th{color:var(--sub);font-weight:600;position:sticky;top:0;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{max-height:230px;overflow:auto}
+.verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.vbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.vbox .vt{font-size:12px;color:var(--sub);margin-bottom:5px}
+.vbox .vv{font-size:15px;font-weight:800;margin-bottom:4px}
+.vbox .vd{font-size:11.5px;color:var(--sub);line-height:1.55}
+.badge{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:700}
+.b-buy{background:rgba(25,195,125,.15);color:var(--green)}
+.b-add{background:rgba(77,141,255,.15);color:var(--blue)}
+.b-hold{background:rgba(240,180,41,.15);color:var(--gold)}
+.b-neutral{background:rgba(139,152,169,.15);color:var(--sub)}
+.svgbox{width:100%;display:block}
+.note{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.5}
+.foot{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:10.5px;color:var(--sub);line-height:1.7}
+.pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 9px;font-size:10.5px;color:var(--sub);margin:2px 3px 0 0}
+#status{font-size:11px;color:var(--gold);min-height:16px;margin-top:4px}
+@media(max-width:760px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.verdict{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="row">
+    <span class="tname" id="tname">—</span>
+    <span class="tcode" id="tcode">—</span>
+    <input class="code" id="codeInput" placeholder="输入代码 如600009" value="">
+    <button class="primary" onclick="genFromInput()">生成报告</button>
+    <button onclick="loadSnapshot()">恢复上海机场示例</button>
+    <span class="tag" id="datetag">—</span>
+  </div>
+  <div id="status"></div>
+</div>
+
+<div class="grid" id="app"></div>
+
+<div class="foot" id="foot"></div>
+
+<script>
+const SNAPSHOT = {"meta": {"code": "600009", "name": "上海机场", "date": "2026-08-31", "quote_src": "腾讯财经 qt.gtimg.cn", "kline_src": "东方财富", "flow_src": "东方财富", "others_src": "东方财富数据中心 / 同花顺"}, "quote": {"name": "上海机场", "code": "600009", "price": 23.33, "last_close": 23.65, "open": 23.56, "high": 23.72, "low": 23.25, "change_amt": -0.32, "change_pct": -1.35, "pe_ttm": 25.37, "pb": 1.35, "mcap_yi": 580.52, "float_mcap_yi": 578.64, "turnover_pct": 0.39, "amount_yi": 2.24, "vol_ratio": 1.15, "amplitude": 1.99, "timestamp": "20260831161445"}, "info": {"industry": "航空机场", "list_date": "19980218"}, "ths_eps": {"has": true, "rows": [{"year": "2026", "count": 8, "min": 0.93, "avg": 1.02, "max": 1.06, "ind_avg": 0.7}, {"year": "2027", "count": 7, "min": 1.11, "avg": 1.17, "max": 1.23, "ind_avg": 1.08}, {"year": "2028", "count": 6, "min": 1.23, "avg": 1.29, "max": 1.39, "ind_avg": 1.37}]}, "kline": {"dates": ["2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31"], "closes": [29.14, 29.07, 29.11, 29.01, 29.13, 29.23, 29.07, 28.82, 28.38, 27.11, 27.34, 27.72, 27.33, 27.44, 27.47, 27.36, 27.86, 27.62, 27.43, 27.24, 27.83, 27.5, 27.36, 27.04, 27.23, 27.14, 27.17, 26.99, 27.23, 27.15, 27.12, 26.96, 26.78, 26.88, 26.89, 27.13, 26.98, 27.12, 27.0, 26.93, 26.97, 26.75, 26.57, 26.26, 25.81, 25.31, 25.45, 25.49, 25.34, 24.94, 25.29, 25.35, 25.14, 24.62, 24.81, 24.58, 24.09, 23.53, 23.13, 23.38, 22.75, 23.46, 23.56, 23.2, 24.02, 23.94, 23.53, 23.34, 22.9, 23.08, 22.7, 22.28, 23.04, 22.94, 23.03, 22.84, 23.43, 23.03, 22.92, 23.25, 22.83, 22.8, 22.48, 22.84, 22.62, 22.76, 23.44, 23.78, 23.59, 23.94, 23.62, 24.28, 24.2, 23.7, 23.73, 24.04, 24.37, 24.94, 24.68, 24.56, 24.27, 24.08, 23.93, 23.86, 23.92, 23.5, 23.65, 23.41, 23.12, 23.07, 23.0, 22.95, 23.27, 22.92, 23.17, 23.38, 23.58, 23.46, 23.65, 23.33], "highs": [29.18, 29.21, 29.15, 29.18, 29.16, 29.53, 29.22, 28.94, 28.89, 28.06, 27.39, 27.73, 27.92, 27.5, 27.51, 27.78, 27.86, 27.86, 27.62, 27.51, 28.02, 27.65, 27.62, 27.18, 27.23, 27.47, 27.22, 27.15, 27.32, 27.39, 27.23, 27.19, 26.96, 26.99, 27.02, 27.14, 27.18, 27.14, 27.52, 26.99, 27.02, 26.99, 26.8, 26.74, 26.39, 25.77, 25.49, 25.64, 25.92, 25.39, 25.58, 25.6, 25.22, 25.17, 25.33, 24.92, 24.51, 24.02, 23.52, 23.68, 23.37, 23.54, 23.69, 23.54, 24.39, 24.43, 23.96, 23.69, 23.34, 23.19, 23.4, 22.91, 23.2, 23.34, 23.29, 23.06, 23.66, 23.68, 23.31, 23.46, 23.31, 23.07, 22.78, 23.02, 22.83, 22.76, 23.51, 24.0, 24.11, 24.02, 24.55, 24.3, 24.39, 24.2, 23.98, 24.07, 24.53, 24.95, 24.75, 24.87, 24.64, 24.4, 24.16, 23.97, 24.04, 23.97, 23.73, 23.7, 23.42, 23.15, 23.18, 23.15, 23.46, 23.29, 23.24, 23.52, 23.65, 23.55, 23.72, 23.72], "lows": [29.04, 29.01, 28.95, 28.91, 28.91, 29.17, 28.96, 28.78, 28.24, 26.94, 27.02, 27.36, 27.31, 27.12, 27.03, 27.34, 27.5, 27.49, 27.35, 27.21, 27.68, 27.36, 27.33, 26.96, 26.92, 27.11, 27.06, 26.93, 26.92, 27.09, 27.06, 26.95, 26.75, 26.66, 26.8, 26.8, 26.9, 26.74, 27.0, 26.87, 26.75, 26.75, 26.54, 26.16, 25.8, 25.19, 25.28, 24.93, 25.32, 24.88, 25.05, 25.07, 24.66, 24.61, 24.56, 24.46, 24.02, 23.42, 22.88, 23.2, 22.66, 22.75, 23.27, 23.09, 23.35, 23.81, 23.45, 23.25, 22.84, 22.24, 22.6, 22.2, 22.24, 22.64, 22.29, 22.64, 22.7, 22.94, 22.71, 22.82, 22.8, 22.61, 22.35, 22.19, 22.53, 22.44, 22.53, 23.26, 23.47, 23.46, 23.6, 23.4, 23.97, 23.7, 23.68, 23.62, 24.02, 24.34, 24.43, 24.39, 24.17, 24.04, 23.81, 23.66, 23.76, 23.47, 23.46, 23.37, 23.12, 22.86, 22.91, 22.88, 23.1, 22.88, 22.86, 23.11, 23.3, 23.23, 23.32, 23.25]}, "fundflow": {"dates": ["2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31"], "main_net": [26193417.0, 3240703.0, -3825516.0, 3897779.0, -11414757.0, -8154510.0, -9939127.0, -38503777.0, -79182744.0, -96714490.0, -33204064.0, -2852828.0, -7710153.0, -12382796.0, -26119639.0, -25253273.0, 18672294.0, -10008753.0, -8824142.0, -8859739.0, 15975557.0, -15318424.0, -5792695.0, -18595643.0, -22783612.0, -18893093.0, -11056815.0, -37784620.0, 14598845.0, -9933002.0, -9862201.0, -21179420.0, -10218029.0, -12372833.0, -32435135.0, 15566318.0, -1974306.0, 34580942.0, 498514.0, 21499755.0, 41827839.0, -16148504.0, -32769176.0, -41660256.0, -39958191.0, -27626366.0, -18595165.0, -4316663.0, 15149771.0, -18305637.0, 25219793.0, -2245643.0, 33353812.0, -47203938.0, -16081602.0, 12225332.0, -15543726.0, -97699900.0, -46455849.0, -2516294.0, -26580688.0, 27708265.0, -18463741.0, -6797478.0, -8612312.0, -15741644.0, -11360437.0, -2880201.0, -26763987.0, -15628065.0, -13336367.0, 703655.0, 30385628.0, 1095304.0, -12817962.0, 12638181.0, -1438881.0, -33606947.0, -7256114.0, -12497540.0, 10445549.0, -19844001.0, -34779876.0, -13176809.0, -8578260.0, 10472858.0, -7078544.0, 29858983.0, -9626563.0, -8254757.0, -8296459.0, 71991244.0, -543105.0, -7484480.0, 6329230.0, -11753962.0, -13154151.0, -30741804.0, 14713829.0, -12504318.0, 4583608.0, 6381474.0, -16813474.0, -10327339.0, 7912682.0, -98589423.0, -12208862.0, -36775785.0, -10392377.0, -4127290.0, 3153811.0, -19197688.0, 6485153.0, -8132241.0, 164518.0, 6482226.0, 1080763.0, 4162939.0, 15136197.0, -56974844.0], "small_net": [-19841580.0, 2406484.0, 2011804.0, 5280919.0, 4063049.0, 2904777.0, 9710558.0, 28495029.0, 56284739.0, 93578257.0, 24252757.0, -12167571.0, 11626547.0, 2976691.0, 11130230.0, 17556262.0, -8536684.0, 2431109.0, 9553887.0, 5594544.0, 3904834.0, 12026382.0, 17455165.0, 27194316.0, 2278810.0, 14888917.0, 8782840.0, 23785145.0, -4454999.0, 7810620.0, 6889932.0, 12172019.0, 5166003.0, 5248296.0, 23047023.0, -13226368.0, 1238249.0, -33763369.0, -23533566.0, -14243620.0, -14242033.0, 23288770.0, 27702020.0, 37638430.0, 25710968.0, 44346752.0, 8988534.0, 3218378.0, 3638577.0, 19012205.0, -13458530.0, 26270937.0, 22667328.0, 46731546.0, 71241003.0, 31729343.0, 48615733.0, 72672374.0, 75083841.0, 19948449.0, 20134405.0, -19914678.0, 17943557.0, 25069202.0, 10432140.0, 2355484.0, -4377654.0, -1364305.0, 9739945.0, 3456564.0, -3202393.0, -13711534.0, -14155592.0, 26546911.0, 22381871.0, -13148435.0, 7125648.0, 9026763.0, 17876949.0, 22862475.0, -8456512.0, 13807258.0, 31178858.0, 19617437.0, 17347592.0, -16796288.0, 25298089.0, -12600141.0, 30473898.0, 24721765.0, -15395528.0, -22470635.0, 952897.0, 2237737.0, -16787190.0, 14402974.0, 383163.0, 48980023.0, -35356411.0, -25941191.0, -12815357.0, -11097790.0, 8535448.0, 14355034.0, -8098511.0, 49196160.0, 15658342.0, 17366179.0, 9623452.0, -4733997.0, -6120736.0, 15611926.0, -9612231.0, 2722263.0, 14855675.0, 13721927.0, -6886075.0, -12480071.0, 3504693.0, 24332589.0], "mid_net": [-6351836.0, -5647186.0, 1813711.0, -9178697.0, 7351708.0, 5249734.0, 228569.0, 10008749.0, 22898006.0, 3136233.0, 8951306.0, 15020400.0, -3916395.0, 9406106.0, 14989409.0, 7697011.0, -10135611.0, 7577645.0, -729744.0, 3265196.0, -19880391.0, 3292042.0, -11662470.0, -8598674.0, 20504802.0, 4004176.0, 2273975.0, 13999474.0, -10143846.0, 2122383.0, 2972269.0, 9007402.0, 5052025.0, 7124536.0, 9388111.0, -2339950.0, 736057.0, -817572.0, 23035054.0, -7256136.0, -27585806.0, -7140265.0, 5067158.0, 4021825.0, 14247223.0, -16720386.0, 9606632.0, 1098284.0, -18788347.0, -706568.0, -11761264.0, -24025294.0, -56021141.0, 472393.0, -55159401.0, -43954675.0, -33072008.0, 25027525.0, -28627993.0, -17432156.0, 6446284.0, -7793587.0, 520184.0, -18271724.0, -1819829.0, 13386161.0, 15738090.0, 4244506.0, 17024041.0, 12171500.0, 16538760.0, 13007880.0, -16230036.0, -27642216.0, -9563908.0, 510254.0, -5686768.0, 24580185.0, -10620835.0, -10364935.0, -1989036.0, 6036744.0, 3601019.0, -6440629.0, -8769331.0, 6323429.0, -18219545.0, -17258842.0, -20847335.0, -16467007.0, 23691986.0, -49520609.0, -409791.0, 5246743.0, 10457960.0, -2649011.0, 12770987.0, -18238219.0, 20642582.0, 38445510.0, 8231749.0, 4716316.0, 8278026.0, -4027696.0, 185830.0, 49393264.0, -3449480.0, 19409606.0, 768925.0, 8861286.0, 2966926.0, 3585763.0, 3127079.0, 5409979.0, -15020194.0, -20204153.0, 5805312.0, 8317133.0, -18640891.0, 32642255.0], "large_net": [15708302.0, 4814120.0, 4527063.0, 3045993.0, 11607843.0, -6967053.0, -3411091.0, -21900028.0, 20837785.0, -31270321.0, -2195489.0, 2070504.0, -12777815.0, 9265970.0, -6738966.0, -12605001.0, 12185199.0, 799174.0, -9041001.0, 1891770.0, 16431274.0, -12780980.0, -4468755.0, -13089940.0, -6168421.0, -21455391.0, -5405846.0, -11729698.0, 10585024.0, 2918517.0, -4531108.0, -12649968.0, -6172991.0, -9144368.0, -1082573.0, -1653647.0, -3783473.0, 14695902.0, -3425625.0, -2037040.0, 23284278.0, -4701864.0, 548665.0, -16116235.0, -24906175.0, -4377205.0, 4294622.0, 6692329.0, -4588895.0, -6992651.0, 31874.0, -6759073.0, 16782746.0, 14678895.0, 38589019.0, 13333602.0, 17140761.0, -72805725.0, -16270755.0, -16005744.0, -6094094.0, 4907744.0, -17487188.0, -1895531.0, -32337704.0, -9452236.0, -652253.0, 8129905.0, -19653628.0, -25251090.0, 7788830.0, 12422834.0, 6836690.0, -23716968.0, -18246666.0, -4363641.0, 1313633.0, 27137708.0, -8914361.0, 16942280.0, 10384605.0, -21703029.0, -19901055.0, -19272641.0, -7271984.0, 4525372.0, -1044967.0, 22879520.0, -2579690.0, -17015806.0, 10912971.0, -1169185.0, 1353594.0, 1106253.0, 8886515.0, -11630604.0, -8033048.0, -28073424.0, 15253821.0, 15505419.0, 12427887.0, 6492091.0, -18770750.0, -4491669.0, 2023022.0, -22822054.0, -16010049.0, -1873872.0, 258743.0, 5718176.0, 2089417.0, 491189.0, 9733828.0, -3771800.0, -1620884.0, -4244568.0, -5536244.0, -6478353.0, 8396225.0, -2656472.0], "super_net": [10485115.0, -1573417.0, -8352579.0, 851786.0, -23022600.0, -1187457.0, -6528036.0, -16603749.0, -100020529.0, -65444169.0, -31008575.0, -4923332.0, 5067662.0, -21648766.0, -19380673.0, -12648272.0, 6487095.0, -10807927.0, 216859.0, -10751509.0, -455717.0, -2537444.0, -1323940.0, -5505703.0, -16615191.0, 2562298.0, -5650969.0, -26054922.0, 4013821.0, -12851519.0, -5331093.0, -8529452.0, -4045038.0, -3228465.0, -31352562.0, 17219965.0, 1809167.0, 19885040.0, 3924139.0, 23536795.0, 18543561.0, -11446640.0, -33317841.0, -25544021.0, -15052016.0, -23249161.0, -22889787.0, -11008992.0, 19738666.0, -11312986.0, 25187919.0, 4513430.0, 16571066.0, -61882833.0, -54670621.0, -1108270.0, -32684487.0, -24894175.0, -30185094.0, 13489450.0, -20486594.0, 22800521.0, -976553.0, -4901947.0, 23725392.0, -6289408.0, -10708184.0, -11010106.0, -7110359.0, 9623025.0, -21125197.0, -11719179.0, 23548938.0, 24812272.0, 5428704.0, 17001822.0, -2752514.0, -60744655.0, 1658247.0, -29439820.0, 60944.0, 1859028.0, -14878821.0, 6095832.0, -1306276.0, 5947486.0, -6033577.0, 6979463.0, -7046873.0, 8761049.0, -19209430.0, 73160429.0, -1896699.0, -8590733.0, -2557285.0, -123358.0, -5121103.0, -2668380.0, -539992.0, -28009737.0, -7844279.0, -110617.0, 1957276.0, -5835670.0, 5889660.0, -75767369.0, 3801187.0, -34901913.0, -10651120.0, -9845466.0, 1064394.0, -19688877.0, -3248675.0, -4360441.0, 1785402.0, 10726794.0, 6617007.0, 10641292.0, 6739972.0, -54318372.0]}, "margin": {"dates": ["2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28"], "rzye": [1643427118, 1625165965, 1619192477, 1613689451, 1607638225, 1611573946, 1610422374, 1614039175, 1619993124, 1606191008, 1587925006, 1603352867, 1680021787, 1682223987, 1680867274, 1678343412, 1670769017, 1666276612, 1666091173, 1626849366, 1573208062, 1577958473, 1596190547, 1595720203, 1602197631, 1602952023, 1614760653, 1610083787, 1611128446, 1611488470, 1610705606, 1630016749, 1612991444, 1602107933, 1602035832, 1598798383, 1598053191, 1598409392, 1619778772, 1644066582], "rzrqye": [1647977143, 1629821002, 1623982757, 1618410251, 1612605925, 1616394268, 1615272530, 1618858439, 1624373400, 1609696482, 1591614160, 1606140027, 1682925675, 1685115887, 1683955384, 1681568319, 1673891813, 1669571436, 1669440615, 1629939302, 1576383670, 1581603827, 1600110771, 1599513108, 1605814807, 1606583079, 1618414903, 1614170507, 1615211150, 1615374942, 1614590594, 1633952049, 1617521774, 1606852686, 1606601496, 1603703472, 1602701135, 1603000418, 1624529422, 1649371277]}, "holders": {"dates": ["2024-03-31", "2024-06-30", "2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"], "nums": [216065, 212779, 205798, 190249, 193848, 184103, 181121, 163472, 180970, 177407], "focus": ["非常分散", "非常分散", "非常分散", "非常分散", "非常分散", "非常分散", "非常分散", "非常分散", "非常分散", "非常分散"], "change_ratio": [-1.68, -1.5208, -3.2809, -7.5555, 1.8917, -5.0271, -1.6197, -9.7443, 10.704, -1.9688]}, "reports": [{"date": "2026-08-20", "org": "国金证券", "rating": "买入", "title": "航空主业稳健，货运亮眼，免税合同收入环比改善", "eps_this": "1.0060000000", "eps_next": "1.1800000000", "eps_next2": "1.2520000000"}, {"date": "2026-05-05", "org": "国金证券", "rating": "买入", "title": "25年业绩符合预期，26Q1受投资利润驱动利润增速显著", "eps_this": "0.9670000000", "eps_next": "1.0840000000", "eps_next2": "1.1730000000"}, {"date": "2025-12-22", "org": "群益证券", "rating": "增持", "title": "新免税招标落地，公司免税业务将迎来新局面", "eps_this": "1.22", "eps_next": "1.22", "eps_next2": ""}, {"date": "2025-11-02", "org": "国金证券", "rating": "买入", "title": "收入增长成本刚性，Q3业绩大增", "eps_this": "1.0340000000", "eps_next": "1.2450000000", "eps_next2": ""}, {"date": "2025-11-01", "org": "东吴证券", "rating": "增持", "title": "2025年三季报点评：成本管控带动盈利提升免税合同收入同增18%", "eps_this": "1.0600000000", "eps_next": "1.2400000000", "eps_next2": ""}, {"date": "2025-09-05", "org": "东兴证券", "rating": "增持", "title": "成本管控卓有成效，非航收入表现偏弱", "eps_this": "1.0400000000", "eps_next": "1.1400000000", "eps_next2": ""}, {"date": "2025-09-01", "org": "国金证券", "rating": "买入", "title": "业务量驱动利润增长，中期分红率提升", "eps_this": "1.0880000000", "eps_next": "1.3610000000", "eps_next2": ""}, {"date": "2025-08-31", "org": "民生证券", "rating": "增持", "title": "2025年半年报点评：25H1成本控制良好，中期分红提升股东回报", "eps_this": "1.0300000000", "eps_next": "1.1800000000", "eps_next2": ""}], "dividend": [{"notice_date": "2026-08-20", "ex_date": "None", "bonus_per10": 2.7, "bonus_per_share": 0.27, "progress": "董事会决议通过", "yield_pct": 0.011573081869}, {"notice_date": "2026-06-25", "ex_date": "2026-07-01", "bonus_per10": 2.6, "bonus_per_share": 0.26, "progress": "实施分配", "yield_pct": 0.011255411255}, {"notice_date": "2025-10-10", "ex_date": "2025-10-16", "bonus_per10": 2.1, "bonus_per_share": 0.21, "progress": "实施分配", "yield_pct": 0.006587202008}, {"notice_date": "2025-08-04", "ex_date": "2025-08-08", "bonus_per10": 3, "bonus_per_share": 0.3, "progress": "实施分配", "yield_pct": 0.009296560273}, {"notice_date": "2024-09-03", "ex_date": "2024-09-09", "bonus_per10": 1.0034, "bonus_per_share": 0.10034, "progress": "实施分配", "yield_pct": 0.003093094945}, {"notice_date": "2024-07-15", "ex_date": "2024-07-19", "bonus_per10": 1.2, "bonus_per_share": 0.12, "progress": "实施分配", "yield_pct": 0.003423680456}, {"notice_date": "2020-08-14", "ex_date": "2020-08-20", "bonus_per10": 7.9, "bonus_per_share": 0.79, "progress": "实施分配", "yield_pct": 0.010061130922}, {"notice_date": "2019-08-16", "ex_date": "2019-08-22", "bonus_per10": 6.6, "bonus_per_share": 0.66, "progress": "实施分配", "yield_pct": 0.007764705882}, {"notice_date": "2018-08-17", "ex_date": "2018-08-23", "bonus_per10": 5.8, "bonus_per_share": 0.58, "progress": "实施分配", "yield_pct": 0.00992980654}, {"notice_date": "2017-08-18", "ex_date": "2017-08-24", "bonus_per10": 4.4, "bonus_per_share": 0.44, "progress": "实施分配", "yield_pct": 0.011789924973}]};
+const SNAP_DERIVED = {"fwd_pe_0": 22.87, "cagr": 12.46, "peg": 1.84, "years_to_30": 0, "target30_price": 30.6, "discount_vs_30": 23.8, "cum_120": -1157029054.0, "cum_20": -217995952.0, "cum_10": -47639166.0, "cum_5": -30112719.0, "margin_chg_yi": 0.01, "margin_latest_yi": 16.44, "holder_chg_pct": -17.89, "holder_latest": 177407};
+let DATA = JSON.parse(JSON.stringify(SNAPSHOT));
+let DERIVED = JSON.parse(JSON.stringify(SNAP_DERIVED));
+
+const C = {up:'#ff4d5e',dn:'#19c37d',cyan:'#2bd4c4',gold:'#f0b429',blue:'#4d8dff',sub:'#8b98a9',line:'#1e2a3a',ink:'#e6edf3'};
+const fmtYi = v => v==null?'—':(Math.abs(v)>=1e8?(v/1e8).toFixed(2)+'亿':(v/1e4).toFixed(1)+'万');
+const fmtY = v => v==null?'—':(v/1e8).toFixed(2)+'亿';
+const sign = v => v>0?'+':'';
+const cls = v => v>0?'up':(v<0?'dn':'mut');
+function $(id){return document.getElementById(id);}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const q=DATA.quote, m=DATA.meta;
+  $('tname').textContent=q.name||'—';
+  $('tcode').textContent=(q.code||'')+' · '+ (DATA.info.industry||'');
+  $('datetag').textContent='数据日期 '+m.date;
+  const d=DERIVED;
+  const app=$('app'); app.innerHTML='';
+
+  // 1. 实时行情
+  const c1=card('实时行情','腾讯财经',[
+    kpi(q.price.toFixed(2),'现价',cls(q.change_pct)),
+    kpi(sign(q.change_amt)+q.change_amt.toFixed(2)+' ('+sign(q.change_pct)+q.change_pct.toFixed(2)+'%)','涨跌',cls(q.change_pct)),
+  ],'c4');
+  const c1b=card('核心估值','腾讯财经',[
+    kv('PE(TTM)',q.pe_ttm?.toFixed(2),''),
+    kv('PB',q.pb?.toFixed(2),''),
+    kv('总市值',fmtY(q.mcap_yi*1e8),''),
+    kv('流通市值',fmtY(q.float_mcap_yi*1e8),''),
+  ],'c4');
+  const c1c=card('盘口','腾讯财经',[
+    kv('今开',q.open?.toFixed(2),''),kv('昨收',q.last_close?.toFixed(2),''),
+    kv('最高',q.high?.toFixed(2),'up'),kv('最低',q.low?.toFixed(2),'dn'),
+    kv('换手率',(q.turnover_pct?.toFixed(2))+'%',''),kv('量比',q.vol_ratio?.toFixed(2),''),
+    kv('成交额',fmtYi(q.amount_yi*1e8),''),kv('振幅',(q.amplitude?.toFixed(2))+'%',''),
+  ],'c4');
+
+  // 2. 一致预期
+  let epsRows='';
+  DATA.ths_eps.rows.forEach(r=>{epsRows+=`<tr><td>${r.year}E</td><td class="num">${r.avg.toFixed(2)}</td><td class="num">${r.count}</td><td class="num">${r.min.toFixed(2)}~${r.max.toFixed(2)}</td><td class="num mut">${r.ind_avg!=null?r.ind_avg.toFixed(2):'—'}</td></tr>`;});
+  const epsHas=DATA.ths_eps.has;
+  const c2=card('机构一致预期 EPS','同花顺',`
+    ${epsHas?`<table><thead><tr><th>年度</th><th class="num">EPS均值</th><th class="num">机构数</th><th class="num">预测区间</th><th class="num mut">行业均值</th></tr></thead><tbody>${epsRows}</tbody></table>`
+      :`<div class="note">实时一致预期获取失败（同花顺接口跨域受限）。下方为示例快照，或改用本机生成器。</div>`}
+    <div class="kv"><span class="k">前向 PE(${DATA.ths_eps.rows[0]?.year}E)</span><span class="val">${d.fwd_pe_0??'—'}</span></div>
+    <div class="kv"><span class="k">EPS 增速 CAGR</span><span class="val">${d.cagr??'—'}%</span></div>
+    <div class="kv"><span class="k">PEG</span><span class="val">${d.peg??'—'}</span></div>
+    <div class="kv"><span class="k">现价消化至30倍</span><span class="val">${d.years_to_30==0?`<span class="up">已低于30x</span>`:d.years_to_30+'年'}</span></div>
+    <div class="note">30x对应合理价 ${d.target30_price??'—'} 元，现价较其 ${d.discount_vs_30==null?'—':(d.discount_vs_30>0?'折价':'溢价')+Math.abs(d.discount_vs_30)+'%'}</div>
+  `,'c6');
+  const c2b=card('估值消化路径','',`
+    <svg class="svgbox" viewBox="0 0 680 200" id="svgPe"></svg>
+    <div class="note">以现价 ${q.price} 元、EPS 按一致预期增长，前向 PE 逐年回落（红虚线=30x 锚）。</div>
+  `,'c6');
+
+  // 3. 资金流
+  const c3=card('主力资金流（近120日）','东方财富',`
+    <svg class="svgbox" viewBox="0 0 680 210" id="svgFlow"></svg>
+  `,'c7');
+  const c3b=card('资金流累计','东方财富',[
+    kv('近5日',fmtYi(d.cum_5),cls(d.cum_5)),
+    kv('近10日',fmtYi(d.cum_10),cls(d.cum_10)),
+    kv('近20日',fmtYi(d.cum_20),cls(d.cum_20)),
+    kv('近120日',fmtYi(d.cum_120),cls(d.cum_120)),
+  ],'c5');
+  c3b.querySelector('.card-body').insertAdjacentHTML('beforeend',
+    `<div class="note">红=主力净流入，绿=净流出。近20日 ${sign(d.cum_20)}${fmtYi(d.cum_20)}。</div>`);
+
+  // 4. 融资余额
+  const c4=card('融资余额趋势','东方财富',`
+    <svg class="svgbox" viewBox="0 0 680 170" id="svgMargin"></svg>
+    <div class="kv"><span class="k">最新融资余额</span><span class="val">${d.margin_latest_yi??'—'}亿</span></div>
+    <div class="kv"><span class="k">区间变化</span><span class="val ${cls(d.margin_chg_yi)}">${sign(d.margin_chg_yi)}${d.margin_chg_yi??'—'}亿</span></div>
+  `,'c6');
+  const c4b=card('股东户数变化','东方财富',`
+    <svg class="svgbox" viewBox="0 0 680 170" id="svgHolder"></svg>
+    <div class="kv"><span class="k">最新户数</span><span class="val">${(d.holder_latest??'—').toLocaleString()}</span></div>
+    <div class="kv"><span class="k">区间变化</span><span class="val ${cls(-(d.holder_chg_pct||0))}">${sign(-(d.holder_chg_pct||0))}${-(d.holder_chg_pct||0)}%</span></div>
+    <div class="note">户数下降→筹码趋于集中；上升→趋于分散。</div>
+  `,'c6');
+
+  // 5. 研报
+  let repRows='';
+  DATA.reports.forEach(r=>{repRows+=`<tr><td>${r.date}</td><td>${r.org}</td><td><span class="badge ${r.rating.includes('买入')?'b-buy':(r.rating.includes('增持')?'b-add':'b-neutral')}">${r.rating}</span></td><td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</td></tr>`;});
+  const c5=card('近期研报（最新'+DATA.reports.length+'条）','东方财富',`
+    <div class="scroll"><table><thead><tr><th>日期</th><th>机构</th><th>评级</th><th>标题</th></tr></thead><tbody>${repRows}</tbody></table></div>
+  `,'c12');
+
+  // 6. 分红
+  let dvRows='';
+  DATA.dividend.forEach(x=>{dvRows+=`<tr><td>${x.notice_date}</td><td class="num">${x.bonus_per10!=null?('10派'+x.bonus_per10+'元'):'—'}</td><td>${x.ex_date&&x.ex_date!='None'?x.ex_date:'—'}</td><td class="num mut">${x.yield_pct!=null?(x.yield_pct*100).toFixed(2)+'%':'—'}</td><td class="mut">${x.progress||''}</td></tr>`;});
+  const c6=card('分红送转历史','东方财富',`
+    <div class="scroll"><table><thead><tr><th>公告日</th><th class="num">方案</th><th>除权日</th><th class="num mut">股息率</th><th class="mut">进度</th></tr></thead><tbody>${dvRows}</tbody></table></div>
+  `,'c6');
+
+  // 7. 综合判断
+  const c7=card('综合判断（非投资建议）','',verdictHtml(),'c6');
+
+  [c1,c1b,c1c,c2,c2b,c3,c3b,c4,c4b,c5,c6,c7].forEach(c=>app.appendChild(c));
+  drawPe();drawFlow();drawMargin();drawHolder();
+  $('foot').innerHTML=footHtml();
+}
+
+function card(title,src,body,span){
+  const el=document.createElement('div');el.className='card '+span;
+  el.innerHTML=`<h3><span class="bar"></span>${title}${src?`<span class="src">来源：${src}</span>`:''}</h3><div class="card-body">${body}</div>`;
+  return el;
+}
+function kpi(v,l,cl){return `<div class="kpi"><span class="v ${cl||''}">${v}</span><span class="l">${l}</span></div>`;}
+function kv(k,v,cl){return `<div class="kv"><span class="k">${k}</span><span class="val ${cl||''}">${v}</span></div>`;}
+
+function verdictHtml(){
+  const d=DERIVED,q=DATA.quote;
+  // 贵不贵
+  let cheap='';
+  if(d.peg!=null){cheap = d.peg>2?`<span class="badge b-neutral">偏贵</span>`:(d.peg>1.2?`<span class="badge b-hold">中性</span>`:`<span class="badge b-buy">合理</span>`);}
+  const cheapV = `PE(TTM) ${q.pe_ttm} / 前向PE ${d.fwd_pe_0} / PB ${q.pb} / PEG ${d.peg??'—'}`;
+  const cheapD = `现价比30x锚${d.discount_vs_30==null?'':(d.discount_vs_30>0?'折价'+d.discount_vs_30+'%':'溢价'+(-d.discount_vs_30)+'%')}。机场属重资产，PB ${q.pb} 处于历史中低位。`;
+  // 筹码
+  const holderCls = (d.holder_chg_pct||0)<0?'集中':'分散';
+  const marginCls = (d.margin_chg_yi||0)>=0?'平稳略升':'回落';
+  const chipV = `户数${holderCls} · 融资${marginCls}`;
+  const chipD = `区间户数${(d.holder_chg_pct||0)>0?'+':''}${d.holder_chg_pct??'—'}%；融资余额${sign(d.margin_chg_yi)}${d.margin_chg_yi??'—'}亿；近20日主力${d.cum_20>=0?'净流入':'净流出'} ${fmtYi(Math.abs(d.cum_20))}。`;
+  // 能不能拿
+  const holdV = `<span class="badge b-hold">中性持有</span>`;
+  const holdD = `估值不便宜但透支有限，筹码趋向集中、机构预期稳健增长。适合逢回调分批，设置止损。仅供参考，不构成投资建议。`;
+  return `<div class="verdict">
+    <div class="vbox"><div class="vt">贵不贵 ${cheap}</div><div class="vv">${cheapV}</div><div class="vd">${cheapD}</div></div>
+    <div class="vbox"><div class="vt">筹码稳不稳</div><div class="vv">${chipV}</div><div class="vd">${chipD}</div></div>
+    <div class="vbox"><div class="vt">能不能拿</div><div class="vv">${holdV}</div><div class="vd">${holdD}</div></div>
+  </div>`;
+}
+function footHtml(){
+  const m=DATA.meta;
+  return `数据来源：行情 <b>${m.quote_src}</b>；K线 <b>${m.kline_src}</b>；资金流 <b>${m.flow_src}</b>；一致预期 <b>同花顺</b>；融资/股东/研报/分红 <b>东方财富数据中心</b>。<br>
+  数据日期：<b>${m.date}</b>。本页为基于公开数据的量化体检，<b>仅供研究参考，不构成任何投资建议</b>。市场有风险，决策需独立。<br>
+  <span class="pill">实时换股：输入代码点「生成报告」</span><span class="pill">离线快照：内联真实数据</span><span class="pill">红=涨/流入 · 绿=跌/流出</span>`;
+}
+
+/* ---------- SVG 图表 ---------- */
+function svgEl(id){return document.getElementById(id);}
+function drawPe(){
+  const svg=svgEl('svgPe');if(!svg)return;const W=680,H=200,pad=30;
+  const rows=DATA.ths_eps.rows;if(!rows.length){svg.innerHTML='<text x="20" y="30" fill="#8b98a9">无一致预期数据</text>';return;}
+  const price=DATA.quote.price;const pe0=price/rows[0].avg;
+  const pes=rows.map(r=>price/r.avg);
+  const maxV=Math.max(30,Math.max(...pes)*1.1),minV=Math.min(...pes)*0.9;
+  const X=i=>pad+i*(W-2*pad)/(pes.length-1);
+  const Y=v=>H-pad-(v-minV)/(maxV-minV)*(H-2*pad);
+  let s=`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="${C.line}"/>`;
+  s+=`<line x1="${pad}" y1="${Y(30)}" x2="${W-pad}" y2="${Y(30)}" stroke="${C.gold}" stroke-dasharray="4 4"/><text x="${W-pad-44}" y="${Y(30)-4}" fill="${C.gold}" font-size="10">30x锚</text>`;
+  pes.forEach((v,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${C.cyan}"/><text x="${X(i)}" y="${Y(v)-9}" fill="${C.ink}" font-size="10" text-anchor="middle">${v.toFixed(1)}</text><text x="${X(i)}" y="${H-pad+15}" fill="${C.sub}" font-size="9" text-anchor="middle">${rows[i].year}E</text>`;});
+  // 连接线
+  for(let i=1;i<pes.length;i++){s+=`<line x1="${X(i-1)}" y1="${Y(pes[i-1])}" x2="${X(i)}" y2="${Y(pes[i])}" stroke="${C.cyan}" stroke-width="1.5" opacity=".6"/>`;}
+  svg.innerHTML=s;
+}
+function drawFlow(){
+  const svg=svgEl('svgFlow');if(!svg)return;const W=680,H=210,pad=24;
+  const arr=DATA.fundflow.main_net;if(!arr.length){svg.innerHTML='<text>无数据</text>';return;}
+  const n=arr.length;const max=Math.max(...arr.map(Math.abs),1);
+  const bw=(W-2*pad)/n*0.7;const gap=(W-2*pad)/n;
+  const Y0=H-pad;const unit=(H-2*pad)/max/2;
+  let s=`<line x1="${pad}" y1="${Y0}" x2="${W-pad}" y2="${Y0}" stroke="${C.line}"/>`;
+  arr.forEach((v,i)=>{const x=pad+i*gap+(gap-bw)/2;const h=Math.abs(v)*unit;
+    const col=v>=0?C.up:C.dn;const y=v>=0?Y0-h:Y0;
+    s+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${col}" opacity=".8"/>`;});
+  // 近20日累计标注
+  const cum=DERIVED.cum_20;
+  s+=`<text x="${pad+4}" y="14" fill="${cum>=0?C.up:C.dn}" font-size="11">近20日主力净流入 ${cum>=0?'+':''}${fmtYi(cum)}</text>`;
+  svg.innerHTML=s;
+}
+function drawMargin(){
+  const svg=svgEl('svgMargin');if(!svg)return;const W=680,H=170,pad=28;
+  const arr=DATA.margin.rzye;if(!arr.length){svg.innerHTML='<text>无数据</text>';return;}
+  const max=Math.max(...arr),min=Math.min(...arr);const rng=(max-min)||1;
+  const X=i=>pad+i*(W-2*pad)/(arr.length-1);
+  const Y=v=>H-pad-(v-min)/rng*(H-2*pad);
+  let s=`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="${C.line}"/>`;
+  for(let i=1;i<arr.length;i++){s+=`<line x1="${X(i-1)}" y1="${Y(arr[i-1])}" x2="${X(i)}" y2="${Y(arr[i])}" stroke="${C.blue}" stroke-width="1.6"/>`;}
+  arr.forEach((v,i)=>{if(i%Math.ceil(arr.length/6)===0||i===arr.length-1)s+=`<text x="${X(i)}" y="${H-pad+14}" fill="${C.sub}" font-size="9" text-anchor="middle">${DATA.margin.dates[i].slice(5)}</text><text x="${X(i)}" y="${Y(v)-5}" fill="${C.ink}" font-size="9" text-anchor="middle">${(v/1e8).toFixed(1)}</text>`;});
+  svg.innerHTML=s;
+}
+function drawHolder(){
+  const svg=svgEl('svgHolder');if(!svg)return;const W=680,H=170,pad=28;
+  const arr=DATA.holders.nums;if(!arr.length){svg.innerHTML='<text>无数据</text>';return;}
+  const max=Math.max(...arr),min=Math.min(...arr);const rng=(max-min)||1;
+  const X=i=>pad+i*(W-2*pad)/(arr.length-1);
+  const Y=v=>H-pad-(v-min)/rng*(H-2*pad);
+  let s=`<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="${C.line}"/>`;
+  for(let i=1;i<arr.length;i++){s+=`<line x1="${X(i-1)}" y1="${Y(arr[i-1])}" x2="${X(i)}" y2="${Y(arr[i])}" stroke="${C.gold}" stroke-width="1.6"/>`;}
+  arr.forEach((v,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3" fill="${C.gold}"/><text x="${X(i)}" y="${H-pad+14}" fill="${C.sub}" font-size="9" text-anchor="middle">${DATA.holders.dates[i].slice(5)}</text><text x="${X(i)}" y="${Y(v)-5}" fill="${C.ink}" font-size="9" text-anchor="middle">${(v/1e4).toFixed(1)}万</text>`;});
+  svg.innerHTML=s;
+}
+
+/* ---------- 实时换股生成 ---------- */
+function loadSnapshot(){DATA=JSON.parse(JSON.stringify(SNAPSHOT));DERIVED=JSON.parse(JSON.stringify(SNAP_DERIVED));setStatus('已恢复上海机场(600009)示例快照（离线内联数据）。');render();}
+function setStatus(t){$('status').textContent=t;}
+function genFromInput(){
+  const code=($('codeInput').value||'').trim();
+  if(!/^\d{6}$/.test(code)){setStatus('请输入6位A股代码，如 600009 / 000001 / 300750');return;}
+  setStatus('正在实时抓取 '+code+' 的真实数据…');
+  fetchLive(code).then(ok=>{ if(ok){setStatus('已生成 '+code+' 实时报告（来源：东方财富/同花顺）。');} else {setStatus('实时抓取部分失败，已用可得数据渲染；跨域受限时可改用本机生成器。');} render(); })
+  .catch(e=>{setStatus('实时抓取异常：'+e.message+'。可恢复示例或用本机生成器。');render();});
+}
+function mkt(code){return code.startsWith('6')?'1':'0';}
+async function fetchLive(code){
+  const secid=mkt(code)+'.'+code;
+  let ok=true;
+  try{
+    const u=`https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f44,f45,f46,f57,f58,f60,f116,f117,f168,f169,f170,f171,f172`;
+    const r=await fetch(u,{mode:'cors'});const j=await r.json();const d=j.data||{};
+    const map={price:d.f43,last_close:d.f60,open:d.f46,high:d.f44,low:d.f45,change_amt:d.f171,change_pct:d.f172,pe_ttm:d.f170,mcap_yi:(d.f116||0)/1e8,float_mcap_yi:(d.f117||0)/1e8,turnover_pct:d.f168,vol_ratio:d.f169,amount_yi:0,amplitude:0,name:d.f58,code};
+    DATA.quote=Object.assign(DATA.quote,map);DATA.meta.code=code;DATA.meta.name=d.f58||code;
+  }catch(e){ok=false;console.warn('quote',e);}
+  try{
+    const ku=`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=1&lmt=120`;
+    const r=await fetch(ku,{mode:'cors'});const j=await r.json();const kl=(j.data&&j.data.klines)||[];
+    const rows=kl.map(x=>x.split(',')).filter(p=>p.length>=7);
+    DATA.kline={dates:rows.map(p=>p[0]),closes:rows.map(p=>+p[2]),highs:rows.map(p=>+p[3]),lows:rows.map(p=>+p[4])};
+  }catch(e){ok=false;console.warn('kline',e);}
+  try{
+    const fu=`https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57&lmt=120`;
+    const r=await fetch(fu,{mode:'cors'});const j=await r.json();const fl=(j.data&&j.data.klines)||[];
+    const rows=fl.map(x=>x.split(',')).filter(p=>p.length>=6);
+    DATA.fundflow={dates:rows.map(p=>p[0]),main_net:rows.map(p=>+p[1]),small_net:rows.map(p=>+p[2]),mid_net:rows.map(p=>+p[3]),large_net:rows.map(p=>+p[4]),super_net:rows.map(p=>+p[5])};
+  }catch(e){ok=false;console.warn('flow',e);}
+  try{
+    const mu=`https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&filter=(SCODE%3D%22${code}%22)&pageSize=40&sortColumns=DATE&sortTypes=-1&source=WEB&client=WEB`;
+    const r=await fetch(mu,{mode:'cors'});const j=await r.json();const arr=(j.result&&j.result.data)||[];
+    DATA.margin={dates:arr.map(x=>x.DATE.slice(0,10)),rzye:arr.map(x=>x.RZYE),rzrqye:arr.map(x=>x.RZRQYE)};
+  }catch(e){ok=false;console.warn('margin',e);}
+  try{
+    const hu=`https://emweb.securities.eastmoney.com/PC_HSF10/ShareholderResearch/PageAjax?code=SH${code}`;
+    const r=await fetch(hu,{mode:'cors',headers:{'Referer':'https://emweb.securities.eastmoney.com/'}});const j=await r.json();const g=(j.gdrs)||[];
+    const gg=g.slice(-10);
+    DATA.holders={dates:gg.map(x=>x.END_DATE.slice(0,10)),nums:gg.map(x=>+x.HOLDER_TOTAL_NUM),focus:gg.map(x=>x.HOLD_FOCUS),change_ratio:gg.map(x=>+x.TOTAL_NUM_RATIO)};
+  }catch(e){ok=false;console.warn('holders',e);}
+  try{
+    const ru=`https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_WEB_RESPREDICT&columns=ALL&filter=(SECURITY_CODE%3D%22${code}%22)&pageSize=8&sortColumns=PUBLISH_DATE&sortTypes=-1&source=WEB&client=WEB`;
+    const r=await fetch(ru,{mode:'cors'});const j=await r.json();const arr=(j.result&&j.result.data)||[];
+    DATA.reports=arr.map(x=>({date:(x.PUBLISH_DATE||'').slice(0,10),org:x.ORG_NAME||x.INST_NAME||'',rating:x.RATING_NAME||x.RATING||'',title:x.REPORT_TITLE||x.TITLE||'',eps_this:x.EPS,eps_next:x.EPS_NEXT,eps_next2:x.EPS_NEXT2}));
+  }catch(e){ok=false;console.warn('reports',e);}
+  try{
+    const du=`https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_SHAREBONUS_DET&columns=ALL&filter=(SECURITY_CODE%3D%22${code}%22)&pageSize=10&sortColumns=NOTICE_DATE&sortTypes=-1&source=WEB&client=WEB`;
+    const r=await fetch(du,{mode:'cors'});const j=await r.json();const arr=(j.result&&j.result.data)||[];
+    DATA.dividend=arr.map(x=>({notice_date:(x.NOTICE_DATE||'').slice(0,10),ex_date:x.EX_DIVIDEND_DATE?x.EX_DIVIDEND_DATE.slice(0,10):'None',bonus_per10:(x.BONUS_PER10!=null?x.BONUS_PER10:(x.PRETAX_BONUS_RMB!=null?x.PRETAX_BONUS_RMB*10:null)),bonus_per_share:x.PRETAX_BONUS_RMB,yield_pct:x.DIVIDENT_RATIO,progress:x.ASSIGN_PROGRESS}));
+  }catch(e){ok=false;console.warn('dividend',e);}
+  // 一致预期（同花顺跨域大概率失败，保留原样）
+  DERIVED=deriveLive();
+  return ok;
+}
+function deriveLive(){
+  const q=DATA.quote;const price=q.price;const rows=DATA.ths_eps.rows;
+  const o={};
+  if(rows.length){const e0=rows[0].avg;o.fwd_pe_0=+(price/e0).toFixed(2);
+    if(rows.length>=2){const e1=rows[rows.length-1].avg;const n=rows.length-1;const cagr=Math.pow(e1/e0,1/n)-1;
+      o.cagr=+(cagr*100).toFixed(2);o.peg=+(o.fwd_pe_0/(cagr*100)).toFixed(2);
+      let yrs=0,et=e0;while(et&&price/et>30&&yrs<20){et*=1+cagr;yrs++;}o.years_to_30=yrs;
+      o.target30_price=+(30*e0).toFixed(2);o.discount_vs_30=+((o.target30_price-price)/o.target30_price*100).toFixed(1);}}
+  const mn=DATA.fundflow.main_net||[];
+  o.cum_120=mn.reduce((a,b)=>a+b,0);o.cum_20=mn.slice(-20).reduce((a,b)=>a+b,0);
+  o.cum_10=mn.slice(-10).reduce((a,b)=>a+b,0);o.cum_5=mn.slice(-5).reduce((a,b)=>a+b,0);
+  const rz=DATA.margin.rzye||[];if(rz.length>=2){o.margin_chg_yi=+((rz[rz.length-1]-rz[0])/1e8).toFixed(2);o.margin_latest_yi=+(rz[rz.length-1]/1e8).toFixed(2);}
+  const hn=DATA.holders.nums||[];if(hn.length>=2){o.holder_chg_pct=+((hn[hn.length-1]-hn[0])/hn[0]*100).toFixed(2);o.holder_latest=hn[hn.length-1];}
+  return o;
+}
+
+/* ---------- 启动 ---------- */
+render();
+</script>
+</body>
+</html>
