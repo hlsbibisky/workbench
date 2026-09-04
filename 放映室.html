@@ -361,10 +361,11 @@ function lsGet(k){ try{return JSON.parse(localStorage.getItem(k));}catch(e){retu
 function lsSet(k,v){ localStorage.setItem(k,JSON.stringify(v)); notifyParent(); }
 function notifyParent(){ try{parent.postMessage({type:'wb-data-changed'},'*');}catch(e){} }
 
-const _origSetItem=localStorage.setItem;
-const _origRemoveItem=localStorage.removeItem;
-localStorage.setItem=function(k,v){ _origSetItem.call(localStorage,k,v); notifyParent(); };
-localStorage.removeItem=function(k){ _origRemoveItem.call(localStorage,k); notifyParent(); };
+try{ if(!window.__wbStorageHooked){
+var _oS=Storage.prototype.setItem, _oR=Storage.prototype.removeItem;
+Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
+Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
+window.__wbStorageHooked=true; } }catch(e){}
 
 function loadCfg(){
   let cfg=lsGet(K_CFG)||{};
