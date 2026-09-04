@@ -617,13 +617,19 @@ function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; } } return o; }
 function wbApply(o){
   if(!o) return;
-  let changed=false;
+  let changed=false, quotaHit=false;
   Object.keys(o).forEach(k=>{
     if(WB_SKIP.indexOf(k)<0 && !wbIsJunk(k,o[k])){
       const cur=localStorage.getItem(k);
-      if(cur!==o[k]){ try{ localStorage.setItem(k,o[k]); changed=true; }catch(e){ console.error('wbApply failed for',k,e); } }
+      if(cur!==o[k]){
+        try{ localStorage.setItem(k,o[k]); changed=true; }
+        catch(e){ quotaHit=true; console.error('wbApply 配额超限，跳过',k,e); }
+      }
     }
   });
+  if(quotaHit){
+    try{ wbToast('本地空间不足，部分数据（多为图片）未能写入。请在电脑端压缩图片后重新同步。'); }catch(e){}
+  }
   if(changed) wbBroadcastReload();
 }
 function wbSchedulePush(immediate){
@@ -657,13 +663,19 @@ function wbItemId(x){
   if(x.name!==undefined) return 'n:'+String(x.name);
   return JSON.stringify(x);
 }
+function wbScanStr(x, needle){
+  if(typeof x==='string') return x.indexOf(needle)>=0;
+  if(Array.isArray(x)) return x.some(y=>wbScanStr(y,needle));
+  if(x && typeof x==='object') return Object.keys(x).some(k=>wbScanStr(x[k],needle));
+  return false;
+}
 function wbItemTs(x){
   if(!x||typeof x!=='object') return 0;
   const t=x.updated||x.ts||x.created||x._ts||0;
   if(typeof t==='number') return t;
   const p=Date.parse(t); return isNaN(p)?0:p;
 }
-function wbMergeArr3(localStr,cloudStr,baseStr){
+function wbMergeArr3(localStr,cloudStr,baseStr,dir){
   let L=null,C=null,B=null;
   try{ L=JSON.parse(localStr); }catch(e){}
   try{ C=JSON.parse(cloudStr); }catch(e){}
@@ -673,8 +685,22 @@ function wbMergeArr3(localStr,cloudStr,baseStr){
   if(!Array.isArray(C)) return localStr;
   if(!Array.isArray(B)) B=null;                 /* 无基线：只做并集，绝不敢删 */
   const map={};
-  const put=x=>{ const id=wbItemId(x); const cur=map[id]; if(cur===undefined||wbItemTs(x)>=wbItemTs(cur)) map[id]=x; };
-  L.forEach(put); C.forEach(put);
+  const put=(x, fromLocal)=>{
+    const id=wbItemId(x); const cur=map[id];
+    if(cur===undefined){ map[id]=x; return; }
+    /* 真图（data:image）优先于旧本机引用（idb://），修复图片跨设备不同步 */
+    const xReal=wbScanStr(x,'data:image'), curReal=wbScanStr(cur,'data:image');
+    const xRef=wbScanStr(x,'idb://'), curRef=wbScanStr(cur,'idb://');
+    if(xReal && curRef){ map[id]=x; return; }
+    if(curReal && xRef){ return; }
+    const xt=wbItemTs(x), ct=wbItemTs(cur);
+    let winnerIsX;
+    if(xt>ct) winnerIsX=true;
+    else if(xt<ct) winnerIsX=false;
+    else winnerIsX = (dir==='pull') ? !fromLocal : fromLocal;  /* 同时间戳：push 本地胜，pull 云端胜 */
+    if(winnerIsX) map[id]=x;
+  };
+  L.forEach(x=>put(x,true)); C.forEach(x=>put(x,false));
   if(B){                                        /* 三向判定：基线有、任一侧没了 => 该侧删了 */
     const bIds={},lIds={},cIds={};
     B.forEach(x=>{ bIds[wbItemId(x)]=1; });
@@ -686,16 +712,17 @@ function wbMergeArr3(localStr,cloudStr,baseStr){
   out.sort((a,b)=>wbItemTs(a)-wbItemTs(b));
   return JSON.stringify(out);
 }
-function wbMergeObj(localStr,cloudStr){
+function wbMergeObj(localStr,cloudStr,dir){
   let L=null,C=null;
   try{ L=JSON.parse(localStr); }catch(e){}
   try{ C=JSON.parse(cloudStr); }catch(e){}
   if(!L||typeof L!=='object'||Array.isArray(L)) return (localStr!=null?localStr:cloudStr);
   if(!C||typeof C!=='object'||Array.isArray(C)) return localStr;
-  const out={};
-  Object.keys(C).forEach(k=>{ out[k]=C[k]; });
-  Object.keys(L).forEach(k=>{ if(!wbIsEmptyVal(L[k])||out[k]===undefined) out[k]=L[k]; });
-  return JSON.stringify(out);
+  /* push：以云端为基、本地非空覆盖；pull：以本地为基、云端非空覆盖 */
+  const base = (dir==='pull') ? Object.assign({},L) : Object.assign({},C);
+  const over = (dir==='pull') ? C : L;
+  Object.keys(over).forEach(k=>{ if(!wbIsEmptyVal(over[k])||base[k]===undefined) base[k]=over[k]; });
+  return JSON.stringify(base);
 }
 function wbMergeDaily(localStr,cloudStr){
   let L=null,C=null;
@@ -719,17 +746,25 @@ function wbIsEmptyVal(v){
   const s=String(v).trim();
   return s===''||s==='[]'||s==='{}'||s==='null';
 }
-function wbMergeAll(cloudObj){
+function wbMergeAll(cloudObj, dir){
+  dir = dir||'push';
   const local=wbCollect();
   const shadow=wbLoadShadow();
   const out=Object.assign({},cloudObj||{});
   Object.keys(local).forEach(k=>{
     const lv=local[k], cv=out[k], bv=shadow[k];
     if(k==='DAILY_STATUS'){ out[k]=wbMergeDaily(lv,cv); return; }
-    if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(lv,cv,bv); return; }   /* 数组：三向合并 */
-    if(wbIsObj(lv)&&wbIsObj(cv)){ out[k]=wbMergeObj(lv,cv); return; }        /* 对象：按键合并 */
+    /* 图片类数据：base64 与旧 idb:// 引用不能按元素合并（会重复两条），整键按方向覆盖 */
+    if(k.indexOf('food_')===0){
+      if(dir==='pull'){ if(!wbIsEmptyVal(cv)) out[k]=cv; }
+      else { if(!wbIsEmptyVal(lv)) out[k]=lv; }
+      return;
+    }
+    if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(lv,cv,bv,dir); return; }   /* 数组：三向合并（按方向定优先级） */
+    if(wbIsObj(lv)&&wbIsObj(cv)){ out[k]=wbMergeObj(lv,cv,dir); return; }        /* 对象：按键合并（按方向定优先级） */
     if(wbIsEmptyVal(lv)&&!wbIsEmptyVal(cv)) return;                          /* 本机空、云端有 → 保留云端 */
-    out[k]=lv;
+    if(wbIsEmptyVal(cv)&&!wbIsEmptyVal(lv)) return;                          /* 云端空、本机有 → 保留本机 */
+    out[k] = (dir==='pull') ? (wbIsEmptyVal(cv)?lv:cv) : lv;
   });
   Object.keys(out).forEach(k=>{ if(wbIsJunk(k,out[k])) delete out[k]; });    /* 清掉污染键 */
   return out;
@@ -773,7 +808,7 @@ async function wbPush(silent){
       const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
       if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
     }catch(e){ console.warn('取云端失败，本次跳过推送以免覆盖',e); wbBusy=false; return; }
-    const merged=cloudObj?wbMergeAll(cloudObj):wbCollect();
+    const merged=cloudObj?wbMergeAll(cloudObj,'push'):wbCollect();
     const sig=wbSig(merged);
     if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
     const now=new Date().toISOString();
@@ -799,7 +834,7 @@ async function wbPull(){
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
       if(cloudAt>seenVer){
-        const merged=wbMergeAll(data.payload.data);   /* 落地也走合并，云端旧值不会抹掉本机新记录 */
+        const merged=wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
         wbApply(merged);
         wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
         try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
