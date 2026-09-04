@@ -603,6 +603,14 @@ function wbLoadCfg(){
   try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
   if(!wbSync) wbSync={};
   if(wbSync.connected===undefined) wbSync.connected=false;
+  /* 自愈：清掉旧版 GitHub 同步层遗留字段（其中含明文 GitHub 令牌），只保留 connected。
+     现用的 Supabase 同步层只依赖 connected 一个字段，删除其余字段不影响同步。 */
+  if(wbSync.github!==undefined || wbSync.provider!==undefined || wbSync.gist_id!==undefined || wbSync.token!==undefined){
+    const c=wbSync.connected;
+    wbSync={connected:c};
+    try{ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }catch(e){}
+    console.warn('[wb] 已清除旧版 GitHub 同步配置（含明文令牌）');
+  }
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
