@@ -230,9 +230,10 @@
 <body>
 <script>
 (function(){
-  try{ var orig=localStorage.setItem;
-    localStorage.setItem=function(k,v){ var r=orig.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
-  }catch(e){}
+  try{ if(!window.__wbStorageHooked){ var _oS=Storage.prototype.setItem, _oR=Storage.prototype.removeItem;
+    Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+    Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
+    window.__wbStorageHooked=true; } }catch(e){}
   function _editing(){
     var a=document.activeElement;
     if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable)) return true;
