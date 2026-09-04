@@ -897,16 +897,16 @@ function walkImgSlots(obj, cb){
   if(Array.isArray(obj)){ for(let i=0;i<obj.length;i++){ if(isImg(obj[i])) cb(obj,i,obj[i]); else if(obj[i]&&typeof obj[i]==='object') walkImgSlots(obj[i], cb); } }
   else { for(const k of Object.keys(obj)){ if(isImg(obj[k])) cb(obj,k,obj[k]); else if(obj[k]&&typeof obj[k]==='object') walkImgSlots(obj[k], cb); } }
 }
-// 启动后：① 旧 base64 图（压缩前的遗留）迁到 IDB 并改存引用；② idb:// 引用还原成内存 base64 供渲染
+// 启动后：把 idb:// 旧引用从本机数据库还原成 base64，并写回 localStorage（这样图片才能随云同步跨设备）
 async function prepareState(){
   const slots=[];
   walkImgSlots(state, (p,k,v)=>slots.push({p,k,v}));
-  let legacy=false;
+  let changed=false;
   for(const s of slots){
-    if(s.v.indexOf('data:image')===0){ const id=imgIdOf(s.v); await idbPut(id, s.v); legacy=true; /* 内存保留 base64 用于渲染；稍后重新保存为引用 */ }
-    else if(isImgRef(s.v)){ const b=await idbGet(s.v.slice(6)); s.p[s.k]= b||''; }
+    if(s.v.indexOf('data:image')===0){ const id=imgIdOf(s.v); await idbPut(id, s.v); changed=true; }
+    else if(isImgRef(s.v)){ const b=await idbGet(s.v.slice(6)); if(b){ s.p[s.k]=b; changed=true; } }
   }
-  if(legacy){
+  if(changed){
     save(K.menu, state.menu); save(K.drinks, state.drinks); save(K.snacks, state.snacks);
     save(K.dishCover, state.dishCover); save(K.checkin, state.checkin); save(K.userDishes, state.userDishes);
   }
