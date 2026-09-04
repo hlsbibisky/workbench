@@ -680,15 +680,21 @@ let activeCoverTarget = null;
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
   try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); scheduleCloudPush(); return true; }
-  catch(e){ console.error(e); handleStorageFull(key); return false; }
+  catch(e){ console.error(e); handleStorageFull(); return false; }
 }
 function saveSilent(key, v){ try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); }catch(e){} }
 let __storageAlertShown = false;
-// 图片已改存 IndexedDB，localStorage 近乎不会满；万一真失败也不再弹"存储已满"模态框，仅轻提示
-function handleStorageFull(key){
+// 本地空间不足：图片以 base64 随数据同步，图多可能占满 5MB 上限。
+// 触发异步压缩图片后重试保存，尽量保住跨设备同步；压缩到极限仍不够则明确提示用户。
+function handleStorageFull(){
+  if(__storageAlertShown) return;
   __storageAlertShown = true;
-  console.warn('localStorage 写入失败（图片已改存 IndexedDB，理论上不应再满）', key);
-  toast('本地存储写入异常，但你的图片已安全存于本机数据库，不影响使用');
+  autoShrinkImagesAsync().then(function(){
+    __storageAlertShown = false;
+    scheduleCloudPush();   // 压缩已写回各 food_* 键，重新触发云端同步
+  }).catch(function(){
+    toast('本地存储空间已满：图片太多已占满浏览器上限。请在「数据管理」压缩或删除不用的图片，否则这些图无法跨设备同步。');
+  });
 }
 function refreshCurrentTab(){
   if(state.tab==='menu') renderMenu();
@@ -860,10 +866,10 @@ function compressImage(file, callback, opts){
   reader.readAsDataURL(file);
 }
 
-/* ============ 图片存储策略（2026-08-30 改：图片存 IndexedDB，localStorage 只留极小引用） ============ */
-// 原因：原图体积大（全部约 59MB），localStorage 仅 5MB 上限，塞不下且会频繁弹"存储已满"。
-// 改为：图片 base64 存 IndexedDB（本机数据库，容量几乎无限 → 永不满、永不弹窗）；localStorage 仅存 'idb://<id>' 引用。
-// 同步逻辑不变：cloudPush 仍把 base64 随快照带上（GitHub 可承载），跨设备图片照常同步。
+/* ============ 图片存储策略（2026-09-04 改回：base64 直存 localStorage，随同步包跨设备） ============ */
+// 原因：上一版把图转成本机私有的 IndexedDB 引用，云端只同步到引用、不是图，导致手机端看不到图。
+// 现改回：图片 base64 直接存 localStorage，随工作台云同步包一起上云，手机端拉到即可显示。
+// 代价：localStorage 仅 5MB 上限，图多可能占满；因此 save 在写满时自动压缩图片并重试（见 handleStorageFull）。
 const IDB_NAME='food_img_db', IDB_STORE='images';
 let __idb=null;
 const __idbHave = new Set(); // 本会话已写入 IDB 的图片 id，避免重复写盘
@@ -879,12 +885,10 @@ function hydrateImgs(root){ /* 图片已是内存 base64，无需异步填充 */
 async function resolveImg(src){ if(isImgRef(src)) return await idbGet(src.slice(6)); return src; }
 async function persistImages(root){ return root; } // 图片随 save() 自动转存 IDB
 async function hydrateStateImages(obj){ return obj; } // 内存中已是 base64
-// 写入 localStorage 前：把对象里的 base64 图片转成 'idb://<id>' 引用，并异步存入 IDB
+// 写入 localStorage 前：图片以 base64 原样保留，随数据一起跨设备同步。
+// （旧版曾把图转成本机私有的 'idb://' 引用，导致手机端拿不到图，现已废弃该转存。）
 function toRefsClone(v){
-  if(typeof v==='string'){ if(v.indexOf('data:image')===0){ const id=imgIdOf(v); idbPut(id, v); return 'idb://'+id; } return v; }
-  if(Array.isArray(v)) return v.map(toRefsClone);
-  if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=toRefsClone(v[k]); return o; }
-  return v;
+  return clone(v);
 }
 // 收集对象里所有图片槽位（base64 或 idb:// 引用）
 function walkImgSlots(obj, cb){
