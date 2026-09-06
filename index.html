@@ -911,8 +911,8 @@ function wbDoConnect(){ wbLoadCfg(); wbConnect(); }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
 async function wbSilentReconnect(){
-  wbCleanJunk();          /* 启动先自愈 */
-  wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
+  wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
+  wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
   if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
