@@ -134,7 +134,7 @@ document.getElementById('save').onclick=async ()=>{
     localStorage.setItem('food_menu',JSON.stringify(MENU));
     showMsg('已存本机，正在同步到云端…');
     const ok=await pushCloud();
-    showMsg(ok?'已保存到本机并同步云端 ✅ 请回到工作台按 Ctrl+F5 硬刷新，图即可显示':'本机已存，但云端同步失败（'+(ok===false?'网络')+'），稍后可在工作台内编辑触发同步');
+    showMsg(ok?'已保存到本机并同步云端 ✅ 请回到工作台按 Ctrl+F5 硬刷新，图即可显示':'本机已存，但云端同步失败（网络），稍后可在工作台内编辑触发同步');
   }catch(e){showMsg('保存失败：'+e.message+'（本机已存，可稍后重试）');}
 };
 
