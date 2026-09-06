@@ -12,59 +12,76 @@
   .tip{background:#fff6ec;border:1px solid var(--line);border-radius:10px;padding:12px 14px;line-height:1.7;font-size:14px}
   .diag{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0;font-size:14px}
   .diag b{color:var(--accent)}
+  .bar{position:sticky;top:0;background:var(--bg);padding:10px 0;display:flex;gap:8px;align-items:center;z-index:5;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .bar button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer}
+  .bar .ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .bar input{font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:140px}
+  #msg{font-size:13px;color:var(--accent);width:100%;margin-top:4px}
   .section-title{font-size:16px;margin:22px 0 10px;font-weight:700}
-  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
-  .gimg{border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;background:#fff}
-  .gimg.sel{border-color:var(--accent)}
-  .gimg img{width:100%;height:90px;object-fit:cover;display:block}
-  .gimg .cap{font-size:11px;text-align:center;padding:3px;color:#9a8a7a}
   .mlist{display:grid;gap:10px}
   .mcard{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:12px;align-items:center;background:#fff}
-  .mcard .prev{width:84px;height:84px;border-radius:8px;object-fit:cover;background:#eee;flex:0 0 auto;border:1px solid var(--line)}
-  .mcard .info{flex:1}
-  .mcard .nm{font-weight:700;font-size:15px}
+  .mcard .prev{width:84px;height:84px;border-radius:8px;object-fit:cover;background:#eee;flex:0 0 auto;border:1px solid var(--line);cursor:pointer}
+  .mcard .prev.empty{border-style:dashed}
+  .mcard .info{flex:1;min-width:0}
+  .mcard .nm{font-weight:700;font-size:15px;word-break:break-all}
   .mcard .st{font-size:12px;color:#9a8a7a;margin-top:4px}
+  .mcard .ops{display:flex;gap:8px;flex:0 0 auto}
   .mcard button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px}
-  .bar{position:sticky;top:0;background:var(--bg);padding:10px 0;display:flex;gap:10px;align-items:center;z-index:5}
-  .bar button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer}
-  .bar .ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
-  #msg{font-size:13px;color:var(--accent);margin-left:8px}
+  .mcard button.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  /* 选图弹层 */
+  .overlay{position:fixed;inset:0;background:rgba(40,30,20,.55);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:20px;overflow:auto}
+  .overlay.show{display:flex}
+  .pbox{background:var(--bg);border-radius:14px;max-width:920px;width:100%;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  .phead{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:12px;font-size:15px}
+  .phead button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:70vh;overflow:auto}
+  .pimg{border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;background:#fff}
+  .pimg:hover{border-color:var(--accent)}
+  .pimg img{width:100%;height:90px;object-fit:cover;display:block}
 </style>
 </head>
 <body>
 <h1>美食记录 · 图库救援</h1>
 <div class="tip">
-  这个页面用来找回菜品库被误清空的图。图的真身存在你浏览器的本机图库（IndexedDB）里，没有被删。<br>
-  操作：① 在下方图库里点选一张图；② 在菜品列表里点「配给这道菜」；③ 全部配好后点顶部「保存并同步」。<br>
-  若图太多不想一张张配，可用「一键自动尝试」按顺序尽力填（可能不对应，请保存前核对）。
+  图的真身都在你浏览器的本机图库（IndexedDB）里，没有被删。现在只要把每张图指回正确的菜就行：<br>
+  <b>每道菜右边点「选图」</b> → 弹出图库 → 点那道菜对应的那张图 → 自动配好并关闭。<br>
+  配错了点「清除」重来。全部配好后点顶部「保存并同步」。<br>
+  图太多可用上面的搜索框按菜名过滤。
 </div>
 
 <div class="bar">
   <button id="save">保存并同步</button>
-  <button id="auto" class="ghost">一键自动尝试</button>
+  <button id="clearAll" class="ghost">清空全部配图</button>
   <button id="exportAll" class="ghost">导出全部图(备份)</button>
+  <input id="search" placeholder="搜索菜名…">
   <span id="msg"></span>
 </div>
 
 <div class="diag" id="diag"></div>
 
-<div class="section-title">① 本机图库（图真身都在这里）</div>
-<div class="gallery" id="gallery"></div>
-
-<div class="section-title">② 菜品库（点「配给这道菜」把上面选中的图指回来）</div>
+<div class="section-title">菜品库（点右边「选图」挑正确的图配给它）</div>
 <div class="mlist" id="menu"></div>
+
+<!-- 选图弹层 -->
+<div class="overlay" id="picker">
+  <div class="pbox">
+    <div class="phead"><span id="pTitle">为「菜」选图</span><button id="pClose">关闭</button></div>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+</div>
 
 <script>
 const IDB_NAME='food_img_db', IDB_STORE='images';
 let __idb=null;
 function idbOpen(){return new Promise((res,rej)=>{try{if(__idb)return res(__idb);const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);};req.onsuccess=e=>{__idb=e.target.result;res(__idb);};req.onerror=e=>rej(e);}catch(e){rej(e);}});}
 async function idbGetAll(){const db=await idbOpen();return await new Promise((res,rej)=>{const out=[];const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).openCursor();rq.onsuccess=e=>{const cur=e.target.result;if(cur){out.push({id:cur.key,data:cur.value});cur.continue();}else res(out);};rq.onerror=()=>rej(rq.error);});}
+async function idbGet(id){const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).get(id);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);});}
+async function idbPut(id,val){const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(val,id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
 
 let GALLERY=[];      // [{id,data}]
 let MENU=[];         // 菜品数组
-let SEL=null;        // 当前选中的图 id
+let PICK_IDX=null;   // 当前正在配图的菜下标
 
-// 直接把菜品库写回云端同步库，避免回工作台时被云端空数据覆盖
 const SUPABASE_URL='https://vienajheerbsmckfzkzo.supabase.co/rest/v1/workbench_sync?id=eq.me';
 const SUPABASE_KEY='sb_publishable_b6t_c2L2j8wB7Vgp9lWGZw_HqHVFQzF';
 async function pushCloud(){
@@ -73,8 +90,7 @@ async function pushCloud(){
     const rows=await r.json();
     const cur=(rows&&rows[0]&&rows[0].payload)?rows[0].payload:{};
     const data=cur.data||{};
-    /* 上传前把 idb:// 引用展开为 base64 真图，手机端从云端拉取时才能显示 */
-    data.food_menu=await menuToBase64(MENU);
+    data.food_menu=await menuToBase64(MENU);   // 上传前把引用展开成真图
     cur.data=data;
     const pr=await fetch(SUPABASE_URL,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({payload:cur})});
     return pr.ok;
@@ -85,106 +101,105 @@ function showMsg(t){document.getElementById('msg').textContent=t;}
 
 function renderDiag(){
   const emptyMenu=MENU.filter(m=>(!m.image)).length;
+  const done=MENU.length-emptyMenu;
   document.getElementById('diag').innerHTML=
-    `本机图库：<b>${GALLERY.length}</b> 张 &nbsp;|&nbsp; 菜品总数：<b>${MENU.length}</b> &nbsp;|&nbsp; 图缺失的菜：<b style="color:${emptyMenu?'#c0392b':'#2e7d32'}">${emptyMenu}</b> 道`;
-}
-
-function renderGallery(){
-  const g=document.getElementById('gallery');g.innerHTML='';
-  GALLERY.forEach(it=>{
-    const d=document.createElement('div');d.className='gimg'+(SEL===it.id?' sel':'');
-    d.innerHTML=`<img src="${it.data}"><div class="cap">${it.id.slice(0,10)}</div>`;
-    d.onclick=()=>{SEL=it.id;renderGallery();showMsg('已选图：'+it.id.slice(0,10));};
-    g.appendChild(d);
-  });
-  if(!GALLERY.length)g.innerHTML='<div style="color:#c0392b;font-size:14px">本机图库是空的——说明菜品库的图当时没存进图库（可能是直接以文本形式存在别处，已被同步覆盖冲掉）。这种情况图可能已无法自动找回，请见下方提示。</div>';
+    `本机图库：<b>${GALLERY.length}</b> 张 &nbsp;|&nbsp; 菜品：<b>${MENU.length}</b> 道 &nbsp;|&nbsp; 已配图：<b style="color:#2e7d32">${done}</b> &nbsp;|&nbsp; 未配：<b style="color:${emptyMenu?'#c0392b':'#2e7d32'}">${emptyMenu}</b>`;
 }
 
 function renderMenu(){
+  const q=(document.getElementById('search').value||'').trim();
   const m=document.getElementById('menu');m.innerHTML='';
   MENU.forEach((it,idx)=>{
+    if(q && (it.name||'').indexOf(q)<0) return;
     const c=document.createElement('div');c.className='mcard';
-    const prev=it.image?`<img class="prev" src="${it.image}">`:`<div class="prev"></div>`;
-    c.innerHTML=`${prev}<div class="info"><div class="nm">${it.name||'(未命名)'}</div><div class="st">${it.image?'图已存在 ✅':'图缺失 ❌'}</div></div>`;
-    const btn=document.createElement('button');btn.textContent='配给这道菜';
-    btn.onclick=()=>{
-      if(!SEL){showMsg('请先在上方图库点选一张图');return;}
-      const g=GALLERY.find(x=>x.id===SEL);
-      MENU[idx].image=g.data;
-      showMsg('已为「'+(it.name||'未命名')+'」配上图，记得最后点「保存并同步」');
-      renderMenu();renderDiag();
-    };
-    c.appendChild(btn);
+    const prev=it.image?`<img class="prev" src="${it.image}">`:`<div class="prev empty"></div>`;
+    c.innerHTML=`${prev}<div class="info"><div class="nm">${it.name||'(未命名)'}</div><div class="st">${it.image?'图已配 ✅':'未配图 ❌'}</div></div>`;
+    const ops=document.createElement('div');ops.className='ops';
+    const pick=document.createElement('button');pick.textContent='选图';
+    pick.onclick=()=>openPicker(idx);
+    const clr=document.createElement('button');clr.className='ghost';clr.textContent='清除';
+    clr.onclick=()=>{MENU[idx].image='';renderMenu();renderDiag();showMsg('已清除「'+(it.name||'未命名')+'」的图');};
+    ops.appendChild(pick);ops.appendChild(clr);
+    c.appendChild(ops);
+    // 点预览图也能直接选图
+    const pv=c.querySelector('.prev');
+    if(pv) pv.onclick=()=>openPicker(idx);
     m.appendChild(c);
   });
 }
 
-document.getElementById('auto').onclick=async ()=>{
-  if(!GALLERY.length){ alert('本机图库是空的，没有图可配。\n\n请确认你是用 Edge 浏览器直接打开本页网址：\nhttps://hlsbibisky.github.io/workbench/图库救援.html\n（不要在别的预览框里点，那里读不到图库）。'); return; }
-  if(!MENU.length){ alert('菜品库为空，没有菜可配图。'); return; }
-  const empties=MENU.map((m,i)=>i).filter(i=>!MENU[i].image);
-  if(!empties.length){showMsg('没有缺失图的菜（每道菜都已有图了）');return;}
-  if(empties.length!==GALLERY.length){if(!confirm('图库 '+GALLERY.length+' 张，缺失图的菜 '+empties.length+' 道，数量不一致，自动填充会按顺序碰运，可能不对应。仍要尝试？'))return;}
-  empties.forEach((mi,k)=>{ if(GALLERY[k]) MENU[mi].image=GALLERY[k].data; });
-  showMsg('已按顺序自动填充，正在保存…');
-  renderMenu();renderDiag();
-  document.getElementById('save').click();
-};
+function openPicker(idx){
+  PICK_IDX=idx;
+  document.getElementById('pTitle').textContent='为「'+(MENU[idx].name||'未命名')+'」选图';
+  const g=document.getElementById('pgrid');g.innerHTML='';
+  if(!GALLERY.length){g.innerHTML='<div style="color:#c0392b">图库为空，读不到图。请用 Edge 直接打开本页网址。</div>';}
+  GALLERY.forEach(it=>{
+    const d=document.createElement('div');d.className='pimg';
+    d.innerHTML=`<img src="${it.data}">`;
+    d.onclick=async ()=>{
+      await idbPut(it.id,it.data);                 // 确保图在 IDB 里，引用可解析
+      MENU[idx].image='idb://'+it.id;              // 存轻量引用，真图随云端展开
+      closePicker();
+      renderMenu();renderDiag();
+      showMsg('已为「'+(MENU[idx].name||'未命名')+'」配上图（'+ (MENU.filter(x=>x.image).length) +'/'+MENU.length +'）');
+      scrollNextEmpty(idx);
+    };
+    g.appendChild(d);
+  });
+  document.getElementById('picker').classList.add('show');
+}
+function closePicker(){document.getElementById('picker').classList.remove('show');PICK_IDX=null;}
+function scrollNextEmpty(from){
+  for(let i=from+1;i<MENU.length;i++){ if(!MENU[i].image){ setTimeout(()=>{const cards=document.querySelectorAll('.mcard');if(cards[i])cards[i].scrollIntoView({block:'center'});},50); return; } }
+}
 
-/* 将 base64 图片替换为 idb:// 引用，既避免 localStorage 超 5MB，又能随云端同步展开 */
 function menuToRefs(menu){
   const out=[];
-  for(const m of menu){
-    const c=Object.assign({},m);
-    if(typeof c.image==='string' && c.image.indexOf('data:image')===0){
-      c.image='idb://'+imgIdOf(c.image);
-    }
-    out.push(c);
-  }
+  for(const m of menu){ const c=Object.assign({},m); out.push(c); }
   return out;
 }
-/* 把 idb:// 引用展开成 base64，用于云端同步 */
 async function menuToBase64(menu){
   const out=[];
   for(const m of menu){
     const c=Object.assign({},m);
     if(typeof c.image==='string' && c.image.indexOf('idb://')===0){
-      const id=c.image.slice(6);
-      const b64=await idbGet(id);
-      c.image=b64 || '';
+      const id=c.image.slice(6); const b64=await idbGet(id); c.image=b64||'';
     }
     out.push(c);
   }
   return out;
 }
+
 document.getElementById('save').onclick=async ()=>{
   try{
-    const refs=menuToRefs(MENU);
-    localStorage.setItem('food_menu',JSON.stringify(refs));
-    showMsg('已存本机（引用模式），正在把真图同步到云端…');
+    localStorage.setItem('food_menu',JSON.stringify(MENU));   // 已是 idb:// 引用，不超 5MB
+    showMsg('已存本机，正在把真图同步到云端…');
     const ok=await pushCloud();
     showMsg(ok?'已保存到本机并同步云端 ✅ 请回到工作台按 Ctrl+F5 硬刷新，图即可显示':'本机已存，但云端同步失败（网络），稍后可在工作台内编辑触发同步');
-  }catch(e){showMsg('保存失败：'+e.message+'（本机已存，可稍后重试）');}
+  }catch(e){showMsg('保存失败：'+e.message);}
+};
+
+document.getElementById('clearAll').onclick=()=>{
+  if(!confirm('确定清空全部已配的图？之后可重新逐道配。')) return;
+  MENU.forEach(m=>m.image='');renderMenu();renderDiag();showMsg('已清空全部配图');
 };
 
 document.getElementById('exportAll').onclick=async ()=>{
   if(!GALLERY.length){showMsg('图库为空，无图可导出');return;}
-  // 逐张触发下载
-  GALLERY.forEach((it,i)=>{
-    const a=document.createElement('a');a.href=it.data;a.download='food_img_'+i+'.png';
-    document.body.appendChild(a);a.click();a.remove();
-  });
+  for(let i=0;i<GALLERY.length;i++){ const a=document.createElement('a');a.href=GALLERY[i].data;a.download='food_img_'+i+'.png';document.body.appendChild(a);a.click();a.remove(); }
   showMsg('已导出 '+GALLERY.length+' 张图到下载文件夹（备份用）');
 };
+
+document.getElementById('search').oninput=renderMenu;
+document.getElementById('pClose').onclick=closePicker;
+document.getElementById('picker').onclick=(e)=>{ if(e.target.id==='picker') closePicker(); };
 
 (async function(){
   try{ GALLERY=await idbGetAll(); }catch(e){ GALLERY=[]; }
   try{ MENU=JSON.parse(localStorage.getItem('food_menu')||'[]'); }catch(e){ MENU=[]; }
-  renderDiag();renderGallery();renderMenu();
+  renderDiag();renderMenu();
   if(!GALLERY.length){
-    alert('本机图库是空的（0 张图）。\n\n两种可能：\n1) 你不是用浏览器直接打开本页网址，而是在别的预览框里点的——那里读不到图库所在的"家"。\n\n请用 Edge 浏览器打开这个网址：\nhttps://hlsbibisky.github.io/workbench/图库救援.html\n\n2) 菜品库的图当时没存进本机图库（以别的形式存、已被同步覆盖冲掉）——这种情况图可能找不回，我会照实说。');
-  }else{
-    console.log('图库读取成功，共',GALLERY.length,'张图');
+    alert('本机图库是空的（0 张图）。\n\n请用 Edge 浏览器直接打开这个网址：\nhttps://hlsbibisky.github.io/workbench/图库救援.html\n（在别的预览框里点，读不到图库所在的"家"。）');
   }
 })();
 </script>
