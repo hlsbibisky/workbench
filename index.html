@@ -511,7 +511,7 @@ function selectSub(modKey, subId){
     const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
     btn.innerHTML = ICONS.refresh;
     const f = document.createElement('iframe'); f.title = s.name;
-    if(s.srcdoc){ f.srcdoc = s.srcdoc; } else { f.src = s.src; }
+    if(s.srcdoc){ f.srcdoc = s.srcdoc; } else { f.src = wbIframeSrc(s.src); }
     btn.onclick = ()=>{ if(s.srcdoc){ f.srcdoc = f.srcdoc; } else { f.src = f.src; } };
     bar.appendChild(btn);
     box.appendChild(bar); box.appendChild(f);
@@ -614,6 +614,7 @@ function wbLoadCfg(){
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
+function wbIframeSrc(src){ var v='20260906c'; return (src && typeof src==='string' && src.indexOf('?')<0)? src+'?wbv='+v : src; }
 function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; } } return o; }
 function wbApply(o){
   if(!o) return;
