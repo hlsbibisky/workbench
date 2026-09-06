@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>美食记录 · 图库救援</title>
+<style>
+  :root{ --bg:#f7f4ee; --ink:#5a4a3a; --line:#e6dccd; --accent:#b8714e; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:18px;max-width:980px;margin:0 auto}
+  h1{font-size:20px;border-bottom:2px solid var(--line);padding-bottom:10px}
+  .tip{background:#fff6ec;border:1px solid var(--line);border-radius:10px;padding:12px 14px;line-height:1.7;font-size:14px}
+  .diag{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0;font-size:14px}
+  .diag b{color:var(--accent)}
+  .section-title{font-size:16px;margin:22px 0 10px;font-weight:700}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+  .gimg{border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;background:#fff}
+  .gimg.sel{border-color:var(--accent)}
+  .gimg img{width:100%;height:90px;object-fit:cover;display:block}
+  .gimg .cap{font-size:11px;text-align:center;padding:3px;color:#9a8a7a}
+  .mlist{display:grid;gap:10px}
+  .mcard{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:12px;align-items:center;background:#fff}
+  .mcard .prev{width:84px;height:84px;border-radius:8px;object-fit:cover;background:#eee;flex:0 0 auto;border:1px solid var(--line)}
+  .mcard .info{flex:1}
+  .mcard .nm{font-weight:700;font-size:15px}
+  .mcard .st{font-size:12px;color:#9a8a7a;margin-top:4px}
+  .mcard button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px}
+  .bar{position:sticky;top:0;background:var(--bg);padding:10px 0;display:flex;gap:10px;align-items:center;z-index:5}
+  .bar button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer}
+  .bar .ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  #msg{font-size:13px;color:var(--accent);margin-left:8px}
+</style>
+</head>
+<body>
+<h1>美食记录 · 图库救援</h1>
+<div class="tip">
+  这个页面用来找回菜品库被误清空的图。图的真身存在你浏览器的本机图库（IndexedDB）里，没有被删。<br>
+  操作：① 在下方图库里点选一张图；② 在菜品列表里点「配给这道菜」；③ 全部配好后点顶部「保存并同步」。<br>
+  若图太多不想一张张配，可用「一键自动尝试」按顺序尽力填（可能不对应，请保存前核对）。
+</div>
+
+<div class="bar">
+  <button id="save">保存并同步</button>
+  <button id="auto" class="ghost">一键自动尝试</button>
+  <button id="exportAll" class="ghost">导出全部图(备份)</button>
+  <span id="msg"></span>
+</div>
+
+<div class="diag" id="diag"></div>
+
+<div class="section-title">① 本机图库（图真身都在这里）</div>
+<div class="gallery" id="gallery"></div>
+
+<div class="section-title">② 菜品库（点「配给这道菜」把上面选中的图指回来）</div>
+<div class="mlist" id="menu"></div>
+
+<script>
+const IDB_NAME='food_img_db', IDB_STORE='images';
+let __idb=null;
+function idbOpen(){return new Promise((res,rej)=>{try{if(__idb)return res(__idb);const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);};req.onsuccess=e=>{__idb=e.target.result;res(__idb);};req.onerror=e=>rej(e);}catch(e){rej(e);}});}
+async function idbGetAll(){const db=await idbOpen();return await new Promise((res,rej)=>{const out=[];const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).openCursor();rq.onsuccess=e=>{const cur=e.target.result;if(cur){out.push({id:cur.key,data:cur.value});cur.continue();}else res(out);};rq.onerror=()=>rej(rq.error);});}
+
+let GALLERY=[];      // [{id,data}]
+let MENU=[];         // 菜品数组
+let SEL=null;        // 当前选中的图 id
+
+function showMsg(t){document.getElementById('msg').textContent=t;}
+
+function renderDiag(){
+  const emptyMenu=MENU.filter(m=>(!m.image)).length;
+  document.getElementById('diag').innerHTML=
+    `本机图库：<b>${GALLERY.length}</b> 张 &nbsp;|&nbsp; 菜品总数：<b>${MENU.length}</b> &nbsp;|&nbsp; 图缺失的菜：<b style="color:${emptyMenu?'#c0392b':'#2e7d32'}">${emptyMenu}</b> 道`;
+}
+
+function renderGallery(){
+  const g=document.getElementById('gallery');g.innerHTML='';
+  GALLERY.forEach(it=>{
+    const d=document.createElement('div');d.className='gimg'+(SEL===it.id?' sel':'');
+    d.innerHTML=`<img src="${it.data}"><div class="cap">${it.id.slice(0,10)}</div>`;
+    d.onclick=()=>{SEL=it.id;renderGallery();showMsg('已选图：'+it.id.slice(0,10));};
+    g.appendChild(d);
+  });
+  if(!GALLERY.length)g.innerHTML='<div style="color:#c0392b;font-size:14px">本机图库是空的——说明菜品库的图当时没存进图库（可能是直接以文本形式存在别处，已被同步覆盖冲掉）。这种情况图可能已无法自动找回，请见下方提示。</div>';
+}
+
+function renderMenu(){
+  const m=document.getElementById('menu');m.innerHTML='';
+  MENU.forEach((it,idx)=>{
+    const c=document.createElement('div');c.className='mcard';
+    const prev=it.image?`<img class="prev" src="${it.image}">`:`<div class="prev"></div>`;
+    c.innerHTML=`${prev}<div class="info"><div class="nm">${it.name||'(未命名)'}</div><div class="st">${it.image?'图已存在 ✅':'图缺失 ❌'}</div></div>`;
+    const btn=document.createElement('button');btn.textContent='配给这道菜';
+    btn.onclick=()=>{
+      if(!SEL){showMsg('请先在上方图库点选一张图');return;}
+      const g=GALLERY.find(x=>x.id===SEL);
+      MENU[idx].image=g.data;
+      showMsg('已为「'+(it.name||'未命名')+'」配上图，记得最后点「保存并同步」');
+      renderMenu();renderDiag();
+    };
+    c.appendChild(btn);
+    m.appendChild(c);
+  });
+}
+
+document.getElementById('auto').onclick=()=>{
+  const empties=MENU.map((m,i)=>i).filter(i=>!MENU[i].image);
+  if(!empties.length){showMsg('没有缺失图的菜');return;}
+  if(empties.length!==GALLERY.length){if(!confirm(`图库 ${GALLERY.length} 张，缺失图的菜 ${empties.length} 道，数量不一致，自动填充会按顺序碰运，可能不对应。仍要尝试？`))return;}
+  empties.forEach((mi,k)=>{ if(GALLERY[k]) MENU[mi].image=GALLERY[k].data; });
+  showMsg('已按顺序自动填充，请逐道菜核对后再保存');
+  renderMenu();renderDiag();
+};
+
+document.getElementById('save').onclick=async ()=>{
+  try{
+    localStorage.setItem('food_menu',JSON.stringify(MENU));
+    // 通知外壳同步
+    if(parent&&parent!==window){parent.postMessage({type:'wb-data-changed'},'*');}
+    showMsg('已保存到本机，请回到工作台按 Ctrl+F5 硬刷新，图会同步上云');
+  }catch(e){showMsg('保存失败：'+e.message);}
+};
+
+document.getElementById('exportAll').onclick=async ()=>{
+  if(!GALLERY.length){showMsg('图库为空，无图可导出');return;}
+  // 逐张触发下载
+  GALLERY.forEach((it,i)=>{
+    const a=document.createElement('a');a.href=it.data;a.download='food_img_'+i+'.png';
+    document.body.appendChild(a);a.click();a.remove();
+  });
+  showMsg('已导出 '+GALLERY.length+' 张图到下载文件夹（备份用）');
+};
+
+(async function(){
+  try{ GALLERY=await idbGetAll(); }catch(e){ GALLERY=[]; }
+  try{ MENU=JSON.parse(localStorage.getItem('food_menu')||'[]'); }catch(e){ MENU=[]; }
+  renderDiag();renderGallery();renderMenu();
+})();
+</script>
+</body>
+</html>
