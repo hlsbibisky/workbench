@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图库清理</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#4a4038; --sub:#6b5d4f;
+    --line:#d8cbb8; --accent:#b8714e; --accent2:#e3d8c6;
+    --blur:#c2533a; --clear:#7a8b5a; --used:#b8714e;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+  .bar{position:sticky;top:0;z-index:10;background:#efe7da;border-bottom:1px solid var(--line);
+    padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .bar h1{font-size:16px;margin:0 12px 0 0;color:var(--accent);font-weight:700;}
+  .stat{font-size:13px;color:var(--sub);margin-right:6px;}
+  .stat b{color:var(--ink);}
+  .ctl{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--sub);}
+  .ctl input{width:74px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;
+    background:#fff;color:var(--ink);font-size:13px;}
+  button{font-family:inherit;font-size:13px;border:none;border-radius:6px;padding:7px 13px;
+    cursor:pointer;background:var(--accent);color:#fff;}
+  button.sec{background:var(--accent2);color:var(--ink);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  .tip{font-size:12px;color:var(--sub);padding:8px 14px;line-height:1.6;
+    border-bottom:1px dashed var(--line);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+    gap:10px;padding:12px 14px;}
+  .card{border:1px solid var(--line);border-radius:9px;background:var(--card);
+    padding:7px;position:relative;cursor:pointer;transition:border-color .12s;}
+  .card.sel{border:2px solid var(--accent);}
+  .card .chk{position:absolute;top:11px;left:11px;width:20px;height:20px;
+    accent-color:var(--accent);cursor:pointer;z-index:3;}
+  .thumb{width:100%;max-height:188px;object-fit:contain;background:#ece4d6;
+    border-radius:6px;display:block;}
+  .meta{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.5;}
+  .meta b{color:var(--ink);}
+  .badges{margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;}
+  .badge{font-size:11px;padding:2px 7px;border-radius:10px;color:#fff;white-space:nowrap;}
+  .badge.blur{background:var(--blur);}
+  .badge.clear{background:var(--clear);}
+  .badge.used{background:var(--used);}
+  .badge.unk{background:#9b8f7e;}
+  .fid{font-size:10px;color:#a89a86;margin-top:5px;word-break:break-all;}
+  .empty{padding:40px 14px;text-align:center;color:var(--sub);}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>图库清理</h1>
+  <span class="stat">共 <b id="sTotal">0</b> 张</span>
+  <span class="stat">疑似模糊 <b id="sBlur">0</b> 张</span>
+  <span class="stat">被菜品引用 <b id="sUsed">0</b> 张</span>
+  <span class="stat">已选 <b id="sSel">0</b> 张</span>
+  <span class="ctl">最长边 &lt; <input id="thr" type="number" value="1000" min="50" step="50"> 判为模糊</span>
+  <button id="btnSmart" class="sec">一键选疑似模糊（未被使用）</button>
+  <button id="btnInv" class="sec">反选</button>
+  <button id="btnClr" class="sec">清空选择</button>
+  <button id="btnBak" class="sec">下载整库备份</button>
+  <button id="btnDel">删除选中（先备份）</button>
+</div>
+<div class="tip">
+  每张图都放大预览，标了<b>分辨率</b>和<b>文件大小</b>——模糊图通常是被压缩过的，分辨率低、体积小。<br>
+  被某道菜引用着的图会标「被使用」，默认不在一键选择范围内（避免误删正在用的图）。<br>
+  <b>删除不可撤销</b>：点「删除选中」会先把整个图库下载成备份 JSON（可恢复），再删除。务必先确认预览里确实是模糊图。
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const IDB_NAME='food_img_db', IDB_STORE='images';
+let __idb=null;
+function idbOpen(){return new Promise((res,rej)=>{try{if(__idb)return res(__idb);const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);};req.onsuccess=e=>{__idb=e.target.result;res(__idb);};req.onerror=e=>rej(e);}catch(e){rej(e);}});}
+async function idbGetAll(){const db=await idbOpen();return await new Promise((res,rej)=>{const out=[];const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).openCursor();rq.onsuccess=e=>{const cur=e.target.result;if(cur){out.push({id:cur.key,data:cur.value});cur.continue();}else res(out);};rq.onerror=()=>rej(rq.error);});}
+async function idbDelete(id){const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+
+let GALLERY=[];      // 当前图库（含 data）
+let META=[];         // 每张图的计算信息
+let MENU=[];         // 菜品数组
+let USED=new Set();  // 被引用的图 id
+
+function b64bytes(data){const i=data.indexOf(',');const b=i<0?data:data.slice(i+1);let pad=0;if(b.endsWith('=='))pad=2;else if(b.endsWith('='))pad=1;return Math.floor(b.length*3/4)-pad;}
+function dims(data){return new Promise(r=>{const im=new Image();im.onload=()=>r({w:im.naturalWidth||0,h:im.naturalHeight||0});im.onerror=()=>r({w:0,h:0});im.src=data;});}
+
+async function load(){
+  try{ GALLERY=await idbGetAll(); }catch(e){ GALLERY=[]; }
+  try{ MENU=JSON.parse(localStorage.getItem('food_menu')||'[]'); }catch(e){ MENU=[]; }
+  USED=new Set();
+  MENU.forEach(m=>{ if(typeof m.image==='string' && m.image.indexOf('idb://')===0) USED.add(m.image.slice(6)); });
+  META=[];
+  for(const g of GALLERY){
+    const d=await dims(g.data);
+    const bytes=b64bytes(g.data);
+    META.push({id:g.id,data:g.data,w:d.w,h:d.h,bytes,used:USED.has(g.id)});
+  }
+  render();
+}
+function threshold(){const v=parseInt(document.getElementById('thr').value,10);return isNaN(v)?1000:v;}
+function isBlur(m,t){ if(m.w===0||m.h===0) return false; return Math.max(m.w,m.h)<t; }
+
+function render(){
+  const t=threshold();
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  if(!META.length){ grid.innerHTML='<div class="empty">图库是空的，或本页不是在你存图的工作台域下打开。</div>'; updateStat(); return; }
+  META.forEach((m,idx)=>{
+    const blur=isBlur(m,t);
+    const kb=(m.bytes/1024).toFixed(0);
+    const card=document.createElement('label');
+    card.className='card'+(m.sel?' sel':'');
+    card.dataset.idx=idx;
+    let badges='';
+    if(m.w>0) badges+=`<span class="badge ${blur?'blur':'clear'}">${blur?'疑似模糊':'清晰'}</span>`;
+    else badges+=`<span class="badge unk">无法解析</span>`;
+    if(m.used) badges+=`<span class="badge used">被${MENU.filter(x=>x.image==='idb://'+m.id).length}道菜使用</span>`;
+    const resTxt=m.w>0?`<b>${m.w}×${m.h}</b>`:'<b>?</b>';
+    card.innerHTML=`
+      <input type="checkbox" class="chk" ${m.sel?'checked':''}>
+      <img class="thumb" src="${m.data}" alt="">
+      <div class="meta">${resTxt} · ${kb} KB</div>
+      <div class="badges">${badges}</div>
+      <div class="fid">${String(m.id).slice(0,18)}</div>`;
+    card.querySelector('.chk').addEventListener('click',e=>e.stopPropagation());
+    card.querySelector('.chk').addEventListener('change',e=>{META[idx].sel=e.target.checked;card.classList.toggle('sel',e.target.checked);updateStat();});
+    card.addEventListener('click',()=>{const c=card.querySelector('.chk');c.checked=!c.checked;META[idx].sel=c.checked;card.classList.toggle('sel',c.checked);updateStat();});
+    grid.appendChild(card);
+  });
+  updateStat();
+}
+function selectedIds(){return META.filter(m=>m.sel).map(m=>m.id);}
+function updateStat(){
+  const t=threshold();
+  document.getElementById('sTotal').textContent=META.length;
+  document.getElementById('sBlur').textContent=META.filter(m=>isBlur(m,t)).length;
+  document.getElementById('sUsed').textContent=META.filter(m=>m.used).length;
+  document.getElementById('sSel').textContent=selectedIds().length;
+}
+function downloadBackup(){
+  const blob=new Blob([JSON.stringify(GALLERY)],{type:'application/json'});
+  const a=document.createElement('a');
+  const ts=new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
+  a.href=URL.createObjectURL(blob);
+  a.download='图库备份_'+ts+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+document.getElementById('thr').addEventListener('input',render);
+document.getElementById('btnSmart').addEventListener('click',()=>{
+  const t=threshold();
+  META.forEach(m=>{ if(isBlur(m,t) && !m.used) m.sel=true; });
+  render();
+});
+document.getElementById('btnInv').addEventListener('click',()=>{ META.forEach(m=>m.sel=!m.sel); render(); });
+document.getElementById('btnClr').addEventListener('click',()=>{ META.forEach(m=>m.sel=false); render(); });
+document.getElementById('btnBak').addEventListener('click',()=>{ downloadBackup(); alert('已下载整库备份（'+GALLERY.length+' 张）到你的下载文件夹，建议存到 D:\\软件\\【AI工具】\\AI安装插件文件夹\\ 以便管理。'); });
+document.getElementById('btnDel').addEventListener('click',async()=>{
+  const ids=selectedIds();
+  if(!ids.length){ alert('请先选择要删除的图（点缩略图或勾选框）。'); return; }
+  const usedHit=ids.filter(id=>USED.has(id));
+  let msg=`确认删除选中的 ${ids.length} 张图？\n\n删除前会自动下载整库备份到本地（可恢复）。`;
+  if(usedHit.length) msg+=`\n⚠️ 其中有 ${usedHit.length} 张正被菜品引用，删除后这些菜需重新配图。`;
+  if(!confirm(msg)) return;
+  downloadBackup();
+  let ok=0;
+  for(const id of ids){
+    try{ await idbDelete(id); const i=META.findIndex(m=>m.id===id); if(i>=0)META.splice(i,1); ok++; }catch(e){}
+  }
+  GALLERY=GALLERY.filter(g=>!ids.includes(g.id));
+  META.forEach(m=>m.sel=false);
+  render();
+  alert(`已删除 ${ok} 张模糊图，整库备份已下载。\n现在可以去「图库救援」页干净地配图了。`);
+});
+load();
+</script>
+</body>
+</html>
