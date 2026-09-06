@@ -911,16 +911,8 @@ async function prepareState(){
     save(K.dishCover, state.dishCover); save(K.checkin, state.checkin); save(K.userDishes, state.userDishes);
   }
 }
-// 启动时把 localStorage 里遗留的 idb:// 引用清掉（IndexedDB 不可用时图片无意义，保留引用只会显示空白）
-function stripIdbRefs(root){
-  let touched=false;
-  const walk=(n)=>{
-    if(Array.isArray(n)){ for(let i=0;i<n.length;i++){ if(typeof n[i]==='string' && isImgRef(n[i])){ n[i]=''; touched=true; } else if(n[i]&&typeof n[i]==='object') walk(n[i]); } }
-    else if(n&&typeof n==='object'){ for(const k of Object.keys(n)){ if(typeof n[k]==='string' && isImgRef(n[k])){ n[k]=''; touched=true; } else if(n[k]&&typeof n[k]==='object') walk(n[k]); } }
-  };
-  walk(root);
-  return touched;
-}
+// 2026-09-06 停用清空：保留 idb:// 引用交由 prepareState 还原为 base64，绝不清空
+function stripIdbRefs(root){ return false; }
 // 收集待导出的美食数据（图片还原成 base64，self-contained）
 async function collectFoodForExport(){
   if(!syncCfg) loadSyncCfg();
@@ -937,15 +929,7 @@ async function collectFoodForExport(){
   return out;
 }
 // 启动时：清理历史遗留 idb:// 引用（IndexedDB 不可用后这些引用变成死引用）
-async function migrateImagesToIdb(){
-  try{
-    let touched=false;
-    if(state.menu && stripIdbRefs(state.menu)){ save(K.menu,state.menu); touched=true; }
-    if(state.checkin && stripIdbRefs(state.checkin)){ save(K.checkin,state.checkin); touched=true; }
-    if(state.dishCover && stripIdbRefs(state.dishCover)){ save(K.dishCover,state.dishCover); touched=true; }
-    if(touched) console.log('已清理历史 idb:// 图片引用');
-  }catch(e){ console.warn('idb 引用清理失败', e); }
-}
+async function migrateImagesToIdb(){ /* 2026-09-06 停用：旧逻辑会清空 idb:// 图片引用导致菜品库图丢失，已禁用 */ return; }
 
 const state = {
   taste: load(K.taste, clone(TASTE_DEFAULT)),
