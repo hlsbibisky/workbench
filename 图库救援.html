@@ -119,15 +119,16 @@ function renderMenu(){
   });
 }
 
-document.getElementById('auto').onclick=()=>{
+document.getElementById('auto').onclick=async ()=>{
   if(!GALLERY.length){ alert('本机图库是空的，没有图可配。\n\n请确认你是用 Edge 浏览器直接打开本页网址：\nhttps://hlsbibisky.github.io/workbench/图库救援.html\n（不要在别的预览框里点，那里读不到图库）。'); return; }
   if(!MENU.length){ alert('菜品库为空，没有菜可配图。'); return; }
   const empties=MENU.map((m,i)=>i).filter(i=>!MENU[i].image);
   if(!empties.length){showMsg('没有缺失图的菜（每道菜都已有图了）');return;}
   if(empties.length!==GALLERY.length){if(!confirm('图库 '+GALLERY.length+' 张，缺失图的菜 '+empties.length+' 道，数量不一致，自动填充会按顺序碰运，可能不对应。仍要尝试？'))return;}
   empties.forEach((mi,k)=>{ if(GALLERY[k]) MENU[mi].image=GALLERY[k].data; });
-  showMsg('已按顺序自动填充，请逐道菜核对后再保存');
+  showMsg('已按顺序自动填充，正在保存…');
   renderMenu();renderDiag();
+  document.getElementById('save').click();
 };
 
 /* 将 base64 图片替换为 idb:// 引用，既避免 localStorage 超 5MB，又能随云端同步展开 */
