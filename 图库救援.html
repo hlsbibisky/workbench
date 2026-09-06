@@ -64,6 +64,22 @@ let GALLERY=[];      // [{id,data}]
 let MENU=[];         // 菜品数组
 let SEL=null;        // 当前选中的图 id
 
+// 直接把菜品库写回云端同步库，避免回工作台时被云端空数据覆盖
+const SUPABASE_URL='https://vienajheerbsmckfzkzo.supabase.co/rest/v1/workbench_sync?id=eq.me';
+const SUPABASE_KEY='sb_publishable_b6t_c2L2j8wB7Vgp9lWGZw_HqHVFQzF';
+async function pushCloud(){
+  try{
+    const r=await fetch(SUPABASE_URL,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});
+    const rows=await r.json();
+    const cur=(rows&&rows[0]&&rows[0].payload)?rows[0].payload:{};
+    const data=cur.data||{};
+    data.food_menu=MENU;
+    cur.data=data;
+    const pr=await fetch(SUPABASE_URL,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({payload:cur})});
+    return pr.ok;
+  }catch(e){ console.warn('pushCloud 失败',e); return false; }
+}
+
 function showMsg(t){document.getElementById('msg').textContent=t;}
 
 function renderDiag(){
@@ -114,10 +130,10 @@ document.getElementById('auto').onclick=()=>{
 document.getElementById('save').onclick=async ()=>{
   try{
     localStorage.setItem('food_menu',JSON.stringify(MENU));
-    // 通知外壳同步
-    if(parent&&parent!==window){parent.postMessage({type:'wb-data-changed'},'*');}
-    showMsg('已保存到本机，请回到工作台按 Ctrl+F5 硬刷新，图会同步上云');
-  }catch(e){showMsg('保存失败：'+e.message);}
+    showMsg('已存本机，正在同步到云端…');
+    const ok=await pushCloud();
+    showMsg(ok?'已保存到本机并同步云端 ✅ 请回到工作台按 Ctrl+F5 硬刷新，图即可显示':'本机已存，但云端同步失败（'+(ok===false?'网络')+'），稍后可在工作台内编辑触发同步');
+  }catch(e){showMsg('保存失败：'+e.message+'（本机已存，可稍后重试）');}
 };
 
 document.getElementById('exportAll').onclick=async ()=>{
