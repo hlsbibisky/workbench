@@ -625,19 +625,78 @@ function wbVerWatch(){
     }).catch(function(){});
   }catch(e){}
 }
-function wbCollect(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; } } return o; }
-function wbApply(o){
+/* ============ 美食图片 IndexedDB 处理（food_img_db / images） ============ */
+const WB_FOOD_DB='food_img_db', WB_FOOD_STORE='images';
+let __wbIdb=null;
+function wbIdbOpen(){
+  return new Promise((res,rej)=>{
+    try{
+      if(__wbIdb) return res(__wbIdb);
+      const req=indexedDB.open(WB_FOOD_DB,1);
+      req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(WB_FOOD_STORE)) db.createObjectStore(WB_FOOD_STORE); };
+      req.onsuccess=e=>{ __wbIdb=e.target.result; res(__wbIdb); };
+      req.onerror=e=>rej(e);
+    }catch(e){ rej(e); }
+  });
+}
+async function wbIdbGet(id){ try{ const db=await wbIdbOpen(); return await new Promise((res,rej)=>{ const tx=db.transaction(WB_FOOD_STORE,'readonly'); const rq=tx.objectStore(WB_FOOD_STORE).get(id); rq.onsuccess=()=>res(rq.result||''); rq.onerror=()=>res(''); }); }catch(e){ return ''; } }
+async function wbIdbPut(id, base64){ try{ const db=await wbIdbOpen(); await new Promise((res,rej)=>{ const tx=db.transaction(WB_FOOD_STORE,'readwrite'); tx.objectStore(WB_FOOD_STORE).put(base64, id); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }catch(e){ console.warn('wbIdbPut fail',e); } }
+function wbImgIdOf(base64){ let h=5381; const sample=base64.length+':'+base64.slice(0,500)+base64.slice(-500); for(let i=0;i<sample.length;i++){ h=((h<<5)+h+sample.charCodeAt(i))|0; } return 'img_'+(h>>>0).toString(36); }
+function wbIsImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
+async function wbExpandFoodRefs(str){
+  if(typeof str!=='string' || str.indexOf('idb://')<0) return str;
+  try{
+    const obj=JSON.parse(str);
+    const walk=async (v)=>{
+      if(typeof v==='string' && wbIsImgRef(v)){ const b=await wbIdbGet(v.slice(6)); return b||v; }
+      if(Array.isArray(v)) return await Promise.all(v.map(walk));
+      if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=await walk(v[k]); return o; }
+      return v;
+    };
+    return JSON.stringify(await walk(obj));
+  }catch(e){ return str; }
+}
+async function wbShrinkFoodB64(str){
+  if(typeof str!=='string' || str.indexOf('data:image')<0) return str;
+  try{
+    const obj=JSON.parse(str);
+    const walk=async (v)=>{
+      if(typeof v==='string' && v.indexOf('data:image')===0){ const id=wbImgIdOf(v); await wbIdbPut(id, v); return 'idb://'+id; }
+      if(Array.isArray(v)) return await Promise.all(v.map(walk));
+      if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=await walk(v[k]); return o; }
+      return v;
+    };
+    return JSON.stringify(await walk(obj));
+  }catch(e){ return str; }
+}
+async function wbCollectExpanded(){
+  const o={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
+  }
+  // food_* 含 idb:// 引用，从本机 IDB 展开成 base64 再上云
+  for(const k of Object.keys(o)){ if(k.indexOf('food_')===0 && o[k].indexOf('idb://')>=0) o[k]=await wbExpandFoodRefs(o[k]); }
+  return o;
+}
+function wbCollect(){ return wbCollectExpanded(); }
+async function wbApply(o){
   if(!o) return;
   let changed=false, quotaHit=false;
-  Object.keys(o).forEach(k=>{
+  for(const k of Object.keys(o)){
     if(WB_SKIP.indexOf(k)<0 && !wbIsJunk(k,o[k])){
+      let v=o[k];
+      /* food_* 含 base64 大图：先存 IndexedDB，本地只留 idb:// 引用，避免 5MB 配额超限 */
+      if(k.indexOf('food_')===0 && typeof v==='string' && v.indexOf('data:image')>=0){
+        v=await wbShrinkFoodB64(v);
+      }
       const cur=localStorage.getItem(k);
-      if(cur!==o[k]){
-        try{ localStorage.setItem(k,o[k]); changed=true; }
+      if(cur!==v){
+        try{ localStorage.setItem(k,v); changed=true; }
         catch(e){ quotaHit=true; console.error('wbApply 配额超限，跳过',k,e); }
       }
     }
-  });
+  }
   if(quotaHit){
     try{ wbToast('本地空间不足，部分数据（多为图片）未能写入。请在电脑端压缩图片后重新同步。'); }catch(e){}
   }
@@ -757,9 +816,9 @@ function wbIsEmptyVal(v){
   const s=String(v).trim();
   return s===''||s==='[]'||s==='{}'||s==='null';
 }
-function wbMergeAll(cloudObj, dir){
+async function wbMergeAll(cloudObj, dir){
   dir = dir||'push';
-  const local=wbCollect();
+  const local=await wbCollect();
   const shadow=wbLoadShadow();
   const out=Object.assign({},cloudObj||{});
   Object.keys(local).forEach(k=>{
@@ -819,7 +878,7 @@ async function wbPush(silent){
       const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
       if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
     }catch(e){ console.warn('取云端失败，本次跳过推送以免覆盖',e); wbBusy=false; return; }
-    const merged=cloudObj?wbMergeAll(cloudObj,'push'):wbCollect();
+    const merged=cloudObj?await wbMergeAll(cloudObj,'push'):await wbCollect();
     const sig=wbSig(merged);
     if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
     const now=new Date().toISOString();
@@ -845,8 +904,8 @@ async function wbPull(){
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
       if(cloudAt>seenVer){
-        const merged=wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
-        wbApply(merged);
+        const merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
+        await wbApply(merged);
         wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
         try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
       }
