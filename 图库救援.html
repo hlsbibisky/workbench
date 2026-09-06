@@ -73,7 +73,8 @@ async function pushCloud(){
     const rows=await r.json();
     const cur=(rows&&rows[0]&&rows[0].payload)?rows[0].payload:{};
     const data=cur.data||{};
-    data.food_menu=MENU;
+    /* 上传前把 idb:// 引用展开为 base64 真图，手机端从云端拉取时才能显示 */
+    data.food_menu=await menuToBase64(MENU);
     cur.data=data;
     const pr=await fetch(SUPABASE_URL,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({payload:cur})});
     return pr.ok;
@@ -129,10 +130,37 @@ document.getElementById('auto').onclick=()=>{
   renderMenu();renderDiag();
 };
 
+/* 将 base64 图片替换为 idb:// 引用，既避免 localStorage 超 5MB，又能随云端同步展开 */
+function menuToRefs(menu){
+  const out=[];
+  for(const m of menu){
+    const c=Object.assign({},m);
+    if(typeof c.image==='string' && c.image.indexOf('data:image')===0){
+      c.image='idb://'+imgIdOf(c.image);
+    }
+    out.push(c);
+  }
+  return out;
+}
+/* 把 idb:// 引用展开成 base64，用于云端同步 */
+async function menuToBase64(menu){
+  const out=[];
+  for(const m of menu){
+    const c=Object.assign({},m);
+    if(typeof c.image==='string' && c.image.indexOf('idb://')===0){
+      const id=c.image.slice(6);
+      const b64=await idbGet(id);
+      c.image=b64 || '';
+    }
+    out.push(c);
+  }
+  return out;
+}
 document.getElementById('save').onclick=async ()=>{
   try{
-    localStorage.setItem('food_menu',JSON.stringify(MENU));
-    showMsg('已存本机，正在同步到云端…');
+    const refs=menuToRefs(MENU);
+    localStorage.setItem('food_menu',JSON.stringify(refs));
+    showMsg('已存本机（引用模式），正在把真图同步到云端…');
     const ok=await pushCloud();
     showMsg(ok?'已保存到本机并同步云端 ✅ 请回到工作台按 Ctrl+F5 硬刷新，图即可显示':'本机已存，但云端同步失败（网络），稍后可在工作台内编辑触发同步');
   }catch(e){showMsg('保存失败：'+e.message+'（本机已存，可稍后重试）');}
