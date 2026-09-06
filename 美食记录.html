@@ -679,10 +679,10 @@ let activeCoverTarget = null;
 
 function load(key, def){ try{ const v = JSON.parse(localStorage.getItem(key)); return v==null?def:v; }catch(e){ return def; } }
 function save(key, v){
-  try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); scheduleCloudPush(); return true; }
+  try{ localStorage.setItem(key, JSON.stringify(toStorageValue(v))); scheduleCloudPush(); return true; }
   catch(e){ console.error(e); handleStorageFull(); return false; }
 }
-function saveSilent(key, v){ try{ localStorage.setItem(key, JSON.stringify(toRefsClone(v))); }catch(e){} }
+function saveSilent(key, v){ try{ localStorage.setItem(key, JSON.stringify(toStorageValue(v))); }catch(e){} }
 let __storageAlertShown = false;
 // 本地空间不足：图片以 base64 随数据同步，图多可能占满 5MB 上限。
 // 触发异步压缩图片后重试保存，尽量保住跨设备同步；压缩到极限仍不够则明确提示用户。
@@ -887,9 +887,17 @@ async function persistImages(root){ return root; } // 图片随 save() 自动转
 async function hydrateStateImages(obj){ return obj; } // 内存中已是 base64
 // 写入 localStorage 前：图片以 base64 原样保留，随数据一起跨设备同步。
 // （旧版曾把图转成本机私有的 'idb://' 引用，导致手机端拿不到图，现已废弃该转存。）
-function toRefsClone(v){
-  return clone(v);
+function toStorageValue(v){
+  if(typeof v==='string' && v.indexOf('data:image')===0){
+    const id=imgIdOf(v);
+    idbPut(id, v);                 // 异步写入 IndexedDB，不阻塞 save
+    return 'idb://'+id;
+  }
+  if(Array.isArray(v)) return v.map(toStorageValue);
+  if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=toStorageValue(v[k]); return o; }
+  return v;
 }
+function toRefsClone(v){ return toStorageValue(v); }
 // 收集对象里所有图片槽位（base64 或 idb:// 引用）
 function walkImgSlots(obj, cb){
   if(typeof obj!=='object'||obj===null) return;
@@ -903,8 +911,11 @@ async function prepareState(){
   walkImgSlots(state, (p,k,v)=>slots.push({p,k,v}));
   let changed=false;
   for(const s of slots){
-    if(s.v.indexOf('data:image')===0){ const id=imgIdOf(s.v); await idbPut(id, s.v); changed=true; }
-    else if(isImgRef(s.v)){ const b=await idbGet(s.v.slice(6)); if(b){ s.p[s.k]=b; changed=true; } }
+    if(s.v.indexOf('data:image')===0){           // 旧数据/云端拉下来的 base64 → 存 IDB、转引用
+      const id=imgIdOf(s.v); await idbPut(id, s.v); s.p[s.k]='idb://'+id; changed=true;
+    }else if(isImgRef(s.v)){                     // 本地引用 → 还原 base64 到内存用于渲染
+      const b=await idbGet(s.v.slice(6)); if(b){ s.p[s.k]=b; changed=true; }
+    }
   }
   if(changed){
     save(K.menu, state.menu); save(K.drinks, state.drinks); save(K.snacks, state.snacks);
@@ -2943,7 +2954,7 @@ function importFood(file){
 
 /* ============ 云同步（跨设备：PC / 手机浏览器） ============ */
 const K_SYNC = 'food_cloudsync';
-let syncCfg = null, syncSupa = null, syncChannel = null, pushTimer = null, pollTimer = null, syncLastSha = null, syncBusy = false;
+let syncCfg = null, syncSupa = null, syncChannel = null, pushTimer = null, pollTimer = null, syncLastSha = null, syncBusy = false, foodPushTimer = null;
 function loadSyncCfg(){
   try{ syncCfg = JSON.parse(localStorage.getItem(K_SYNC)) || null; }catch(e){ syncCfg = null; }
   if(!syncCfg) syncCfg = {};
@@ -2954,8 +2965,39 @@ function loadSyncCfg(){
   return syncCfg;
 }
 function saveSyncCfg(){ localStorage.setItem(K_SYNC, JSON.stringify(syncCfg)); }
+async function expandFoodData(){
+  const out={};
+  for(const key of Object.keys(localStorage)){
+    if(key.indexOf('food_')!==0) continue;
+    let v=localStorage.getItem(key);
+    try{
+      const obj=JSON.parse(v);
+      const resolved=await resolveDeepImages(obj);
+      out[key]=JSON.stringify(resolved);
+    }catch(e){ out[key]=v; }
+  }
+  return out;
+}
+async function resolveDeepImages(v){
+  if(typeof v==='string' && v.indexOf('data:image')===0) return v;
+  if(typeof v==='string' && isImgRef(v)){ const b=await idbGet(v.slice(6)); return b||v; }
+  if(Array.isArray(v)) return await Promise.all(v.map(resolveDeepImages));
+  if(v && typeof v==='object'){ const o={}; for(const k of Object.keys(v)) o[k]=await resolveDeepImages(v[k]); return o; }
+  return v;
+}
+function postExpandedFoodToParent(){
+  expandFoodData().then(function(data){
+    if(window.parent && window.parent!==window){
+      window.parent.postMessage({type:'wb-food-sync', data:data, ts:Date.now()}, '*');
+    }
+  }).catch(function(e){ console.warn('postExpandedFoodToParent',e); });
+}
 function scheduleCloudPush(){
-  if(window.parent!==window) return;   // iframe 内（被工作台承载）：同步交给外壳统一处理，避免双推送互相覆盖
+  if(window.parent!==window){            // iframe 内（被工作台承载）：把展开后的真图数据交给外壳统一上云
+    if(foodPushTimer) clearTimeout(foodPushTimer);
+    foodPushTimer = setTimeout(postExpandedFoodToParent, 600);
+    return;
+  }
   if(!syncCfg) loadSyncCfg();
   if(!syncCfg.connected) return;
   if(pushTimer) clearTimeout(pushTimer);
