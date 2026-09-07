@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风水 · 阳宅研判</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --red:#c0392b; --green:#27ae60; --gold:#b8860b; --blue:#3a7ca5;
+    --radius:16px; --shadow:0 2px 8px rgba(58,54,49,.06),0 16px 40px rgba(58,54,49,.04);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--font);
+    line-height:1.7;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--mark);}
+  .page-wrap{max-width:1080px;margin:0 auto;padding:28px 32px 90px;}
+
+  .top-bar{display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:8px;padding-bottom:16px;border-bottom:2px solid var(--line);flex-wrap:wrap;gap:8px;}
+  .top-title{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:6px;}
+  .top-sub{font-size:13px;color:var(--sub);margin-left:10px;letter-spacing:1px;}
+  .top-tip{font-size:12px;color:var(--sub);max-width:420px;text-align:right;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 26px;margin:18px 0;box-shadow:var(--shadow);}
+  .card-title{font-size:17px;font-weight:600;color:var(--accent);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;}
+  .card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  .card-sub{font-size:12.5px;color:var(--sub);margin:-8px 0 14px;}
+
+  /* 输入区 */
+  .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 24px;}
+  .field{display:flex;flex-direction:column;gap:7px;}
+  .field label{font-size:13px;color:var(--sub);font-weight:500;letter-spacing:.5px;}
+  .field .req{color:var(--accent);}
+  input[type=number],select{width:100%;padding:11px 13px;border:1.5px solid var(--line);
+    border-radius:11px;font-family:inherit;font-size:15px;color:var(--ink);background:#fff;transition:.2s;}
+  input[type=number]:focus,select:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 4px rgba(184,113,78,.1);}
+  .radio-row{display:flex;gap:10px;}
+  .radio-row label{flex:1;padding:10px;text-align:center;border:1.5px solid var(--line);
+    border-radius:11px;cursor:pointer;font-size:15px;color:var(--sub);transition:.2s;background:#fff;}
+  .radio-row input{display:none;}
+  .radio-row label.on{border-color:var(--accent);color:var(--accent);
+    background:linear-gradient(135deg,var(--mark),#fef5ee);font-weight:600;}
+
+  .btn-primary{display:inline-block;padding:14px 46px;border:none;border-radius:12px;
+    background:var(--accent);color:#fff;font-size:17px;font-weight:600;letter-spacing:4px;
+    cursor:pointer;font-family:inherit;transition:.2s;margin-top:6px;}
+  .btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px);
+    box-shadow:0 6px 20px rgba(184,113,78,.25);}
+  .btn-row{text-align:center;margin-top:22px;}
+
+  /* 形煞 checklist */
+  .sha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .sha-item{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border:1.5px solid var(--line);
+    border-radius:12px;cursor:pointer;background:#fff;transition:.2s;font-size:13.5px;}
+  .sha-item:hover{border-color:var(--accent);}
+  .sha-item.on{border-color:var(--red);background:#fdecea;}
+  .sha-item input{margin-top:4px;accent-color:var(--red);width:16px;height:16px;flex-shrink:0;}
+  .sha-item .nm{font-weight:600;color:var(--ink);}
+  .sha-item .ds{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;line-height:1.5;}
+
+  /* 结果区 */
+  .hidden{display:none;}
+  .verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:14px;
+    background:linear-gradient(135deg,var(--mark),#fef5ee);border:1px solid var(--line);margin-bottom:6px;}
+  .verdict .big{font-size:30px;font-weight:700;letter-spacing:2px;}
+  .verdict .stars{font-size:22px;color:var(--gold);letter-spacing:3px;}
+  .verdict .score{font-size:13px;color:var(--sub);margin-left:auto;text-align:right;}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .mini{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .mini .h{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:8px;}
+  .tag-ji{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .tag-ji.good{background:#e6f6ec;color:var(--green);}
+  .tag-ji.bad{background:#fdecea;color:var(--red);}
+  .tag-ji.mid{background:var(--mark);color:var(--accent);}
+
+  /* 八宅方位图 3x3 */
+  .bagua{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:460px;margin:6px auto 4px;}
+  .cell{border-radius:12px;padding:12px 8px;text-align:center;border:1.5px solid var(--line);
+    background:#fff;min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+  .cell.center{border:none;background:transparent;color:var(--sub);font-size:13px;}
+  .cell.good{background:#e6f6ec;border-color:#bfe3cd;}
+  .cell.bad{background:#fdecea;border-color:#f3c9c4;}
+  .cell .dir{font-size:13px;font-weight:600;color:var(--ink);}
+  .cell .star{font-size:14px;font-weight:700;}
+  .cell.good .star{color:var(--green);}
+  .cell.bad .star{color:var(--red);}
+  .cell .use{font-size:10.5px;color:var(--sub);line-height:1.35;}
+  .legend{display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--sub);margin-top:8px;}
+
+  /* 列表结论 */
+  .reason{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .reason:last-child{border-bottom:none;}
+  .reason .ic{font-weight:700;flex-shrink:0;width:18px;text-align:center;}
+  .reason.good .ic{color:var(--green);}
+  .reason.bad .ic{color:var(--red);}
+  .reason.mid .ic{color:var(--gold);}
+  .reason .tx{color:var(--ink);}
+  .reason .tx b{color:var(--accent);}
+
+  .sources{font-size:12.5px;color:var(--sub);line-height:1.9;}
+  .sources b{color:var(--ink);}
+  .disclaimer{font-size:12px;color:var(--sub);background:#faf7f1;border:1px dashed var(--line);
+    border-radius:10px;padding:12px 14px;margin-top:10px;line-height:1.7;}
+
+  @media(max-width:680px){
+    .page-wrap{padding:20px 16px 70px;}
+    .form-grid,.two-col{grid-template-columns:1fr;}
+    .sha-grid{grid-template-columns:1fr;}
+    .top-tip{text-align:left;max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="top-bar">
+    <div>
+      <span class="top-title">风水</span>
+      <span class="top-sub">传统阳宅 · 多维研判</span>
+    </div>
+    <div class="top-tip">依据《八宅明镜》《阳宅十书》《阳宅三要》等经典整理，
+      输入基本信息即可得宅命相配、五行生克、八方吉凶与形煞结论。</div>
+  </div>
+
+  <!-- 输入卡 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>基本信息</div>
+    <div class="card-sub">标 <span style="color:var(--accent)">*</span> 为必填；其余填得越全，研判越细。</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>出生年份 <span class="req">*</span></label>
+        <input type="number" id="year" value="1990" min="1900" max="2099">
+      </div>
+      <div class="field">
+        <label>性别 <span class="req">*</span></label>
+        <div class="radio-row" id="genderRow">
+          <label data-v="男"><input type="radio" name="gender" value="男" checked>男</label>
+          <label data-v="女"><input type="radio" name="gender" value="女">女</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>房屋坐向（宅卦） <span class="req">*</span></label>
+        <select id="zhaoxiang">
+          <option value="坐北朝南">坎宅 · 坐北朝南</option>
+          <option value="坐南朝北">离宅 · 坐南朝北</option>
+          <option value="坐东朝西">震宅 · 坐东朝西</option>
+          <option value="坐东南朝西北">巽宅 · 坐东南朝西北</option>
+          <option value="坐西北朝东南">乾宅 · 坐西北朝东南</option>
+          <option value="坐西南朝东北">坤宅 · 坐西南朝东北</option>
+          <option value="坐东北朝西南">艮宅 · 坐东北朝西南</option>
+          <option value="坐西朝东">兑宅 · 坐西朝东</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>主卧（主人房）方位</label>
+        <select id="master">
+          <option value="">不确定 / 暂略</option>
+          <option value="北">正北</option><option value="东北">东北</option>
+          <option value="东">正东</option><option value="东南">东南</option>
+          <option value="南">正南</option><option value="西南">西南</option>
+          <option value="西">正西</option><option value="西北">西北</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>厨房（灶）方位</label>
+        <select id="stove">
+          <option value="">不确定 / 暂略</option>
+          <option value="北">正北</option><option value="东北">东北</option>
+          <option value="东">正东</option><option value="东南">东南</option>
+          <option value="南">正南</option><option value="西南">西南</option>
+          <option value="西">正西</option><option value="西北">西北</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>你的八字日主五行（选填，细化补益）</label>
+        <select id="rizhu">
+          <option value="">不知道 / 暂略</option>
+          <option value="木">木</option><option value="火">火</option>
+          <option value="土">土</option><option value="金">金</option>
+          <option value="水">水</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 形煞自查 -->
+    <div class="card-title" style="margin-top:22px;"><span class="dot"></span>外部环境形煞（点选你家中招的）</div>
+    <div class="card-sub">峦头派看「形」，《阳宅十书》形势篇所列常见煞气，勾选会纳入综合结论与化解建议。</div>
+    <div class="sha-grid" id="shaGrid"></div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="compute()">开始研判</button>
+    </div>
+  </div>
+
+  <!-- 结果区 -->
+  <div id="result" class="hidden">
+
+    <div class="card">
+      <div class="verdict" id="verdictBox"></div>
+      <div class="card-sub" id="verdictNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>一、宅命相配（核心：这套房适不适合你）</div>
+      <div class="two-col" id="matchBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>二、五行生克多维判断</div>
+      <div class="card-sub">命卦五行、宅卦五行、大门（向方）五行，三者相生相克关系。</div>
+      <div id="wuxingBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>三、八宅八方吉凶（以宅卦为伏位 · 游年九星）</div>
+      <div class="card-sub">绿为四吉方（生气/延年/天医/伏位），红为四凶方（五鬼/六煞/祸害/绝命）。用于布局：门、主卧、灶宜落在吉方。</div>
+      <div class="bagua" id="bagua"></div>
+      <div class="legend"><span>● 四吉方</span><span>● 四凶方</span><span>中宫为宅心</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>四、你的本命四吉方（以命卦为伏位）</div>
+      <div class="card-sub">睡卧、久坐于本命吉方，最助你自身气场（东四命宜居东四方，西四命宜居西四方）。</div>
+      <div id="mingjiBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>五、阳宅三要（门 · 主 · 灶）</div>
+      <div class="card-sub">以大门为伏位起游年，看主卧、厨房所落之星。落四吉星为吉，落四凶星为凶（出自《阳宅三要》）。</div>
+      <div id="sanyaoBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>六、形煞结论与化解</div>
+      <div id="shaBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>七、综合研判要点</div>
+      <div id="reasonBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>经典出处</div>
+      <div class="sources" id="sourceBox"></div>
+      <div class="disclaimer">说明：本工具依传统风水经典（八宅派体系）整理，属民俗文化参考。
+        吉凶判断为传统理论体系，并非科学实证结论，请理性看待、兼听则明。择居仍应以采光、通风、安全、通勤等现实因素为先。</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =================== 经典数据（均有出处） =================== */
+
+// 命卦余数→卦。来源《八宅明镜》《阳宅十书》余数法。
+// 1900-1999 男:(100-YY)%9 ; 女:(YY-4)%9 。 2000-2099 男:(99-YY)%9 ; 女:(YY+6)%9 。余0作9。
+const EAST = ['坎','震','巽','离'];   // 东四命 / 东四宅
+const WEST = ['乾','坤','兑','艮'];   // 西四命 / 西四宅
+
+// 八宅游年总表（本宫→八方星）。已与《阳宅十书》大游年歌诀逐格核对一致。
+// 列序：乾(西北) 坎(北) 艮(东北) 震(东) 巽(东南) 离(南) 坤(西南) 兑(西)
+const YOU_NIAN = {
+  '乾':{乾:'伏位',坎:'六煞',艮:'天医',震:'五鬼',巽:'祸害',离:'绝命',坤:'延年',兑:'生气'},
+  '坎':{坎:'伏位',艮:'五鬼',震:'天医',巽:'生气',离:'延年',坤:'绝命',兑:'祸害',乾:'六煞'},
+  '艮':{艮:'伏位',震:'六煞',巽:'延年',离:'生气',坤:'祸害',兑:'绝命',乾:'天医',坎:'五鬼'},
+  '震':{震:'伏位',巽:'生气',离:'延年',坤:'祸害',兑:'绝命',乾:'五鬼',坎:'天医',艮:'六煞'},
+  '巽':{巽:'伏位',离:'天医',坤:'五鬼',兑:'六煞',乾:'祸害',坎:'生气',艮:'绝命',震:'延年'},
+  '离':{离:'伏位',坤:'六煞',兑:'五鬼',乾:'绝命',坎:'延年',艮:'祸害',震:'生气',巽:'天医'},
+  '坤':{坤:'伏位',兑:'天医',乾:'延年',坎:'绝命',艮:'生气',震:'祸害',巽:'五鬼',离:'六煞'},
+  '兑':{兑:'伏位',乾:'生气',坎:'祸害',艮:'延年',震:'绝命',巽:'六煞',离:'五鬼',坤:'天医'}
+};
+
+// 卦→五行（《尚书·洪范》五行属性）
+const GUA_WX = {坎:'水',坤:'土',震:'木',巽:'木',乾:'金',兑:'金',艮:'土',离:'火'};
+// 九星→五行（八宅配北斗九星）
+const STAR_WX = {生气:'木',天医:'土',延年:'金',伏位:'木',祸害:'土',六煞:'水',五鬼:'火',绝命:'金'};
+// 星→吉凶等级
+const STAR_LV = {生气:'吉',天医:'吉',延年:'吉',伏位:'吉',祸害:'凶',六煞:'凶',五鬼:'凶',绝命:'凶'};
+// 九星主应（简）
+const STAR_MEAN = {
+  生气:'贪狼木·上吉：旺丁旺财、生机、利事业文昌',
+  天医:'巨门土·中吉：健康、贵人、祛病解困',
+  延年:'武曲金·上吉：婚姻和合、延寿、人际',
+  伏位:'辅弼木·小吉：平稳守成、本命方',
+  祸害:'禄存土·小凶：口舌是非、琐碎消耗',
+  六煞:'文曲水·次凶：桃花纠纷、官非破耗',
+  五鬼:'廉贞火·大凶：火盗、争斗、怪异',
+  绝命:'破军金·大凶：病灾、损丁、意外'
+};
+// 方位→卦
+const DIR2GUA = {北:'坎',东北:'艮',东:'震',东南:'巽',南:'离',西南:'坤',西:'兑',西北:'乾'};
+// 坐向→宅卦、及其向方（大门通常朝此）
+const ZHAO = {
+  '坐北朝南':{gua:'坎',xiang:'南'},
+  '坐南朝北':{gua:'离',xiang:'北'},
+  '坐东朝西':{gua:'震',xiang:'西'},
+  '坐东南朝西北':{gua:'巽',xiang:'西北'},
+  '坐西北朝东南':{gua:'乾',xiang:'东南'},
+  '坐西南朝东北':{gua:'坤',xiang:'东北'},
+  '坐东北朝西南':{gua:'艮',xiang:'西南'},
+  '坐西朝东':{gua:'兑',xiang:'东'}
+};
+const GUA_NAME = {坎:'坎',坤:'坤',震:'震',巽:'巽',乾:'乾',兑:'兑',艮:'艮',离:'离'};
+// 八卦方位展示（九宫）
+const BAGUA_CELLS = [
+  {dir:'西北',gua:'乾'},{dir:'北',gua:'坎'},{dir:'东北',gua:'艮'},
+  {dir:'西',gua:'兑'},{center:true},{dir:'东',gua:'震'},
+  {dir:'西南',gua:'坤'},{dir:'南',gua:'离'},{dir:'东南',gua:'巽'}
+];
+
+// 形煞清单（峦头派《阳宅十书》形势篇所列常见煞）
+const SHA_LIST = [
+  {id:'tianzhan',nm:'天斩煞',ds:'两栋高楼间窄缝正对住宅'},
+  {id:'luchong',nm:'路冲煞',ds:'直路、直河正冲宅前/宅身'},
+  {id:'fangong',nm:'反弓煞',ds:'路或水呈反弓形（弧背朝宅）'},
+  {id:'chuantang',nm:'穿堂煞',ds:'前后门/窗直通，气不聚'},
+  {id:'gufeng',nm:'孤峰煞',ds:'四周低矮、独楼高耸无靠'},
+  {id:'baizuo',nm:'白虎煞',ds:'右（西）侧高压、动工、尖角冲'},
+  {id:'dianci',nm:'电磁煞',ds:'近高压电塔、变电站、基站'},
+  {id:'sheng',nm:'声光煞',ds:'近闹市、工地、强反光/霓虹'},
+  {id:'wu',nm:'污秽煞',ds:'近垃圾场、医院、坟场、污水处理厂'}
+];
+const SHA_FIX = {
+  tianzhan:'天斩煞：传统以「屏风/玄关」缓冲直冲，窗外悬八卦凸镜或摆阔叶绿植化冲。',
+  luchong:'路冲煞：设影壁、玄关挡气；门前置石敢当或盆栽矮墙缓冲。',
+  fangong:'反弓煞：朝向反弓一侧加实墙/绿植隔断，挂葫芦聚气。',
+  chuantang:'穿堂煞：设屏风、珠帘或家具阻断直通，使气回旋聚驻。',
+  gufeng:'孤峰煞：多植 surrounding 绿植、设背山意象（画/柜）以「有靠」。',
+  baizuo:'白虎煞：右侧宜静宜低，可置圆形陶瓷、泰山石敢当镇右。',
+  dianci:'电磁煞：远离为要，近则加屏蔽绿植（如仙人掌类）并少在窗边久留。',
+  sheng:'声光煞：加厚帘、双层窗隔声；反光侧用磨砂/百叶柔化。',
+  wu:'污秽煞：保持宅前整洁，常通风净化；以清香、绿植改善气场。'
+};
+
+/* =================== 算法 =================== */
+function minggua(year, gender){
+  const yy = year % 100;
+  let r;
+  if(year >= 2000){ r = (gender==='男') ? (99 - yy) : (yy + 6); }
+  else { r = (gender==='男') ? (100 - yy) : (yy - 4); }
+  r = ((r % 9) + 9) % 9; if(r === 0) r = 9;
+  const map = {1:'坎',2:'坤',3:'震',4:'巽',6:'乾',7:'兑',8:'艮',9:'离'};
+  if(r === 5) return (gender==='男') ? '坤' : '艮';
+  return map[r];
+}
+// 五行关系：a 对 b。返回 生/克/比和/被生/被克
+function wxRel(a, b){
+  const sheng = {木:'火',火:'土',土:'金',金:'水',水:'木'};
+  const ke   = {木:'土',土:'水',水:'火',火:'金',金:'木'};
+  if(a === b) return '比和';
+  if(sheng[a] === b) return '生';
+  if(ke[a] === b)   return '克';
+  if(sheng[b] === a) return '被生';
+  if(ke[b] === a)   return '被克';
+  return '无关';
+}
+function relText(rel, a, b){
+  const m = {生:`${a}生${b}，相生助益`, 克:`${a}克${b}，相克耗损`,
+    比和:`${a}与${b}比和，同气相助`, 被生:`${b}生${a}，你受生扶`,
+    被克:`${b}克${a}，你受制约`, 无关:'五行关系平和'};
+  return m[rel] || '';
+}
+
+/* =================== 渲染 =================== */
+function renderSha(){
+  const box = document.getElementById('shaGrid');
+  box.innerHTML = SHA_LIST.map(s=>`
+    <label class="sha-item" data-id="${s.id}">
+      <input type="checkbox" value="${s.id}">
+      <span><span class="nm">${s.nm}</span><span class="ds">${s.ds}</span></span>
+    </label>`).join('');
+  box.querySelectorAll('.sha-item').forEach(it=>{
+    it.addEventListener('click', e=>{
+      if(e.target.tagName !== 'INPUT'){ const c=it.querySelector('input'); c.checked=!c.checked; }
+      it.classList.toggle('on', it.querySelector('input').checked);
+    });
+  });
+}
+function selectedSha(){
+  return [...document.querySelectorAll('#shaGrid input:checked')].map(i=>i.value);
+}
+
+function compute(){
+  const year = parseInt(document.getElementById('year').value);
+  const gender = document.querySelector('input[name=gender]:checked').value;
+  const zx = document.getElementById('zhaoxiang').value;
+  const master = document.getElementById('master').value;
+  const stove = document.getElementById('stove').value;
+  const rz = document.getElementById('rizhu').value;
+
+  if(!year || year<1900 || year>2099){
+    alert('请填写 1900–2099 之间的出生年份'); return;
+  }
+
+  // —— 命卦 / 宅卦 ——
+  const mg = minggua(year, gender);            // 命卦
+  const hg = ZHAO[zx].gua;                      // 宅卦
+  const xiang = ZHAO[zx].xiang;                // 向方（大门）
+  const doorGua = DIR2GUA[xiang];
+  const mGroup = EAST.includes(mg) ? '东四命' : '西四命';
+  const hGroup = EAST.includes(hg) ? '东四宅' : '西四宅';
+  const mgWX = GUA_WX[mg], hgWX = GUA_WX[hg], doorWX = GUA_WX[doorGua];
+
+  // —— 宅命相配（核心）——
+  const match = (EAST.includes(mg) && EAST.includes(hg)) || (WEST.includes(mg) && WEST.includes(hg));
+  const matchLevel = match ? 'good' : 'bad';
+  const matchText = match
+    ? `你是<b>${mGroup}</b>，此宅为<b>${hGroup}</b>——人宅同组，气场相合，于你为宜。`
+    : `你是<b>${mGroup}</b>，此宅却是<b>${hGroup}</b>——人宅异组（东西相混），传统视为相冲，于你不利；宜选同组之宅。`;
+
+  // —— 五行生克 ——
+  const relHouse2Me = wxRel(hgWX, mgWX);   // 宅 对 命
+  const relDoor2Me  = wxRel(doorWX, mgWX); // 门 对 命
+  const wxRows = [
+    {t:`宅卦五行（${hgWX}）对你命卦五行（${mgWX}）`, r:relHouse2Me, d:relText(relHouse2Me,hgWX,mgWX)},
+    {t:`大门五行（向${xiang}·${doorWX}）对你命卦五行（${mgWX}）`, r:relDoor2Me, d:relText(relDoor2Me,doorWX,mgWX)}
+  ];
+  if(rz){
+    const relRZ = wxRel(hgWX, rz);
+    wxRows.push({t:`宅卦五行（${hgWX}）对你八字日主（${rz}）`, r:relRZ,
+      d:relText(relRZ,hgWX,rz)+'（日主为用，宅气能补益你八字更妙）'});
+  }
+
+  // —— 八方吉凶（宅卦游年）——
+  const chart = YOU_NIAN[hg];
+
+  // —— 本命四吉方 ——
+  const mChart = YOU_NIAN[mg];
+  const mingJi = Object.keys(mChart).filter(k=>STAR_LV[mChart[k]]==='吉')
+    .map(k=>({dir:k, star:mChart[k]}));
+
+  // —— 阳宅三要 ——
+  let sanyao = [];
+  if(master || stove){
+    // 以大门卦为伏位
+    const dChart = YOU_NIAN[doorGua];
+    if(master){
+      const star = dChart[DIR2GUA[master]];
+      sanyao.push({who:'主卧', dir:master, star, lv:STAR_LV[star]});
+    }
+    if(stove){
+      const star = dChart[DIR2GUA[stove]];
+      sanyao.push({who:'厨房(灶)', dir:stove, star, lv:STAR_LV[star]});
+    }
+  }
+
+  // —— 形煞 ——
+  const shaHit = selectedSha();
+
+  // =================== 组装输出 ===================
+  document.getElementById('result').classList.remove('hidden');
+
+  // 综合评分（民俗参考）
+  let score = 40;
+  score += match ? 30 : -18;
+  score += ({生:15,比和:15,被生:8,克:-10,被克:-12,无关:0})[relHouse2Me] || 0;
+  score += ({生:10,比和:10,被生:6,克:-8,被克:-10,无关:0})[relDoor2Me] || 0;
+  sanyao.forEach(s=> score += s.lv==='吉' ? 6 : -8);
+  score -= shaHit.length * 8;
+  score = Math.max(6, Math.min(98, score));
+  let grade, gcls;
+  if(score>=80){grade='上吉 · 宜你';gcls='good';}
+  else if(score>=62){grade='中吉 · 可居';gcls='good';}
+  else if(score>=42){grade='中平 · 需调和';gcls='mid';}
+  else {grade='需注意 · 谨慎';gcls='bad';}
+  const stars = '★'.repeat(Math.max(1,Math.round(score/20)));
+  document.getElementById('verdictBox').innerHTML =
+    `<div><div class="big" style="color:${gcls==='bad'?'var(--red)':gcls==='mid'?'var(--gold)':'var(--green)'}">${grade}</div>
+      <div class="stars">${stars}</div></div>
+     <div class="score">综合适配指数<br><b style="font-size:20px">${score}</b> / 100<br><span style="font-size:11px">民俗参考，非科学评定</span></div>`;
+  document.getElementById('verdictNote').innerHTML = match
+    ? '核心结论：人宅相合，此宅与你的命卦同组，是传统风水上「宜居」的组合。'
+    : '核心结论：人宅相冲，此宅与你的命卦异组，传统风水建议改选同组宅型，或重在调和。';
+
+  // 一、宅命相配
+  document.getElementById('matchBox').innerHTML = `
+    <div class="mini"><div class="h">你的命卦</div>
+      <div style="font-size:22px;font-weight:700;color:var(--accent)">${GUA_NAME[mg]}卦</div>
+      <div style="margin-top:4px">五行：<b>${mgWX}</b></div>
+      <div>命局：<span class="tag-ji ${EAST.includes(mg)?'good':'bad'}">${mGroup}</span></div>
+    </div>
+    <div class="mini"><div class="h">这套宅的宅卦</div>
+      <div style="font-size:22px;font-weight:700;color:var(--accent)">${GUA_NAME[hg]}宅</div>
+      <div style="margin-top:4px">坐向：${zx}（向${xiang}）</div>
+      <div>宅局：<span class="tag-ji ${EAST.includes(hg)?'good':'bad'}">${hGroup}</span></div>
+    </div>
+    <div class="mini" style="grid-column:1/-1"><div class="h">宅命相配</div>
+      <span class="tag-ji ${matchLevel}">${match?'相合 · 宜':'相冲 · 不宜'}</span>
+      <div style="margin-top:8px;font-size:14px">${matchText}</div>
+    </div>`;
+
+  // 二、五行
+  document.getElementById('wuxingBox').innerHTML = wxRows.map(r=>{
+    const cls = (r.r==='生'||r.r==='比和'||r.r==='被生')?'good':(r.r==='克'||r.r==='被克')?'bad':'mid';
+    return `<div class="reason ${cls}"><span class="ic">${cls==='good'?'＋':cls==='bad'?'－':'·'}</span>
+      <span class="tx"><b>${r.t}</b>：${r.d}</span></div>`;
+  }).join('') + `<div class="card-sub" style="margin-top:8px">五行生克出自《尚书·洪范》《黄帝内经》：
+    宅气生你或与你比和最佳；宅气克你则需以布局、材质（如用生你的五行色/质）调和。</div>`;
+
+  // 三、八方吉凶
+  document.getElementById('bagua').innerHTML = BAGUA_CELLS.map(c=>{
+    if(c.center) return `<div class="cell center">宅心</div>`;
+    const star = chart[c.gua];
+    const lv = STAR_LV[star];
+    const use = lv==='吉' ? '宜门/主卧/灶' : '宜低矮安静';
+    return `<div class="cell ${lv==='吉'?'good':'bad'}">
+      <div class="dir">${c.dir}</div>
+      <div class="star">${star}</div>
+      <div class="use">${use}</div></div>`;
+  }).join('');
+
+  // 四、本命四吉方
+  document.getElementById('mingjiBox').innerHTML =
+    `<div class="two-col">` + mingJi.map(j=>{
+      const dname = Object.keys(DIR2GUA).find(k=>DIR2GUA[k]===j.dir) || j.dir;
+      return `<div class="mini"><div class="h">${j.star} · ${dname}</div>
+        <div style="font-size:12.5px;color:var(--sub)">${STAR_MEAN[j.star]}</div></div>`;
+    }).join('') + `</div>`;
+
+  // 五、三要
+  let sanyaoHtml;
+  if(sanyao.length===0){
+    sanyaoHtml = `<div class="card-sub">未填主卧 / 厨房方位。补全后可依《阳宅三要》看门主灶所落之星。</div>`;
+  } else {
+    sanyaoHtml = sanyao.map(s=>{
+      const cls = s.lv==='吉'?'good':'bad';
+      const dname = s.dir;
+      return `<div class="reason ${cls}"><span class="ic">${cls==='good'?'＋':'－'}</span>
+        <span class="tx"><b>${s.who}</b>（${dname}）落 <b>${s.star}</b>：${STAR_MEAN[s.star]}</span></div>`;
+    }).join('') + `<div class="card-sub" style="margin-top:8px">大门为${GUA_NAME[doorGua]}（向${xiang}），以此起游年。
+      传统以门主灶俱落四吉星为最宜；若有落凶星者，可调整该房间用途或布局化解。</div>`;
+  }
+  document.getElementById('sanyaoBox').innerHTML = sanyaoHtml;
+
+  // 六、形煞
+  let shaHtml;
+  if(shaHit.length===0){
+    shaHtml = `<div class="card-sub">未勾选形煞——外部环境暂无明显所招之煞。若实际有前述情形，勾选后可获化解建议。</div>`;
+  } else {
+    shaHtml = shaHit.map(id=>{
+      const s = SHA_LIST.find(x=>x.id===id);
+      return `<div class="reason bad"><span class="ic">!</span>
+        <span class="tx"><b>${s.nm}</b>：${SHA_FIX[id]}</span></div>`;
+    }).join('');
+  }
+  document.getElementById('shaBox').innerHTML = shaHtml;
+
+  // 七、综合要点
+  const reasons = [];
+  reasons.push({cls:match?'good':'bad',
+    tx:`宅命相配：${match?'人宅同组，宜居':'人宅异组，传统视为不宜'}`});
+  reasons.push({cls:(relHouse2Me==='生'||relHouse2Me==='比和'||relHouse2Me==='被生')?'good':(relHouse2Me==='克'||relHouse2Me==='被克')?'bad':'mid',
+    tx:`宅卦五行对你：${relText(relHouse2Me,hgWX,mgWX)}`});
+  if(sanyao.length){
+    const bad = sanyao.filter(s=>s.lv==='凶').length;
+    reasons.push({cls:bad?'bad':'good',
+      tx:`阳宅三要：门主灶中 ${sanyao.length-bad} 落吉、${bad} 落凶`});
+  }
+  if(shaHit.length){
+    reasons.push({cls:'bad', tx:`形煞：自检命中 ${shaHit.length} 项，见上化解建议`});
+  }
+  if(!match){
+    reasons.push({cls:'mid', tx:`调和要诀：若暂不能换宅，可重在「本命吉方」安置卧室与常坐处，并化解所招形煞。`});
+  }
+  document.getElementById('reasonBox').innerHTML = reasons.map(r=>
+    `<div class="reason ${r.cls}"><span class="ic">${r.cls==='good'?'＋':r.cls==='bad'?'－':'·'}</span>
+     <span class="tx">${r.tx}</span></div>`).join('');
+
+  // 出处
+  document.getElementById('sourceBox').innerHTML = `
+    <b>《八宅明镜》</b>（托名杨筠松／赖布衣）：命卦余数法、东四命西四命、宅命相配「东四命宜居东四宅」。
+    <br><b>《阳宅十书》</b>（明·王君荣 编）：大游年歌诀、八宅八方吉凶（游年九星）、形势篇所列形煞。
+    <br><b>《阳宅三要》</b>（清·赵九峰）：门·主·灶三要，以大门为伏位起游年断吉凶。
+    <br><b>《黄帝宅经》</b>：宅之阴阳、『刑祸之方缩复缩，福德之方拓复拓』之避凶就吉义。
+    <br><b>《葬书》</b>（晋·郭璞）：『风水』之名所出，乘生气、得水藏风之旨。
+    <br><b>《尚书·洪范》《黄帝内经》</b>：五行（水火木金土）属性与相生相克之理。`;
+
+  // 保存输入，便于下次回到
+  try{ localStorage.setItem('FS_INPUTS', JSON.stringify({year,gender,zx,master,stove,rz,sha:shaHit})); }catch(e){}
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restore(){
+  try{
+    const s = JSON.parse(localStorage.getItem('FS_INPUTS')||'null'); if(!s) return;
+    if(s.year) document.getElementById('year').value = s.year;
+    if(s.gender){ document.querySelectorAll('input[name=gender]').forEach(r=>r.checked=(r.value===s.gender)); }
+    if(s.zx) document.getElementById('zhaoxiang').value = s.zx;
+    if(s.master) document.getElementById('master').value = s.master;
+    if(s.stove) document.getElementById('stove').value = s.stove;
+    if(s.rizhu) document.getElementById('rizhu').value = s.rizhu;
+    if(s.sha){ s.sha.forEach(id=>{ const el=document.querySelector(`#shaGrid input[value="${id}"]`);
+      if(el){ el.checked=true; el.closest('.sha-item').classList.add('on'); } }); }
+  }catch(e){}
+  // 性别高亮
+  document.querySelectorAll('#genderRow label').forEach(l=>{
+    l.classList.toggle('on', l.querySelector('input').checked);
+  });
+  document.querySelectorAll('#genderRow input').forEach(r=>r.addEventListener('change',()=>{
+    document.querySelectorAll('#genderRow label').forEach(l=>l.classList.toggle('on', l.querySelector('input').checked));
+  }));
+}
+renderSha(); restore();
+</script>
+</body>
+</html>
