@@ -34,10 +34,15 @@
   .pbox{background:var(--bg);border-radius:14px;max-width:920px;width:100%;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
   .phead{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:12px;font-size:15px}
   .phead button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px}
-  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:70vh;overflow:auto}
-  .pimg{border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;background:#fff}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;max-height:70vh;overflow:auto}
+  .pimg{position:relative;border:2px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;background:#fff}
   .pimg:hover{border-color:var(--accent)}
-  .pimg img{width:100%;height:90px;object-fit:cover;display:block}
+  .pimg.blur{border-color:#c2533a}
+  .pimg img{width:100%;height:96px;object-fit:cover;display:block}
+  .pimg .pmeta{font-size:11px;color:var(--sub);padding:3px 5px;background:#fff;line-height:1.4}
+  .pimg .pbadge{position:absolute;top:5px;left:5px;background:#c2533a;color:#fff;font-size:11px;padding:2px 7px;border-radius:9px}
+  .phead .thr{font-size:12px;color:var(--sub);font-weight:400;display:flex;align-items:center;gap:4px}
+  .phead .thr input{width:64px;padding:3px 5px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:#fff}
 </style>
 </head>
 <body>
