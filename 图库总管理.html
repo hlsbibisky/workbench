@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="zh-CN" data-page-node-id="H1yKWQ18HSxRulC8GYSZbx">
+<head data-page-node-id="a8M5lgAfQGxAAkGFRoaz9u">
+<meta charset="utf-8" data-page-node-id="bUuq7n9tuFaf3WDbAneRRE">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" data-page-node-id="66gLfXKKjx1AoVwtPft0OT">
 <title>图库总管理</title>
 <style>
   :root{ --bg:#f7f4ee; --accent:#b8714e; --line:#e3d9cc; --ink:#4a4036; --soft:#8a7d6c; --ok:#5b8c5a; --warn:#c0623a; }
@@ -45,30 +45,31 @@
   .cb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink)}
 </style>
 </head>
-<body>
-<h1>图库总管理</h1>
-<div class="sub">菜品库 · 饮品库 · 零食库 统一配图。原图直存，绝不做压缩处理。</div>
+<body data-page-node-id="EeFdmHlmrH5p5t01SSsig1">
+<h1 data-page-node-id="3SlRFLrHw5Evan3kJtwDqH">图库总管理</h1>
+<div class="sub" data-page-node-id="f2oowkeiE05K3NfQmXNu6Y">菜品库 · 饮品库 · 零食库 统一配图。原图直存，绝不做压缩处理。</div>
 
-<div class="bar">
-  <label class="cb"><input type="checkbox" id="clearFirst" checked> 导入前清空旧图库（本地）</label>
-  <input type="file" id="folder" webkitdirectory directory multiple accept="image/*">
-  <button id="btnMatch" class="ghost" disabled>按文件名自动预匹配</button>
-  <button id="btnBackup" class="ghost" disabled>下载备份</button>
-  <button id="btnClearCloud" class="danger" disabled>清空云端旧图</button>
-  <button id="btnPush" disabled>备份并同步云端</button>
-  <span class="stat" id="stat">就绪</span>
+<div class="bar" data-page-node-id="Y66nGs6PbG50vOPYmxfi8A">
+  <label class="cb" data-page-node-id="DNggFDUL7wkMWLQIEUBQxG"><input type="checkbox" id="clearFirst" checked data-page-node-id="AtPObrkHCeUXu0CIDHQvZq"> 导入前清空旧图库（本地）</label>
+  <input type="file" id="folder" webkitdirectory directory multiple accept="image/*" data-page-node-id="Zck7Rmtu3w7CX3HKYM9wdG">
+  <button id="btnMatch" class="ghost" disabled data-page-node-id="mGh0HhWuxu5Y56jC5bqz3B">按文件名自动预匹配</button>
+  <button id="btnPull" class="ghost" data-page-node-id="Pf0l1CkQpUwqZrS2Yv8b9A">从云端拉取列表</button>
+  <button id="btnBackup" class="ghost" disabled data-page-node-id="NbnKKgiQAnRX1CmuAvr6Ye">下载备份</button>
+  <button id="btnClearCloud" class="danger" disabled data-page-node-id="AX7AVVdaS5hE5vRM5i4J9Q">清空云端旧图</button>
+  <button id="btnPush" disabled data-page-node-id="UfH3kz9YJf4WIULCtSXZzF">备份并同步云端</button>
+  <span class="stat" id="stat" data-page-node-id="1ZmtuBgiA7cFvFBpDBFOWk">就绪</span>
 </div>
 
-<div class="tabs" id="tabs"></div>
-<div id="list"></div>
-<div class="log" id="log"></div>
+<div class="tabs" id="tabs" data-page-node-id="s9YwD9QVV77wccxOrDNOfx"></div>
+<div id="list" data-page-node-id="0Kta04DsW22FLjWgePulYy"></div>
+<div class="log" id="log" data-page-node-id="wtlDiRM6hP7tOtzpB34n2v"></div>
 
-<div class="picker" id="picker">
-  <div class="pbox">
-    <h3 id="pickerTitle">为「菜品」选图</h3>
-    <div class="ptip">下方每张图均显示分辨率与文件名（均为原图，未压缩）。点击即可配给当前条目。</div>
-    <div class="pgrid" id="pgrid"></div>
-    <div style="text-align:right;margin-top:10px"><button class="ghost" id="pickerClose">关闭</button></div>
+<div class="picker" id="picker" data-page-node-id="IAMfHqesr2riNe3OyjUI4U">
+  <div class="pbox" data-page-node-id="qfxxpAJYUEpz2CBpulacLH">
+    <h3 id="pickerTitle" data-page-node-id="9gOecnnD6urid48oT3WvxN">为「菜品」选图</h3>
+    <div class="ptip" data-page-node-id="eKtqVgWan9NWp7rJHsFxkv">下方每张图均显示分辨率与文件名（均为原图，未压缩）。点击即可配给当前条目。</div>
+    <div class="pgrid" id="pgrid" data-page-node-id="1k9VOk40QRPuCOTmOnzQmH"></div>
+    <div style="text-align:right;margin-top:10px" data-page-node-id="IUKVSpzhOpwEI1cZNDSL8u"><button class="ghost" id="pickerClose" data-page-node-id="JBfeTJHhuLwtyAGuPt9lTo">关闭</button></div>
   </div>
 </div>
 
@@ -282,13 +283,47 @@ document.getElementById('btnClearCloud').addEventListener('click',async()=>{
   }catch(e){log('异常：'+e);}
 });
 
+/* ---------- 从云端拉取列表（本地为空时兜底） ---------- */
+async function pullFromCloud(){
+  log('正在从云端拉取三库列表…');
+  try{
+    const headers={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Content-Type':'application/json'};
+    const r=await fetch(SB_URL+'?id=eq.me&select=data',{headers});
+    if(!r.ok){log('云端拉取失败('+r.status+')');return false;}
+    const j=await r.json();
+    const data=(j[0]&&j[0].data)||null;
+    if(!data){log('云端暂无数据');return false;}
+    let n=0;
+    for(const L of LIBS){
+      if(!data[L.key])continue;
+      let arr;try{arr=typeof data[L.key]==='string'?JSON.parse(data[L.key]):data[L.key];}catch(e){arr=[];}
+      if(Array.isArray(arr)){
+        for(const it of arr){
+          if(it&&typeof it.image==='string'&&it.image.startsWith('data:image')){
+            const id='imp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+            await idbPut(id,it.image); it.image='idb://'+id;
+          }
+        }
+        writeLib(L.key,arr); n+=arr.length;
+      }
+    }
+    loadLibs();
+    log('已从云端拉取 '+n+' 个条目（含名称），现在可以导入图片并自动匹配了');
+    return n>0;
+  }catch(e){log('拉取异常：'+e);return false;}
+}
+document.getElementById('btnPull').addEventListener('click',()=>pullFromCloud());
+
 /* ---------- 启动 ---------- */
-(function init(){
-  log('图库总管理已加载。请从「选择文件夹」选桌面 AI图 文件夹开始。');
-  // 预载已有图库引用，便于显示已配数量
+(async function init(){
+  log('图库总管理已加载。若下方三库为空，会自动从云端拉取列表；也可点「从云端拉取列表」。');
   loadLibs();
+  let total=0; LIBS.forEach(L=>total+=(STATE[L.key]||[]).length);
+  if(total===0){ await pullFromCloud(); }
   // 预载 IndexedDB 已有图（若之前导入过）
-  idbGetAll().then(m=>{Object.keys(m).forEach(id=>{if(id.startsWith('imp_')&&!IMPORTED.find(p=>p.id===id))IMPORTED.push({id,name:id,base64:m[id]});});updateStat();});
+  const m=await idbGetAll();
+  Object.keys(m).forEach(id=>{if(id.startsWith('imp_')&&!IMPORTED.find(p=>p.id===id))IMPORTED.push({id,name:id,base64:m[id]});});
+  updateStat();
 })();
 </script>
 </body>
