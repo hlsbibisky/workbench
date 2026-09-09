@@ -889,12 +889,16 @@ async function wbPush(silent){
     wbLastPushSig=sig;
     wbSaveShadow(merged);          /* 记录本次同步快照，作为下次三向合并的基线 */
     /* 只有推送成功后才推进时间戳 */
-    try{ localStorage.setItem(WB_K_LAST_SYNC, now); localStorage.setItem(WB_K_CLOUD_VER, now); }catch(e){}
+    /* 只更新界面显示的「已同步时间」，不推进 WB_K_CLOUD_VER。
+       push 只上传到云端、不会写回本机；若同时把 CLOUD_VER 推到本次时间，本机就会
+       认为云端没有更新的内容，再也拉不到另一台设备刚推上来的数据（两端都显示已同步、
+       内容却不对齐，就是这么来的）。留着旧值，下次轮询自然会把云端最新内容拉回本机。 */
+    try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
     wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端');
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
 }
-async function wbPull(){
+async function wbPull(force){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   try{
     const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化');
@@ -904,7 +908,7 @@ async function wbPull(){
       /* 用「已见过的云端版本」判断，而不是本机推送时间，否则本机一写入就再也拉不到对端数据 */
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
-      if(cloudAt>seenVer){
+      if(force || cloudAt>seenVer){
         const merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
         await wbApply(merged);
         wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
@@ -961,7 +965,7 @@ function wbOpenSync(){
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
     +'<button onclick="wbDoConnect()" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">连接并同步</button>'
     +'<button onclick="wbPush();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即上传</button>'
-    +'<button onclick="wbPull();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
+    +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
     +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
@@ -1020,7 +1024,7 @@ document.addEventListener('visibilitychange', function(){
   if(!wbSync||!wbSync.connected) return;
   if(document.visibilityState==='visible'){
     wbFpPrev=wbFingerprint();
-    try{ wbPull(); }catch(e){}
+    try{ wbPull(true); }catch(e){}
     wbSchedulePush(true);
   }else{
     try{ wbPush(true); }catch(e){}
