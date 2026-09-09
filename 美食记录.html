@@ -829,10 +829,24 @@ function showStorageAlert(){
     + '<div class="modal-act"><button class="btn" onclick="closeModal()">关闭</button></div>';
   showModal();
 }
-// 原图直存：直接读成 base64，不做任何缩放/重编码，保留原始画质
+/* 图片入库守卫（2026-09-09）
+   之前一律「原图直存」：手机随手拍一张就 3~8MB，几十张直接把浏览器 5MB 配额撑爆，
+   连带整个云同步包上传失败——这正是「手机上写了内容、电脑端看不到」的根因。
+   现在：小图（<=260KB）保持原样不动；大图自动压到长边 900 的 JPEG（约 80~150KB）。*/
+var WB_MAX_RAW_BYTES = 260*1024;
 function readFileRaw(file, cb){
   const reader = new FileReader();
-  reader.onload = function(e){ cb(e.target.result); };
+  reader.onload = function(e){
+    const raw = e.target.result;
+    try{
+      if(raw && raw.length > WB_MAX_RAW_BYTES && typeof compressImage === 'function'){
+        compressImage(file, function(c){ cb(c && c.length ? c : raw); },
+                      {maxWidth:900, maxHeight:900, quality:0.68});
+        return;
+      }
+    }catch(err){}
+    cb(raw);
+  };
   reader.onerror = function(){ cb(null); };
   reader.readAsDataURL(file);
 }
