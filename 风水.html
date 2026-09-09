@@ -196,6 +196,18 @@
     </div>
   </div>
 
+  <!-- 户型图上传 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>上传你的户型图看看</div>
+    <div class="card-sub">把户型图传上来，本页会把它显示出来，方便你边看边对照。</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <input type="file" id="floorImg" accept="image/*" onchange="showFloorImg(this)">
+    </div>
+    <img id="floorPreview" alt="户型图预览" style="width:100%;max-width:520px;margin-top:12px;border:1px solid var(--line);border-radius:12px;display:none;background:#fff;">
+    <div class="note" style="font-size:12px;color:var(--sub);background:#faf7f1;border:1px dashed var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;line-height:1.7;">
+      先说明白：网页本身没有"看懂图片"的能力，所以这边只能帮你把图显示出来、方便你自己看。真正"上传图片 → 我逐条分析"最准的办法，是把图<b>直接发到这个对话里</b>给我，我按古籍要点用大白话给你列清楚。也可以到「户型图鉴」那页，对照清单一项项勾选自查。</div>
+  </div>
+
   <!-- 结果区 -->
   <div id="result" class="hidden">
 
@@ -256,6 +268,15 @@
 </div>
 
 <script>
+/* ============ 户型图预览（仅显示，不读取内容） ============ */
+function showFloorImg(el){
+  const f = el.files && el.files[0];
+  const img = document.getElementById('floorPreview');
+  if(!f){ img.style.display='none'; img.removeAttribute('src'); return; }
+  img.src = URL.createObjectURL(f);
+  img.style.display = 'block';
+}
+
 /* =================== 经典数据（均有出处，藏在背后） =================== */
 
 // 命卦余数→卦。来源《八宅明镜》《阳宅十书》余数法。
