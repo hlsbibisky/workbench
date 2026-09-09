@@ -1,0 +1,237 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>打卡图修复</title>
+<style>
+  :root{--bg:#f7f4ee;--card:#fffdf8;--line:#e6ddcd;--accent:#b8714e;--text:#4a3f35;--muted:#8a7d6e}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding:18px;max-width:900px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+  #originWarn{display:none;background:#fde8e8;color:#a33;padding:10px 12px;border-radius:8px;margin:10px 0;font-size:13px;border:1px solid #e9b3b3}
+  #originWarn a{color:#a33;font-weight:700}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}
+  .panel h2{font-size:15px;margin:0 0 8px}
+  .hint{color:var(--muted);font-size:12px;margin-left:6px}
+  button{font-family:inherit;cursor:pointer}
+  .primary{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;margin:6px 4px 0 0}
+  .ghost{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--text)}
+  .cbx{margin:8px 0;font-size:13px}
+  .log{background:#2b2620;color:#e9e2d4;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:10px;border-radius:8px;white-space:pre-wrap;max-height:160px;overflow:auto;margin-top:10px}
+  .citem{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+  .cmeta{flex:1;min-width:0}
+  .cmeta .dt{font-weight:600;font-size:14px}
+  .cmeta .nt{color:var(--muted);font-size:12px;margin-top:2px;word-break:break-all}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .thumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  .thumbs .empty{width:52px;height:52px;border-radius:6px;background:#efe9df;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:46vh;overflow:auto}
+  .gimg{border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;background:#fff;position:relative}
+  .gimg:hover{border-color:var(--accent)}
+  .gimg img{width:100%;height:80px;object-fit:cover;display:block}
+  .gimg .k{font-size:9px;color:var(--muted);padding:2px 4px;word-break:break-all;max-height:28px;overflow:hidden}
+  .gimg .hist{position:absolute;top:3px;left:3px;background:#b8714e;color:#fff;font-size:9px;padding:1px 4px;border-radius:4px}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(40,34,28,.55);align-items:center;justify-content:center;z-index:50}
+  .overlay.show{display:flex}
+  .ovbox{background:var(--card);border-radius:12px;padding:16px;width:min(92vw,640px);max-height:88vh;overflow:auto}
+  .ovbox h3{margin:0 0 8px;font-size:15px}
+  .ovhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+</style></head>
+<body>
+<h1 data-page-node-id="cK1">打卡图修复</h1>
+<div class="sub" data-page-node-id="cK2">为本机 IndexedDB 中的打卡照片重新配对，并同步到云端。原图不压缩、不上传到会超时的单条记录，只同步引用。</div>
+<div id="originWarn" data-page-node-id="cW"></div>
+
+<div class="panel">
+  <h2 data-page-node-id="cP1">① 本机图库总览 <span class="hint">看打卡原图是否还在本机</span></h2>
+  <div id="gallery" class="grid"></div>
+  <div id="galleryInfo" class="hint" style="margin-top:6px"></div>
+</div>
+
+<div class="panel">
+  <h2 data-page-node-id="cP2">② 打卡记录配图 <span class="hint">每条可加多张，支持选本机图或上传</span></h2>
+  <div id="checkins"></div>
+</div>
+
+<div class="panel">
+  <button id="btnSave" class="primary" data-page-node-id="cB1">保存并同步云端</button>
+  <button id="btnPull" class="ghost" data-page-node-id="cB2">先从云端拉一次</button>
+  <div class="log" id="log" data-page-node-id="cL"></div>
+</div>
+
+<div class="overlay" id="ov">
+  <div class="ovbox">
+    <div class="ovhead"><h3 id="ovTitle" data-page-node-id="cOT">选图</h3><button class="ghost" id="ovClose" data-page-node-id="cOC">关闭</button></div>
+    <input type="file" id="upload" accept="image/*" multiple data-page-node-id="cUF">
+    <div style="margin:8px 0 4px;font-size:12px;color:var(--muted)" data-page-node-id="cUG">点下方本机图库中的图，即可配给当前打卡；也可从上方选择文件上传。</div>
+    <div id="ovGallery" class="grid"></div>
+  </div>
+</div>
+
+<script>
+const IDB_NAME='food_img_db', IDB_STORE='images';
+const SB_URL='https://vienajheerbsmckfzkzo.supabase.co/rest/v1/workbench_sync';
+const SB_KEY='sb_publishable_b6t_c2L2j8wB7Vgp9lWGZw_HqHVFQzF';
+const CK_KEY='food_checkin';
+let __idb=null;
+let CHECKINS=[];
+let pickCtx=null;     // {idx}
+
+/* ---------- 源校验 ---------- */
+if(location.origin.indexOf('github.io')<0){
+  const w=document.getElementById('originWarn');
+  w.style.display='block';
+  w.innerHTML='⚠ 你不在 github.io 上！本机数据与工作台不互通。请改用 <a href="https://hlsbibisky.github.io/workbench/打卡图修复.html">https://hlsbibisky.github.io/workbench/打卡图修复.html</a>';
+}
+
+/* ---------- IndexedDB ---------- */
+function idbOpen(){return new Promise((res,rej)=>{try{if(__idb)return res(__idb);const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);};r.onsuccess=e=>{__idb=e.target.result;res(__idb);};r.onerror=e=>rej(e);}catch(e){rej(e);}});}
+async function idbPut(id,v){const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(v,id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function idbGet(id){const db=await idbOpen();return await new Promise((res)=>{const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).get(id);rq.onsuccess=()=>res(rq.result||'');rq.onerror=()=>res('');});}
+async function idbGetAll(){const db=await idbOpen();return await new Promise((res)=>{const out={};const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).openCursor();rq.onsuccess=e=>{const c=e.target.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}
+
+/* ---------- 工具 ---------- */
+function log(s){const el=document.getElementById('log');el.textContent+='\n'+s;el.scrollTop=el.scrollHeight;}
+function readLib(key){let v=localStorage.getItem(key);if(!v)return [];try{return typeof v==='string'?JSON.parse(v):v;}catch(e){return [];}}
+function writeLib(key,arr){try{localStorage.setItem(key,JSON.stringify(arr));return true;}catch(e){log('保存失败 '+key+'：'+e);return false;}}
+function imgIdFor(name){let h=0;for(let i=0;i<name.length;i++){h=((h<<5)-h+name.charCodeAt(i))|0;}const base=name.replace(/\.[^.]+$/,'').replace(/[^\w一-龥]/g,'').slice(0,10);return 'chk_'+(h>>>0).toString(36)+'_'+base;}
+
+/* ---------- 显示某张 photo 的 src ---------- */
+async function photoSrc(photo){
+  if(typeof photo!=='string')return '';
+  if(photo.startsWith('data:image'))return photo;
+  if(photo.startsWith('idb://')){return await idbGet(photo.slice(6));}
+  return '';
+}
+
+/* ---------- 渲染本机图库 ---------- */
+async function renderGallery(){
+  const all=await idbGetAll();
+  const keys=Object.keys(all);
+  const el=document.getElementById('gallery');el.innerHTML='';
+  document.getElementById('galleryInfo').textContent='本机图库共 '+keys.length+' 张。橙色标签=历史图（可能是打卡原图）。';
+  for(const k of keys){
+    const c=document.createElement('div');c.className='gimg';
+    const im=document.createElement('img');
+    const v=all[k];
+    im.src=(typeof v==='string'&&v.startsWith('data:'))?v:(await idbGet(k))||'';
+    c.appendChild(im);
+    if(k.indexOf('imp_')!==0){const tag=document.createElement('div');tag.className='hist';tag.textContent='历史';c.appendChild(tag);}
+    const cap=document.createElement('div');cap.className='k';cap.textContent=k;c.appendChild(cap);
+    el.appendChild(c);
+  }
+}
+
+/* ---------- 渲染打卡记录 ---------- */
+async function renderCheckins(){
+  const el=document.getElementById('checkins');el.innerHTML='';
+  CHECKINS=readLib(CK_KEY);
+  if(!Array.isArray(CHECKINS))CHECKINS=[];
+  for(let i=0;i<CHECKINS.length;i++){
+    const it=CHECKINS[i];if(!it||typeof it!=='object')continue;
+    const row=document.createElement('div');row.className='citem';
+    const meta=document.createElement('div');meta.className='cmeta';
+    const dt=document.createElement('div');dt.className='dt';dt.textContent=(it.date||('#'+i))+(it.note?' · '+it.note:'');
+    const nt=document.createElement('div');nt.className='nt';nt.textContent='photos '+(Array.isArray(it.photos)?it.photos.length:0)+' 张';
+    meta.appendChild(dt);meta.appendChild(nt);
+    const th=document.createElement('div');th.className='thumbs';
+    const phs=Array.isArray(it.photos)?it.photos:[];
+    if(!phs.length){const e=document.createElement('div');e.className='empty';e.textContent='无图';th.appendChild(e);}
+    for(const p of phs){const im=document.createElement('img');im.src=await photoSrc(p);th.appendChild(im);}
+    meta.appendChild(th);
+    const act=document.createElement('div');act.className='act';
+    const add=document.createElement('button');add.className='ghost';add.textContent='+ 加图';
+    add.onclick=()=>openPicker(i);act.appendChild(add);
+    if(phs.length){const del=document.createElement('button');del.className='ghost';del.textContent='删最后一张';del.onclick=()=>{it.photos.pop();writeLib(CK_KEY,CHECKINS);renderCheckins();};act.appendChild(del);}
+    row.appendChild(meta);row.appendChild(act);
+    el.appendChild(row);
+  }
+}
+
+/* ---------- 选图弹窗 ---------- */
+function openPicker(idx){
+  pickCtx=idx;
+  document.getElementById('ovTitle').textContent='为「'+(CHECKINS[idx].date||('#'+idx))+'」选图 / 上传';
+  const g=document.getElementById('ovGallery');g.innerHTML='';
+  idbGetAll().then(all=>{
+    Object.keys(all).forEach(k=>{
+      const c=document.createElement('div');c.className='gimg';
+      const im=document.createElement('img');im.src=(typeof all[k]==='string'&&all[k].startsWith('data:'))?all[k]:'';
+      c.appendChild(im);
+      const cap=document.createElement('div');cap.className='k';cap.textContent=k;c.appendChild(cap);
+      c.onclick=()=>addPhoto(idx,'idb://'+k);
+      g.appendChild(c);
+    });
+  });
+  document.getElementById('ov').classList.add('show');
+}
+function addPhoto(idx,ref){
+  const it=CHECKINS[idx];
+  if(!it.photos)it.photos=[];
+  it.photos.push(ref);
+  writeLib(CK_KEY,CHECKINS);
+  document.getElementById('ov').classList.remove('show');
+  renderCheckins();
+}
+document.getElementById('ovClose').onclick=()=>document.getElementById('ov').classList.remove('show');
+document.getElementById('upload').addEventListener('change',async e=>{
+  const files=[...e.target.files].filter(f=>/image\//.test(f.type));
+  for(const f of files){
+    const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f);});
+    const id=imgIdFor(f.name+Date.now());
+    await idbPut(id,b64);
+    if(pickCtx!=null)addPhoto(pickCtx,'idb://'+id);
+  }
+  e.target.value='';
+  if(pickCtx!=null)openPicker(pickCtx); // 刷新弹窗
+});
+
+/* ---------- 云端同步 ---------- */
+const SB_H={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Accept':'application/json'};
+async function getCloudData(){
+  const r=await fetch(SB_URL+'?id=eq.me',{headers:SB_H});
+  if(!r.ok){log('读取云端失败 '+r.status);return null;}
+  const j=await r.json();
+  return (j[0]&&j[0].payload&&j[0].payload.data)||null;
+}
+async function upsertCloud(dataObj){
+  const headers={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Content-Type':'application/json','Accept':'application/json','Prefer':'return=minimal'};
+  const g=await fetch(SB_URL+'?id=eq.me&select=id',{headers});
+  const exists=g.ok&&(await g.json()).length>0;
+  const body=JSON.stringify({id:'me',payload:{data:dataObj,updatedAt:new Date().toISOString()}});
+  if(exists){const r=await fetch(SB_URL+'?id=eq.me',{method:'PUT',headers,body});if(!r.ok)log('PUT 失败 '+r.status);return r.ok;}
+  else{const r=await fetch(SB_URL,{method:'POST',headers,body});if(!r.ok)log('POST 失败 '+r.status);return r.ok;}
+}
+function collectAllRaw(){const out={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);out[k]=localStorage.getItem(k);}return out;}
+async function mergeAndPushRaw(){
+  const cloud=await getCloudData();
+  const local=collectAllRaw();
+  const merged=Object.assign({},cloud||{},local);
+  log('云端原有 '+(cloud?Object.keys(cloud).length:0)+' 键，本机 '+Object.keys(local).length+' 键，合并后 '+Object.keys(merged).length+' 键（本机优先）');
+  return await upsertCloud(merged);
+}
+document.getElementById('btnSave').addEventListener('click',async()=>{
+  if(!confirm('将：把打卡记录（含图引用）保存到本机，并合并同步到云端。\n之后请在 github.io 打开工作台查看。确定？'))return;
+  writeLib(CK_KEY,CHECKINS);
+  log('已保存本机打卡记录');
+  document.getElementById('btnSave').disabled=true;
+  try{const ok=await mergeAndPushRaw();log(ok?'已同步云端（引用模式，未压缩）':'同步失败，请看上方错误码');}
+  catch(e){log('同步异常：'+e);}
+  document.getElementById('btnSave').disabled=false;
+});
+document.getElementById('btnPull').addEventListener('click',async()=>{
+  log('从云端拉取'+CK_KEY+'…');
+  const data=await getCloudData();
+  if(!data||!data[CK_KEY]){log('云端无该键');return;}
+  writeLib(CK_KEY,data[CK_KEY]);
+  CHECKINS=readLib(CK_KEY);
+  await renderCheckins();
+  log('已拉取，'+CHECKINS.length+' 条');
+});
+
+/* ---------- 启动 ---------- */
+(async function init(){
+  log('打卡图修复已加载。请确认顶部无红色警告（即处于 github.io）。');
+  await renderGallery();
+  await renderCheckins();
+})();
+</script>
+</body></html>
