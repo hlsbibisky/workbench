@@ -54,6 +54,8 @@
   <input type="file" id="folder" webkitdirectory directory multiple accept="image/*" data-page-node-id="Zck7Rmtu3w7CX3HKYM9wdG">
   <button id="btnMatch" class="ghost" disabled data-page-node-id="mGh0HhWuxu5Y56jC5bqz3B">按文件名自动预匹配</button>
   <button id="btnPull" class="ghost" data-page-node-id="Pf0l1CkQpUwqZrS2Yv8b9A">从云端拉取列表</button>
+  <button id="btnRestore" class="ghost" data-page-node-id="Rt0r3sT0r3Bak0pFile001">导入备份还原</button>
+  <input type="file" id="restoreFile" accept=".json" style="display:none" data-page-node-id="Rt0r3sT0r3Bak0pFile002">
   <button id="btnBackup" class="ghost" disabled data-page-node-id="NbnKKgiQAnRX1CmuAvr6Ye">下载备份</button>
   <button id="btnClearCloud" class="danger" disabled data-page-node-id="AX7AVVdaS5hE5vRM5i4J9Q">清空云端旧图</button>
   <button id="btnPush" disabled data-page-node-id="UfH3kz9YJf4WIULCtSXZzF">备份并同步云端</button>
@@ -141,7 +143,9 @@ document.getElementById('folder').addEventListener('change',async e=>{
     IMPORTED.push({id,name:f.name,w:dim[0],h:dim[1],base64:b64});
     await idbPut(id,b64); ok++;
   }
-  log('导入完成：'+ok+' 张');
+  const nmap={}; IMPORTED.forEach(p=>nmap[p.id]=p.name);
+  try{ localStorage.setItem('food_img_names', JSON.stringify(nmap)); }catch(e){}
+  log('导入完成：'+ok+' 张（文件名已记录，刷新后仍可自动匹配）');
   updateStat();
   renderList();
   autoMatch(true);
@@ -250,36 +254,55 @@ async function collectAllExpanded(){
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);let v=localStorage.getItem(k);if(/^food_/.test(k))v=await expandRefsInString(v);out[k]=v;}
   return out;
 }
-async function upsertCloud(data){
-  const headers={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
+const SB_H={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Accept':'application/json'};
+async function getCloudData(){
+  const r=await fetch(SB_URL+'?id=eq.me',{headers:SB_H});
+  if(!r.ok){log('读取云端失败 '+r.status);return null;}
+  const j=await r.json();
+  return (j[0]&&j[0].payload&&j[0].payload.data)||null;
+}
+async function upsertCloud(dataObj){
+  const headers={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Content-Type':'application/json','Accept':'application/json','Prefer':'return=minimal'};
   const g=await fetch(SB_URL+'?id=eq.me&select=id',{headers});
   const exists=g.ok&&(await g.json()).length>0;
-  const body=JSON.stringify({id:'me',data});
-  if(exists){const r=await fetch(SB_URL+'?id=eq.me',{method:'PUT',headers,body});return r.ok;}
-  else{const r=await fetch(SB_URL,{method:'POST',headers,body});return r.ok;}
+  const body=JSON.stringify({id:'me',payload:{data:dataObj,updatedAt:new Date().toISOString()}});
+  if(exists){
+    const r=await fetch(SB_URL+'?id=eq.me',{method:'PUT',headers,body});
+    if(!r.ok)log('PUT 失败 '+r.status+' '+((await r.text())||'').slice(0,200));
+    return r.ok;
+  }else{
+    const r=await fetch(SB_URL,{method:'POST',headers,body});
+    if(!r.ok)log('POST 失败 '+r.status+' '+((await r.text())||'').slice(0,200));
+    return r.ok;
+  }
+}
+// 合并推送：以云端现有数据为底，本地 food_* 覆盖上去，其余模块原样保留
+async function mergeAndPush(){
+  const cloud=await getCloudData();
+  const local=await collectAllExpanded();
+  const merged=Object.assign({},cloud||{},local);
+  const nCloud=cloud?Object.keys(cloud).length:0;
+  log('云端原有 '+nCloud+' 个键，本机 '+Object.keys(local).length+' 个键，合并后 '+Object.keys(merged).length+' 个');
+  return await upsertCloud(merged);
 }
 document.getElementById('btnPush').addEventListener('click',async()=>{
-  if(!confirm('将：①下载一次备份 ②清空云端旧图 ③推送当前干净原图到云端。\n确定同步？'))return;
-  // 备份
+  if(!confirm('将：①下载一次整库备份 ②把本机配好的三库（含原图）合并推送到云端。\n确定同步？'))return;
   const imgs={};IMPORTED.forEach(p=>imgs[p.id]=p.base64);
   const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),libs:STATE,images:imgs})],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='图库备份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
   log('已下载备份');
-  // 推送（覆盖云端，旧图被替换=清空）
   document.getElementById('btnPush').disabled=true;
   try{
-    const data=await collectAllExpanded();
-    const ok=await upsertCloud(data);
-    log(ok?'已同步云端（原图，未压缩）':'云端同步失败，请重试');
+    const ok=await mergeAndPush();
+    log(ok?'已同步云端（原图，未压缩）':'云端同步失败，请看上方错误码');
   }catch(e){log('同步异常：'+e);}
   document.getElementById('btnPush').disabled=false;
 });
 document.getElementById('btnClearCloud').addEventListener('click',async()=>{
-  if(!confirm('仅清空云端美食库图片（不动本地），然后用本地当前状态覆盖。确定？'))return;
+  if(!confirm('用本机当前三库状态覆盖云端（旧图即被清掉）。确定？'))return;
   try{
-    const data=await collectAllExpanded();
-    const ok=await upsertCloud(data);
-    log(ok?'云端已用本地状态覆盖（旧图清空）':'操作失败');
+    const ok=await mergeAndPush();
+    log(ok?'云端已用本机状态覆盖（旧图清空）':'操作失败');
   }catch(e){log('异常：'+e);}
 });
 
@@ -287,11 +310,10 @@ document.getElementById('btnClearCloud').addEventListener('click',async()=>{
 async function pullFromCloud(){
   log('正在从云端拉取三库列表…');
   try{
-    const headers={'Authorization':'Bearer '+SB_KEY,'apikey':SB_KEY,'Content-Type':'application/json'};
-    const r=await fetch(SB_URL+'?id=eq.me&select=data',{headers});
+    const r=await fetch(SB_URL+'?id=eq.me',{headers:SB_H});
     if(!r.ok){log('云端拉取失败('+r.status+')');return false;}
     const j=await r.json();
-    const data=(j[0]&&j[0].data)||null;
+    const data=(j[0]&&j[0].payload&&j[0].payload.data)||null;
     if(!data){log('云端暂无数据');return false;}
     let n=0;
     for(const L of LIBS){
@@ -314,15 +336,37 @@ async function pullFromCloud(){
 }
 document.getElementById('btnPull').addEventListener('click',()=>pullFromCloud());
 
+/* ---------- 导入备份还原（把之前配好的对应关系+原图灌回来） ---------- */
+document.getElementById('btnRestore').addEventListener('click',()=>document.getElementById('restoreFile').click());
+document.getElementById('restoreFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const obj=JSON.parse(await f.text());
+    const libs=obj.libs||obj;
+    const images=obj.images||{};
+    let n=0; for(const id in images){ await idbPut(id,images[id]); if(!IMPORTED.find(p=>p.id===id)) IMPORTED.push({id,name:id,base64:images[id]}); n++; }
+    let m=0; for(const L of LIBS){ if(Array.isArray(libs[L.key])){ writeLib(L.key,libs[L.key]); m+=libs[L.key].length; } }
+    loadLibs();
+    log('还原完成：原图 '+n+' 张，条目 '+m+' 条。请核对后点「备份并同步云端」');
+  }catch(err){ log('备份解析失败：'+err); }
+  e.target.value='';
+});
+
 /* ---------- 启动 ---------- */
 (async function init(){
-  log('图库总管理已加载。若下方三库为空，会自动从云端拉取列表；也可点「从云端拉取列表」。');
+  log('当前网页源：'+location.origin);
+  if(location.origin.indexOf('github.io')<0){
+    log('⚠ 你不在 github.io 上！本机数据与工作台不互通，请改用 https://hlsbibisky.github.io/workbench/图库总管理.html');
+  }else{
+    log('源正确（github.io），与工作台共用数据。');
+  }
   loadLibs();
   let total=0; LIBS.forEach(L=>total+=(STATE[L.key]||[]).length);
   if(total===0){ await pullFromCloud(); }
   // 预载 IndexedDB 已有图（若之前导入过）
+  let nmap={}; try{ nmap=JSON.parse(localStorage.getItem('food_img_names')||'{}'); }catch(e){ nmap={}; }
   const m=await idbGetAll();
-  Object.keys(m).forEach(id=>{if(id.startsWith('imp_')&&!IMPORTED.find(p=>p.id===id))IMPORTED.push({id,name:id,base64:m[id]});});
+  Object.keys(m).forEach(id=>{if(id.startsWith('imp_')&&!IMPORTED.find(p=>p.id===id))IMPORTED.push({id,name:nmap[id]||id,base64:m[id]});});
   updateStat();
 })();
 </script>
