@@ -47,6 +47,7 @@
 </head>
 <body data-page-node-id="EeFdmHlmrH5p5t01SSsig1">
 <h1 data-page-node-id="3SlRFLrHw5Evan3kJtwDqH">图库总管理</h1>
+<div id="originWarn" style="display:none;background:#c0623a;color:#fff;padding:11px 13px;border-radius:10px;margin:0 0 10px;font-size:13.5px;line-height:1.7"></div>
 <div class="sub" data-page-node-id="f2oowkeiE05K3NfQmXNu6Y">菜品库 · 饮品库 · 零食库 统一配图。原图直存本机（不压缩、不上传），云端只同步「哪张图配哪道菜」的对应关系。</div>
 
 <div class="bar" data-page-node-id="Y66nGs6PbG50vOPYmxfi8A">
@@ -370,9 +371,15 @@ document.getElementById('restoreFile').addEventListener('change',async e=>{
 /* ---------- 启动 ---------- */
 (async function init(){
   log('当前网页源：'+location.origin);
+  const ow=document.getElementById('originWarn');
   if(location.origin.indexOf('github.io')<0){
-    log('⚠ 你不在 github.io 上！本机数据与工作台不互通，请改用 https://hlsbibisky.github.io/workbench/图库总管理.html');
+    ow.style.display='block';
+    ow.innerHTML='<b>⚠ 你打开的不是 github.io 页面，这里导入的图片不会进入工作台！</b><br>'+
+      '当前源：'+location.origin+'　（临时预览地址）<br>'+
+      '请关闭本页，改用这个地址：<b>https://hlsbibisky.github.io/workbench/图库总管理.html</b>';
+    log('⚠ 源错误！本机数据与工作台不互通，请改用 github.io 地址');
   }else{
+    ow.style.display='none';
     log('源正确（github.io），与工作台共用数据。');
   }
   loadLibs();
