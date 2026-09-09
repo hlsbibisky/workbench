@@ -47,7 +47,7 @@
 </head>
 <body data-page-node-id="EeFdmHlmrH5p5t01SSsig1">
 <h1 data-page-node-id="3SlRFLrHw5Evan3kJtwDqH">图库总管理</h1>
-<div class="sub" data-page-node-id="f2oowkeiE05K3NfQmXNu6Y">菜品库 · 饮品库 · 零食库 统一配图。原图直存，绝不做压缩处理。</div>
+<div class="sub" data-page-node-id="f2oowkeiE05K3NfQmXNu6Y">菜品库 · 饮品库 · 零食库 统一配图。原图直存本机（不压缩、不上传），云端只同步「哪张图配哪道菜」的对应关系。</div>
 
 <div class="bar" data-page-node-id="Y66nGs6PbG50vOPYmxfi8A">
   <label class="cb" data-page-node-id="DNggFDUL7wkMWLQIEUBQxG"><input type="checkbox" id="clearFirst" checked data-page-node-id="AtPObrkHCeUXu0CIDHQvZq"> 导入前清空旧图库（本地）</label>
@@ -58,7 +58,7 @@
   <input type="file" id="restoreFile" accept=".json" style="display:none" data-page-node-id="Rt0r3sT0r3Bak0pFile002">
   <button id="btnBackup" class="ghost" disabled data-page-node-id="NbnKKgiQAnRX1CmuAvr6Ye">下载备份</button>
   <button id="btnClearCloud" class="danger" disabled data-page-node-id="AX7AVVdaS5hE5vRM5i4J9Q">清空云端旧图</button>
-  <button id="btnPush" disabled data-page-node-id="UfH3kz9YJf4WIULCtSXZzF">备份并同步云端</button>
+  <button id="btnPush" disabled data-page-node-id="UfH3kz9YJf4WIULCtSXZzF">备份并同步（推荐）</button>
   <span class="stat" id="stat" data-page-node-id="1ZmtuBgiA7cFvFBpDBFOWk">就绪</span>
 </div>
 
@@ -276,7 +276,22 @@ async function upsertCloud(dataObj){
     return r.ok;
   }
 }
-// 合并推送：以云端现有数据为底，本地 food_* 覆盖上去，其余模块原样保留
+// 只收本机原始值（food_* 保留 idb:// 引用，不展开为 base64）
+function collectAllRaw(){
+  const out={};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);out[k]=localStorage.getItem(k);}
+  return out;
+}
+// 合并推送（引用模式，推荐）：体积小、秒传，云端与本机引用一致 → 工作台不会冲掉本机
+async function mergeAndPushRaw(){
+  const cloud=await getCloudData();
+  const local=collectAllRaw();
+  const merged=Object.assign({},cloud||{},local);
+  const nCloud=cloud?Object.keys(cloud).length:0;
+  log('云端原有 '+nCloud+' 个键，本机 '+Object.keys(local).length+' 个键，合并后 '+Object.keys(merged).length+' 个');
+  return await upsertCloud(merged);
+}
+// 合并推送（原图模式）：会把图片展开成 base64 上云，约 85MB，云端单条写入会超时，一般不要用
 async function mergeAndPush(){
   const cloud=await getCloudData();
   const local=await collectAllExpanded();
@@ -286,22 +301,22 @@ async function mergeAndPush(){
   return await upsertCloud(merged);
 }
 document.getElementById('btnPush').addEventListener('click',async()=>{
-  if(!confirm('将：①下载一次整库备份 ②把本机配好的三库（含原图）合并推送到云端。\n确定同步？'))return;
+  if(!confirm('将：①下载一次整库备份 ②把本机三库的「图片对应关系」合并推送到云端（只传引用，几KB，不传原图）。\n这样云端与本机一致，工作台就不会再冲掉你的配图。确定同步？'))return;
   const imgs={};IMPORTED.forEach(p=>imgs[p.id]=p.base64);
   const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),libs:STATE,images:imgs})],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='图库备份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
   log('已下载备份');
   document.getElementById('btnPush').disabled=true;
   try{
-    const ok=await mergeAndPush();
-    log(ok?'已同步云端（原图，未压缩）':'云端同步失败，请看上方错误码');
+    const ok=await mergeAndPushRaw();
+    log(ok?'已同步云端（引用一致，本机原图不受影响）':'云端同步失败，请看上方错误码');
   }catch(e){log('同步异常：'+e);}
   document.getElementById('btnPush').disabled=false;
 });
 document.getElementById('btnClearCloud').addEventListener('click',async()=>{
-  if(!confirm('用本机当前三库状态覆盖云端（旧图即被清掉）。确定？'))return;
+  if(!confirm('用本机当前三库状态覆盖云端。确定？'))return;
   try{
-    const ok=await mergeAndPush();
+    const ok=await mergeAndPushRaw();
     log(ok?'云端已用本机状态覆盖（旧图清空）':'操作失败');
   }catch(e){log('异常：'+e);}
 });
