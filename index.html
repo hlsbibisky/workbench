@@ -983,6 +983,56 @@ async function wbSilentReconnect(){
   wbStartPoll();
   wbUpdateSyncUI();
 }
+
+/* ================= 同步兜底层（2026-09-09 根因修复） =================
+   以前只有 iframe 子页主动 postMessage 通知，父页才会推送。像「日期记录」这类
+   没埋桥的页面写完数据，父页完全不知情，另一台设备永远拉不到——这正是本次
+   「手机写了内观觉察、电脑看不到」的直接原因。
+   这里补三道兜底，任何页面、任何写入方式都不会漏：
+     ① storage 事件：同源 iframe 写入 localStorage 时父页会收到
+     ② 每 6 秒扫描本地数据指纹，变了就推（storage 事件不触发的场景也能兜住）
+     ③ 切到后台 / 关页面 / 回到前台：立刻同步一次 */
+let wbFpPrev='';
+function wbFingerprint(){
+  try{
+    let n=0,s=0;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i); if(!k) continue;
+      if(WB_SKIP.indexOf(k)>=0) continue;
+      if(k===WB_K_SHADOW||k===WB_K_LAST_SYNC||k===WB_K_CLOUD_VER||k==='wb_cloud_ver') continue;
+      s+=(localStorage.getItem(k)||'').length; n++;
+    }
+    return n+':'+s;
+  }catch(e){ return ''; }
+}
+function wbAutoTick(){
+  if(!wbSync||!wbSync.connected) return;
+  const fp=wbFingerprint(); if(!fp) return;
+  if(fp!==wbFpPrev){ if(wbFpPrev!=='') wbSchedulePush(); wbFpPrev=fp; }
+}
+window.addEventListener('storage', function(e){
+  if(!e || !e.key) return;
+  wbFpPrev=wbFingerprint();
+  if(wbSync&&wbSync.connected) wbSchedulePush();
+});
+setInterval(wbAutoTick, 6000);
+document.addEventListener('visibilitychange', function(){
+  if(!wbSync||!wbSync.connected) return;
+  if(document.visibilityState==='visible'){
+    wbFpPrev=wbFingerprint();
+    try{ wbPull(); }catch(e){}
+    wbSchedulePush(true);
+  }else{
+    try{ wbPush(true); }catch(e){}
+  }
+});
+window.addEventListener('pagehide', function(){
+  if(wbSync&&wbSync.connected){ try{ wbPush(true); }catch(e){} }
+});
+window.addEventListener('beforeunload', function(){
+  if(wbSync&&wbSync.connected){ try{ wbPush(true); }catch(e){} }
+});
+
 wbSilentReconnect();
 wbUpdateSyncUI();
 
