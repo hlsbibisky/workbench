@@ -51,7 +51,7 @@
 <div class="sub" data-page-node-id="f2oowkeiE05K3NfQmXNu6Y">菜品库 · 饮品库 · 零食库 统一配图。原图直存本机（不压缩、不上传），云端只同步「哪张图配哪道菜」的对应关系。</div>
 
 <div class="bar" data-page-node-id="Y66nGs6PbG50vOPYmxfi8A">
-  <label class="cb" data-page-node-id="DNggFDUL7wkMWLQIEUBQxG"><input type="checkbox" id="clearFirst" checked data-page-node-id="AtPObrkHCeUXu0CIDHQvZq"> 导入前清空旧图库（本地）</label>
+  <label class="cb" data-page-node-id="DNggFDUL7wkMWLQIEUBQxG"><input type="checkbox" id="clearFirst" data-page-node-id="AtPObrkHCeUXu0CIDHQvZq"> 导入前清空旧图库（不推荐，会连历史图一起删）</label><span class="hint">已启用自动去重：同一张图重复导入会覆盖同一条，导入后自动回收残留，不会重复占用空间</span>
   <input type="file" id="folder" webkitdirectory directory multiple accept="image/*" data-page-node-id="Zck7Rmtu3w7CX3HKYM9wdG">
   <button id="btnMatch" class="ghost" disabled data-page-node-id="mGh0HhWuxu5Y56jC5bqz3B">按文件名自动预匹配</button>
   <button id="btnPull" class="ghost" data-page-node-id="Pf0l1CkQpUwqZrS2Yv8b9A">从云端拉取列表</button>
@@ -95,7 +95,7 @@ let pickCtx=null;                // {idx, libKey}
 function idbOpen(){return new Promise((res,rej)=>{try{if(__idb)return res(__idb);const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);};r.onsuccess=e=>{__idb=e.target.result;res(__idb);};r.onerror=e=>rej(e);}catch(e){rej(e);}});}
 async function idbPut(id,v){try{if(__idbHave.has(id))return;const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(v,id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});__idbHave.add(id);}catch(e){log('idbPut 失败 '+id);}}
 async function idbGet(id){try{const db=await idbOpen();return await new Promise((res)=>{const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).get(id);rq.onsuccess=()=>res(rq.result||'');rq.onerror=()=>res('');});}catch(e){return '';}}
-async function idbGetAll(){try{const db=await idbOpen();return await new Promise((res)=>{const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).getAll();rq.onsuccess=()=>res(rq.result||{});rq.onerror=()=>res({});});}catch(e){return {};}}
+async function idbGetAll(){try{const db=await idbOpen();return await new Promise((res)=>{const out={};const tx=db.transaction(IDB_STORE,'readonly');const rq=tx.objectStore(IDB_STORE).openCursor();rq.onsuccess=e=>{const c=e.target.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return {};}}
 async function idbDel(id){try{__idbHave.delete(id);const db=await idbOpen();await new Promise((res)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>res();});}catch(e){}}
 async function idbClear(){try{const db=await idbOpen();await new Promise((res)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).clear();tx.oncomplete=()=>res();tx.onerror=()=>res();});__idbHave.clear();}catch(e){}}
 
@@ -124,15 +124,42 @@ function updateStat(){
   document.getElementById('btnClearCloud').disabled=matched===0 && IMPORTED.length===0;
 }
 
+/* 由文件名决定固定图id：同一张图重复导入 = 覆盖同一条，永不重复堆积 */
+function imgIdFor(name){
+  let h=0; for(let i=0;i<name.length;i++){h=((h<<5)-h+name.charCodeAt(i))|0;}
+  const base=name.replace(/\.[^.]+$/,'').replace(/[^\w一-龥]/g,'').slice(0,10);
+  return 'imp_'+(h>>>0).toString(36)+'_'+base;
+}
+/* 清理孤儿图：imp_ 前缀 且 未被任何条目引用 且 不在本次导入列表 → 删除。
+   其他前缀（历史图，可能被打卡/记录等模块引用）一律不动。 */
+async function cleanupOrphans(){
+  const used=new Set();
+  LIBS.forEach(L=>{(STATE[L.key]||[]).forEach(it=>{
+    if(it&&typeof it.image==='string'&&it.image.indexOf('idb://')===0)used.add(it.image.slice(6));
+  });});
+  IMPORTED.forEach(p=>used.add(p.id));
+  const all=await idbGetAll();
+  let n=0;
+  for(const id in all){
+    if(id.indexOf('imp_')!==0)continue;
+    if(used.has(id))continue;
+    await idbDel(id); n++;
+  }
+  return n;
+}
+
 /* ---------- 导入原图（不压缩） ---------- */
 document.getElementById('folder').addEventListener('change',async e=>{
   const files=[...e.target.files].filter(f=>/image\//.test(f.type));
   if(!files.length){log('未选中图片文件');return;}
   if(document.getElementById('clearFirst').checked){
-    if(!confirm('将清空本地旧图库（IndexedDB 图片 + 三库图片引用）后再导入。确定？\n（云端将在你点「同步云端」后才被清空）')){return;}
+    if(!confirm('将清空本地旧图库（IndexedDB 全部图片 + 三库图片引用）后再导入。\n这会连同打卡/记录等模块引用的历史图一起删掉，确定？')){return;}
     await idbClear();
     LIBS.forEach(L=>{(STATE[L.key]||[]).forEach(it=>{if(it)it.image='';});LIBS.forEach(L=>writeLib(L.key,STATE[L.key]));});
-    log('已清空本地旧图库');
+    log('已清空本地旧图库（含历史图）');
+  }else{
+    // 温和模式：只解除三库旧引用，旧图先留着；导入后由孤儿清理精确回收
+    LIBS.forEach(L=>{(STATE[L.key]||[]).forEach(it=>{if(it)it.image='';});LIBS.forEach(L=>writeLib(L.key,STATE[L.key]));});
   }
   IMPORTED=[];
   log('开始导入 '+files.length+' 张原图（不压缩）…');
@@ -140,7 +167,7 @@ document.getElementById('folder').addEventListener('change',async e=>{
   for(const f of files){
     const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f);});
     const dim=await new Promise(r=>{const im=new Image();im.onload=()=>r([im.naturalWidth,im.naturalHeight]);im.onerror=()=>r([0,0]);im.src=b64;});
-    const id='imp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+    const id=imgIdFor(f.name);
     IMPORTED.push({id,name:f.name,w:dim[0],h:dim[1],base64:b64});
     await idbPut(id,b64); ok++;
   }
@@ -150,6 +177,9 @@ document.getElementById('folder').addEventListener('change',async e=>{
   updateStat();
   renderList();
   autoMatch(true);
+  // 自动回收上一批残留（只清 imp_ 前缀且未被引用者，历史图不动）
+  const orphan=await cleanupOrphans();
+  log(orphan?('已自动清理 '+orphan+' 张重复/残留旧图（图库零冗余）'):'图库无冗余，无需清理');
 });
 
 /* ---------- 自动预匹配（按文件名） ---------- */
@@ -338,7 +368,7 @@ async function pullFromCloud(){
       if(Array.isArray(arr)){
         for(const it of arr){
           if(it&&typeof it.image==='string'&&it.image.startsWith('data:image')){
-            const id='imp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+            const id=imgIdFor((it.name||'cloud')+'_c');
             await idbPut(id,it.image); it.image='idb://'+id;
           }
         }
