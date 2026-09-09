@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>户型图鉴 · 什么样的房子能买</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --mark:#f0e3d6;
+    --red:#c0392b; --green:#27ae60; --gold:#b8860b; --blue:#3a7ca5;
+    --radius:16px; --shadow:0 2px 8px rgba(58,54,49,.06),0 16px 40px rgba(58,54,49,.04);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--font);
+    line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .page-wrap{max-width:1080px;margin:0 auto;padding:28px 32px 90px;}
+
+  .top-bar{display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:8px;padding-bottom:16px;border-bottom:2px solid var(--line);flex-wrap:wrap;gap:8px;}
+  .top-title{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:6px;}
+  .top-sub{font-size:13px;color:var(--sub);margin-left:10px;letter-spacing:1px;}
+  .top-tip{font-size:12px;color:var(--sub);max-width:430px;text-align:right;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 26px;margin:18px 0;box-shadow:var(--shadow);}
+  .card-title{font-size:17px;font-weight:600;color:var(--accent);margin-bottom:6px;
+    display:flex;align-items:center;gap:8px;}
+  .card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  .card-sub{font-size:12.5px;color:var(--sub);margin-bottom:14px;}
+
+  .filter{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .filter button{padding:8px 18px;border:1.5px solid var(--line);border-radius:20px;
+    background:#fff;color:var(--sub);font-size:13.5px;cursor:pointer;font-family:inherit;transition:.2s;}
+  .filter button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  .case-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  .case{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px 16px;}
+  .case.good{border-left:5px solid var(--green);}
+  .case.mid{border-left:5px solid var(--gold);}
+  .case.bad{border-left:5px solid var(--red);}
+  .case .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .case .nm{font-size:15px;font-weight:700;}
+  .badge{padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .badge.good{background:#e6f6ec;color:var(--green);}
+  .badge.mid{background:var(--mark);color:var(--accent);}
+  .badge.bad{background:#fdecea;color:var(--red);}
+  .case svg{width:100%;height:auto;display:block;margin-bottom:8px;}
+  .case .line{font-size:13px;margin:5px 0;}
+  .case .line b{color:var(--accent);}
+  .case .src{font-size:11.5px;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#faf7f1;color:var(--accent);font-weight:600;white-space:nowrap;}
+
+  .chk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+  .chk{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border:1.5px solid var(--line);
+    border-radius:12px;cursor:pointer;background:#fff;transition:.2s;font-size:13.5px;}
+  .chk:hover{border-color:var(--accent);}
+  .chk.on{border-color:var(--red);background:#fdecea;}
+  .chk input{margin-top:4px;accent-color:var(--red);width:16px;height:16px;flex-shrink:0;}
+  .chk .q{font-weight:600;}
+  .chk .tip{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;line-height:1.5;}
+
+  .btn-primary{padding:13px 40px;border:none;border-radius:12px;background:var(--accent);
+    color:#fff;font-size:16px;font-weight:600;letter-spacing:3px;cursor:pointer;font-family:inherit;transition:.2s;}
+  .btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px);}
+  .btn-row{text-align:center;margin-top:20px;}
+
+  .verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:14px;
+    background:linear-gradient(135deg,var(--mark),#fef5ee);border:1px solid var(--line);margin-bottom:10px;}
+  .verdict .big{font-size:28px;font-weight:700;letter-spacing:2px;}
+
+  .reason{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .reason:last-child{border-bottom:none;}
+  .reason .ic{font-weight:700;flex-shrink:0;width:18px;text-align:center;}
+  .reason.bad .ic{color:var(--red);}
+  .reason.good .ic{color:var(--green);}
+  .reason.mid .ic{color:var(--gold);}
+  .reason .tx b{color:var(--accent);}
+  .reason .fix{display:block;font-size:12.5px;color:var(--sub);margin-top:2px;}
+  .reason .src2{display:block;font-size:11.5px;color:var(--sub);margin-top:2px;opacity:.8;}
+
+  .hidden{display:none;}
+  .note{font-size:12px;color:var(--sub);background:#faf7f1;border:1px dashed var(--line);
+    border-radius:10px;padding:12px 14px;margin-top:10px;line-height:1.7;}
+
+  #preview{width:100%;max-width:520px;margin-top:12px;border:1px solid var(--line);
+    border-radius:12px;display:none;background:#fff;}
+  .fileline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  input[type=file]{font-size:13px;}
+  select{padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;font-family:inherit;
+    font-size:14px;color:var(--ink);background:#fff;}
+
+  @media(max-width:680px){
+    .page-wrap{padding:20px 14px 70px;}
+    .case-grid,.chk-grid{grid-template-columns:1fr;}
+    .top-tip{text-align:left;max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="top-bar">
+    <div>
+      <span class="top-title">户型图鉴</span>
+      <span class="top-sub">什么样的房子能买</span>
+    </div>
+    <div class="top-tip">挑新房先看"房子本身"：布局合不合理、有没有硬伤、几楼合适、地段要不要避。
+      下面是一批真实典型户型案例，配上古籍说法的白话解释。</div>
+  </div>
+
+  <!-- 一、案例库 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>一、户型案例：看图就懂</div>
+    <div class="card-sub">绿边＝可以买，黄边＝有瑕疵能化解，红边＝建议避雷。图上 <b style="color:var(--red)">红点</b> 是问题所在。</div>
+    <div class="filter" id="filters">
+      <button class="on" data-f="all">全部</button>
+      <button data-f="good">可以买</button>
+      <button data-f="mid">有瑕疵（能化解）</button>
+      <button data-f="bad">要避雷</button>
+    </div>
+    <div class="case-grid" id="caseGrid"></div>
+  </div>
+
+  <!-- 二、缺角 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>二、房子缺角，影响谁？</div>
+    <div class="card-sub">户型讲究方正。哪个方位缺了，传统上认为对应那位家人容易受影响。</div>
+    <table id="queTable"></table>
+    <div class="note">出处：八卦对应家里人，出自《周易·说卦传》——"乾，天也，故称乎父；坤，地也，故称乎母……"；
+      缺角之说为八宅派阳宅相法的通行应用。<b>化解思路（传统说法）</b>：在缺角的那个方位放上该方位五行的东西（如东方属木放绿植、西方属金放金属圆器），并保持明亮整洁。这些属民俗参考，不作科学论断。</div>
+  </div>
+
+  <!-- 三、楼层 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>三、几楼比较合适？</div>
+    <div class="card-sub">先说实话：古代没有高楼，<b>古籍里没有"楼层吉凶"这一说</b>。下面是后世按"河图数理"衍生出来的通行配法，供参考。</div>
+    <table id="floorTable"></table>
+    <div class="note"><b>怎么配：</b>楼层尾数 1、6 属水，2、7 属火，3、8 属木，4、9 属金，5、0 属土（河图数）。
+      挑和你本命五行"相生或同类"的楼层——比如本命属木，住 1、6 楼（水生木）或 3、8 楼（木同气）比较顺。
+      <br><b>但更要紧的是现实因素：</b>采光、通风、视野、噪音、电梯等待时间、供水压力、消防云梯高度、家里老人小孩上下楼方不方便。
+      所谓"9–11层是扬灰层"没有可靠的实测依据，属讹传，不必当真。</div>
+  </div>
+
+  <!-- 四、地段 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>四、选地段：这六种要避开</div>
+    <div class="card-sub">看小区外部环境，比看户型更早一步——下面这些是传统形势派一致认为要避的。</div>
+    <div id="areaBox"></div>
+    <div class="note">出处：《阳宅十书》形势篇讲"形"之吉凶；《葬书》（晋·郭璞）讲"乘生气、藏风得水"。
+      白话讲就是：住的地方要避直冲、避压迫、避污浊、避喧嚣，求一个安稳舒展。</div>
+  </div>
+
+  <!-- 五、上传户型图自查 -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>五、上传你的户型图，对照检查</div>
+    <div class="card-sub">把户型图传上来边看边对照，然后在下面勾选你看到的情况，页面会给你一份白话报告。</div>
+    <div class="fileline">
+      <input type="file" id="fileInput" accept="image/*">
+      <select id="queSel">
+        <option value="">房子有没有缺角？（选一下方位）</option>
+        <option value="西北">缺西北角</option>
+        <option value="西南">缺西南角</option>
+        <option value="东">缺东边</option>
+        <option value="东南">缺东南角</option>
+        <option value="北">缺北边</option>
+        <option value="南">缺南边</option>
+        <option value="东北">缺东北角</option>
+        <option value="西">缺西边</option>
+      </select>
+    </div>
+    <img id="preview" alt="户型图预览">
+    <div class="note">小提示：图片只在你自己这台设备的这个页面里显示，<b>不会上传、不会保存</b>，刷新就没了。
+      如果你希望我<b>亲自看图逐条讲</b>，直接把图发在对话里给我就行。</div>
+
+    <div class="card-title" style="margin-top:20px"><span class="dot"></span>屋里布局（对照图勾一下）</div>
+    <div class="chk-grid" id="chkIn"></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot"></span>房子外面（看看小区和楼栋）</div>
+    <div class="chk-grid" id="chkOut"></div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="report()">给这套房出报告</button>
+    </div>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="card">
+      <div class="verdict" id="verdictBox"></div>
+      <div class="card-sub" id="verdictNote"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>发现的问题（按严重程度排）</div>
+      <div id="badBox"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>这套房适合谁、不适合谁</div>
+      <div id="whoBox"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>做得对的地方</div>
+      <div id="goodBox"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>这些说法从哪来（想看就看）</div>
+      <div class="card-sub" id="srcBox" style="font-size:12.5px;line-height:1.9"></div>
+      <div class="note">说明：本页依传统风水经典整理，属民俗文化参考，不是科学实证结论。
+        买房终究要看产权、采光、通风、质量、学区、通勤这些硬条件，风水只作辅助参考。</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ 户型案例（配 SVG 平面示意图） ============ */
+function svgPlan(c){
+  const rooms = c.rooms.map(r=>
+    `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="#fffdf9" stroke="#d8cec0" stroke-width="1"/>
+     <text x="${r.x+r.w/2}" y="${r.y+r.h/2+4}" font-size="${r.fs||11}" fill="#3a3631" text-anchor="middle">${r.l}</text>`).join('');
+  const marks = (c.marks||[]).map(m=>{
+    const col = m.t==='bad' ? '#c0392b' : '#27ae60';
+    return `<circle cx="${m.x}" cy="${m.y}" r="8" fill="${col}"/>
+      <text x="${m.x}" y="${m.y+4}" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">${m.t==='bad'?'!':'✓'}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 260 180">
+    <rect x="10" y="10" width="240" height="160" fill="none" stroke="#8a837a" stroke-width="2.5" rx="3"/>
+    ${rooms}${marks}
+  </svg>`;
+}
+
+const CASES = [
+  {lv:'good', nm:'方正三居 · 动静分开',
+   rooms:[{x:10,y:10,w:130,h:95,l:'客餐厅(南·有窗)'},{x:140,y:10,w:110,h:70,l:'主卧'},
+          {x:140,y:80,w:55,h:45,l:'次卧'},{x:195,y:80,w:55,h:45,l:'书房'},
+          {x:10,y:105,w:65,h:65,l:'厨房'},{x:75,y:105,w:65,h:65,l:'卫生间'},{x:140,y:125,w:110,h:45,l:'阳台'}],
+   marks:[{x:75,y:57,t:'good'}],
+   points:['户型方方正正不缺角，气场平稳，是全篇最推荐的一类。',
+           '动区（客餐厅厨房）和静区（卧室）分在两边，看电视、做饭不打扰睡觉的人。',
+           '客厅在南面有窗，卧室相对安静——符合"明厅暗房"。',
+           '厨房和卫生间分开，不挨在一起。'],
+   fit:'适合三口之家、和长辈同住、新婚夫妻，基本人人都合适。',
+   nofit:'没有明显不适合的人群。',
+   src:'《黄帝宅经》重宅形方正；《阳宅十书》"明厅暗房"之说。'},
+
+  {lv:'good', nm:'南北通透 · 门口有玄关',
+   rooms:[{x:10,y:10,w:45,h:40,l:'玄关'},{x:55,y:10,w:95,h:95,l:'客厅(南)'},
+          {x:150,y:10,w:100,h:32,l:'阳台'},{x:150,y:42,w:100,h:63,l:'主卧'},
+          {x:10,y:50,w:45,h:55,l:'餐厅'},{x:10,y:105,w:80,h:65,l:'厨房(有窗)'},
+          {x:90,y:105,w:70,h:65,l:'卫生间'},{x:160,y:105,w:90,h:65,l:'次卧'}],
+   marks:[{x:32,y:30,t:'good'}],
+   points:['南北都有窗，空气能对流，住着舒服。',
+           '关键在玄关：进门不是一眼望到底，气进门会"拐个弯"再散开，这叫藏风聚气。',
+           '同样是通透，有玄关的比没玄关的更能留住财气。'],
+   fit:'适合大多数家庭，尤其在意通风采光的人。',
+   nofit:'没有明显不适合的人群。',
+   src:'《阳宅十书》藏风聚气之旨；《阳宅三要》以门为先。'},
+
+  {lv:'good', nm:'厨卫分离 · 开门不见灶',
+   rooms:[{x:10,y:10,w:120,h:90,l:'客厅'},{x:130,y:10,w:120,h:60,l:'主卧'},
+          {x:130,y:70,w:120,h:55,l:'次卧'},{x:10,y:100,w:70,h:70,l:'厨房(独立)'},
+          {x:80,y:100,w:60,h:70,l:'卫生间'},{x:140,y:125,w:110,h:45,l:'餐厅'}],
+   marks:[{x:45,y:135,t:'good'}],
+   points:['厨房是独立一间、有门，进门看不见灶台。',
+           '传统把灶看作"财库"，财库宜藏不宜露，开门一眼看到灶，传统说法是钱财留不住。',
+           '厨房和卫生间不相邻、不对门，水火各安其位。'],
+   fit:'适合看重居家稳当、想攒钱过日子的家庭。',
+   nofit:'没有明显不适合的人群。',
+   src:'《阳宅集成》"开门见灶，钱财多耗"（亦见《阳宅十书》一系相宅口诀）。'},
+
+  {lv:'good', nm:'主卧有靠 · 床头靠实墙',
+   rooms:[{x:10,y:10,w:110,h:85,l:'客厅'},{x:120,y:10,w:130,h:85,l:'主卧(床头靠实墙)'},
+          {x:10,y:95,w:110,h:75,l:'次卧'},{x:120,y:95,w:65,h:75,l:'厨房'},
+          {x:185,y:95,w:65,h:75,l:'卫生间'}],
+   marks:[{x:185,y:52,t:'good'}],
+   points:['床头靠着结实的墙，传统叫"有靠山"，睡得安稳、心里踏实。',
+           '床上方没有横梁压着，不压头。',
+           '主卧方正，面积适中（十几平米最舒服），不是大到空旷。'],
+   fit:'适合所有人，尤其睡眠浅、需要安全感的人。',
+   nofit:'没有明显不适合的人群。',
+   src:'《阳宅十书》论床"宜靠实、忌压梁、忌对镜"。'},
+
+  {lv:'mid', nm:'进门一条长走廊',
+   rooms:[{x:10,y:10,w:170,h:32,l:'长走廊'},{x:180,y:10,w:70,h:55,l:'主卧(尽头)'},
+          {x:10,y:42,w:110,h:70,l:'客厅'},{x:120,y:42,w:60,h:70,l:'餐厅'},
+          {x:180,y:65,w:70,h:50,l:'厨房'},{x:10,y:112,w:100,h:58,l:'卫生间'},
+          {x:110,y:112,w:140,h:58,l:'次卧'}],
+   marks:[{x:95,y:26,t:'bad'}],
+   points:['进门一条走廊直通到底，传统叫"一箭穿心"——气进门不拐弯，直冲过去。',
+           '说法是：家里人待不住、总想往外跑，钱财也留不住。',
+           '如果走廊尽头正好是主卧门，冲得更厉害。'],
+   fit:'人口少、白天不在家的年轻人，影响相对小。',
+   nofit:'不适合想安稳居家、在家办公、家里有老人久住的家庭。',
+   fix:'化解：走廊里放个半高柜、挂道珠帘或做个隔断，让气流拐个弯；尽头那间别做卧室。',
+   src:'《阳宅十书》论宅内通路宜回旋，忌直冲。'},
+
+  {lv:'mid', nm:'主卧门正对卫生间门',
+   rooms:[{x:10,y:10,w:120,h:80,l:'主卧'},{x:130,y:10,w:60,h:80,l:'卫生间'},
+          {x:190,y:10,w:60,h:80,l:'书房'},{x:10,y:90,w:140,h:80,l:'客厅'},
+          {x:150,y:90,w:100,h:80,l:'厨房'}],
+   marks:[{x:130,y:50,t:'bad'}],
+   points:['卫生间是家里湿气、浊气最重的地方，门正对床，等于把浊气往床上送。',
+           '传统认为影响睡眠和健康，尤其呼吸、关节这类。',
+           '这个毛病很常见，好在不算硬伤，能化解。'],
+   fit:'短住、单身或年轻夫妻，影响有限。',
+   nofit:'不适合有老人、小孩、呼吸道敏感的人长住。',
+   fix:'化解：卫生间门常关、挂个门帘、装强劲的排气扇保持干燥；能做隔断更好。',
+   src:'《阳宅十书》论门户相对宜避，尤忌秽气冲床。'},
+
+  {lv:'mid', nm:'客厅没窗 · 采光差',
+   rooms:[{x:10,y:10,w:130,h:80,l:'客厅(无窗)'},{x:140,y:10,w:110,h:55,l:'主卧(带窗)'},
+          {x:140,y:65,w:110,h:50,l:'次卧(带窗)'},{x:10,y:90,w:70,h:80,l:'厨房'},
+          {x:80,y:90,w:60,h:80,l:'卫生间'},{x:140,y:115,w:110,h:55,l:'餐厅'}],
+   marks:[{x:75,y:50,t:'bad'}],
+   points:['客厅是一家人待最久的地方，反而最暗——这把"明厅暗房"讲反了。',
+           '传统看法：厅堂要亮堂，气色才好；长期昏暗，人容易闷、没精神。',
+           '卧室反而可以稍暗一点，利于安睡。'],
+   fit:'白天不在家、只回来睡觉的人。',
+   nofit:'不适合有老人小孩、在家时间长的家庭，也不适合容易情绪低落的人。',
+   fix:'化解：加主灯和辅助照明、墙面用浅色、少做实墙隔断、用玻璃门引光。能换房最好换。',
+   src:'《阳宅十书》"明厅暗房"之说。'},
+
+  {lv:'mid', nm:'主卧过大（超过 25㎡）',
+   rooms:[{x:10,y:10,w:150,h:90,l:'主卧(超大)'},{x:160,y:10,w:90,h:90,l:'客厅'},
+          {x:10,y:100,w:90,h:70,l:'次卧'},{x:100,y:100,w:70,h:70,l:'厨房'},
+          {x:170,y:100,w:80,h:70,l:'卫生间'}],
+   marks:[{x:85,y:55,t:'bad'}],
+   points:['卧室不是越大越好。传统说法是"屋大人少，气散不聚"——房间太空旷，睡着不踏实。',
+           '古人讲卧室十几平米最养人，超过二十五平米就算偏大。'],
+   fit:'人口多、家具多的家庭，能把空间填满就不明显。',
+   nofit:'不适合一个人或两口子住、又没什么家具的情况。',
+   fix:'化解：加衣柜、书架、屏风把空间分分区，让卧室"看起来没那么大"；床尽量靠里放。',
+   src:'《黄帝宅经》"宅有五虚"之论：宅大人少，是为一虚。'},
+
+  {lv:'bad', nm:'穿堂煞：大门直对阳台落地窗',
+   rooms:[{x:10,y:10,w:110,h:50,l:'主卧'},{x:120,y:10,w:130,h:50,l:'次卧'},
+          {x:10,y:60,w:180,h:70,l:'客厅(前后直通)'},{x:190,y:60,w:60,h:70,l:'阳台落地窗'},
+          {x:10,y:130,w:90,h:40,l:'厨房'},{x:100,y:130,w:70,h:40,l:'卫生间'},
+          {x:170,y:130,w:80,h:40,l:'餐厅'}],
+   marks:[{x:35,y:95,t:'bad'},{x:215,y:95,t:'bad'}],
+   points:['大门一进来，一条直线直接穿到阳台落地窗——前后通透到底。',
+           '这是公认的头号户型问题：气从前面进、后面出，一点不存，传统说法是"财来财去、留不住"。',
+           '住感上也很实在：一开门就是穿堂风，冬天冷、夏天空调不聚。'],
+   fit:'几乎不适合任何人长住；短期过渡尚可。',
+   nofit:'不适合想攒钱、求稳定的家庭；也不适合有老人小孩怕风的。',
+   fix:'化解：在门和阳台之间做玄关、屏风或摆一组柜子，让视线与气流必须拐弯。',
+   src:'《阳宅十书》一系相宅口诀："前后直通，人财两空"。'},
+
+  {lv:'bad', nm:'厕所在房子正中间',
+   rooms:[{x:10,y:10,w:95,h:55,l:'客厅'},{x:105,y:10,w:50,h:55,l:'餐厅'},{x:155,y:10,w:95,h:55,l:'厨房'},
+          {x:10,y:65,w:95,h:55,l:'主卧'},{x:105,y:65,w:50,h:55,l:'卫生间(正中)'},{x:155,y:65,w:95,h:55,l:'次卧'},
+          {x:10,y:120,w:110,h:50,l:'书房'},{x:120,y:120,w:130,h:50,l:'阳台'}],
+   marks:[{x:130,y:92,t:'bad'}],
+   points:['房子的正中心叫"中宫"，相当于人的心脏，传统上要求洁净、明亮、安稳。',
+           '把家里最脏最湿的卫生间放在正中，被认为是最忌讳的布局之一，主健康受损（脾胃、心脑一类）。',
+           '而且这种户型通风差，湿气散不出去，现实住感也确实不好。'],
+   fit:'不适合作为长期居所。',
+   nofit:'不适合任何家庭长住，尤其有老人、病人、小孩的。',
+   fix:'化解：基本改不了，<b>建议直接不选这种</b>。已经住着的：强通风、门常关、保持干燥洁净、放绿植。',
+   src:'《阳宅十书》论中宫宜洁净，忌污秽压迫。'},
+
+  {lv:'bad', nm:'开门见灶：一进门就看见灶台',
+   rooms:[{x:10,y:10,w:90,h:70,l:'厨房(灶)'},{x:10,y:80,w:90,h:50,l:'卫生间'},
+          {x:100,y:10,w:150,h:80,l:'客厅'},{x:100,y:90,w:75,h:80,l:'主卧'},
+          {x:175,y:90,w:75,h:80,l:'次卧'},{x:10,y:130,w:90,h:40,l:'餐厅'}],
+   marks:[{x:55,y:45,t:'bad'}],
+   points:['大门一打开，第一眼就是灶台。传统把灶看作家里的"财库"，财库外露＝守不住钱。',
+           '老话讲得很直白："开门见灶，钱财多耗。"',
+           '现代角度也说得通：一进门看见油烟和杂物，观感差、没隐私。'],
+   fit:'不太适合长住；短期租住影响小。',
+   nofit:'不适合重视理财、想安稳过日子的人。',
+   fix:'化解：进门处加屏风或玄关柜挡住视线；能改门、移灶更好。',
+   src:'《阳宅集成》"开门见灶，钱财多耗"。'},
+
+  {lv:'bad', nm:'手枪型 / 缺角严重的异形户型',
+   rooms:[{x:10,y:10,w:100,h:60,l:'客厅'},{x:110,y:10,w:80,h:60,l:'主卧'},{x:190,y:10,w:60,h:60,l:'厨房'},
+          {x:10,y:70,w:240,h:30,l:'走廊'},{x:10,y:100,w:60,h:70,l:'卫生间'},
+          {x:70,y:100,w:90,h:70,l:'次卧'}],
+   marks:[{x:220,y:120,t:'bad'}],
+   points:['户型歪歪扭扭、有明显的长条或尖角，甚至缺掉一整块（图上红点处）。',
+           '传统认为：房子像人，形体端正才气顺；有尖角、长条、缺块，气场就不稳。',
+           '缺的那一块对应哪位家人，就对谁不利（见上面"缺角影响谁"那张表）。'],
+   fit:'不适合长期居家，只适合单身短住或做工作室。',
+   nofit:'不适合和长辈同住、有小孩的家庭；缺角方位对应的人尤其要避。',
+   fix:'化解：很难真正改好。轻的可用家具、灯光、绿植在缺角处"补形"；重的建议不选。',
+   src:'《黄帝宅经》重宅形端正；《周易·说卦传》八卦对应家人，为缺角说所本。'}
+];
+
+/* ============ 缺角对照 ============ */
+const QUE = [
+  {d:'西北', g:'乾', who:'男主人、老父亲', eff:'事业受阻、头部与呼吸系统', fix:'放金属圆器、白/金色物件，保持明亮'},
+  {d:'西南', g:'坤', who:'女主人、老母亲', eff:'脾胃不适、家里不太平', fix:'放陶瓷、黄/棕色厚重家具'},
+  {d:'正东', g:'震', who:'长子', eff:'发展受限、肝胆', fix:'放绿植、木质家具'},
+  {d:'东南', g:'巽', who:'长女', eff:'财运、学业受影响', fix:'放绿植、水培植物'},
+  {d:'正北', g:'坎', who:'中男（次子）', eff:'肾与泌尿、容易疲累', fix:'放水景、黑/蓝色物件'},
+  {d:'正南', g:'离', who:'中女（次女）', eff:'眼睛、心脏、名声', fix:'装暖光灯，保持明亮'},
+  {d:'东北', g:'艮', who:'少子（小儿子）', eff:'脾胃、学业（此处为"子孙山"）', fix:'放石头、黄色物件'},
+  {d:'正西', g:'兑', who:'少女（小女儿）', eff:'口舌是非、呼吸道', fix:'放金属、白色物件'}
+];
+
+/* ============ 楼层（河图数，非古籍原文） ============ */
+const FLOOR = [
+  {n:'1、6 楼（尾数 1 或 6）', w:'水', t:'本命属木、属金的人住着顺（水生木、金生水）'},
+  {n:'2、7 楼（尾数 2 或 7）', w:'火', t:'本命属土、属木的人住着顺（火生土、木生火）'},
+  {n:'3、8 楼（尾数 3 或 8）', w:'木', t:'本命属火、属木的人住着顺（木生火、同气）'},
+  {n:'4、9 楼（尾数 4 或 9）', w:'金', t:'本命属水、属金的人住着顺（金生水、同气）'},
+  {n:'5、0 楼（尾数 5 或 0）', w:'土', t:'本命属金、属土的人住着顺（土生金、同气）'}
+];
+
+/* ============ 地段避雷 ============ */
+const AREA = [
+  {n:'直路正冲楼栋', d:'一条路笔直对着你那栋楼冲过来（路冲）', why:'车流带来直冲之气，传统视为大忌；现实里也确实吵、有安全隐患', fix:'选不临路的楼栋，或让楼栋不正对路口'},
+  {n:'夹在两栋高楼的窄缝口', d:'你家的窗或阳台正对着两栋楼之间的那条窄缝（天斩）', why:'缝隙处风速大、气流急，传统叫天斩煞；住感上风大、压抑', fix:'避开正对缝隙的户型，或加厚窗帘与绿植'},
+  {n:'反弓路 / 高架桥外侧', d:'路或桥弯成一张弓，弓背（外弯）正对着你家', why:'弧形外侧气流冲刷最急，传统认为财气被"割走"；现实是噪音和扬尘大', fix:'优先选弧形内侧，或退距更远的楼栋'},
+  {n:'紧邻高压电塔、变电站、信号塔', d:'窗外就能看到大型电力设施', why:'传统称电磁煞；现实层面主要是心理不适与辐射顾虑', fix:'尽量保持距离，实在近就少开那侧窗、加绿植'},
+  {n:'紧邻医院、殡仪馆、坟场、垃圾站', d:'推开窗就对着这类场所', why:'传统视为阴浊之气重，气场不清净；现实是观感与气味影响心情', fix:'避开近距离楼栋，保持宅内通风明亮'},
+  {n:'独栋过高、四周无靠', d:'周围都比它矮一大截，或反过来被更高的楼四面围死', why:'前者叫孤峰煞，孤立无援；后者叫困局，压抑不通风', fix:'选与周边高度相当、间距开阔的楼栋'}
+];
+
+/* ============ 自查清单 ============ */
+const CHK_IN = [
+  {id:'ct', q:'大门正对阳台或落地窗（前后直通）', lv:'high',
+   why:'气从前面进、后面出，一点不存，传统说法是"财来财去留不住"；住感上也一直有穿堂风',
+   fix:'在门和阳台之间做玄关、屏风或摆一组柜子，让气流必须拐弯',
+   who:['想攒钱、求稳定的家庭'], src:'《阳宅十书》一系相宅口诀："前后直通，人财两空"'},
+  {id:'zj', q:'一进门就看见灶台', lv:'high',
+   why:'灶是家里的"财库"，财库外露，老话说钱财留不住',
+   fix:'加屏风或玄关柜挡住视线；能改门、移灶更好',
+   who:['重视理财、想安稳过日子的人'], src:'《阳宅集成》"开门见灶，钱财多耗"'},
+  {id:'jc', q:'一进门就看见厕所门', lv:'high',
+   why:'秽气迎门，健康和财运都受影响，客人进门也不舒服',
+   fix:'厕所门常关、挂门帘，或做个隔断',
+   who:['在意健康与体面的家庭'], src:'《阳宅十书》'},
+  {id:'zg', q:'厕所在房子正中间', lv:'high',
+   why:'房子中心（中宫）被污，传统视为最忌，主全家健康受损，尤其脾胃、心脑',
+   fix:'基本改不了，建议直接不选；已住就强通风、常关门、保持干燥',
+   who:['所有家庭，尤其有老人、病人、小孩的'], src:'《阳宅十书》中宫宜洁净'},
+  {id:'cs', q:'厨房和厕所挨在一起或门对门', lv:'mid',
+   why:'水火相冲，家人容易口角，肠胃也容易不舒服',
+   fix:'两门错开、常关门、加强排气',
+   who:['家里有肠胃敏感的人'], src:'《阳宅十书》论厨厕宜分'},
+  {id:'mw', q:'大门正对卧室门', lv:'mid',
+   why:'气流直冲床位，睡不安稳，隐私也差',
+   fix:'加屏风或门帘，能改门更好',
+   who:['睡眠浅的人'], src:'《阳宅三要》门主灶相配之论'},
+  {id:'wc', q:'卧室门正对卫生间门', lv:'mid',
+   why:'湿气浊气直冲床，影响睡眠和健康',
+   fix:'卫生间门常关、挂门帘、装强排气扇',
+   who:['有老人、小孩、呼吸道敏感的人'], src:'《阳宅十书》'},
+  {id:'bx', q:'户型不方正（有长斜边、尖角、奇形怪状）', lv:'high',
+   why:'形体不端正，气场不稳，往往还伴随缺角',
+   fix:'很难真改好；可用家具、灯光、绿植在缺口处"补形"',
+   who:['和长辈同住、有小孩的家庭'], src:'《黄帝宅经》重宅形端正'},
+  {id:'zl', q:'进门一条长走廊直通到底', lv:'mid',
+   why:'一箭穿心，气进门不拐弯，家里人待不住、财也留不住',
+   fix:'走廊放半高柜、挂珠帘或做隔断；尽头别做卧室门',
+   who:['想安稳居家、在家办公的人'], src:'《阳宅十书》论通路宜回旋'},
+  {id:'hl', q:'横梁压在床或灶台上方', lv:'mid',
+   why:'压床则睡不好、易头痛；压灶则影响家人健康',
+   fix:'做吊顶把梁包掉，或把床、灶移开',
+   who:['睡眠浅、容易头痛的人'], src:'《阳宅十书》论床忌压梁'},
+  {id:'ct2', q:'床头靠窗，或床头没有实墙可靠', lv:'mid',
+   why:'没"靠山"，睡不踏实、没安全感，还容易受风寒',
+   fix:'把床头移到结实的墙边',
+   who:['睡眠浅、需要安全感的人'], src:'《阳宅十书》论床宜靠实'},
+  {id:'jz', q:'镜子正对床', lv:'mid',
+   why:'夜里起身容易惊扰，睡不安',
+   fix:'把镜子移开，或加个布帘遮住',
+   who:['睡眠浅、容易惊醒的人'], src:'《阳宅十书》论床忌对镜'},
+  {id:'cg', q:'客厅没窗或采光很差（暗厅）', lv:'mid',
+   why:'把"明厅暗房"讲反了，家里气色差、待着压抑',
+   fix:'加主灯和辅助照明、墙面用浅色、少做实墙隔断',
+   who:['有老人小孩、在家时间长的人', '容易情绪低落的人'], src:'《阳宅十书》"明厅暗房"'},
+  {id:'lt', q:'楼梯正对大门', lv:'mid',
+   why:'气直冲上下，财气难聚',
+   fix:'加屏风，或把楼梯口错开',
+   who:['想攒钱的家庭'], src:'《阳宅十书》'},
+  {id:'xbc', q:'厨房在房子的西北角', lv:'high',
+   why:'西北属乾、为父。此处作灶叫"火烧天门"，传统认为不利男主人或老父亲的健康（头、肺）',
+   fix:'厨房用黄/土色（土能泄火）、保持通风；条件允许就改作他用',
+   who:['与父亲或男主人同住的家庭'], src:'《阳宅十书》"乾位作灶，火烧天门"'},
+  {id:'zd', q:'主卧面积过大（超过 25㎡）', lv:'mid',
+   why:'屋大人少，气散不聚，睡着不踏实',
+   fix:'加衣柜、书架、屏风做分区，让卧室"看起来没那么大"',
+   who:['人口少、家具少的家庭'], src:'《黄帝宅经》"宅大人少"为一虚'},
+  {id:'mm', q:'两间卧室门正对', lv:'mid',
+   why:'门对门，气流互冲，家人容易口角、各自睡不好',
+   fix:'把门错开，或挂个门帘',
+   who:['家里人口多、关系需要和睦的'], src:'《鲁班经》一系相宅口诀'}
+];
+
+const CHK_OUT = [
+  {id:'lc', q:'楼栋正对一条直冲过来的路', lv:'high',
+   why:'路冲，车流直冲之气最急；现实里也吵、有安全隐患',
+   fix:'选不临路、不正对路口的楼栋', who:['所有家庭'], src:'《阳宅十书》形势篇'},
+  {id:'tz', q:'楼栋夹在两栋高楼的窄缝口', lv:'high',
+   why:'天斩煞，缝隙处风急气乱，住着压抑',
+   fix:'避开正对缝隙的户型；加厚窗帘、窗边摆绿植', who:['所有家庭'], src:'《阳宅十书》形势篇'},
+  {id:'fg', q:'在反弓路外侧，或紧邻高架桥弧形', lv:'high',
+   why:'弧形外侧气流冲刷最急，传统认为财气被割走；现实噪音扬尘大',
+   fix:'优先选弧形内侧，或退距更远的楼栋', who:['所有家庭'], src:'《阳宅十书》形势篇'},
+  {id:'dc', q:'附近有高压电塔、变电站、信号塔', lv:'mid',
+   why:'传统称电磁煞；现实主要是心理不适与顾虑',
+   fix:'尽量保持距离；近则少开那侧窗、加绿植', who:['心里介意的人'], src:'《阳宅十书》形势篇'},
+  {id:'wh', q:'紧邻医院、殡仪馆、坟场、垃圾站', lv:'high',
+   why:'阴浊之气重，气场不清净；现实是观感与气味影响心情',
+   fix:'避开近距离楼栋；宅内保持通风明亮', who:['有老人小孩的家庭'], src:'《阳宅十书》形势篇'},
+  {id:'gf', q:'这栋楼独高四周无靠，或被更高的楼四面围死', lv:'mid',
+   why:'前者孤立无援（孤峰煞），后者压抑不通风（困局）',
+   fix:'选与周边高度相当、间距开阔的楼栋', who:['所有家庭'], src:'《葬书》藏风聚气之旨'}
+];
+
+/* ============ 渲染 ============ */
+function renderCases(f){
+  const box = document.getElementById('caseGrid');
+  const list = CASES.filter(c=>f==='all'||c.lv===f);
+  const tagTxt = {good:'可以买', mid:'有瑕疵', bad:'要避雷'};
+  box.innerHTML = list.map(c=>`
+    <div class="case ${c.lv}">
+      <div class="hd">
+        <span class="nm">${c.nm}</span>
+        <span class="badge ${c.lv}">${tagTxt[c.lv]}</span>
+      </div>
+      ${svgPlan(c)}
+      ${c.points.map(p=>`<div class="line">· ${p}</div>`).join('')}
+      ${c.fix?`<div class="line" style="margin-top:8px"><b>怎么办：</b>${c.fix}</div>`:''}
+      <div class="line" style="margin-top:8px"><b>适合：</b>${c.fit}</div>
+      <div class="line"><b>不适合：</b>${c.nofit}</div>
+      <div class="src">出处：${c.src}</div>
+    </div>`).join('');
+}
+document.getElementById('filters').addEventListener('click', e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#filters button').forEach(b=>b.classList.remove('on'));
+  e.target.classList.add('on');
+  renderCases(e.target.dataset.f);
+});
+
+document.getElementById('queTable').innerHTML =
+  `<tr><th>缺哪个方位</th><th>对应卦</th><th>影响谁</th><th>容易出现的问题</th><th>传统化解思路</th></tr>` +
+  QUE.map(q=>`<tr><td><b>${q.d}</b></td><td>${q.g}</td><td>${q.who}</td><td>${q.eff}</td><td>${q.fix}</td></tr>`).join('');
+
+document.getElementById('floorTable').innerHTML =
+  `<tr><th>楼层尾数</th><th>五行</th><th>与什么本命相合</th></tr>` +
+  FLOOR.map(f=>`<tr><td><b>${f.n}</b></td><td>${f.w}</td><td>${f.t}</td></tr>`).join('');
+
+document.getElementById('areaBox').innerHTML = AREA.map(a=>`
+  <div class="reason bad"><span class="ic">!</span>
+    <span class="tx"><b>${a.n}</b>——${a.d}
+      <span class="fix">为什么不好：${a.why}</span>
+      <span class="fix">怎么办：${a.fix}</span></span></div>`).join('');
+
+function renderChk(boxId, list){
+  document.getElementById(boxId).innerHTML = list.map(c=>`
+    <label class="chk" data-id="${c.id}">
+      <input type="checkbox" value="${c.id}">
+      <span><span class="q">${c.q}</span><span class="tip">${c.why}</span></span>
+    </label>`).join('');
+  document.querySelectorAll(`#${boxId} .chk`).forEach(it=>{
+    it.addEventListener('click', e=>{
+      if(e.target.tagName!=='INPUT'){ const c=it.querySelector('input'); c.checked=!c.checked; }
+      it.classList.toggle('on', it.querySelector('input').checked);
+    });
+  });
+}
+renderChk('chkIn', CHK_IN); renderChk('chkOut', CHK_OUT);
+
+// 户型图预览
+document.getElementById('fileInput').addEventListener('change', e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const img = document.getElementById('preview');
+  img.src = URL.createObjectURL(f);
+  img.style.display = 'block';
+});
+
+/* ============ 出报告 ============ */
+function report(){
+  const hit = [...document.querySelectorAll('.chk input:checked')].map(i=>i.value);
+  const all = CHK_IN.concat(CHK_OUT);
+  const items = all.filter(c=>hit.includes(c.id));
+  const que = document.getElementById('queSel').value;
+  const queObj = que ? QUE.find(q=>q.d===que) : null;
+
+  let score = 100;
+  items.forEach(c=> score -= (c.lv==='high' ? 15 : 7));
+  if(queObj) score -= 12;
+  score = Math.max(8, Math.min(100, score));
+
+  let grade, gcol;
+  if(score>=82){grade='可以买'; gcol='var(--green)';}
+  else if(score>=60){grade='有瑕疵 · 能化解'; gcol='var(--gold)';}
+  else {grade='建议避雷'; gcol='var(--red)';}
+
+  document.getElementById('result').classList.remove('hidden');
+  document.getElementById('verdictBox').innerHTML =
+    `<div><div class="big" style="color:${gcol}">${grade}</div>
+      <div style="font-size:13px;color:var(--sub);margin-top:4px">户型评分 ${score} / 100</div></div>
+     <div style="margin-left:auto;text-align:right;font-size:12.5px;color:var(--sub)">
+       共对照 ${all.length} 条古籍要点<br>中招 ${items.length} 条${queObj?'（另有缺角）':''}<br>民俗参考，非科学评分</div>`;
+  document.getElementById('verdictNote').textContent = items.length===0 && !queObj
+    ? '对照下来没发现明显硬伤，这套房在传统相宅的尺度上算正气。'
+    : '下面把发现的问题逐条说清楚，每一条都给了化解办法。';
+
+  // 问题清单（高危在前）
+  const sorted = items.slice().sort((a,b)=>(a.lv==='high'?0:1)-(b.lv==='high'?0:1));
+  let badHtml = sorted.map(c=>`
+    <div class="reason ${c.lv==='high'?'bad':'mid'}"><span class="ic">${c.lv==='high'?'!':'·'}</span>
+      <span class="tx"><b>${c.q}</b>${c.lv==='high'?'（硬伤）':''}
+        <span class="fix">为什么不好：${c.why}</span>
+        <span class="fix">怎么办：${c.fix}</span>
+        <span class="src2">出处：${c.src}</span></span></div>`).join('');
+  if(queObj){
+    badHtml += `<div class="reason bad"><span class="ic">!</span>
+      <span class="tx"><b>缺${queObj.d}角</b>（硬伤）
+        <span class="fix">影响谁：${queObj.who}——${queObj.eff}</span>
+        <span class="fix">怎么办：${queObj.fix}</span>
+        <span class="src2">出处：《周易·说卦传》八卦对应家人；八宅派缺角说</span></span></div>`;
+  }
+  document.getElementById('badBox').innerHTML = badHtml ||
+    `<div class="card-sub">没有中招的项目——就你勾的情况看，这套房没有传统相宅里说的那些硬伤。</div>`;
+
+  // 适合谁 / 不适合谁
+  const whos = [];
+  items.forEach(c=> (c.who||[]).forEach(w=>{ if(!whos.includes(w)) whos.push(w); }));
+  if(queObj) whos.unshift(queObj.who + '（因为缺' + queObj.d + '角）');
+  const hasHard = items.some(c=>c.lv==='high') || queObj;
+  let whoHtml = '';
+  if(whos.length===0){
+    whoHtml = `<div class="reason good"><span class="ic">＋</span>
+      <span class="tx"><b>适合：</b>没发现特别不适合的人群，一般家庭都能住，
+      三口之家、和长辈同住、新婚夫妻都合适。</span></div>`;
+  } else {
+    whoHtml = `<div class="reason bad"><span class="ic">－</span>
+      <span class="tx"><b>要谨慎的人群：</b>${whos.join('、')}。
+      <span class="fix">不是说绝对不能住，而是这类人住进去更容易感受到这些不利，需要按上面的办法化解。</span></span></div>`;
+    whoHtml += `<div class="reason mid"><span class="ic">·</span>
+      <span class="tx"><b>相对没那么受影响：</b>单身或年轻夫妻、白天不在家、只回来睡觉的人，以及不住在问题方位房间的人。</span></div>`;
+  }
+  if(hasHard){
+    whoHtml += `<div class="reason mid"><span class="ic">·</span>
+      <span class="tx"><b>一句掏心窝的话：</b>有硬伤的户型（穿堂、厕所在正中、异形缺角、火烧天门）靠装修很难真正改好。
+      如果是买新房，能换就换一个；这比事后化解划算得多。</span></div>`;
+  }
+  document.getElementById('whoBox').innerHTML = whoHtml;
+
+  // 做得对的地方
+  const okItems = all.filter(c=>!hit.includes(c.id));
+  const pick = [];
+  ['ct','zg','bx','xbc','zj'].forEach(id=>{
+    const o = okItems.find(c=>c.id===id);
+    if(o && pick.length<5) pick.push(o);
+  });
+  CHK_OUT.forEach(o=>{ if(okItems.includes(o) && pick.length<6) pick.push(o); });
+  document.getElementById('goodBox').innerHTML = pick.length
+    ? pick.map(c=>`<div class="reason good"><span class="ic">＋</span>
+        <span class="tx"><b>${c.q}</b>——这条你没中招，做得对。</span></div>`).join('')
+    : `<div class="card-sub">对照下来大部分要点都中招了，建议重新考虑这套房。</div>`;
+
+  document.getElementById('srcBox').innerHTML = `
+    <b>《阳宅十书》</b>（明·王君荣 编）：明厅暗房、中宫宜净、通路宜回旋、床忌压梁对镜、形势篇诸煞。
+    <br><b>《黄帝宅经》</b>：宅形宜方正端正，"宅大人少"为一虚。
+    <br><b>《阳宅集成》</b>："开门见灶，钱财多耗"等相宅口诀。
+    <br><b>《阳宅三要》</b>（清·赵九峰）：门、主、灶三者搭配之论。
+    <br><b>《阳宅十书》"乾位作灶，火烧天门"</b>：西北方作厨房之忌。
+    <br><b>《周易·说卦传》</b>：八卦对应家人（乾父、坤母、震长男……），为缺角说所本。
+    <br><b>《葬书》</b>（晋·郭璞）：乘生气、藏风得水，为形势派总纲。
+    <br><b>《鲁班经》</b>一系相宅口诀：门门相对之忌。
+    <br><span style="color:var(--accent)">楼层配五行出于后世"河图数理"的衍生应用，古籍不论楼层，请作参考。</span>`;
+
+  document.getElementById('result').scrollIntoView({behavior:'smooth'});
+}
+
+renderCases('all');
+</script>
+</body>
+</html>
