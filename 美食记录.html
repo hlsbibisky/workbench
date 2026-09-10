@@ -437,9 +437,24 @@
   .ck-pick-item:hover{ border-color:var(--accent); background:rgba(184,113,78,.05); }
   .ck-item.checked{ opacity:.65; }
   .ck-item.checked .ck-item-name{ text-decoration:line-through; color:var(--sub); }
-  .ck-photos{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-  .ck-photo{ width:100px; height:80px; border-radius:10px; object-fit:cover; border:1px solid var(--line); cursor:pointer; transition:.15s; }
-  .ck-photo:hover{ transform:scale(1.04); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+  .ck-cover{ position:relative; width:54px; height:54px; border-radius:12px; overflow:hidden; cursor:pointer; flex-shrink:0; background:rgba(184,113,78,.06); display:flex; align-items:center; justify-content:center; border:1px solid var(--line); transition:.15s; }
+  .ck-cover:hover{ border-color:var(--accent); }
+  .ck-cover .ck-item-thumb{ width:54px; height:54px; border-radius:12px; }
+  .ck-cover .ck-item-emoji{ font-size:26px; }
+  .ck-cover-badge{ position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.5); color:#fff; font-size:10.5px; line-height:17px; text-align:center; opacity:0; transition:.15s; pointer-events:none; }
+  .ck-cover:hover .ck-cover-badge{ opacity:1; }
+  /* 打卡小图选图浮层 */
+  #ckCoverOv{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+  #ckCoverOv.show{ display:flex; }
+  #ckCoverOv .ovbox{ width:min(92vw,560px); max-height:82vh; background:var(--paper); border-radius:18px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.3); display:flex; flex-direction:column; }
+  #ckCoverOv .ovhead{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  #ckCoverOv .ovhead b{ font-size:15px; }
+  #ckCoverOv .ck-close{ border:none; background:none; font-size:22px; line-height:1; cursor:pointer; color:var(--sub); }
+  #ckCoverOv .ovgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:10px; overflow:auto; padding:4px; }
+  #ckCoverOv .ovcell{ border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; background:#fff; aspect-ratio:1; }
+  #ckCoverOv .ovcell:hover{ border-color:var(--accent); }
+  #ckCoverOv .ovcell img{ width:100%; height:100%; object-fit:cover; display:block; }
+  #ckCoverOv .ovfoot{ display:flex; gap:8px; margin-top:12px; align-items:center; }
   .ck-note{ font-size:13px; color:var(--sub); margin-top:8px; font-style:italic; line-height:1.5; }
   .ck-upload{ position:relative; display:inline-block; }
   .ck-upload input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
@@ -1509,21 +1524,17 @@ function renderCheckin(){
     if(r && r.name && r.image) menuImgByName[r.name]=r.image;
   });
 
-  // 自动把打卡记录的「照片」迁回「菜品小图」：
-  // 若某天 items 都没有 cover，但 photos 数量与 items 一致，则按顺序把照片设回 cover，并清空 photos。
-  // 这样用户之前被错误塞进 photos 的菜品图会恢复到每道菜左侧的小图位置。
+  // 旧版「底部照片」设计已取消：把打卡记录里残留的 photos 全部迁回每道菜的封面（小图），
+  // 能对应的就填进小图，剩余的照片直接丢弃，不再保留底部照片区。
   let migrated = false;
   list.forEach(c=>{
     if(!c || !c.items || !c.items.length || !c.photos || !c.photos.length) return;
-    const hasCover = c.items.some(it=> it && (it.cover || menuImgByName[it.name]));
-    if(hasCover) return; // 已有 cover 的不动，避免覆盖正确数据
-    if(c.photos.length === c.items.length){
-      c.items.forEach((it, idx)=>{ if(it) it.cover = c.photos[idx]; });
-      c.photos = [];
-      migrated = true;
-    }
+    let pi = 0;
+    c.items.forEach(it=>{ if(it && !it.cover && pi < c.photos.length){ it.cover = c.photos[pi]; pi++; migrated = true; } });
+    c.photos = []; // 清空底部照片残留
+    migrated = true;
   });
-  if(migrated){ save(K.checkin, state.checkin); console.log('renderCheckin: 已把 photos 迁回 items.cover'); }
+  if(migrated){ save(K.checkin, state.checkin); console.log('renderCheckin: 已把 photos 迁回 items.cover 并清空底部照片'); }
 
   // 统计
   const totalDays = list.length;
@@ -1555,9 +1566,10 @@ function renderCheckin(){
           const cls = 'ck-item';
           let cov = it.cover || '';
           if(!cov && menuImgByName[it.name]) cov = menuImgByName[it.name]; // 兜底：快照为空时从菜品库取封面
-          const coverHtml = cov
-            ? imgTag(cov, 'ck-item-thumb', 'alt=""')
-            : '<span class="ck-item-emoji">'+(it.emoji||'🍽️')+'</span>';
+          const coverHtml = '<div class="ck-cover" onclick="openCkCoverPicker(\''+c.id+'\','+idx+')" title="点此选图 / 改图">'
+            + (cov ? imgTag(cov, 'ck-item-thumb', 'alt=""') : '<span class="ck-item-emoji">'+(it.emoji||'🍽️')+'</span>')
+            + '<span class="ck-cover-badge">选图</span>'
+            + '</div>';
           const ing = it.ing || [];
           const steps = it.steps || [];
           const detailHtml = it.expanded
@@ -1579,13 +1591,6 @@ function renderCheckin(){
             + '</div>' + detailHtml;
         }).join('');
 
-    // 照片
-    const photosHtml = c.photos.length > 0
-      ? '<div class="ck-photos">' + c.photos.map((p,i) =>
-          imgTag(p, 'ck-photo', 'alt="打卡照片'+(i+1)+'" onclick="viewPhoto(\''+esc(p)+'\')" title="点击查看大图"')
-        ).join('') + '</div>'
-      : '';
-
     // 备注
     const noteHtml = c.note ? '<div class="ck-note">📝 '+esc(c.note)+'</div>' : '';
 
@@ -1596,11 +1601,6 @@ function renderCheckin(){
       + '<button class="btn btn-sm" onclick="openCkDrinkPicker(\''+c.id+'\')">🥤 从饮品库选</button>'
       + '<button class="btn btn-sm" onclick="openCkSnackPicker(\''+c.id+'\')">🍪 从零食库选</button>'
       + '</div>';
-
-    // 旧照片清理入口（不再提供上传）
-    const photoClearRow = c.photos.length > 0
-      ? '<div style="margin-top:8px;"><button class="linkbtn" onclick="clearCkPhotos(\''+c.id+'\')">清除所有照片</button></div>'
-      : '';
 
     // 备注编辑
     const noteRow =
@@ -1620,8 +1620,6 @@ function renderCheckin(){
       + '</div>'
       + '<div class="ck-items">'+itemsHtml+'</div>'
       + addRow
-      + photoClearRow
-      + photosHtml
       + noteRow
       + noteHtml
       + '</div>';
@@ -1810,15 +1808,44 @@ function setCkTag(ckId, idx, tag){
   }
 }
 
-// 清除照片
-function clearCkPhotos(ckId){
-  myConfirm('确定清除所有照片？', function(){
-    const c = state.checkin.find(x=>x.id===ckId);
-    if(!c) return;
-    c.photos = [];
-    save(K.checkin, state.checkin);
-    renderCheckin();
+// 打卡菜品小图：从本机图库选图 / 上传
+let ckCoverCtx = null; // { ckId, idx }
+function openCkCoverPicker(ckId, idx){
+  ckCoverCtx = { ckId, idx };
+  const c = state.checkin.find(x=>x.id===ckId);
+  const it = c && c.items[idx];
+  document.getElementById('ckCoverOvTitle').textContent = '为「'+(it?it.name:'菜品')+'」选图';
+  renderCkCoverGrid();
+  document.getElementById('ckCoverOv').classList.add('show');
+}
+async function renderCkCoverGrid(){
+  const all = await idbGetAll();
+  const g = document.getElementById('ckCoverGrid');
+  g.innerHTML = '';
+  const keys = Object.keys(all).filter(k=>typeof all[k]==='string' && all[k].indexOf('data:image')===0);
+  if(!keys.length){ g.innerHTML = '<div style="color:var(--sub);font-size:13px;padding:10px">本机图库为空，请先到「图库总管理」导入原图。</div>'; return; }
+  keys.forEach(k=>{
+    const cell = document.createElement('div'); cell.className='ovcell';
+    const img = document.createElement('img'); img.src = all[k]; cell.appendChild(img);
+    cell.onclick = ()=> setCkCover('idb://'+k);
+    g.appendChild(cell);
   });
+}
+function setCkCover(ref){
+  if(!ckCoverCtx) return;
+  const c = state.checkin.find(x=>x.id===ckCoverCtx.ckId);
+  if(!c || !c.items[ckCoverCtx.idx]) return;
+  c.items[ckCoverCtx.idx].cover = ref;
+  save(K.checkin, state.checkin);
+  document.getElementById('ckCoverOv').classList.remove('show');
+  renderCheckin();
+}
+function clearCkCover(){
+  if(!ckCoverCtx) return;
+  const c = state.checkin.find(x=>x.id===ckCoverCtx.ckId);
+  if(c && c.items[ckCoverCtx.idx]){ c.items[ckCoverCtx.idx].cover = ''; save(K.checkin, state.checkin); }
+  document.getElementById('ckCoverOv').classList.remove('show');
+  renderCheckin();
 }
 
 // 查看大图
@@ -3260,6 +3287,36 @@ function doConnectSync(){
     }
   }catch(e){}
 })();
+</script>
+
+<!-- 打卡菜品小图选图浮层 -->
+<div id="ckCoverOv">
+  <div class="ovbox">
+    <div class="ovhead"><b id="ckCoverOvTitle">选图</b><button class="ck-close" onclick="document.getElementById('ckCoverOv').classList.remove('show')">×</button></div>
+    <div id="ckCoverGrid" class="ovgrid"></div>
+    <div class="ovfoot">
+      <label class="ck-upbtn">📁 上传 / 添加图片<input type="file" id="ckCoverUpload" accept="image/*" multiple></label>
+      <button class="ghost" onclick="clearCkCover()">清除封面</button>
+      <span style="flex:1"></span>
+      <button class="ghost" onclick="document.getElementById('ckCoverOv').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    var up = document.getElementById('ckCoverUpload');
+    if(up) up.addEventListener('change', async function(e){
+      var files = Array.prototype.slice.call(e.target.files).filter(function(f){ return /image\//.test(f.type); });
+      for(var i=0;i<files.length;i++){
+        var f = files[i];
+        var b64 = await new Promise(function(r){ var fr=new FileReader(); fr.onload=function(){ r(fr.result); }; fr.readAsDataURL(f); });
+        var id = imgIdOf(b64);
+        await idbPut(id, b64);
+        setCkCover('idb://'+id);
+      }
+      e.target.value='';
+    });
+  })();
 </script>
 </body>
 </html>
