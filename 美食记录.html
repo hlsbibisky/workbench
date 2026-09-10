@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="rYTOcRDYsoekebvlt3qJQ3">
+<head data-page-node-id="nSGlqF83nIng0CjG3x8q87">
+<meta charset="UTF-8" data-page-node-id="JIZojjVG3j4Gy7Ep0tvfmD">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="UD5QhAeQCzHeFIrkSADHxT">
 <title>美食记录</title>
 <style>
   /* 与工作台一致的暖色宣纸风格 */
@@ -493,7 +493,7 @@
   .ck-stat b{ color:var(--accent); }
 </style>
 </head>
-<body>
+<body data-page-node-id="IV8alHbPMnwfu06RHPUUWx">
 <script>
 /* 工作台级云同步桥接：数据变化时通知外壳上传；外壳拉取后本页自动刷新 */
 (function(){
@@ -537,29 +537,29 @@
   };
 })();
 </script>
-  <div class="topbar">
-    <div class="syncbar">
-      <span class="syncbar-label">☁ 数据同步</span>
-      <span class="syncbar-time" id="syncbarTime">--</span>
-      <button class="btn btn-sm databtn" onclick="openDataMgr()">管理</button>
+  <div class="topbar" data-page-node-id="BaX5co9oSKVhb7PAMxLlVp">
+    <div class="syncbar" data-page-node-id="hF9LPYps0AgZHFq9J6X77m">
+      <span class="syncbar-label" data-page-node-id="RuXJcOwRmwxYCMqwDP6SKL">☁ 数据同步</span>
+      <span class="syncbar-time" id="syncbarTime" data-page-node-id="Ya4sxFP8TmoNdRuy7cK1OO">--</span>
+      <button class="btn btn-sm databtn" onclick="openDataMgr()" data-page-node-id="EavcR1SElRToGzjz9cDEHA">管理</button>
     </div>
   </div>
 
-  <div class="content">
-    <div class="subtabs">
-      <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')">📋 打卡记录</button>
-      <button class="subtab" data-tab="menu" onclick="switchTab('menu')"><span class="pip"></span>菜品库</button>
-      <button class="subtab" data-tab="drinks" onclick="switchTab('drinks')"><span class="pip"></span>饮品库</button>
-      <button class="subtab" data-tab="snacks" onclick="switchTab('snacks')"><span class="pip"></span>零食库</button>
-      <button class="subtab" data-tab="today" onclick="switchTab('today')"><span class="pip"></span>今天吃什么</button>
-      <button class="subtab" data-tab="taste" onclick="switchTab('taste')"><span class="pip"></span>我的口味</button>
+  <div class="content" data-page-node-id="CsKuB1x0AcR49L3blnjeG3">
+    <div class="subtabs" data-page-node-id="MT0SzYkMzK7DCE1ZnZrN22">
+      <button class="subtab active" data-tab="checkin" onclick="switchTab('checkin')" data-page-node-id="vruWltr5sLbd46OQXhAMFI">📋 打卡记录</button>
+      <button class="subtab" data-tab="menu" onclick="switchTab('menu')" data-page-node-id="SchsVBk5qkRZrpDBQQzSgG"><span class="pip" data-page-node-id="auAr6Iadcc0YWrhr5eNEqS"></span>菜品库</button>
+      <button class="subtab" data-tab="drinks" onclick="switchTab('drinks')" data-page-node-id="I9KHuy3ePyDdANyqgktmwG"><span class="pip" data-page-node-id="RojsyzBqAxb8EWJkaBJnmB"></span>饮品库</button>
+      <button class="subtab" data-tab="snacks" onclick="switchTab('snacks')" data-page-node-id="ECZFupgwdNEOSKXiMSHVpc"><span class="pip" data-page-node-id="f30aVWwXldVEQH6ikbqacE"></span>零食库</button>
+      <button class="subtab" data-tab="today" onclick="switchTab('today')" data-page-node-id="sGDjfkcRUmYKWW0Bx1MjS2"><span class="pip" data-page-node-id="oK8EujtdsWn0Gu7wZuBw3Q"></span>今天吃什么</button>
+      <button class="subtab" data-tab="taste" onclick="switchTab('taste')" data-page-node-id="vDCCl4umukLG4QarSs5ADf"><span class="pip" data-page-node-id="A47KAVQfFmoBqIfRpUzCxu"></span>我的口味</button>
     </div>
 
-    <div class="modbody" id="modbody"></div>
+    <div class="modbody" id="modbody" data-page-node-id="V4cKwG3BGToyUEHUCXS9u0"></div>
   </div>
 
-  <div class="modal hidden" id="modal"><div class="modal-card" id="modalBody"></div></div>
-  <div class="toast" id="toast"></div>
+  <div class="modal hidden" id="modal" data-page-node-id="Mx4EXMzwkYyK8mU2vtyeUA"><div class="modal-card" id="modalBody" data-page-node-id="xWdUnPxlwOu0A5D9obcFmq"></div></div>
+  <div class="toast" id="toast" data-page-node-id="vEJM9HGLV0VoktkIE39xUi"></div>
 
 <!-- 种子菜品库（JSON，便于校验与扩充）。must:true 表示该调料是菜的核心，去掉就不再是这道菜 -->
 <script type="application/json" id="seedDishes">
@@ -1508,6 +1508,22 @@ function renderCheckin(){
   [...(state.menu||[]), ...(state.drinks||[]), ...(state.snacks||[])].forEach(r=>{
     if(r && r.name && r.image) menuImgByName[r.name]=r.image;
   });
+
+  // 自动把打卡记录的「照片」迁回「菜品小图」：
+  // 若某天 items 都没有 cover，但 photos 数量与 items 一致，则按顺序把照片设回 cover，并清空 photos。
+  // 这样用户之前被错误塞进 photos 的菜品图会恢复到每道菜左侧的小图位置。
+  let migrated = false;
+  list.forEach(c=>{
+    if(!c || !c.items || !c.items.length || !c.photos || !c.photos.length) return;
+    const hasCover = c.items.some(it=> it && (it.cover || menuImgByName[it.name]));
+    if(hasCover) return; // 已有 cover 的不动，避免覆盖正确数据
+    if(c.photos.length === c.items.length){
+      c.items.forEach((it, idx)=>{ if(it) it.cover = c.photos[idx]; });
+      c.photos = [];
+      migrated = true;
+    }
+  });
+  if(migrated){ save(K.checkin, state.checkin); console.log('renderCheckin: 已把 photos 迁回 items.cover'); }
 
   // 统计
   const totalDays = list.length;
