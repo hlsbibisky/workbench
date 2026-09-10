@@ -894,8 +894,32 @@ async function idbDel(id){ try{ __idbHave.delete(id); const db=await idbOpen(); 
 function isImgRef(s){ return typeof s==='string' && s.indexOf('idb://')===0; }
 // 图片内容 → 稳定 id（按 长度+首尾采样 做 djb2 哈希），相同图复用同一 id，IDB 写入幂等
 function imgIdOf(base64){ let h=5381; const sample=base64.length+':'+base64.slice(0,500)+base64.slice(-500); for(let i=0;i<sample.length;i++){ h=((h<<5)+h+sample.charCodeAt(i))|0; } return 'img_'+(h>>>0).toString(36); }
-function imgTag(src, cls, extra){ cls=cls||''; extra=extra||''; return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">'; }
-function hydrateImgs(root){ /* 图片已是内存 base64，无需异步填充 */ }
+function imgTag(src, cls, extra){
+  cls=cls||''; extra=extra||'';
+  // idb:// 引用先不直接挂 src，避免浏览器报 404；用 data-imgref 让 hydrateImgs 异步回填
+  if(isImgRef(src)){
+    return '<img class="'+cls+'" '+extra+' data-imgref="'+esc(src)+'" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="return false">';
+  }
+  return '<img class="'+cls+'" '+extra+' src="'+(esc(src)||'')+'">';
+}
+// 异步把页面中 data-imgref / idb:// 引用替换为 IndexedDB 里的 base64
+function hydrateImgs(root){
+  if(!root || !root.querySelectorAll) return;
+  setTimeout(async ()=>{
+    const imgs = Array.from(root.querySelectorAll('img[data-imgref], img')).filter((img, i, arr)=>{
+      if(img.hasAttribute('data-imgref')) return true;
+      return isImgRef(img.getAttribute('src')||'');
+    });
+    for(const img of imgs){
+      const ref = img.getAttribute('data-imgref') || img.getAttribute('src') || '';
+      if(!isImgRef(ref)) continue;
+      try{
+        const b64 = await idbGet(ref.slice(6));
+        if(b64 && img.parentNode){ img.src = b64; img.removeAttribute('data-imgref'); }
+      }catch(e){ console.warn('hydrateImgs 失败', ref, e); }
+    }
+  }, 0);
+}
 async function resolveImg(src){ if(isImgRef(src)) return await idbGet(src.slice(6)); return src; }
 async function persistImages(root){ return root; } // 图片随 save() 自动转存 IDB
 async function hydrateStateImages(obj){ return obj; } // 内存中已是 base64
@@ -927,9 +951,8 @@ async function prepareState(){
   for(const s of slots){
     if(s.v.indexOf('data:image')===0){           // 旧数据/云端拉下来的 base64 → 存 IDB、转引用
       const id=imgIdOf(s.v); await idbPut(id, s.v); s.p[s.k]='idb://'+id; changed=true;
-    }else if(isImgRef(s.v)){                     // 本地引用 → 还原 base64 到内存用于渲染
-      const b=await idbGet(s.v.slice(6)); if(b){ s.p[s.k]=b; changed=true; }
     }
+    // idb:// 引用保留在内存中，由 hydrateImgs 异步渲染；避免还原成 base64 再 save 导致重复 ID
   }
   if(changed){
     save(K.menu, state.menu); save(K.drinks, state.drinks); save(K.snacks, state.snacks);
@@ -1479,10 +1502,12 @@ function renderCheckin(){
   const body = document.getElementById('modbody');
   const list = state.checkin.slice().sort((a,b)=>b.date.localeCompare(a.date)); // 降序（最新在前）
 
-  // 构建「菜名→菜品库封面」映射，用于打卡记录封面兜底：8/14 清空了 it.cover 快照，
-  // 这里按菜名从菜品库实时取回封面显示，无需重新选择，且手机端同步菜品库后即生效
+  // 构建「名称→封面」映射，用于打卡记录封面兜底：it.cover 快照可能是 idb:// 引用或已丢失，
+  // 这里按名称从菜品库/饮品库/零食库实时取回封面显示，无需重新选择。
   const menuImgByName = {};
-  (state.menu||[]).forEach(r=>{ if(r && r.name && r.image && r.image.indexOf('data:image')===0) menuImgByName[r.name]=r.image; });
+  [...(state.menu||[]), ...(state.drinks||[]), ...(state.snacks||[])].forEach(r=>{
+    if(r && r.name && r.image) menuImgByName[r.name]=r.image;
+  });
 
   // 统计
   const totalDays = list.length;
