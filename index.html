@@ -616,8 +616,8 @@ function wbLoadCfg(){
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
-function wbIframeSrc(src){ var v='20260906c'; return (src && typeof src==='string' && src.indexOf('?')<0)? src+'?wbv='+v : src; }
-const WB_THIS_VER='20260906c';
+function wbIframeSrc(src){ var v='20260910a'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
+const WB_THIS_VER='20260910a';
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
