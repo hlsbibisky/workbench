@@ -182,17 +182,17 @@ async function renderCheckins(){
   });
 }
 function autoFill(idx,nm){
-  const ck=CHECKINS[idx];const phs=ck.photos||(ck.photos=[]);
+  const ck=CHECKINS[idx];
   let added=0;
-  (ck.items||[]).forEach(it=>{const img=it&&nm[it.name];if(img&&phs.indexOf(img)<0){phs.push(img);added++;}});
+  (ck.items||[]).forEach(it=>{const img=it&&nm[it.name];if(img&&!it.cover){it.cover=img;added++;}});
   writeLib(CK_KEY,CHECKINS);
-  log((ck.date||('#'+idx))+' 自动配图 +'+added+' 张');
+  log((ck.date||('#'+idx))+' 自动配图 +'+added+' 道（已写入菜品 cover）');
   renderCheckins();
 }
 function autoFillAll(nm){
   let total=0;
-  CHECKINS.forEach(ck=>{const phs=ck.photos||(ck.photos=[]);(ck.items||[]).forEach(it=>{const img=it&&nm[it.name];if(img&&phs.indexOf(img)<0){phs.push(img);total++;}});});
-  writeLib(CK_KEY,CHECKINS);log('全部自动配图完成，共 +'+total+' 张');renderCheckins();
+  CHECKINS.forEach(ck=>{(ck.items||[]).forEach(it=>{const img=it&&nm[it.name];if(img&&!it.cover){it.cover=img;total++;}});});
+  writeLib(CK_KEY,CHECKINS);log('全部自动配图完成，共 '+total+' 道菜品（已写入 cover）');renderCheckins();
 }
 function openPicker(idx){pickCtx=idx;document.getElementById('ovTitle').textContent='为「'+(CHECKINS[idx].date||('#'+idx))+'」选图 / 上传';renderOvGrid();document.getElementById('ov').classList.add('show');}
 async function renderOvGrid(){const all=await idbGetAll();const g=document.getElementById('ovgrid');g.innerHTML='';Object.keys(all).forEach(k=>{const v=all[k];if(typeof v!=='string')return;const c=document.createElement('div');c.className='ovcell';const img=document.createElement('img');img.src=v;c.appendChild(img);const t=document.createElement('div');t.className='t';t.textContent=k;t.title=k;c.onclick=()=>addPhoto(pickCtx,'idb://'+k);g.appendChild(c);});}
