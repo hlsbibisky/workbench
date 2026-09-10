@@ -1266,7 +1266,7 @@ function showSec(sec){
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active', t.dataset.sec===sec));
 }
 document.querySelectorAll('.stab').forEach(t=> t.onclick=()=>{ location.hash=t.dataset.sec; });
-function secFromHash(){ const s=location.hash.replace('#',''); return ['board','review','journal'].includes(s)?s:'board'; }
+function secFromHash(){ let s=location.hash.replace('#',''); s=s.split('?')[0]; return ['board','review','journal'].includes(s)?s:'board'; }
 window.addEventListener('hashchange', ()=>{ const s=secFromHash(); showSec(s); if(s==='review') renderReview(); });
 window.addEventListener('resize', ()=>{ if(document.getElementById('sec-board').classList.contains('show')) refresh(); });
 
