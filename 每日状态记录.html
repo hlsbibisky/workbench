@@ -9,6 +9,7 @@
     --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
     --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
     --term:#c9823a; --today:#fbe9d6; --noted:#3f9d6b;
+    --status-bg:#e6f0ec; --status-fg:#5b8c7b; --status-bd:#cfe0d8;
   }
   *{box-sizing:border-box;}
   body{
@@ -85,6 +86,9 @@
   .chip:hover{ background:#f3d9c4; }
   .chip .x{ font-size:11px; opacity:.6; }
   .chip:hover .x{ opacity:1; }
+  /* 状态标签：统一另一种颜色（青绿），与驱动力（橘）明显区分 */
+  .chip.st{ background:var(--status-bg); color:var(--status-fg); border-color:var(--status-bd); }
+  .chip.st:hover{ background:#d9e9e1; }
 
   /* 驱动选项：折叠式小下拉框，展开后平铺选项（默认只占一行，省空间） */
   .picker{ margin-top:2px; }
@@ -104,6 +108,8 @@
   }
   .tagbtn:hover{ border-color:var(--accent); color:var(--accent); }
   .tagbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .tagbtn.st:hover{ border-color:var(--status-fg); color:var(--status-fg); }
+  .tagbtn.st.on{ background:var(--status-fg); color:#fff; border-color:var(--status-fg); font-weight:600; }
 
   .saved{ font-size:11px; color:var(--noted); height:14px; opacity:0; transition:.2s; }
   .saved.show{ opacity:1; }
@@ -196,6 +202,9 @@ const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
 /* 10 个驱动标签选项 */
 const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
               '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
+
+/* 常用状态标签（与驱动力分开存储，互不干扰） */
+const STATES=['食欲旺盛','爱吃零食','心情好','感知力强','主体性强','性唤醒','专注高效','感恩忏悔','看见自己'];
 
 /* ---------- 干支日：JDN 公式 ---------- */
 function jdn(y,m,d){
@@ -290,7 +299,7 @@ function loadAll(){
   let obj;
   try{ obj=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ obj=null; }
   if(!obj){
-    obj={records:{},tags:{}};
+    obj={records:{},tags:{},stags:{}};
     try{
       for(let i=0;i<localStorage.length;i++){
         const k=localStorage.key(i);
@@ -299,6 +308,7 @@ function loadAll(){
     }catch(e){}
     saveAll(obj);
   }
+  if(!obj.stags) obj.stags={};   /* 老数据兼容：补上状态标签容器 */
   return obj;
 }
 function saveAll(obj){ try{ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }catch(e){} }
@@ -345,11 +355,12 @@ function render(){
     const term=termOn(y,m,d);
     const text=(obj.records[key]||'');
     const tags=(obj.tags[key]||[]);
-    if(text.trim() || tags.length) notedCount++;
+    const stags=(obj.stags[key]||[]);
+    if(text.trim() || tags.length || stags.length) notedCount++;
     const isToday = y===today.getFullYear() && m===today.getMonth()+1 && d===today.getDate();
 
     const row=document.createElement('div');
-    row.className='day'+((text.trim()||tags.length)?' noted':'')+(isToday?' today':'');
+    row.className='day'+((text.trim()||tags.length||stags.length)?' noted':'')+(isToday?' today':'');
     row.dataset.key=key;
 
     /* 左侧日期列（紧凑：日期+星期一行，干支日一行） */
@@ -366,27 +377,39 @@ function render(){
     const bodycol=document.createElement('div');
     bodycol.className='bodycol';
 
-    // 已选驱动标签（横排在编辑框上方）
+    // 已选标签（横排在编辑框上方）：先驱动力（橘），全部显示完后再显示状态标签（青绿）
     const strip=document.createElement('div');
     strip.className='tagstrip';
+    function hasAny(){ return (obj.tags[key]||[]).length || (obj.stags[key]||[]).length; }
+    function syncNoted(){
+      row.classList.toggle('noted', !!((obj.records[key]||'').trim()) || !!hasAny());
+    }
+    function makeChip(i,kind){
+      const c=document.createElement('span');
+      c.className='chip'+(kind==='s'?' st':'');
+      c.innerHTML=`${(kind==='s'?STATES:DRIVERS)[i]}<span class="x">×</span>`;
+      c.onclick=()=>removeTag(kind,i);
+      return c;
+    }
+    function removeTag(kind,i){
+      if(kind==='d'){
+        let arr=(obj.tags[key]||[]).filter(x=>x!==i);
+        if(arr.length) obj.tags[key]=arr; else delete obj.tags[key];
+      }else{
+        if(!obj.stags) obj.stags={};
+        let arr=(obj.stags[key]||[]).filter(x=>x!==i);
+        if(arr.length) obj.stags[key]=arr; else delete obj.stags[key];
+      }
+      saveAll(obj);
+      refreshStrip();
+      syncNoted();
+      row.querySelectorAll('.tagbtn').forEach(b=>{ if(b.dataset.kind===kind && +b.dataset.i===i) b.classList.remove('on'); });
+    }
     function refreshStrip(){
       strip.querySelectorAll('.chip').forEach(c=>c.remove());
-      (obj.tags[key]||[]).forEach(i=>{
-        const c=document.createElement('span');
-        c.className='chip';
-        c.innerHTML=`${DRIVERS[i]}<span class="x">×</span>`;
-        c.onclick=()=>{
-          let arr=obj.tags[key]||[];
-          arr=arr.filter(x=>x!==i);
-          if(arr.length) obj.tags[key]=arr; else delete obj.tags[key];
-          saveAll(obj);
-          refreshStrip();
-          row.querySelectorAll('.tagbtn').forEach(b=>{ if(+b.dataset.i===i) b.classList.remove('on'); });
-          row.classList.toggle('noted', !!(obj.records[key]||'').trim() || (obj.tags[key]||[]).length);
-        };
-        strip.appendChild(c);
-      });
-      strip.style.display = (obj.tags[key]||[]).length ? '' : 'none';
+      (obj.tags[key]||[]).forEach(i=>strip.appendChild(makeChip(i,'d')));    /* 驱动力在前 */
+      (obj.stags[key]||[]).forEach(i=>strip.appendChild(makeChip(i,'s')));   /* 状态标签在后 */
+      strip.style.display = hasAny() ? '' : 'none';
     }
     refreshStrip();
     bodycol.appendChild(strip);
@@ -401,44 +424,56 @@ function render(){
     ta.addEventListener('input',()=>{
       obj.records[key]=ta.value;
       saveAll(obj);
-      row.classList.toggle('noted', !!ta.value.trim() || (obj.tags[key]||[]).length);
+      syncNoted();
       savedTip.classList.add('show');
       clearTimeout(timer);
       timer=setTimeout(()=>savedTip.classList.remove('show'),1200);
     });
     bodycol.appendChild(ta);
 
-    // 驱动选项（折叠式小下拉框，展开后平铺选项）
-    const picker=document.createElement('details');
-    picker.className='picker';
-    const sum=document.createElement('summary');
-    sum.textContent='选择驱动力标签';
-    picker.appendChild(sum);
-    const pick=document.createElement('div');
-    pick.className='tagpick';
-    const g1=document.createElement('div'); g1.className='grp'; g1.textContent='— 积极驱动力 —';
-    const g2=document.createElement('div'); g2.className='grp'; g2.textContent='— 过度驱动力 —';
-    pick.appendChild(g1);
-    DRIVERS.forEach((name,i)=>{
-      if(i===5) pick.appendChild(g2);
-      const b=document.createElement('button');
-      b.className='tagbtn'+((obj.tags[key]||[]).includes(i)?' on':'');
-      b.dataset.i=i;
-      b.textContent=name;
-      b.onclick=()=>{
+    // 标签选项（折叠式小下拉框，展开后平铺选项）——驱动力一个、状态一个
+    function toggleTag(kind,i,btn){
+      if(kind==='d'){
         let arr=obj.tags[key]||[];
-        if(arr.includes(i)) arr=arr.filter(x=>x!==i);
-        else arr=[...arr,i];
+        if(arr.includes(i)) arr=arr.filter(x=>x!==i); else arr=[...arr,i];
         if(arr.length) obj.tags[key]=arr; else delete obj.tags[key];
-        saveAll(obj);
-        b.classList.toggle('on');
-        refreshStrip();
-        row.classList.toggle('noted', !!((obj.records[key]||'').trim()) || (obj.tags[key]||[]).length);
-      };
-      pick.appendChild(b);
-    });
-    picker.appendChild(pick);
-    bodycol.appendChild(picker);
+      }else{
+        if(!obj.stags) obj.stags={};
+        let arr=obj.stags[key]||[];
+        if(arr.includes(i)) arr=arr.filter(x=>x!==i); else arr=[...arr,i];
+        if(arr.length) obj.stags[key]=arr; else delete obj.stags[key];
+      }
+      saveAll(obj);
+      btn.classList.toggle('on');
+      refreshStrip();
+      syncNoted();
+    }
+    function buildPicker(title,names,kind,groups){
+      const picker=document.createElement('details');
+      picker.className='picker';
+      const sum=document.createElement('summary');
+      sum.textContent=title;
+      picker.appendChild(sum);
+      const pick=document.createElement('div');
+      pick.className='tagpick';
+      names.forEach((name,i)=>{
+        if(groups && groups[i]){
+          const g=document.createElement('div'); g.className='grp'; g.textContent=groups[i];
+          pick.appendChild(g);
+        }
+        const arr = kind==='d' ? (obj.tags[key]||[]) : (obj.stags[key]||[]);
+        const b=document.createElement('button');
+        b.className='tagbtn'+(kind==='s'?' st':'')+(arr.includes(i)?' on':'');
+        b.dataset.kind=kind; b.dataset.i=i;
+        b.textContent=name;
+        b.onclick=()=>toggleTag(kind,i,b);
+        pick.appendChild(b);
+      });
+      picker.appendChild(pick);
+      return picker;
+    }
+    bodycol.appendChild(buildPicker('选择驱动力标签',DRIVERS,'d',{0:'— 积极驱动力 —',5:'— 过度驱动力 —'}));
+    bodycol.appendChild(buildPicker('选择状态标签',STATES,'s',null));
 
     bodycol.appendChild(savedTip);
     row.appendChild(bodycol);
@@ -488,11 +523,12 @@ document.getElementById('exportTxt').onclick=()=>{
   const keys=new Set();
   Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
   Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
+  Object.keys(obj.stags||{}).forEach(k=>{ if((obj.stags[k]||[]).length) keys.add(k); });
   const arr=[];
   keys.forEach(k=>{ const p=k.split('-'); const y=+p[0],m=+p[1],d=+p[2];
     const mi=gzMonthInfo(y,m,d);
     arr.push({y,m,d, gy:mi.gy, mKey:mi.gy+'-'+mi.ganzhi, mGz:mi.ganzhi,
-              tags:(obj.tags[k]||[]).slice(), text:(obj.records[k]||'')}); });
+              tags:(obj.tags[k]||[]).slice(), stags:(obj.stags[k]||[]).slice(), text:(obj.records[k]||'')}); });
   arr.sort((a,b)=>{ const A=new Date(a.y,a.m-1,a.d), B=new Date(b.y,b.m-1,b.d); return B-A; });
   const L=[];
   L.push('内观觉察 · 每日记录（纯文本导出）');
@@ -520,11 +556,13 @@ document.getElementById('exportTxt').onclick=()=>{
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const mood=classifyTags(r.tags);
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
+    const stags=r.stags.map(i=>STATES[i]).join('、');
     L.push('【'+r.y+'-'+String(r.m).padStart(2,'0')+'-'+String(r.d).padStart(2,'0')+' '+wd+' · '+ganzhiYear(r.gy)+'年 '+r.mGz+'月 · '+gz+' · '+MOOD_TXT[mood]+'】');
     if(tags) L.push('驱动力：'+tags);
+    if(stags) L.push('状态：'+stags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
-    else if(!tags) L.push('（无文字、无标签）');
+    else if(!tags && !stags) L.push('（无文字、无标签）');
     L.push('');
   });
   const blob=new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'});
