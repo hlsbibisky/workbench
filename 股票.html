@@ -221,6 +221,15 @@
   textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;
     font-size:14px;resize:vertical;background:#fffdfb;min-height:84px;margin:2px 0 10px;}
   textarea:focus{outline:none;border-color:var(--accent);}
+  /* 语音输入按钮 */
+  .micbtn{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
+    border:1px solid var(--line);background:#fff;color:var(--accent);
+    padding:7px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-family:inherit;transition:.15s;}
+  .micbtn:hover{border-color:var(--accent);background:#fbeede;}
+  .micbtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .micbtn .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block;}
+  .micbtn.on .dot{animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
   .jbtn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;padding:9px 22px;
     cursor:pointer;font-size:14px;font-family:inherit;}
   .jbtn:hover{opacity:.92;}
@@ -1109,6 +1118,58 @@ function fmtDateTime(ts){ const d=new Date(ts);
   return `${Y}/${M}/${D}  ${gzDate(d)}  ${hh}:${mm}:${ss}`;
 }
 
+/* ============ 语音输入（浏览器原生 Web Speech API） ============ */
+/* 用法：setupVoice(textarea元素, 挂载参照元素) —— 在参照元素之后插入麦克风按钮，
+   点一下开始说话，自动把语音转成文字并追加进文本框，用户可继续修改。
+   不支持的浏览器（或无麦克风权限）自动不显示按钮，不影响原有功能。 */
+function setupVoice(ta, mountEl){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR || !ta){ return; }
+  const rec = new SR();
+  rec.lang = 'zh-CN';
+  rec.continuous = true;
+  rec.interimResults = true;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'micbtn';
+  btn.innerHTML = '<span class="dot"></span>语音输入';
+  btn.title = '点一下开始说话，自动转成文字（说完可继续修改）';
+
+  let on = false, base = '';
+  function setOn(v){
+    on = v;
+    btn.classList.toggle('on', v);
+    btn.innerHTML = v ? '<span class="dot"></span>停止识别' : '<span class="dot"></span>语音输入';
+  }
+  rec.onresult = (e)=>{
+    let inter = '';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const r = e.results[i];
+      if(r.isFinal) base += r[0].transcript;
+      else inter += r[0].transcript;
+    }
+    ta.value = base + inter;
+    ta.dispatchEvent(new Event('input'));
+  };
+  rec.onerror = (e)=>{
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      alert('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风后再试。');
+    }
+    setOn(false);
+  };
+  rec.onend = ()=>{ setOn(false); };
+  btn.onclick = ()=>{
+    if(on){ try{ rec.stop(); }catch(_){} return; }
+    base = ta.value ? ta.value.replace(/\s+$/,'') + ' ' : '';
+    setOn(true);
+    try{ rec.start(); }catch(_){ /* 已启动则忽略 */ }
+  };
+
+  if(mountEl && mountEl.parentNode) mountEl.parentNode.insertBefore(btn, mountEl.nextSibling);
+  else if(ta.parentNode) ta.parentNode.insertBefore(btn, ta.nextSibling);
+}
+
 /* ============ 状态记录（交易日志） ============ */
 const JL='stock_journal';
 let editId=null;
@@ -1190,6 +1251,12 @@ document.getElementById('jbackok').onclick=()=>{
   document.getElementById('jtext').value=''; document.getElementById('jbackRow').style.display='none';
   renderJournal();
 };
+
+/* 交易日志文本框挂载语音输入按钮 */
+(function(){
+  const jt = document.getElementById('jtext');
+  if(jt) setupVoice(jt, jt);
+})();
 
 /* ============ 添加自选 ============ */
 document.getElementById('addBtn').onclick=async()=>{
