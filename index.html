@@ -513,6 +513,7 @@ function selectSub(modKey, subId){
     const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
     btn.innerHTML = ICONS.refresh;
     const f = document.createElement('iframe'); f.title = s.name;
+    f.allow = 'microphone'; // 允许内嵌子页使用语音输入（Web Speech API 需要麦克风权限）
     if(s.srcdoc){ f.srcdoc = s.srcdoc; } else { f.src = wbIframeSrc(s.src); }
     btn.onclick = ()=>{ if(s.srcdoc){ f.srcdoc = f.srcdoc; } else { f.src = f.src; } };
     bar.appendChild(btn);
