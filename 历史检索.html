@@ -181,6 +181,8 @@
   .rec .chip{ background:var(--mark); color:var(--accent); border:1px solid #e7d3bf;
               border-radius:13px; padding:2px 10px; font-size:12px; }
   .rec .chip.exc{ background:#fbeede; color:var(--warn); border-color:#f0d6bd; }
+  /* 状态标签：青绿色，与驱动力（橘）区分 */
+  .rec .chip.st{ background:#e6f0ec; color:#5b8c7b; border-color:#cfe0d8; }
   .rec .txt{ font-size:13.5px; color:var(--ink); white-space:pre-wrap; word-break:break-word; }
   .rec .txt.clip{ max-height:3.6em; overflow:hidden; }
   .rec .more{ font-size:12px; color:var(--accent2); cursor:pointer; margin-top:3px; display:inline-block; }
@@ -327,6 +329,8 @@
 const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
               '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
 const POS=new Set([0,1,2,3,4]);
+/* 常用状态标签（与「每日状态记录」保持一致） */
+const STATES=['食欲旺盛','爱吃零食','心情好','感知力强','主体性强','性唤醒','专注高效','感恩忏悔','看见自己'];
 const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
 const LS_KEY='DAILY_STATUS';
 
@@ -376,9 +380,10 @@ function gzMonthInfo(y,m,d){
 function loadAll(){
   let obj;
   try{ obj=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ obj=null; }
-  if(!obj || typeof obj!=='object') obj={records:{},tags:{}};
+  if(!obj || typeof obj!=='object') obj={records:{},tags:{},stags:{}};
   if(!obj.records) obj.records={};
   if(!obj.tags) obj.tags={};
+  if(!obj.stags) obj.stags={};
   return obj;
 }
 function parseKey(k){ const p=k.split('-'); return {y:+p[0], m:+p[1], d:+p[2]}; }
@@ -399,12 +404,14 @@ function collect(obj){
   const keys=new Set();
   Object.keys(obj.records||{}).forEach(k=>{ if((obj.records[k]||'').trim()) keys.add(k); });
   Object.keys(obj.tags||{}).forEach(k=>{ if((obj.tags[k]||[]).length) keys.add(k); });
+  Object.keys(obj.stags||{}).forEach(k=>{ if((obj.stags[k]||[]).length) keys.add(k); });
   const arr=[];
   keys.forEach(k=>{
     const {y,m,d}=parseKey(k);
     const tags=(obj.tags[k]||[]).slice();
+    const stags=(obj.stags[k]||[]).slice();
     const text=(obj.records[k]||'');
-    arr.push({key:k, y, m, d, date:new Date(y,m-1,d), tags, text, mood:classify(tags)});
+    arr.push({key:k, y, m, d, date:new Date(y,m-1,d), tags, stags, text, mood:classify(tags)});
   });
   arr.sort((a,b)=>b.date-a.date); // 新→旧
   return arr;
@@ -499,7 +506,7 @@ function applySearchFilter(){
       if(gzGan.length && !gzGan.includes(gz[0])) return false;
     }
     if(q){
-      const hay=(r.text+' '+r.tags.map(i=>DRIVERS[i]).join(' ')+' '+
+      const hay=(r.text+' '+r.tags.map(i=>DRIVERS[i]).join(' ')+' '+(r.stags||[]).map(i=>STATES[i]).join(' ')+' '+
         `${r.y}年${r.m}月`+' '+`${r.y}-${r.m}`+' '+`${r.m}月${r.d}日`).toLowerCase();
       if(!hay.includes(q)) return false;
     }
@@ -511,7 +518,7 @@ function recCard(r){
   const chips=(r.tags.map(i=>{
     const exc=!POS.has(i);
     return `<span class="chip ${exc?'exc':''}">${DRIVERS[i]||i}</span>`;
-  })).join('');
+  }).concat((r.stags||[]).map(i=>`<span class="chip st">${STATES[i]||i}</span>`))).join('');
   const term=termOn(r.y,r.m,r.d);
   const text=r.text||'';
   const clip=text.length>70?' clip':'';
@@ -670,11 +677,13 @@ document.getElementById('exportTxt').onclick=()=>{
     const wd=WEEK[r.date.getDay()];
     const gz=ganzhiDay(r.y,r.m,r.d)+'日';
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
+    const stags=(r.stags||[]).map(i=>STATES[i]).join('、');
     L.push('【'+fmtMD(r.date)+' '+wd+' · '+ganzhiYear(gy)+'年 '+mi.ganzhi+'月 · '+gz+' · '+MOOD_TXT[r.mood]+'】');
     if(tags) L.push('驱动力：'+tags);
+    if(stags) L.push('状态：'+stags);
     const txt=(r.text||'').trim();
     if(txt) L.push(txt);
-    else if(!tags) L.push('（无文字、无标签）');
+    else if(!tags && !stags) L.push('（无文字、无标签）');
     L.push('');
   });
   const blob=new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'});
@@ -701,7 +710,9 @@ document.getElementById('export').onclick=()=>{
     const mk=`${r.y}-${r.m}`;
     if(mk!==curMonth){ curMonth=mk; md+=`\n### ${r.y}年${r.m}月\n\n`; }
     const tags=r.tags.map(i=>DRIVERS[i]).join('、');
-    md+=`- **${r.m}月${r.d}日**${tags?` 〔${tags}〕`:''}（${MOOD_TXT[r.mood]}）\n`;
+    const stags=(r.stags||[]).map(i=>STATES[i]).join('、');
+    const allTags=[tags,stags].filter(Boolean).join('、');
+    md+=`- **${r.m}月${r.d}日**${allTags?` 〔${allTags}〕`:''}（${MOOD_TXT[r.mood]}）\n`;
     if(r.text.trim()) md+=`  ${r.text.trim().replace(/\n/g,'\n  ')}\n`;
   });
   const blob=new Blob([md],{type:'text/markdown'});
