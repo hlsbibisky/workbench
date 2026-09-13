@@ -1118,54 +1118,91 @@ function fmtDateTime(ts){ const d=new Date(ts);
   return `${Y}/${M}/${D}  ${gzDate(d)}  ${hh}:${mm}:${ss}`;
 }
 
-/* ============ 语音输入（浏览器原生 Web Speech API） ============ */
-/* 用法：setupVoice(textarea元素, 挂载参照元素) —— 在参照元素之后插入麦克风按钮，
-   点一下开始说话，自动把语音转成文字并追加进文本框，用户可继续修改。
-   不支持的浏览器（或无麦克风权限）自动不显示按钮，不影响原有功能。 */
+/* ============ 语音输入（本地 Whisper 服务，国内可用、离线、隐私） ============ */
+/* 原理：浏览器录下声音 → 发给本机 voice_server.py（pywhispercpp + ggml-small.bin）→ 返回文字。
+   需先双击运行「启动语音服务.bat」。服务未启动则提示，不影响原有功能。 */
+const VOICE_URL = 'http://127.0.0.1:8765';
+
+function insertVoiceText(ta, text){
+  const cur = ta.value || '';
+  ta.value = cur ? (cur.replace(/\s+$/,'') + ' ' + text) : text;
+  ta.dispatchEvent(new Event('input'));
+}
+function encodeWAV(audioBuffer){
+  const sr = audioBuffer.sampleRate, len = audioBuffer.length;
+  const samples = audioBuffer.getChannelData(0);
+  const buffer = new ArrayBuffer(44 + len*2);
+  const view = new DataView(buffer);
+  const ws=(o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+  ws(0,'RIFF'); view.setUint32(4, 36+len*2, true); ws(8,'WAVE'); ws(12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+  view.setUint32(24,sr,true); view.setUint32(28,sr*2,true); view.setUint16(32,2,true);
+  view.setUint16(34,16,true); ws(36,'data'); view.setUint32(40,len*2,true);
+  let off=44;
+  for(let i=0;i<len;i++){ let s=Math.max(-1,Math.min(1,samples[i])); view.setInt16(off, s<0? s*0x8000 : s*0x7FFF, true); off+=2; }
+  return new Blob([view], {type:'audio/wav'});
+}
+async function blobToWav(blob){
+  const arr = await blob.arrayBuffer();
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC();
+  const buf = await ac.decodeAudioData(arr);
+  // 混为单声道
+  const mono = ac.createBuffer(1, buf.length, buf.sampleRate);
+  const md = mono.getChannelData(0);
+  for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c); for(let i=0;i<buf.length;i++) md[i]+=d[i]/buf.numberOfChannels; }
+  // 重采样到 16k
+  const sr=16000;
+  const off = new OfflineAudioContext(1, Math.max(1,Math.ceil(buf.duration*sr)), sr);
+  const src = off.createBufferSource(); src.buffer = mono; src.connect(off.destination); src.start();
+  const rendered = await off.startRendering();
+  return encodeWAV(rendered);
+}
 function setupVoice(ta, mountEl){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR || !ta){ return; }
-  const rec = new SR();
-  rec.lang = 'zh-CN';
-  rec.continuous = true;
-  rec.interimResults = true;
-
+  if(!ta) return;
   const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'micbtn';
-  btn.innerHTML = '<span class="dot"></span>语音输入';
-  btn.title = '点一下开始说话，自动转成文字（说完可继续修改）';
-
-  let on = false, base = '';
-  function setOn(v){
-    on = v;
-    btn.classList.toggle('on', v);
-    btn.innerHTML = v ? '<span class="dot"></span>停止识别' : '<span class="dot"></span>语音输入';
+  btn.type='button'; btn.className='micbtn';
+  btn.innerHTML='<span class="dot"></span>语音输入';
+  btn.title='点一下开始说话，自动转成文字（需先启动本地语音服务）';
+  let stream=null, mr=null, chunks=[];
+  function setOn(v){ btn.classList.toggle('on', v); btn.innerHTML = v ? '<span class="dot"></span>停止' : '<span class="dot"></span>语音输入'; }
+  function stopStream(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+  function reset(){ setOn(false); btn.disabled=false; }
+  async function onStop(){
+    stopStream();
+    btn.innerHTML='<span class="dot"></span>识别中…'; btn.disabled=true;
+    try{
+      const blob = new Blob(chunks, {type: (mr&&mr.mimeType)||'audio/webm'});
+      const wav = await blobToWav(blob);
+      const r = await fetch(VOICE_URL+'/transcribe', {method:'POST', body:wav});
+      const j = await r.json();
+      if(j && j.text && j.text.trim()) insertVoiceText(ta, j.text.trim());
+    }catch(err){ alert('识别失败：'+((err&&err.message)||err)); }
+    finally{ reset(); }
   }
-  rec.onresult = (e)=>{
-    let inter = '';
-    for(let i=e.resultIndex; i<e.results.length; i++){
-      const r = e.results[i];
-      if(r.isFinal) base += r[0].transcript;
-      else inter += r[0].transcript;
+  async function start(){
+    // 在线版（https）无法连接本机服务（浏览器混合内容限制），提示用本地文件打开
+    if(location.protocol === 'https:'){
+      alert('语音输入需在本机打开页面时使用：请直接双击本地的 html 文件（或工作台 html），再点此按钮。在线版无法连接本机语音服务。');
+      return;
     }
-    ta.value = base + inter;
-    ta.dispatchEvent(new Event('input'));
-  };
-  rec.onerror = (e)=>{
-    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
-      alert('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风后再试。');
-    }
-    setOn(false);
-  };
-  rec.onend = ()=>{ setOn(false); };
-  btn.onclick = ()=>{
-    if(on){ try{ rec.stop(); }catch(_){} return; }
-    base = ta.value ? ta.value.replace(/\s+$/,'') + ' ' : '';
+    btn.disabled=true;
+    try{ const h = await fetch(VOICE_URL+'/', {method:'GET', cache:'no-store'}); if(!h.ok) throw 0; }
+    catch(e){ alert('本地语音服务未启动。请先双击运行「启动语音服务.bat」，再点此按钮。'); btn.disabled=false; return; }
+    try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ alert('无法访问麦克风，请在浏览器允许麦克风权限。'); btn.disabled=false; return; }
+    chunks=[];
+    if(!window.MediaRecorder){ alert('当前浏览器不支持录音（MediaRecorder）。'); stopStream(); btn.disabled=false; return; }
+    mr = new MediaRecorder(stream);
+    mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop = onStop;
+    mr.start();
     setOn(true);
-    try{ rec.start(); }catch(_){ /* 已启动则忽略 */ }
+  }
+  btn.onclick = ()=>{
+    if(btn.classList.contains('on')){ if(mr) try{ mr.stop(); }catch(_){} }
+    else start();
   };
-
   if(mountEl && mountEl.parentNode) mountEl.parentNode.insertBefore(btn, mountEl.nextSibling);
   else if(ta.parentNode) ta.parentNode.insertBefore(btn, ta.nextSibling);
 }
