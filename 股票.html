@@ -1181,14 +1181,23 @@ function setupVoice(ta, mountEl){
     finally{ reset(); }
   }
   async function start(){
-    // 在线版（https）无法连接本机服务（浏览器混合内容限制），提示用本地文件打开
-    if(location.protocol === 'https:'){
-      alert('语音输入需在本机打开页面时使用：请直接双击本地的 html 文件（或工作台 html），再点此按钮。在线版无法连接本机语音服务。');
+    // 先探测本机语音服务是否可达；https 页面访问 http://127.0.0.1 在某些浏览器会失败，此时提示用本地文件打开
+    btn.disabled=true;
+    try{
+      const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const t = ctrl && typeof setTimeout !== 'undefined' ? setTimeout(()=>ctrl.abort(), 3000) : null;
+      const h = await fetch(VOICE_URL+'/', {method:'GET', cache:'no-store', signal: ctrl&&ctrl.signal});
+      if(t) clearTimeout(t);
+      if(!h.ok) throw 0;
+    }
+    catch(e){
+      const isHttps = location.protocol === 'https:';
+      alert(isHttps
+        ? '语音输入需在本机打开页面时使用：请直接双击本地的 html 文件（或工作台 html），再点此按钮。在线版无法连接本机语音服务。'
+        : '本地语音服务未连接。请先双击运行「启动语音服务.bat」，再点此按钮。');
+      btn.disabled=false;
       return;
     }
-    btn.disabled=true;
-    try{ const h = await fetch(VOICE_URL+'/', {method:'GET', cache:'no-store'}); if(!h.ok) throw 0; }
-    catch(e){ alert('本地语音服务未启动。请先双击运行「启动语音服务.bat」，再点此按钮。'); btn.disabled=false; return; }
     try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
     catch(e){ alert('无法访问麦克风，请在浏览器允许麦克风权限。'); btn.disabled=false; return; }
     chunks=[];
