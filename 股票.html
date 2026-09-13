@@ -221,15 +221,6 @@
   textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;
     font-size:14px;resize:vertical;background:#fffdfb;min-height:84px;margin:2px 0 10px;}
   textarea:focus{outline:none;border-color:var(--accent);}
-  /* 语音输入按钮 */
-  .micbtn{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
-    border:1px solid var(--line);background:#fff;color:var(--accent);
-    padding:7px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-family:inherit;transition:.15s;}
-  .micbtn:hover{border-color:var(--accent);background:#fbeede;}
-  .micbtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
-  .micbtn .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block;}
-  .micbtn.on .dot{animation:pulse 1s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
   .jbtn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;padding:9px 22px;
     cursor:pointer;font-size:14px;font-family:inherit;}
   .jbtn:hover{opacity:.92;}
@@ -1118,104 +1109,6 @@ function fmtDateTime(ts){ const d=new Date(ts);
   return `${Y}/${M}/${D}  ${gzDate(d)}  ${hh}:${mm}:${ss}`;
 }
 
-/* ============ 语音输入（本地 Whisper 服务，国内可用、离线、隐私） ============ */
-/* 原理：浏览器录下声音 → 发给本机 voice_server.py（pywhispercpp + ggml-small.bin）→ 返回文字。
-   需先双击运行「启动语音服务.bat」。服务未启动则提示，不影响原有功能。 */
-const VOICE_URL = 'http://127.0.0.1:8765';
-
-function insertVoiceText(ta, text){
-  const cur = ta.value || '';
-  ta.value = cur ? (cur.replace(/\s+$/,'') + ' ' + text) : text;
-  ta.dispatchEvent(new Event('input'));
-}
-function encodeWAV(audioBuffer){
-  const sr = audioBuffer.sampleRate, len = audioBuffer.length;
-  const samples = audioBuffer.getChannelData(0);
-  const buffer = new ArrayBuffer(44 + len*2);
-  const view = new DataView(buffer);
-  const ws=(o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
-  ws(0,'RIFF'); view.setUint32(4, 36+len*2, true); ws(8,'WAVE'); ws(12,'fmt ');
-  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
-  view.setUint32(24,sr,true); view.setUint32(28,sr*2,true); view.setUint16(32,2,true);
-  view.setUint16(34,16,true); ws(36,'data'); view.setUint32(40,len*2,true);
-  let off=44;
-  for(let i=0;i<len;i++){ let s=Math.max(-1,Math.min(1,samples[i])); view.setInt16(off, s<0? s*0x8000 : s*0x7FFF, true); off+=2; }
-  return new Blob([view], {type:'audio/wav'});
-}
-async function blobToWav(blob){
-  const arr = await blob.arrayBuffer();
-  const AC = window.AudioContext || window.webkitAudioContext;
-  const ac = new AC();
-  const buf = await ac.decodeAudioData(arr);
-  // 混为单声道
-  const mono = ac.createBuffer(1, buf.length, buf.sampleRate);
-  const md = mono.getChannelData(0);
-  for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c); for(let i=0;i<buf.length;i++) md[i]+=d[i]/buf.numberOfChannels; }
-  // 重采样到 16k
-  const sr=16000;
-  const off = new OfflineAudioContext(1, Math.max(1,Math.ceil(buf.duration*sr)), sr);
-  const src = off.createBufferSource(); src.buffer = mono; src.connect(off.destination); src.start();
-  const rendered = await off.startRendering();
-  return encodeWAV(rendered);
-}
-function setupVoice(ta, mountEl){
-  if(!ta) return;
-  const btn = document.createElement('button');
-  btn.type='button'; btn.className='micbtn';
-  btn.innerHTML='<span class="dot"></span>语音输入';
-  btn.title='点一下开始说话，自动转成文字（需先启动本地语音服务）';
-  let stream=null, mr=null, chunks=[];
-  function setOn(v){ btn.classList.toggle('on', v); btn.innerHTML = v ? '<span class="dot"></span>停止' : '<span class="dot"></span>语音输入'; }
-  function stopStream(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
-  function reset(){ setOn(false); btn.disabled=false; }
-  async function onStop(){
-    stopStream();
-    btn.innerHTML='<span class="dot"></span>识别中…'; btn.disabled=true;
-    try{
-      const blob = new Blob(chunks, {type: (mr&&mr.mimeType)||'audio/webm'});
-      const wav = await blobToWav(blob);
-      const r = await fetch(VOICE_URL+'/transcribe', {method:'POST', body:wav});
-      const j = await r.json();
-      if(j && j.text && j.text.trim()) insertVoiceText(ta, j.text.trim());
-    }catch(err){ alert('识别失败：'+((err&&err.message)||err)); }
-    finally{ reset(); }
-  }
-  async function start(){
-    // 先探测本机语音服务是否可达；https 页面访问 http://127.0.0.1 在某些浏览器会失败，此时提示用本地文件打开
-    btn.disabled=true;
-    try{
-      const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const t = ctrl && typeof setTimeout !== 'undefined' ? setTimeout(()=>ctrl.abort(), 3000) : null;
-      const h = await fetch(VOICE_URL+'/', {method:'GET', cache:'no-store', signal: ctrl&&ctrl.signal});
-      if(t) clearTimeout(t);
-      if(!h.ok) throw 0;
-    }
-    catch(e){
-      const isHttps = location.protocol === 'https:';
-      alert(isHttps
-        ? '语音输入需在本机打开页面时使用：请直接双击本地的 html 文件（或工作台 html），再点此按钮。在线版无法连接本机语音服务。'
-        : '本地语音服务未连接。请先双击运行「启动语音服务.bat」，再点此按钮。');
-      btn.disabled=false;
-      return;
-    }
-    try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
-    catch(e){ alert('无法访问麦克风，请在浏览器允许麦克风权限。'); btn.disabled=false; return; }
-    chunks=[];
-    if(!window.MediaRecorder){ alert('当前浏览器不支持录音（MediaRecorder）。'); stopStream(); btn.disabled=false; return; }
-    mr = new MediaRecorder(stream);
-    mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
-    mr.onstop = onStop;
-    mr.start();
-    setOn(true);
-  }
-  btn.onclick = ()=>{
-    if(btn.classList.contains('on')){ if(mr) try{ mr.stop(); }catch(_){} }
-    else start();
-  };
-  if(mountEl && mountEl.parentNode) mountEl.parentNode.insertBefore(btn, mountEl.nextSibling);
-  else if(ta.parentNode) ta.parentNode.insertBefore(btn, ta.nextSibling);
-}
-
 /* ============ 状态记录（交易日志） ============ */
 const JL='stock_journal';
 let editId=null;
@@ -1299,10 +1192,6 @@ document.getElementById('jbackok').onclick=()=>{
 };
 
 /* 交易日志文本框挂载语音输入按钮 */
-(function(){
-  const jt = document.getElementById('jtext');
-  if(jt) setupVoice(jt, jt);
-})();
 
 /* ============ 添加自选 ============ */
 document.getElementById('addBtn').onclick=async()=>{
