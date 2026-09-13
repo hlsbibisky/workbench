@@ -92,6 +92,10 @@
 
   /* 驱动选项：折叠式小下拉框，展开后平铺选项（默认只占一行，省空间） */
   .picker{ margin-top:2px; }
+  /* 两个下拉框并排一行；哪个展开哪个占满整行，选项平铺在其下 */
+  .pickerrow{ display:flex; flex-wrap:wrap; gap:2px 20px; align-items:flex-start; }
+  .pickerrow .picker{ margin-top:0; }
+  .pickerrow .picker[open]{ flex-basis:100%; }
   .picker summary{
     list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
     font-size:12.5px; color:var(--accent2); padding:2px 0; user-select:none;
@@ -472,8 +476,11 @@ function render(){
       picker.appendChild(pick);
       return picker;
     }
-    bodycol.appendChild(buildPicker('选择驱动力标签',DRIVERS,'d',{0:'— 积极驱动力 —',5:'— 过度驱动力 —'}));
-    bodycol.appendChild(buildPicker('选择状态标签',STATES,'s',null));
+    const prow=document.createElement('div');
+    prow.className='pickerrow';
+    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS,'d',{0:'— 积极驱动力 —',5:'— 过度驱动力 —'}));
+    prow.appendChild(buildPicker('选择状态标签',STATES,'s',null));
+    bodycol.appendChild(prow);
 
     bodycol.appendChild(savedTip);
     row.appendChild(bodycol);
