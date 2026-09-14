@@ -104,9 +104,9 @@
   .picker summary::after{ content:' ▾'; font-size:10px; }
   .picker[open] summary::after{ content:' ▴'; }
   .tagpick{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; align-items:center; }
-  /* 分组名只做行内小标签，不再独占一行 */
-  .tagpick .grp{ flex:0 0 auto; font-size:11px; color:var(--sub); margin-right:2px; }
-  .tagpick .grp::after{ content:'：'; }
+  /* 分组名独占一行、写完整（积极驱动力 / 过度驱动力），标签本身仍横排 */
+  .tagpick .grp{ flex-basis:100%; font-size:11.5px; color:var(--sub); margin-top:5px; letter-spacing:.3px; }
+  .tagpick .grp:first-child{ margin-top:0; }
   .tagbtn{
     border:1px solid var(--line); background:#fff; color:var(--sub);
     padding:5px 9px; border-radius:8px; cursor:pointer; font-size:12.5px;
@@ -486,7 +486,7 @@ function render(){
     }
     const prow=document.createElement('div');
     prow.className='pickerrow';
-    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS_S,'d',{0:'积极',5:'过度'},DRIVERS));
+    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS_S,'d',{0:'积极驱动力',5:'过度驱动力'},DRIVERS));
     prow.appendChild(buildPicker('选择状态标签',STATES,'s',null,null));
     bodycol.appendChild(prow);
 
