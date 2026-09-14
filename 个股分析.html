@@ -145,7 +145,7 @@ function jsonp(url,cbParam,timeout){
   return new Promise((resolve,reject)=>{
     /* 回调名必须纯字母数字：reportapi 会拒绝含下划线的名字（Wrong callback Function） */
     const name='jp'+(++_jpSeq)+(Date.now()%1000000);
-    const s=document.createElement('script');
+    const s=document.createElement('script'); s.referrerPolicy='no-referrer';
     let done=false,timer=null;
     function cleanup(){ if(timer){clearTimeout(timer);timer=null;} delete window[name]; try{s.remove();}catch(e){} }
     window[name]=function(d){ if(done)return; done=true; cleanup(); resolve(d); };
@@ -160,7 +160,7 @@ function jsonp(url,cbParam,timeout){
 function jsonpVar(url,varName,timeout){
   return new Promise((resolve,reject)=>{
     try{ window[varName]=undefined; }catch(e){}
-    const s=document.createElement('script');
+    const s=document.createElement('script'); s.referrerPolicy='no-referrer';
     let done=false,timer=null;
     function cleanup(){ if(timer){clearTimeout(timer);timer=null;} try{s.remove();}catch(e){} }
     s.src=url;
@@ -273,7 +273,7 @@ async function fetchLive(code){
   let gotQuote=false;
   try{
     const j=await jsonp(`https://push2delay.eastmoney.com/api/qt/stock/get?secid=${sid}&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f59,f60,f116,f117,f162,f167,f168,f169,f170,f171&ut=fa5fd1943c7b386f172d6893dbfba10b`,'cb',8000);
-    const d=j.data||{}; const sc=(d.f59!=null&&d.f59>0)?d.f59:100;
+    const d=j.data||{}; const dec=(d.f59!=null?d.f59:2); const sc=Math.pow(10,dec);
     const px=v=>v==null?null:v/sc;
     const q2={
       name:d.f58||DATA.quote.name, code:d.f57||code,
