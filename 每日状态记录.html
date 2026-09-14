@@ -105,8 +105,7 @@
   .picker[open] summary::after{ content:' ▴'; }
   .tagpick{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; align-items:center; }
   /* 分组名独占一行、写完整（积极驱动力 / 过度驱动力），标签本身仍横排 */
-  .tagpick .grp{ flex-basis:100%; font-size:11.5px; color:var(--sub); margin-top:5px; letter-spacing:.3px; }
-  .tagpick .grp:first-child{ margin-top:0; }
+  .tagpick .grp{ font-size:11.5px; color:var(--sub); align-self:center; margin-right:1px; letter-spacing:.3px; }
   .tagbtn{
     border:1px solid var(--line); background:#fff; color:var(--sub);
     padding:5px 9px; border-radius:8px; cursor:pointer; font-size:12.5px;
@@ -459,7 +458,7 @@ function render(){
       refreshStrip();
       syncNoted();
     }
-    function buildPicker(title,names,kind,groups,fulls){
+    function buildPicker(title,names,kind,groupDefs,fulls){
       const picker=document.createElement('details');
       picker.className='picker';
       const sum=document.createElement('summary');
@@ -467,27 +466,33 @@ function render(){
       picker.appendChild(sum);
       const pick=document.createElement('div');
       pick.className='tagpick';
-      names.forEach((name,i)=>{
-        if(groups && groups[i]){
-          const g=document.createElement('div'); g.className='grp'; g.textContent=groups[i];
-          pick.appendChild(g);
-        }
-        const arr = kind==='d' ? (obj.tags[key]||[]) : (obj.stags[key]||[]);
-        const b=document.createElement('button');
-        b.className='tagbtn'+(kind==='s'?' st':'')+(arr.includes(i)?' on':'');
-        b.dataset.kind=kind; b.dataset.i=i;
-        b.textContent=name;
-        if(fulls && fulls[i]) b.title=fulls[i];   /* 悬停看完整名 */
-        b.onclick=()=>toggleTag(kind,i,b);
-        pick.appendChild(b);
+      groupDefs.forEach(gd=>{
+        const g=document.createElement('span'); g.className='grp'; g.textContent=gd.title+'：';
+        pick.appendChild(g);
+        gd.idx.forEach(i=>{
+          const arr = kind==='d' ? (obj.tags[key]||[]) : (obj.stags[key]||[]);
+          const b=document.createElement('button');
+          b.className='tagbtn'+(kind==='s'?' st':'')+(arr.includes(i)?' on':'');
+          b.dataset.kind=kind; b.dataset.i=i;
+          b.textContent=names[i];
+          if(fulls && fulls[i]) b.title=fulls[i];   /* 悬停看完整名 */
+          b.onclick=()=>toggleTag(kind,i,b);
+          pick.appendChild(b);
+        });
       });
       picker.appendChild(pick);
       return picker;
     }
     const prow=document.createElement('div');
     prow.className='pickerrow';
-    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS_S,'d',{0:'积极驱动力',5:'过度驱动力'},DRIVERS));
-    prow.appendChild(buildPicker('选择状态标签',STATES,'s',null,null));
+    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS_S,'d',[
+      {title:'积极驱动力', idx:[0,1,2,3,4]},
+      {title:'过度驱动力', idx:[5,6,7,8,9]}
+    ],DRIVERS));
+    prow.appendChild(buildPicker('选择状态标签',STATES,'s',[
+      {title:'积极状态', idx:[2,3,4,6,7,8,12,13]},
+      {title:'其他状态', idx:[0,1,5,9,10,11]}
+    ],null));
     bodycol.appendChild(prow);
 
     bodycol.appendChild(savedTip);
