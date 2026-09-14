@@ -381,13 +381,28 @@ async function emQuotes(secids){
   d.forEach(function(x){ out[x.f12] = { code:x.f12, name:x.f14, price:x.f2, pct:x.f3, chg:x.f4 }; });
   return out;
 }
-/* 东财板块列表 */
-async function emBoard(fs, fid, pz, po){
-  const url = EM + 'clist/get?pn=1&pz=' + (pz || 60) + '&po=' + (po || 1) + '&np=1&fltt=2&invt=2&fid=' + (fid || 'f62') +
+/* 东财板块列表。注意：pz 上限 100（传再大也只回 100），po 升序无效，要拿全量只能分页 */
+async function emBoard(fs, fid, pz, po, pn){
+  const url = EM + 'clist/get?pn=' + (pn || 1) + '&pz=' + (pz || 60) + '&po=' + (po || 1) + '&np=1&fltt=2&invt=2&fid=' + (fid || 'f62') +
     '&fs=' + encodeURIComponent(fs) +
-    '&fields=f2,f3,f6,f8,f12,f13,f14,f20,f21,f62,f104,f105,f106,f109,f110,f128,f136,f140,f141,f160,f184';
+    '&fields=f2,f3,f6,f8,f9,f12,f13,f14,f20,f21,f23,f62,f104,f105,f106,f109,f110,f128,f136,f140,f141,f160,f184';
   const j = await jsonp(url, 'cb', 9000);
   return ((j && j.data && j.data.diff) || []);
+}
+/* 板块全量（分页拉齐 + 缓存） */
+const BOARD_FS = { hy:'m:90+t:2', gn:'m:90+t:3' };
+async function ensureBoards(kind){
+  if(S.boards[kind] && S.boards[kind].length) return S.boards[kind];
+  const fs = BOARD_FS[kind];
+  const map = {};
+  for(let pn = 1; pn <= 6; pn++){
+    const arr = await safe(emBoard(fs, 'f62', 100, 1, pn));
+    if(!arr || !arr.length) break;
+    arr.forEach(function(x){ map[x.f12] = x; });
+    if(arr.length < 100) break;
+  }
+  S.boards[kind] = Object.keys(map).map(function(k){ return map[k]; });
+  return S.boards[kind];
 }
 /* 东财板块成分股 */
 async function emMembers(bk, pz){
@@ -429,17 +444,17 @@ async function txKline(code, n){
 function codePfx(code){ return /^(6|9)/.test(code) ? 'sh' : 'sz'; }
 
 /* ==================== 状态 ==================== */
-const S = { fundKind:'hy', fund:null, mainline:[], mainDetail:{}, gold:null, global:null, showAllGlobal:false };
+const S = { fundKind:'hy', fund:null, mainline:[], mainDetail:{}, gold:null, global:null,
+            showAllGlobal:false, boards:{} };
 
 /* ==================== 模块1：A股资金流向 ==================== */
 async function loadFund(){
   const fs = S.fundKind === 'hy' ? 'm:90+t:2' : 'm:90+t:3';
   try{
-    // 一次把全部板块拉全（行业约 496 个 / 概念约 504 个），本地排序取两端
-    const all0 = (await safe(emBoard(fs, 'f62', 800, 1))) || [];
-    const map = {};
-    all0.forEach(function(x){ map[x.f12] = x; });
-    const all = Object.keys(map).map(function(k){ return map[k]; })
+    // 分页拉全量后本地排序，才能同时拿到流入端和流出端
+    const fs = S.fundKind === 'hy' ? 'm:90+t:2' : 'm:90+t:3';
+    const all0 = await ensureBoards(S.fundKind);
+    const all = all0
       .filter(function(x){ return typeof x.f62 === 'number' && isFinite(x.f62); })
       .sort(function(a, b){ return (b.f62 || 0) - (a.f62 || 0); });
     S.fund = { in: all.filter(function(x){ return x.f62 > 0; }).slice(0, 10),
@@ -489,7 +504,8 @@ const MAIN_NOTE = '主线的判定标准：<b>今日上涨</b> ＋ <b>近5日累
 async function loadMainline(){
   document.getElementById('mainNote').innerHTML = MAIN_NOTE;
   try{
-    const [hy, gn] = await Promise.all([ safe(emBoard('m:90+t:2', 'f62', 200, 1)), safe(emBoard('m:90+t:3', 'f62', 200, 1)) ]);
+    const hy = await ensureBoards('hy');
+    const gn = await ensureBoards('gn');
     let pool = (hy || []).concat(gn || []);
     pool = pool.filter(function(x){ return x && x.f14 && !/^(融资融券|新股与次新股|注册制次新股|昨日连板|昨日涨停|昨日触板|标准普尔|MSCI中国|富时罗素|AH股|创业板综|深证100R|上证180|上证380|沪深300|中证500|MSCI|标普|低价股|高价股|小盘股|中盘股|大盘股|超跌股|预盈预增|ST股|机构重仓|基金重仓|社保重仓|QFII|转债标的|股权激励|参股|破净股|送转|高送转|次新股)/.test(x.f14); });
     const isMain = function(x){
@@ -1061,12 +1077,12 @@ async function loadVal(){
     if(list && list.length){
       const idxNames = INDICES.map(function(i){ return i.name; });
       const indNames = INDUSTRIES.map(function(i){ return i.name; });
-      const idxF = list.filter(function(x){ return idxNames.indexOf(x.f14) >= 0; });
-      const indF = list.filter(function(x){ return indNames.indexOf(x.f14) >= 0; });
+      const idxF = list.filter(function(x){ return idxNames.indexOf(x.f14) >= 0 && num(x.f9) > 0; });
+      const indF = list.filter(function(x){ return indNames.indexOf(x.f14) >= 0 && num(x.f9) > 0; });
       if(idxF.length >= 3) curIdxData = { time:new Date().toISOString().slice(0, 10), src:'东方财富（实时）',
-        items: idxF.map(function(x){ const pe = num(x.f20); return { name:x.f14, pe:pe, pePct:estPct(x.f14, pe), pb:num(x.f21), pbPct:null, dy:null }; }) };
+        items: idxF.map(function(x){ const pe = num(x.f9); return { name:x.f14, pe:pe, pePct:estPct(x.f14, pe), pb:num(x.f23), pbPct:null, dy:null }; }) };
       if(indF.length >= 3) curIndData = { time:new Date().toISOString().slice(0, 10), src:'东方财富（实时）',
-        items: indF.map(function(x){ const pe = num(x.f20); return { name:x.f14, pe:pe, pePct:estPct(x.f14, pe), pb:num(x.f21), pbPct:null, dy:null }; }) };
+        items: indF.map(function(x){ const pe = num(x.f9); return { name:x.f14, pe:pe, pePct:estPct(x.f14, pe), pb:num(x.f23), pbPct:null, dy:null }; }) };
     }
   }catch(e){}
   renderVal();
@@ -1092,6 +1108,7 @@ async function doRefreshAll(){
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true; btn.textContent = '⏳ 加载中…';
   document.getElementById('updateTime').textContent = '数据加载中…';
+  S.boards = {}; S.mainDetail = {};
   await Promise.all([loadFund(), loadMainline(), loadGold(), loadGlobal(), loadVal()]);
   document.getElementById('updateTime').textContent = '更新于 ' + new Date().toLocaleString('zh-CN') + ' · 东方财富 / 腾讯财经 / 新浪财经';
   btn.disabled = false; btn.textContent = '🔄 刷新全部';
