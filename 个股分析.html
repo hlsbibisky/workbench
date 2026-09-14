@@ -143,7 +143,8 @@ const LSK_REP='STOCK_REPORTS', LSK_ORDER='STOCK_CARD_ORDER', LSK_LAST='STOCK_LAS
 let _jpSeq=0;
 function jsonp(url,cbParam,timeout){
   return new Promise((resolve,reject)=>{
-    const name='__jp'+(++_jpSeq);
+    /* 回调名必须纯字母数字：reportapi 会拒绝含下划线的名字（Wrong callback Function） */
+    const name='jp'+(++_jpSeq)+(Date.now()%1000000);
     const s=document.createElement('script');
     let done=false,timer=null;
     function cleanup(){ if(timer){clearTimeout(timer);timer=null;} delete window[name]; try{s.remove();}catch(e){} }
@@ -253,15 +254,25 @@ function setStatus(t){ $('status').textContent=t; }
 function mkt(code){ return /^(6|9)/.test(code)?'1':'0'; }
 function secid(code){ return mkt(code)+'.'+code; }
 
+/* K线兜底：腾讯（push2delay 不可用时） */
+async function fetchKlineTx(code){
+  const pfx=/^(6|9)/.test(code)?'sh':'sz';
+  const v=await jsonpVar('https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param='+pfx+code+',day,,,120,qfq&_var=kday','kday',8000);
+  const d=(v&&v.data)||{}; const k=d[pfx+code]||{};
+  const arr=k.qfqday||k.day||[];
+  if(!arr.length) return false;
+  DATA.kline={dates:arr.map(x=>x[0]),opens:arr.map(x=>+x[1]),closes:arr.map(x=>+x[2]),highs:arr.map(x=>+x[3]),lows:arr.map(x=>+x[4])};
+  return true;
+}
+
 async function fetchLive(code){
   const ok={}; const sid=secid(code);
   /* 先清空上一只股票的数据，避免抓取失败时串显示 */
-  DATA.ths_eps={has:false,rows:[]}; DATA.reports=[]; DATA.dividend=[];
-  DATA.info=DATA.info||{};
+  DATA.ths_eps={has:false,rows:[]}; DATA.reports=[]; DATA.dividend=[]; DATA.info={};
   // 1 行情：东方财富 push2（主）→ 腾讯 qt（备，数值为 ASCII 不受 GBK 影响）
   let gotQuote=false;
   try{
-    const j=await jsonp(`https://push2.eastmoney.com/api/qt/stock/get?secid=${sid}&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f59,f60,f116,f117,f162,f167,f168,f169,f170,f171&ut=fa5fd1943c7b386f172d6893dbfba10b`,'cb',8000);
+    const j=await jsonp(`https://push2delay.eastmoney.com/api/qt/stock/get?secid=${sid}&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f59,f60,f116,f117,f162,f167,f168,f169,f170,f171&ut=fa5fd1943c7b386f172d6893dbfba10b`,'cb',8000);
     const d=j.data||{}; const sc=(d.f59!=null&&d.f59>0)?d.f59:100;
     const px=v=>v==null?null:v/sc;
     const q2={
@@ -302,17 +313,18 @@ async function fetchLive(code){
   DATA.meta.name=DATA.quote.name||code;
   // 2 日K（走势用，失败不影响）
   try{
-    const j=await jsonp(`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${sid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=1&beg=0&end=20500101&lmt=120&ut=fa5fd1943c7b386f172d6893dbfba10b`,'cb',9000);
+    const j=await jsonp(`https://push2delay.eastmoney.com/api/qt/stock/kline/get?secid=${sid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=1&beg=0&end=20500101&lmt=120&ut=fa5fd1943c7b386f172d6893dbfba10b`,'cb',9000);
     const kl=(j.data&&j.data.klines)||[];
     if(kl.length){
       const rows=kl.map(x=>x.split(',')).filter(p=>p.length>=5);
       DATA.kline={dates:rows.map(p=>p[0]),closes:rows.map(p=>+p[2]),highs:rows.map(p=>+p[3]),lows:rows.map(p=>+p[4])};
       ok.kline=true;
     } else ok.kline=false;
-  }catch(e){ console.warn('kline',e); ok.kline=false; }
+  }catch(e){ console.warn('kline(em)',e); ok.kline=false; }
+  if(!ok.kline){ try{ ok.kline=await fetchKlineTx(code); }catch(e){ ok.kline=false; } }
   // 3 资金流
   try{
-    const j=await jsonp(`https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${sid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57&lmt=120&ut=b2884a393a59ad64002292a3e90d46a5`,'cb',9000);
+    const j=await jsonp(`https://push2delay.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${sid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57&lmt=120&ut=b2884a393a59ad64002292a3e90d46a5`,'cb',9000);
     const fl=(j.data&&j.data.klines)||[];
     const rows=fl.map(x=>x.split(',')).filter(p=>p.length>=6);
     if(rows.length){
@@ -351,6 +363,7 @@ async function fetchLive(code){
         eps_this:x.predictThisYearEps?+x.predictThisYearEps:null,
         eps_next:x.predictNextYearEps?+x.predictNextYearEps:null,
         eps_next2:x.predictNextTwoYearEps?+x.predictNextTwoYearEps:null}));
+      if(arr[0]&&arr[0].indvInduName){ DATA.info=DATA.info||{}; DATA.info.industry=arr[0].indvInduName; }
       ok.reports=true;
     } else ok.reports=false;
   }catch(e){ console.warn('reports',e); ok.reports=false; }
@@ -386,8 +399,9 @@ async function fetchLive(code){
       ok.dividend=true;
     } else ok.dividend=false;
   }catch(e){ console.warn('dividend',e); ok.dividend=false; }
-  DATA.meta.date=new Date().toISOString().slice(0,10);
-  DATA.meta.quote_src='东方财富（JSONP 实时）';
+  const _d=new Date();
+  DATA.meta.date=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
+  DATA.meta.quote_src='东方财富 / 腾讯财经（JSONP 实时）';
   DERIVED=deriveLive();
   return ok;
 }
