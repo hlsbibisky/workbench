@@ -435,8 +435,8 @@ const S = { fundKind:'hy', fund:null, mainline:[], mainDetail:{}, gold:null, glo
 async function loadFund(){
   const fs = S.fundKind === 'hy' ? 'm:90+t:2' : 'm:90+t:3';
   try{
-    // 一次取全部板块，本地排序，避免两次请求拿到同一批数据
-    const all0 = (await safe(emBoard(fs, 'f62', 200, 1))) || [];
+    // 一次把全部板块拉全（行业约 496 个 / 概念约 504 个），本地排序取两端
+    const all0 = (await safe(emBoard(fs, 'f62', 800, 1))) || [];
     const map = {};
     all0.forEach(function(x){ map[x.f12] = x; });
     const all = Object.keys(map).map(function(k){ return map[k]; })
