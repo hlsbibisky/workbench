@@ -103,9 +103,10 @@
   .picker summary::-webkit-details-marker{ display:none; }
   .picker summary::after{ content:' ▾'; font-size:10px; }
   .picker[open] summary::after{ content:' ▴'; }
-  .tagpick{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; align-items:center; }
-  /* 分组名独占一行、写完整（积极驱动力 / 过度驱动力），标签本身仍横排 */
-  .tagpick .grp{ font-size:11.5px; color:var(--sub); align-self:center; margin-right:1px; letter-spacing:.3px; }
+  .tagpick{ display:flex; flex-direction:column; gap:5px; margin-top:6px; }
+  /* 每组独占一行：行内小标题 + 该组标签横排 */
+  .tagpick .tgroup{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+  .tagpick .grp{ font-size:11.5px; color:var(--sub); letter-spacing:.3px; }
   .tagbtn{
     border:1px solid var(--line); background:#fff; color:var(--sub);
     padding:5px 9px; border-radius:8px; cursor:pointer; font-size:12.5px;
@@ -467,8 +468,9 @@ function render(){
       const pick=document.createElement('div');
       pick.className='tagpick';
       groupDefs.forEach(gd=>{
+        const tg=document.createElement('div'); tg.className='tgroup';
         const g=document.createElement('span'); g.className='grp'; g.textContent=gd.title+'：';
-        pick.appendChild(g);
+        tg.appendChild(g);
         gd.idx.forEach(i=>{
           const arr = kind==='d' ? (obj.tags[key]||[]) : (obj.stags[key]||[]);
           const b=document.createElement('button');
@@ -477,8 +479,9 @@ function render(){
           b.textContent=names[i];
           if(fulls && fulls[i]) b.title=fulls[i];   /* 悬停看完整名 */
           b.onclick=()=>toggleTag(kind,i,b);
-          pick.appendChild(b);
+          tg.appendChild(b);
         });
+        pick.appendChild(tg);
       });
       picker.appendChild(pick);
       return picker;
