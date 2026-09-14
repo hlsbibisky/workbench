@@ -329,6 +329,9 @@
 const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
               '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
 const POS=new Set([0,1,2,3,4]);
+/* 界面短名（各 4 字，横排省空间）；悬停看完整名，导出仍用完整名 */
+const DRIVERS_S=['情感驱动','精神驱动','责任驱动','价值驱动','物质驱动',
+                '过度情感','过度精神','过度责任','过度价值','过度物质'];
 /* 常用状态标签（与「每日状态记录」保持一致） */
 const STATES=['食欲旺盛','爱吃零食','心情好','感知力强','主体性强','性唤醒','专注高效','感恩忏悔','看见自己','晚上不困','白天嗜睡','心情低落'];
 const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
@@ -517,7 +520,7 @@ function recCard(r){
   const wd=WEEK[r.date.getDay()];
   const chips=(r.tags.map(i=>{
     const exc=!POS.has(i);
-    return `<span class="chip ${exc?'exc':''}">${DRIVERS[i]||i}</span>`;
+    return `<span class="chip ${exc?'exc':''}" title="${DRIVERS[i]||i}">${DRIVERS_S[i]||DRIVERS[i]||i}</span>`;
   }).concat((r.stags||[]).map(i=>`<span class="chip st">${STATES[i]||i}</span>`))).join('');
   const term=termOn(r.y,r.m,r.d);
   const text=r.text||'';
