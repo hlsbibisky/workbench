@@ -254,6 +254,19 @@ function setStatus(t){ $('status').textContent=t; }
 function mkt(code){ return /^(6|9)/.test(code)?'1':'0'; }
 function secid(code){ return mkt(code)+'.'+code; }
 
+/* 资金流历史：新浪（120日，主源；东财延时接口只给当日，故优先新浪） */
+async function fetchFlowSina(code){
+  const pfx=/^(6|9)/.test(code)?'sh':'sz';
+  const u='https://vip.stock.finance.sina.com.cn/quotes_service/api/jsonp.php/var%20_t=/MoneyFlow.ssl_qsfx_zjlrqs?page=1&num=120&sort=opendate&asc=0&daima='+pfx+code;
+  const v=await jsonpVar(u,'_t',9000);
+  if(!v||!v.length) return false;
+  const a=v.slice().reverse();
+  DATA.fundflow={dates:a.map(x=>x.opendate),main_net:a.map(x=>+(x.netamount||0)),
+    super_net:a.map(x=>+(x.r0_net||0)),small_net:[],mid_net:[],large_net:[]};
+  DATA.meta.flow_src='新浪财经';
+  return true;
+}
+
 /* K线兜底：腾讯（push2delay 不可用时） */
 async function fetchKlineTx(code){
   const pfx=/^(6|9)/.test(code)?'sh':'sz';
@@ -322,16 +335,20 @@ async function fetchLive(code){
     } else ok.kline=false;
   }catch(e){ console.warn('kline(em)',e); ok.kline=false; }
   if(!ok.kline){ try{ ok.kline=await fetchKlineTx(code); }catch(e){ ok.kline=false; } }
-  // 3 资金流
+  // 3 资金流：新浪（120日历史，主）→ 东财延时（备，仅当日）
+  try{ ok.flow=await fetchFlowSina(code); }catch(e){ console.warn('flow(sina)',e); ok.flow=false; }
+  if(!ok.flow){
   try{
     const j=await jsonp(`https://push2delay.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${sid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57&lmt=120&ut=b2884a393a59ad64002292a3e90d46a5`,'cb',9000);
     const fl=(j.data&&j.data.klines)||[];
     const rows=fl.map(x=>x.split(',')).filter(p=>p.length>=6);
     if(rows.length){
       DATA.fundflow={dates:rows.map(p=>p[0]),main_net:rows.map(p=>+p[1]),small_net:rows.map(p=>+p[2]),mid_net:rows.map(p=>+p[3]),large_net:rows.map(p=>+p[4]),super_net:rows.map(p=>+p[5])};
+      DATA.meta.flow_src='东方财富';
       ok.flow=true;
     } else ok.flow=false;
-  }catch(e){ console.warn('flow',e); ok.flow=false; }
+  }catch(e){ console.warn('flow(em)',e); ok.flow=false; }
+  }
   // 4 融资融券
   try{
     const j=await jsonp(`https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&filter=(SCODE%3D%22${code}%22)&pageSize=60&sortColumns=DATE&sortTypes=-1&source=WEB&client=WEB`,'callback',9000);
@@ -629,8 +646,8 @@ function buildCards(){
     <div class="note">以现价 ${n2(q.price)} 元、EPS 按一致预期增长，前向 PE 逐年回落（红虚线=30x 锚）。</div>
   `,'c6');
 
-  map.flow=card('flow','主力资金流（近120日）','东方财富',`<svg class="svgbox" viewBox="0 0 680 210" id="svgFlow"></svg>`,'c7');
-  const c=card('flowcum','资金流累计','东方财富',[
+  map.flow=card('flow','主力资金流（近120日）',DATA.meta.flow_src||'东方财富',`<svg class="svgbox" viewBox="0 0 680 210" id="svgFlow"></svg>`,'c7');
+  const c=card('flowcum','资金流累计',DATA.meta.flow_src||'东方财富',[
     kv('近5日',fmtYi(d.cum_5),cls(d.cum_5)), kv('近10日',fmtYi(d.cum_10),cls(d.cum_10)),
     kv('近20日',fmtYi(d.cum_20),cls(d.cum_20)), kv('近120日',fmtYi(d.cum_120),cls(d.cum_120)),
   ],'c5');
