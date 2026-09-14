@@ -393,32 +393,38 @@ async function emBoard(fs, fid, pz, po){
 async function emMembers(bk, pz){
   return emBoard('b:' + bk, 'f3', pz || 60, 1);
 }
-/* 腾讯外盘 hf_ 系列：price=[0] pct=[1] high=[4] low=[5] prev=[7] open=[8] */
-async function txHf(codes){
-  const v = await jsonpVar('https://qt.gtimg.cn/q=' + codes.join(','), 'v_' + codes[0], 9000);
-  return v || '';
+/* 腾讯外盘 hf_ 系列：price=[0] pct=[1] high=[4] low=[5] prev=[7] open=[8]
+   注意：qt.gtimg.cn 返回的是 v_xxx="值" 形式的赋值语句，jsonpVar 取到的是「值」本身，
+   不含 v_xxx= 前缀，所以这里直接按逗号切分，不能再拿正则去匹配脚本文本。 */
+async function txHfOne(code){
+  const v = await jsonpVar('https://qt.gtimg.cn/q=' + code, 'v_' + code, 9000);
+  const p = String(v === undefined || v === null ? '' : v).split(',');
+  if(p.length < 9) return null;
+  return { code:code, price:num(p[0]), pct:num(p[1]), high:num(p[4]), low:num(p[5]), prev:num(p[7]), open:num(p[8]) };
 }
-function parseTxHf(txt){
+async function txHf(codes){
+  const rs = await Promise.all(codes.map(function(c){ return safe(txHfOne(c)); }));
   const out = {};
-  const re = /v_([A-Za-z0-9_]+)="([^"]*)"/g;
-  let m;
-  while((m = re.exec(txt))){
-    const p = m[2].split(',');
-    out[m[1]] = { price:num(p[0]), pct:num(p[1]), high:num(p[4]), low:num(p[5]), prev:num(p[7]), open:num(p[8]) };
-  }
+  rs.forEach(function(r, i){ if(r) out[codes[i]] = r; });
   return out;
 }
-/* 腾讯K线（日线前复权） */
+/* 腾讯K线（日线前复权）。接口固定回写全局变量 kday，并发会互相覆盖，故串行执行 */
+let _klock = Promise.resolve();
 async function txKline(code, n){
-  const pfx = /^(6|9)/.test(code) ? 'sh' : 'sz';
-  const url = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=' + pfx + code + ',day,,,' + (n || 25) + ',qfq&_var=kday';
-  try{
-    const v = await jsonpVar(url, 'kday', 9000);
-    const d = (v && v.data) || {};
-    const k = d[pfx + code] || {};
-    const arr = k.qfqday || k.day || [];
-    return arr.map(function(x){ return { d:x[0], open:+x[1], close:+x[2], high:+x[3], low:+x[4] }; });
-  }catch(e){ return []; }
+  const run = async function(){
+    const pfx = /^(6|9)/.test(code) ? 'sh' : 'sz';
+    const url = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=' + pfx + code + ',day,,,' + (n || 25) + ',qfq&_var=kday';
+    try{
+      const v = await jsonpVar(url, 'kday', 9000);
+      const d = (v && v.data) || {};
+      const k = d[pfx + code] || {};
+      const arr = k.qfqday || k.day || [];
+      return arr.map(function(x){ return { d:x[0], open:+x[1], close:+x[2], high:+x[3], low:+x[4] }; });
+    }catch(e){ return []; }
+  };
+  const p = _klock.then(run, run);
+  _klock = p.then(function(){}, function(){});
+  return p;
 }
 function codePfx(code){ return /^(6|9)/.test(code) ? 'sh' : 'sz'; }
 
@@ -429,16 +435,13 @@ const S = { fundKind:'hy', fund:null, mainline:[], mainDetail:{}, gold:null, glo
 async function loadFund(){
   const fs = S.fundKind === 'hy' ? 'm:90+t:2' : 'm:90+t:3';
   try{
-    const [inA, outA] = await Promise.all([
-      safe(emBoard(fs, 'f62', 30, 1)),   // 流入最多
-      safe(emBoard(fs, 'f62', 30, 0))    // 流出最多
-    ]);
+    // 一次取全部板块，本地排序，避免两次请求拿到同一批数据
+    const all0 = (await safe(emBoard(fs, 'f62', 200, 1))) || [];
     const map = {};
-    (inA || []).forEach(function(x){ map[x.f12] = x; });
-    (outA || []).forEach(function(x){ if(!map[x.f12]) map[x.f12] = x; });
-    let all = Object.keys(map).map(function(k){ return map[k]; });
-    all = all.filter(function(x){ return typeof x.f62 === 'number' && isFinite(x.f62); });
-    all.sort(function(a, b){ return (b.f62 || 0) - (a.f62 || 0); });
+    all0.forEach(function(x){ map[x.f12] = x; });
+    const all = Object.keys(map).map(function(k){ return map[k]; })
+      .filter(function(x){ return typeof x.f62 === 'number' && isFinite(x.f62); })
+      .sort(function(a, b){ return (b.f62 || 0) - (a.f62 || 0); });
     S.fund = { in: all.filter(function(x){ return x.f62 > 0; }).slice(0, 10),
                out: all.filter(function(x){ return x.f62 < 0; }).slice(-10).reverse(),
                all: all };
@@ -631,11 +634,15 @@ async function openMainline(i){
   html += '<div class="mod-note" style="margin-top:10px">点击任意个股，可查看它的 K 线与「' + esc(x.f14) + '」板块走势的对比图。</div>';
   html += '<div id="cmp-' + x.f12 + '"></div>';
   bd.innerHTML = html;
-  // 预合成板块走势
+  // 预合成板块走势（用权重最大的 8 只成分股等权合成，K线接口需串行）
+  x._members = valid;
   if(!S.mainDetail[x.f12]){
-    const weights = valid.slice().sort(function(a, b){ return num(b.f21, 0) - num(a.f21, 0); }).slice(0, 8);
-    const ks = await Promise.all(weights.map(function(m){ return safe(txKline(m.f12, 25)); }));
-    S.mainDetail[x.f12] = composeBk(ks);
+    try{
+      const weights = valid.slice().sort(function(a, b){ return num(b.f21, 0) - num(a.f21, 0); }).slice(0, 8);
+      const ks = [];
+      for(let wi = 0; wi < weights.length; wi++){ ks.push(await safe(txKline(weights[wi].f12, 25))); }
+      S.mainDetail[x.f12] = composeBk(ks);
+    }catch(e){ S.mainDetail[x.f12] = null; }
   }
 }
 /* 等权合成板块走势（归一化） */
@@ -655,6 +662,18 @@ function composeBk(ks){
 async function showCompare(code, name, bk, bkName){
   const box = document.getElementById('cmp-' + bk);
   box.innerHTML = '<div class="chartbox"><div class="ct">正在加载 ' + esc(name) + ' 的 K 线…</div></div>';
+  // 板块走势若尚未合成（用户点得太快），这里补算一次
+  if(!S.mainDetail[bk]){
+    const m = (S.mainline.filter(function(z){ return z.f12 === bk; })[0] || {})._members;
+    if(m && m.length){
+      try{
+        const weights = m.slice().sort(function(a, b){ return num(b.f21, 0) - num(a.f21, 0); }).slice(0, 8);
+        const ks = [];
+        for(let wi = 0; wi < weights.length; wi++){ ks.push(await safe(txKline(weights[wi].f12, 25))); }
+        S.mainDetail[bk] = composeBk(ks);
+      }catch(e){}
+    }
+  }
   const [k, bks] = await Promise.all([ safe(txKline(code, 25)), Promise.resolve(S.mainDetail[bk] || null) ]);
   if(!k || k.length < 3){
     box.innerHTML = '<div class="chartbox"><div class="ct">未能获取 ' + esc(name) + ' 的 K 线数据</div></div>'; return;
@@ -715,8 +734,7 @@ async function loadGold(){
     ]);
     let xau = null;
     try{
-      const t = await safe(txHf(['hf_XAU']));
-      const p = parseTxHf(t || '');
+      const p = (await safe(txHf(['hf_XAU']))) || {};
       if(p['hf_XAU']) xau = { name:'伦敦金现货', price:p['hf_XAU'].price, pct:p['hf_XAU'].pct };
     }catch(e){}
     S.gold = { q:q || {}, xau:xau, news:news || [] };
@@ -830,14 +848,16 @@ const TX_COMM = [
 async function loadGlobal(){
   try{
     const [q, btc] = await Promise.all([
-      safe(emQuotes(GLOBAL_IDX.map(function(x){ return x.id; }).concat(['101.HG00Y']))),
+      safe(emQuotes(GLOBAL_IDX.map(function(x){ return x.id; }).concat(['101.HG00Y', '100.BDI']))),
       safe(loadBtc())
     ]);
     let comm = [];
     try{
-      const t = await safe(txHf(TX_COMM.map(function(x){ return x.c; })));
-      const p = parseTxHf(t || '');
-      comm = TX_COMM.map(function(x){ const v = p[x.c]; return v ? { name:x.n, price:v.price, pct:v.pct, unit:x.u } : null; }).filter(Boolean);
+      const p = (await safe(txHf(TX_COMM.map(function(x){ return x.c; })))) || {};
+      comm = TX_COMM.map(function(x){
+        const v = p[x.c];
+        return v ? { name:x.n, price:v.price, pct:v.pct, unit:x.u } : null;
+      }).filter(Boolean);
     }catch(e){}
     S.global = { q:q || {}, comm:comm, btc:btc };
     renderGlobal();
@@ -846,13 +866,16 @@ async function loadGlobal(){
   }
 }
 async function loadBtc(){
+  // 新浪 hq.sinajs.cn 在跨域页面下会拒绝（onerror），改用 Gate.io 公开行情（带 CORS 头）
   try{
-    const v = await jsonpVar('https://hq.sinajs.cn/list=btc_btcbtcusd', 'hq_str_btc_btcbtcusd', 8000);
-    const p = String(v).split(',');
-    const price = num(p[3]), prev = num(p[8]);
+    const r = await fetch('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT', { cache:'no-store' });
+    if(!r.ok) return null;
+    const a = await r.json();
+    const t = (a && a[0]) || null;
+    if(!t) return null;
+    const price = num(t.last), pct = num(t.change_percentage ? parseFloat(t.change_percentage) : null);
     if(price === null) return null;
-    const pct = (prev && prev > 0) ? (price - prev) / prev * 100 : null;
-    return { name:'比特币 BTC/USD', price:price, pct:pct, unit:'美元' };
+    return { name:'比特币 BTC/USDT', price:price, pct:pct, unit:'美元' };
   }catch(e){ return null; }
 }
 function gItem(name, price, pct, unit){
@@ -877,10 +900,11 @@ function renderGlobal(){
     '<div class="ggrid">' + shown.map(function(x){ return gItem(x.n, x.price, x.pct, ''); }).join('') + '</div>' +
     '<div class="axis"><span>上涨 ' + ups + '</span><span>下跌 ' + dns + '</span><span>共 ' + all.length + ' 个市场</span></div></div>';
 
-  const hg = q['HG00Y'];
+  const hg = q['HG00Y'], bdi = q['BDI'];
   html += '<div class="subcard"><h4>🛢 大宗商品与另类资产</h4><div class="ggrid">' +
     G.comm.map(function(c){ return gItem(c.name, c.price, c.pct, c.unit); }).join('') +
     (hg ? gItem('COMEX铜', hg.price, hg.pct, '美元/磅') : '') +
+    (bdi ? gItem('波罗的海BDI', bdi.price, bdi.pct, '全球干散货运价') : '') +
     (G.btc ? gItem(G.btc.name, G.btc.price, G.btc.pct, '美元') : '<div class="gitem"><div class="gn2">比特币</div><div class="gv2" style="font-size:13px;color:var(--sub)">暂不可用</div><div class="gp2 flat">—</div></div>') +
     '</div></div>';
 
