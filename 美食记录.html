@@ -3135,7 +3135,10 @@ async function ghPush(payload){
   const enc = ghB64(payload);
   let sha = syncLastSha;
   if(!sha){ try{ const cur = await ghReq('GET'); sha = cur.sha; }catch(e){ sha = null; } }
-  await ghReq('PUT', { message:'food sync '+new Date().toISOString(), content:enc, sha:sha||undefined, branch:(syncCfg.github.branch||'main').trim() });
+  const res = await ghReq('PUT', { message:'food sync '+new Date().toISOString(), content:enc, sha:sha||undefined, branch:(syncCfg.github.branch||'main').trim() });
+  // 关键：推送成功后必须记住云端新版本，否则轮询会把自己刚推上去的内容当成"云端更新"拉回来，
+  // 用其覆盖本机（若期间本机又有新编辑，就会被抹掉）。
+  if(res && res.content && res.content.sha){ syncLastSha = res.content.sha; }
 }
 async function ghPull(){
   const cur = await ghReq('GET');
