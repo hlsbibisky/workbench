@@ -103,12 +103,14 @@
   .picker summary::-webkit-details-marker{ display:none; }
   .picker summary::after{ content:' ▾'; font-size:10px; }
   .picker[open] summary::after{ content:' ▴'; }
-  .tagpick{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-  .tagpick .grp{ flex-basis:100%; font-size:11px; color:var(--sub); margin-top:2px; }
+  .tagpick{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; align-items:center; }
+  /* 分组名只做行内小标签，不再独占一行 */
+  .tagpick .grp{ flex:0 0 auto; font-size:11px; color:var(--sub); margin-right:2px; }
+  .tagpick .grp::after{ content:'：'; }
   .tagbtn{
     border:1px solid var(--line); background:#fff; color:var(--sub);
-    padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12.5px;
-    transition:.12s; text-align:center; line-height:1.25; align-self:flex-start;
+    padding:5px 9px; border-radius:8px; cursor:pointer; font-size:12.5px;
+    transition:.12s; text-align:center; line-height:1.25; white-space:nowrap;
   }
   .tagbtn:hover{ border-color:var(--accent); color:var(--accent); }
   .tagbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
@@ -206,6 +208,10 @@ const WEEK=['周日','周一','周二','周三','周四','周五','周六'];
 /* 10 个驱动标签选项 */
 const DRIVERS=['情感驱动','精神驱动','责任感驱动','自我价值感驱动','物质驱动',
               '过度情感驱动','过度精神驱动','过度责任感驱动','过度自我价值感驱动','过度物质驱动'];
+
+/* 界面上显示的短名（各 4 字，横排省空间）；鼠标悬停可看完整名，导出仍用完整名 */
+const DRIVERS_S=['情感驱动','精神驱动','责任驱动','价值驱动','物质驱动',
+                '过度情感','过度精神','过度责任','过度价值','过度物质'];
 
 /* 常用状态标签（与驱动力分开存储，互不干扰） */
 const STATES=['食欲旺盛','爱吃零食','心情好','感知力强','主体性强','性唤醒','专注高效','感恩忏悔','看见自己','晚上不困','白天嗜睡','心情低落'];
@@ -391,7 +397,8 @@ function render(){
     function makeChip(i,kind){
       const c=document.createElement('span');
       c.className='chip'+(kind==='s'?' st':'');
-      c.innerHTML=`${(kind==='s'?STATES:DRIVERS)[i]}<span class="x">×</span>`;
+      c.innerHTML=`${(kind==='s'?STATES:DRIVERS_S)[i]}<span class="x">×</span>`;
+      c.title=(kind==='s'?STATES:DRIVERS)[i];   /* 悬停看完整名 */
       c.onclick=()=>removeTag(kind,i);
       return c;
     }
@@ -452,7 +459,7 @@ function render(){
       refreshStrip();
       syncNoted();
     }
-    function buildPicker(title,names,kind,groups){
+    function buildPicker(title,names,kind,groups,fulls){
       const picker=document.createElement('details');
       picker.className='picker';
       const sum=document.createElement('summary');
@@ -470,6 +477,7 @@ function render(){
         b.className='tagbtn'+(kind==='s'?' st':'')+(arr.includes(i)?' on':'');
         b.dataset.kind=kind; b.dataset.i=i;
         b.textContent=name;
+        if(fulls && fulls[i]) b.title=fulls[i];   /* 悬停看完整名 */
         b.onclick=()=>toggleTag(kind,i,b);
         pick.appendChild(b);
       });
@@ -478,8 +486,8 @@ function render(){
     }
     const prow=document.createElement('div');
     prow.className='pickerrow';
-    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS,'d',{0:'— 积极驱动力 —',5:'— 过度驱动力 —'}));
-    prow.appendChild(buildPicker('选择状态标签',STATES,'s',null));
+    prow.appendChild(buildPicker('选择驱动力标签',DRIVERS_S,'d',{0:'积极',5:'过度'},DRIVERS));
+    prow.appendChild(buildPicker('选择状态标签',STATES,'s',null,null));
     bodycol.appendChild(prow);
 
     bodycol.appendChild(savedTip);
