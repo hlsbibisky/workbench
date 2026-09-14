@@ -900,6 +900,39 @@ async function wbPush(silent){
   }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
   finally{ wbBusy=false; }
 }
+/* ===== 防陈旧云端反向覆盖（2026-09-15 加） =====
+   事故复盘：本机「已见云端版本」标记(WB_K_CLOUD_VER)一旦丢失（清缓存/新会话/首次连接）
+   会退化成 1970，于是判定云端有更新 → 用云端很旧的快照覆盖本机刚写入的新数据，
+   表现为「明明保存了，刷新后全没了」。
+   保险：逐键比较数据内的时间戳（created/updated/ts），
+   若云端版本明显比本机旧，则保留本机，不采用云端旧值，并反过来把本机推上云端。 */
+function wbMaxTs(v){
+  try{
+    const a=JSON.parse(v); let m=0;
+    const walk=(x)=>{
+      if(Array.isArray(x)){ x.forEach(walk); return; }
+      if(x&&typeof x==='object'){
+        const t=x.created||x.updated||x.ts||x._ts;
+        if(typeof t==='number'&&t>m) m=t;
+        else if(typeof t==='string'){ const p=Date.parse(t); if(!isNaN(p)&&p>m) m=p; }
+        for(const k in x){ if(Object.prototype.hasOwnProperty.call(x,k)) walk(x[k]); }
+      }
+    };
+    walk(a); return m;
+  }catch(e){ return 0; }
+}
+function wbGuardStale(merged, cloudObj){
+  const out=Object.assign({}, merged||{});
+  const kept=[];
+  for(const k of Object.keys(out)){
+    const local=localStorage.getItem(k);
+    if(!local) continue;
+    const lt=wbMaxTs(local), ct=wbMaxTs((cloudObj&&cloudObj[k])||'');
+    if(lt>0 && ct>0 && lt>ct+1000){ out[k]=local; kept.push(k); }
+  }
+  if(kept.length) console.warn('[sync] 云端版本更旧，已保留本机数据：', kept);
+  return { merged:out, kept };
+}
 async function wbPull(force){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   try{
@@ -911,10 +944,19 @@ async function wbPull(force){
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
       if(force || cloudAt>seenVer){
-        const merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
+        let merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
+        let kept=[];
+        if(!force){                                    /* 手动强制拉取=明确要以云端为准，不做保护 */
+          const g=wbGuardStale(merged, data.payload.data);
+          merged=g.merged; kept=g.kept;
+        }
         await wbApply(merged);
         wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
         try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
+        if(kept.length){
+          try{ wbToast('云端数据比你本机旧，已保留本机记录'); }catch(e){}
+          wbSchedulePush(true);                        /* 顺手把本机新数据回传云端，让云端跟上 */
+        }
       }
     }
   }catch(e){ console.error(e); }
