@@ -278,7 +278,22 @@
 
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-js.min.js" onerror="wbLoadSupaFallback()"></script>
+<script>
+/* 本地同源加载 supabase 库（已随仓库部署，不受大陆 CDN 封锁影响）。
+   仅当本地文件意外缺失（未部署/404）时，才回退到公共 CDN 兜底。 */
+function wbLoadSupaFallback(){
+  if(window.supabase) return;
+  var urls=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','https://unpkg.com/@supabase/supabase-js@2'];
+  (function tryNext(i){
+    if(i>=urls.length || window.supabase) return;
+    var s=document.createElement('script'); s.src=urls[i];
+    s.onload=function(){ if(!window.supabase && i+1<urls.length) tryNext(i+1); };
+    s.onerror=function(){ if(i+1<urls.length) tryNext(i+1); };
+    document.head.appendChild(s);
+  })(0);
+}
+</script>
 </head>
 <body data-page-node-id="zQi5isgtvKzYxgBGlGNdsu">
 <div class="app" data-page-node-id="CPSIZ3C5vHA2xFqXQtWHDQ">
@@ -610,7 +625,8 @@ function wbLoadCfg(){
      现用的 Supabase 同步层只依赖 connected 一个字段，删除其余字段不影响同步。 */
   if(wbSync.github!==undefined || wbSync.provider!==undefined || wbSync.gist_id!==undefined || wbSync.token!==undefined){
     const c=wbSync.connected;
-    wbSync={connected:c};
+    const ud=wbSync.userDisconnected;
+    wbSync={connected:c, userDisconnected:ud};
     try{ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }catch(e){}
     console.warn('[wb] 已清除旧版 GitHub 同步配置（含明文令牌）');
   }
@@ -988,7 +1004,7 @@ async function wbConnect(){
   }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
 }
 function wbDisconnect(){
-  wbSync.connected=false; wbSaveCfg(); wbUpdateSyncUI();
+  wbSync.connected=false; wbSync.userDisconnected=true; wbSaveCfg(); wbUpdateSyncUI();
   if(wbPollTimer){ clearInterval(wbPollTimer); wbPollTimer=null; }
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
   wbToast('已断开云同步');
@@ -1023,7 +1039,17 @@ async function wbSilentReconnect(){
   wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
-  if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
+  if(wbSync.userDisconnected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
+  if(!window.supabase){   /* 库还在异步加载（仅本地缺失、走了 CDN 兜底时），稍后重试 */
+    if(dot) dot.style.background='#c9bfae'; wbReady=true;
+    setTimeout(function(){ wbSilentReconnect(); }, 4000);
+    return;
+  }
+  if(!wbSync.connected){
+    /* 后端已预配置（无需用户填密钥），打开即自动连接，免手动点「连接」 */
+    try{ await wbConnect(); }catch(e){ if(dot) dot.style.background='#c9bfae'; }
+    return;
+  }
   if(dot) dot.style.background='#3aa76d';
   try{ await wbPull(); }catch(e){}
   wbReady=true;                                   /* 拉取完成后才放开推送闸门 */
