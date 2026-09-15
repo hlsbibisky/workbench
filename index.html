@@ -611,6 +611,7 @@ function wbSyncDetailText(){
 }
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
 let wbReady=false, wbPendingPush=false, wbLastPushSig='';
+let wbSbOk=false, wbGhOk=false, wbGhErr='';   /* 双通道状态（必须在读取前声明，否则 wbPush/wbUpdateSyncUI 直接 ReferenceError） */
 const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver','wb_merge_shadow'];
 /* 污染键：源于旧写法 localStorage.setItem=fn。localStorage 是 Storage 对象，带 WebIDL
    named property setter；在严格实现的浏览器（iOS Safari/WebKit）里该赋值不会覆盖方法，
