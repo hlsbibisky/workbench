@@ -526,7 +526,7 @@ function autoRestore(){
 }
 
 /* ================= 卡片顺序（拖拽自定义） ================= */
-const DEFAULT_ORDER=['trend','quote','val','pan','eps','pepath','flow','flowcum','margin','holder','reports','dividend','verdict'];
+const DEFAULT_ORDER=['trend','quote','val','pan','eps','pepath','flow','holder','flowcum','margin','reports','dividend','verdict'];
 function loadOrder(){
   try{
     const a=JSON.parse(localStorage.getItem(LSK_ORDER));
@@ -646,7 +646,7 @@ function buildCards(){
     <div class="note">以现价 ${n2(q.price)} 元、EPS 按一致预期增长，前向 PE 逐年回落（红虚线=30x 锚）。</div>
   `,'c6');
 
-  map.flow=card('flow','主力资金流（近120日）',DATA.meta.flow_src||'东方财富',`<svg class="svgbox" viewBox="0 0 680 210" id="svgFlow"></svg>`,'c7');
+  map.flow=card('flow','主力资金流（近120日）',DATA.meta.flow_src||'东方财富',`<svg class="svgbox" viewBox="0 0 680 210" id="svgFlow"></svg>`,'c6');
   const c=card('flowcum','资金流累计',DATA.meta.flow_src||'东方财富',[
     kv('近5日',fmtYi(d.cum_5),cls(d.cum_5)), kv('近10日',fmtYi(d.cum_10),cls(d.cum_10)),
     kv('近20日',fmtYi(d.cum_20),cls(d.cum_20)), kv('近120日',fmtYi(d.cum_120),cls(d.cum_120)),
