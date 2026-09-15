@@ -651,7 +651,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260915d';
+const WB_THIS_VER='20260915e';
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
@@ -845,14 +845,32 @@ function wbMergeDaily(localStr,cloudStr){
   try{ C=JSON.parse(cloudStr||'null'); }catch(e){ C=null; }
   if(!L||!L.records) return cloudStr||localStr;
   if(!C||!C.records) return localStr;
-  const out={records:Object.assign({},C.records||{}),tags:Object.assign({},C.tags||{})};
+  /* 注意：DAILY_STATUS 是「每日状态记录」与「日期记录」两页共用同一键，
+     各自写入不同字段：records(文字)/tags(驱动力标签)/stags(状态标签) + monthNotes(月份备注)/yearNotes(年份备注)。
+     旧版只复制 records/tags，导致 stags/monthNotes/yearNotes 每次同步都被整段抹掉 —— 这正是「标签重置、月份框文字丢失」的根因。
+     这里必须把全部字段都保留并按字段正确合并，缺一不可。 */
+  const out={
+    records:Object.assign({},C.records||{}),
+    tags:Object.assign({},C.tags||{}),
+    stags:Object.assign({},C.stags||{}),
+    monthNotes:Object.assign({},C.monthNotes||{}),
+    yearNotes:Object.assign({},C.yearNotes||{})
+  };
+  /* 逐日文字：取内容更充实的一方，不被短版本覆盖 */
   Object.keys(L.records||{}).forEach(d=>{
     const a=out.records[d]||'', b=L.records[d]||'';
-    out.records[d]=(b.length>=a.length)?b:a;   /* 同一天取内容更充实的一方 */
+    out.records[d]=(b.length>=a.length)?b:a;
   });
-  Object.keys(L.tags||{}).forEach(d=>{
-    const a=out.tags[d]||[], b=L.tags[d]||[];
-    out.tags[d]=(b.length>=a.length)?b:a;
+  /* 逐日标签：用并集（两侧可能各选了不同标签，互相覆盖会丢数据） */
+  const unionArr=(a,b)=>Array.from(new Set((a||[]).concat(b||[])));
+  Object.keys(L.tags||{}).forEach(d=>{ out.tags[d]=unionArr(out.tags[d], L.tags[d]); });
+  Object.keys(L.stags||{}).forEach(d=>{ out.stags[d]=unionArr(out.stags[d], L.stags[d]); });
+  /* 月/年备注：按 key 合并，非空的较长一方胜 */
+  ['monthNotes','yearNotes'].forEach(fld=>{
+    Object.keys(L[fld]||{}).forEach(k=>{
+      const a=(out[fld][k]||''), b=(L[fld][k]||'');
+      out[fld][k]=(String(b).length>=String(a).length)?b:a;
+    });
   });
   return JSON.stringify(out);
 }
