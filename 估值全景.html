@@ -248,23 +248,7 @@
     </div>
   </div>
 
-  <!-- 3 黄金 -->
-  <div class="mod" id="mod-gold">
-    <div class="mod-hd" onclick="toggleMod('mod-gold')">
-      <div class="tt"><span class="ico">🥇</span>黄金<span class="tag" id="goldTag">金价 · ETF · 情绪 · 影响因素</span></div>
-      <div class="rr"><span class="caret">▼</span></div>
-    </div>
-    <div class="mod-bd"><div id="goldBody"><div class="loading">加载中…</div></div></div>
-  </div>
-
-  <!-- 4 全球 -->
-  <div class="mod" id="mod-global">
-    <div class="mod-hd" onclick="toggleMod('mod-global')">
-      <div class="tt"><span class="ico">🌍</span>全球市场<span class="tag">股指 · 大宗 · 外汇 · 加密</span></div>
-      <div class="rr"><span class="caret">▼</span></div>
-    </div>
-    <div class="mod-bd"><div id="globalBody"><div class="loading">加载中…</div></div></div>
-  </div>
+  <!-- 黄金 / 全球市场 已拆分至「全球视野.html」 -->
 
   <!-- 5 A股主要指数估值 -->
   <div class="mod" id="mod-index">
@@ -292,7 +276,7 @@
     <p><strong>主线热度：</strong>今日涨幅 25% + 广度 15% + 主力资金 25% + 龙头高度 15% + 持续性 20%，第一名归一化为 100%。</p>
     <p><strong>主线的定义：</strong>今日上涨、近 5 日与近 10 日累计均为正、上涨家数过半、主力资金净流入——四者同时成立才算主线，单日脉冲不算。</p>
     <p><strong>领导力：</strong>个股对板块指数涨跌的贡献度 = 涨跌幅 × 流通市值，按贡献占比排序。</p>
-    <p><strong>数据来源：</strong>东方财富（指数/板块/黄金/资金流）、腾讯财经（原油/伦敦金）、新浪财经（比特币/财经快讯）。数据为延时行情，仅供参考。</p>
+    <p><strong>数据来源：</strong>东方财富（指数/板块/资金流）。数据为延时行情，仅供参考。</p>
   </div>
 </div>
 
@@ -371,16 +355,6 @@ function esc(s){ return String(s === undefined || s === null ? '' : s).replace(/
 /* ==================== 数据源封装 ==================== */
 const EM = 'https://push2delay.eastmoney.com/api/qt/';
 
-/* 东财批量行情（指数 / 商品 / ETF） */
-async function emQuotes(secids){
-  const url = EM + 'ulist.np/get?secids=' + encodeURIComponent(secids.join(',')) +
-    '&fields=f1,f2,f3,f4,f12,f13,f14,f124&fltt=2&invt=2';
-  const j = await jsonp(url, 'cb', 9000);
-  const d = (j && j.data && j.data.diff) || [];
-  const out = {};
-  d.forEach(function(x){ out[x.f12] = { code:x.f12, name:x.f14, price:x.f2, pct:x.f3, chg:x.f4 }; });
-  return out;
-}
 /* 东财板块列表。注意：pz 上限 100（传再大也只回 100），po 升序无效，要拿全量只能分页 */
 async function emBoard(fs, fid, pz, po, pn){
   const url = EM + 'clist/get?pn=' + (pn || 1) + '&pz=' + (pz || 60) + '&po=' + (po || 1) + '&np=1&fltt=2&invt=2&fid=' + (fid || 'f62') +
@@ -407,21 +381,6 @@ async function ensureBoards(kind){
 /* 东财板块成分股 */
 async function emMembers(bk, pz){
   return emBoard('b:' + bk, 'f3', pz || 60, 1);
-}
-/* 腾讯外盘 hf_ 系列：price=[0] pct=[1] high=[4] low=[5] prev=[7] open=[8]
-   注意：qt.gtimg.cn 返回的是 v_xxx="值" 形式的赋值语句，jsonpVar 取到的是「值」本身，
-   不含 v_xxx= 前缀，所以这里直接按逗号切分，不能再拿正则去匹配脚本文本。 */
-async function txHfOne(code){
-  const v = await jsonpVar('https://qt.gtimg.cn/q=' + code, 'v_' + code, 9000);
-  const p = String(v === undefined || v === null ? '' : v).split(',');
-  if(p.length < 9) return null;
-  return { code:code, price:num(p[0]), pct:num(p[1]), high:num(p[4]), low:num(p[5]), prev:num(p[7]), open:num(p[8]) };
-}
-async function txHf(codes){
-  const rs = await Promise.all(codes.map(function(c){ return safe(txHfOne(c)); }));
-  const out = {};
-  rs.forEach(function(r, i){ if(r) out[codes[i]] = r; });
-  return out;
 }
 /* 腾讯K线（日线前复权）。接口固定回写全局变量 kday，并发会互相覆盖，故串行执行 */
 let _klock = Promise.resolve();
@@ -740,203 +699,6 @@ function drawLines(dates, a, b, na, nb){
   return svg;
 }
 
-/* ==================== 模块3：黄金 ==================== */
-const GOLD_KEYS = ['黄金','金价','美联储','加息','降息','避险','通胀','美元','贵金属','白银','央行购金','地缘','实际利率'];
-async function loadGold(){
-  try{
-    const [q, news] = await Promise.all([
-      safe(emQuotes(['101.GC00Y','113.au2610','0.159934','1.518880','0.159937','1.518800','100.UDI','101.SI00Y'])),
-      safe(loadGoldNews())
-    ]);
-    let xau = null;
-    try{
-      const p = (await safe(txHf(['hf_XAU']))) || {};
-      if(p['hf_XAU']) xau = { name:'伦敦金现货', price:p['hf_XAU'].price, pct:p['hf_XAU'].pct };
-    }catch(e){}
-    S.gold = { q:q || {}, xau:xau, news:news || [] };
-    renderGold();
-  }catch(e){
-    document.getElementById('goldBody').innerHTML = '<div class="empty">黄金数据暂时获取不到，请稍后重试</div>';
-  }
-}
-async function loadGoldNews(){
-  const url = 'https://zhibo.sina.com.cn/api/zhibo/feed?page=1&page_size=60&zhibo_id=152&tag_id=0&dire=f&dpc=1';
-  const j = await jsonp(url, 'callback', 9000);
-  const list = (((j || {}).result || {}).data || {}).feed ? ((j.result.data.feed.list) || []) : [];
-  const out = [];
-  list.forEach(function(x){
-    const txt = (x.rich_text || '').replace(/<[^>]+>/g, '');
-    if(!txt) return;
-    let hit = 0;
-    GOLD_KEYS.forEach(function(k){ if(txt.indexOf(k) >= 0) hit++; });
-    if(hit > 0) out.push({ t:(x.create_time || '').slice(5, 16), x:txt, hit:hit });
-  });
-  out.sort(function(a, b){ return b.hit - a.hit; });
-  return out.slice(0, 10);
-}
-function goldMood(g){
-  const gc = g.q['GC00Y'] || {};
-  const pct = num(gc.pct, 0);
-  const udi = g.q['UDI'] || {};
-  const udiPct = num(udi.pct, 0);
-  let t, s;
-  if(pct >= 1.5){ t = '黄金强势拉升，避险与多头情绪主导'; }
-  else if(pct >= 0.5){ t = '黄金稳步走强，多头略占上风'; }
-  else if(pct > -0.5){ t = '黄金高位震荡，多空暂时平衡'; }
-  else if(pct > -1.5){ t = '黄金小幅回落，短线承压'; }
-  else { t = '黄金明显走弱，避险情绪降温'; }
-  let extra = [];
-  if(udiPct > 0.2) extra.push('美元指数上行 ' + sgn(udiPct) + '%，对金价形成压制');
-  else if(udiPct < -0.2) extra.push('美元指数走弱 ' + sgn(udiPct) + '%，对金价构成支撑');
-  else extra.push('美元指数基本走平，方向性指引有限');
-  const etf = g.q['159934'] || {};
-  if(num(etf.pct, null) !== null) extra.push('黄金ETF易方达(159934) ' + sgn(num(etf.pct, 0)) + '%');
-  s = extra.join(' · ');
-  return { t:t, s:s, pct:pct };
-}
-function renderGold(){
-  const g = S.gold;
-  const q = g.q || {};
-  const gc = q['GC00Y'] || {};      // COMEX黄金 美元/盎司
-  const au = q['au2610'] || {};     // 沪金 元/克
-  const etfs = ['159934','518880','159937','518800'].map(function(k){ return q[k]; }).filter(Boolean);
-  const mood = goldMood(g);
-  function cell(label, price, pct, unit){
-    return '<div class="gcell"><div class="gl">' + label + '</div>' +
-      '<div class="gn ' + cls(pct) + '">' + fmt(price, 2) + '</div>' +
-      '<div class="gp">' + pctPill(pct) + ' <span style="color:var(--sub);font-weight:600">' + unit + '</span></div></div>';
-  }
-  let html = '<div class="goldtop">';
-  html += cell('国际金价 · COMEX黄金', num(gc.price), num(gc.pct), '美元/盎司');
-  if(g.xau) html += cell('国际金价 · 伦敦金现货', num(g.xau.price), num(g.xau.pct), '美元/盎司');
-  html += cell('国内金价 · 沪金主力', num(au.price), num(au.pct), '元/克');
-  html += cell('美元指数', num(q['UDI'] && q['UDI'].price), num(q['UDI'] && q['UDI'].pct), '');
-  html += '</div>';
-
-  html += '<div class="mood"><span class="mi">' + (mood.pct >= 0 ? '📈' : '📉') + '</span>' +
-    '<div><div class="mt">' + mood.t + '</div><div class="ms">' + mood.s + '</div></div></div>';
-
-  html += '<div class="subgrid"><div class="subcard"><h4>我关注的黄金 ETF</h4>' +
-    etfs.map(function(e){
-      return '<div class="kv"><span class="k">' + esc(e.name) + '<span style="color:#b3aca2"> ' + e.code + '</span></span>' +
-        '<span class="v"><span class="' + cls(e.pct) + '">' + fmt(e.price, 3) + '</span> <span class="sm">' + pctPill(e.pct) + '</span></span></div>';
-    }).join('') + '</div>';
-
-  const si = q['SI00Y'];
-  html += '<div class="subcard"><h4>贵金属联动</h4>' +
-    '<div class="kv"><span class="k">COMEX 白银</span><span class="v ' + cls(si && si.pct) + '">' + fmt(si && si.price, 2) + ' <span class="sm">' + pctPill(si && si.pct) + '</span></span></div>' +
-    '<div class="kv"><span class="k">金银联动</span><span class="v">' + (si && si.pct !== undefined && gc.pct !== undefined ? (si.pct > gc.pct ? '白银强于黄金，风险偏好回升' : '黄金强于白银，避险属性占优') : '—') + '</span></div>' +
-    '</div></div>';
-
-  html += '<div class="subcard" style="margin-top:12px"><h4>影响金价的关键讯息<span class="more">关键词：美联储 · 降息 · 避险 · 通胀 · 美元</span></h4>' +
-    (g.news.length
-      ? '<div class="news">' + g.news.map(function(n){
-          return '<div class="ni"><div class="nt">' + esc(n.t) + '</div><div class="nx">' + esc(n.x) + '</div></div>';
-        }).join('') + '</div>'
-      : '<div class="empty">暂未获取到相关资讯</div>') + '</div>';
-
-  document.getElementById('goldBody').innerHTML = html;
-}
-
-/* ==================== 模块4：全球市场 ==================== */
-const GLOBAL_IDX = [
-  { id:'100.DJIA',  n:'道琼斯',        g:'美股' },
-  { id:'100.NDX',   n:'纳斯达克',      g:'美股' },
-  { id:'100.SPX',   n:'标普500',       g:'美股' },
-  { id:'100.HSI',   n:'恒生指数',      g:'亚太' },
-  { id:'100.HSCEI', n:'国企指数',      g:'亚太' },
-  { id:'100.N225',  n:'日经225',       g:'亚太' },
-  { id:'100.KS11',  n:'韩国KOSPI',     g:'亚太' },
-  { id:'100.TWII',  n:'台湾加权',      g:'亚太' },
-  { id:'100.STI',   n:'新加坡海峡时报', g:'亚太' },
-  { id:'100.SENSEX',n:'印度SENSEX',    g:'亚太' },
-  { id:'100.AORD',  n:'澳洲普通股',     g:'亚太' },
-  { id:'100.GDAXI', n:'德国DAX',       g:'欧洲' },
-  { id:'100.FCHI',  n:'法国CAC40',     g:'欧洲' },
-  { id:'100.FTSE',  n:'英国富时100',    g:'欧洲' },
-  { id:'100.RTS',   n:'俄罗斯RTS',     g:'欧洲' },
-  { id:'100.BVSP',  n:'巴西BOVESPA',   g:'美洲' },
-];
-const TX_COMM = [
-  { c:'hf_CL',  n:'WTI原油',   u:'美元/桶' },
-  { c:'hf_OIL', n:'布伦特原油', u:'美元/桶' },
-];
-async function loadGlobal(){
-  try{
-    const [q, btc] = await Promise.all([
-      safe(emQuotes(GLOBAL_IDX.map(function(x){ return x.id; }).concat(['101.HG00Y', '100.BDI']))),
-      safe(loadBtc())
-    ]);
-    let comm = [];
-    try{
-      const p = (await safe(txHf(TX_COMM.map(function(x){ return x.c; })))) || {};
-      comm = TX_COMM.map(function(x){
-        const v = p[x.c];
-        return v ? { name:x.n, price:v.price, pct:v.pct, unit:x.u } : null;
-      }).filter(Boolean);
-    }catch(e){}
-    S.global = { q:q || {}, comm:comm, btc:btc };
-    renderGlobal();
-  }catch(e){
-    document.getElementById('globalBody').innerHTML = '<div class="empty">全球市场数据暂时获取不到，请稍后重试</div>';
-  }
-}
-async function loadBtc(){
-  // 新浪 hq.sinajs.cn 在跨域页面下会拒绝（onerror），改用 Gate.io 公开行情（带 CORS 头）
-  try{
-    const r = await fetch('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT', { cache:'no-store' });
-    if(!r.ok) return null;
-    const a = await r.json();
-    const t = (a && a[0]) || null;
-    if(!t) return null;
-    const price = num(t.last), pct = num(t.change_percentage ? parseFloat(t.change_percentage) : null);
-    if(price === null) return null;
-    return { name:'比特币 BTC/USDT', price:price, pct:pct, unit:'美元' };
-  }catch(e){ return null; }
-}
-function gItem(name, price, pct, unit){
-  return '<div class="gitem"><div class="gn2">' + esc(name) + '</div>' +
-    '<div class="gv2 ' + cls(pct) + '">' + fmt(price, price && price > 1000 ? 0 : 2) + '</div>' +
-    '<div class="gp2">' + pctPill(pct) + (unit ? ' <span style="color:var(--sub);font-weight:600;font-size:10.5px">' + unit + '</span>' : '') + '</div></div>';
-}
-function renderGlobal(){
-  const G = S.global;
-  const q = G.q || {};
-  const all = GLOBAL_IDX.map(function(x){
-    const d = q[x.id.replace('100.', '')] || {};
-    return { n:x.n, g:x.g, price:d.price, pct:d.pct };
-  }).filter(function(x){ return x.price !== undefined; });
-  const shown = S.showAllGlobal ? all : all.slice(0, 6);
-  const ups = all.filter(function(x){ return num(x.pct, 0) > 0; }).length;
-  const dns = all.filter(function(x){ return num(x.pct, 0) < 0; }).length;
-  let html = '<div class="subgrid">';
-
-  html += '<div class="subcard"><h4>📈 全球股指<span class="more" onclick="S.showAllGlobal=!S.showAllGlobal;renderGlobal()">' +
-    (S.showAllGlobal ? '收起' : '展开全部 ' + all.length + ' 个') + '</span></h4>' +
-    '<div class="ggrid">' + shown.map(function(x){ return gItem(x.n, x.price, x.pct, ''); }).join('') + '</div>' +
-    '<div class="axis"><span>上涨 ' + ups + '</span><span>下跌 ' + dns + '</span><span>共 ' + all.length + ' 个市场</span></div></div>';
-
-  const hg = q['HG00Y'], bdi = q['BDI'];
-  html += '<div class="subcard"><h4>🛢 大宗商品与另类资产</h4><div class="ggrid">' +
-    G.comm.map(function(c){ return gItem(c.name, c.price, c.pct, c.unit); }).join('') +
-    (hg ? gItem('COMEX铜', hg.price, hg.pct, '美元/磅') : '') +
-    (bdi ? gItem('波罗的海BDI', bdi.price, bdi.pct, '全球干散货运价') : '') +
-    (G.btc ? gItem(G.btc.name, G.btc.price, G.btc.pct, '美元') : '<div class="gitem"><div class="gn2">比特币</div><div class="gv2" style="font-size:13px;color:var(--sub)">暂不可用</div><div class="gp2 flat">—</div></div>') +
-    '</div></div>';
-
-  html += '<div class="subcard"><h4>🌐 分区概览</h4>' +
-    ['美股','亚太','欧洲','美洲'].map(function(gp){
-      const arr = all.filter(function(x){ return x.g === gp; });
-      if(!arr.length) return '';
-      const avg = arr.reduce(function(s, x){ return s + num(x.pct, 0); }, 0) / arr.length;
-      return '<div class="kv"><span class="k">' + gp + '（' + arr.length + '）</span>' +
-        '<span class="v ' + cls(avg) + '">' + sgn(avg) + '%</span></div>';
-    }).join('') + '</div>';
-
-  html += '</div>';
-  document.getElementById('globalBody').innerHTML = html;
-}
-
 /* ==================== 模块5/6：估值（保留原逻辑） ==================== */
 const INDICES = [
   {code:'000001', name:'上证指数', type:'综合指数'},
@@ -1109,7 +871,7 @@ async function doRefreshAll(){
   btn.disabled = true; btn.textContent = '⏳ 加载中…';
   document.getElementById('updateTime').textContent = '数据加载中…';
   S.boards = {}; S.mainDetail = {};
-  await Promise.all([loadFund(), loadMainline(), loadGold(), loadGlobal(), loadVal()]);
+  await Promise.all([loadFund(), loadMainline(), loadVal()]);
   document.getElementById('updateTime').textContent = '更新于 ' + new Date().toLocaleString('zh-CN') + ' · 东方财富 / 腾讯财经 / 新浪财经';
   btn.disabled = false; btn.textContent = '🔄 刷新全部';
 }
