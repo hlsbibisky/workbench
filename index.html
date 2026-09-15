@@ -611,7 +611,7 @@ function wbSyncDetailText(){
 }
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
 let wbReady=false, wbPendingPush=false, wbLastPushSig='';
-let wbSbOk=false, wbGhOk=false, wbGhErr='';   /* 双通道状态（必须在读取前声明，否则 wbPush/wbUpdateSyncUI 直接 ReferenceError） */
+let wbSbOk=false, wbGhOk=false, wbGhErr='', wbSbErr='';   /* 双通道状态（必须在读取前声明，否则 wbPush/wbUpdateSyncUI 直接 ReferenceError） */
 let wbVerified=false;                          /* 本会话是否已完成一次真实通道验证（未完成前 UI 显示「验证中」而非「不可达」） */
 const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver','wb_merge_shadow'];
 /* 污染键：源于旧写法 localStorage.setItem=fn。localStorage 是 Storage 对象，带 WebIDL
@@ -738,8 +738,10 @@ async function wbApply(o){
   if(changed) wbBroadcastReload();
 }
 function wbSchedulePush(immediate){
-  wbLoadCfg(); if(!wbSync.connected) return;
-  /* 首次拉取尚未完成前一律不推，避免用本机旧数据覆盖另一台设备刚写的记录 */
+  wbLoadCfg();
+  if(wbSync.userDisconnected) return;                 /* 用户主动断开就别推了 */
+  if(!wbVerified){ try{ wbConnect(); }catch(e){} }     /* 还没验证就先触发验证，别把保存静默丢掉 */
+  /* 首次拉取尚未完成前一律不推，避免用本机旧数据覆盖另一台设备刚写的记录；连上后会自动补推 */
   if(!wbReady){ wbPendingPush=true; return; }
   if(wbPushTimer) clearTimeout(wbPushTimer);
   wbPushTimer=setTimeout(()=>wbPush(true), immediate?0:800);
@@ -891,7 +893,12 @@ function wbRequestSave(){
   if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存本地，正在同步云端…'); }
   else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
-window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
+window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){
+  const base=e.data.msg||'已保存';
+  /* 保存即反馈真实同步状态，不再只说「已保存」让人以为同步了 */
+  if(wbSync && wbSync.connected) wbToast(base+'，正在同步云端…');
+  else wbToast(base+'（云端未连接，稍后连上自动补同步）');
+} });
 function wbUpdateSyncUI(){
   const dot=document.getElementById('wbSyncDot');
   const st=document.getElementById('wbSyncState');
@@ -1008,6 +1015,8 @@ async function wbPush(silent){
     }
   }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); }
   finally{ wbBusy=false; }
+  /* 面板开着就顺手刷新出最新通道状态与报错，免得用户看的是旧画面 */
+  try{ const m=document.getElementById('wbSyncModal'); if(m && m.style.display!=='none') wbOpenSync(); }catch(e){}
 }
 /* ===== 防陈旧云端反向覆盖（2026-09-15 加） =====
    事故复盘：本机「已见云端版本」标记(WB_K_CLOUD_VER)一旦丢失（清缓存/新会话/首次连接）
@@ -1098,7 +1107,7 @@ function wbStartPoll(){
 async function wbConnect(){
   wbLoadCfg();
   /* 并行验证两个通道，任一真实往返成功即算"已连接"；绿点只在点亮时代表真连通 */
-  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c) return false; const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ return false; } })();
+  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c){ wbSbErr='Supabase 库未加载'; return false; } const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ wbSbErr=(e&&e.message)||'Supabase 不可达'; return false; } })();
   const ghTask=(async()=>{ try{ if(!wbGhToken()) return false; await wbGhGetFile(); return true; }catch(e){ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; } })();
   const [sbOk, ghOk]=await Promise.all([sbTask, ghTask]);
   wbSbOk=sbOk; wbGhOk=ghOk; wbVerified=true;
@@ -1144,7 +1153,7 @@ function wbOpenSync(){
   const conn=wbSync.connected?'已连接（自动同步中）':'未连接';
   const urlMask=WB_SUPABASE_URL.replace(/^(https:\/\/[^.]+).*$/,'$1• • • • •');
   /* 未完成验证时显示「验证中…」而不是「不可达」，避免误导；面板打开时顺带触发一次验证 */
-  const sbState=wbVerified?(wbSbOk?'<span style="color:#2e8b57">已连通 ✓</span>':'<span style="color:#c0392b">不可达</span>'):'<span style="color:#7a6f60">验证中…</span>';
+  const sbState=wbVerified?(wbSbOk?'<span style="color:#2e8b57">已连通 ✓</span>':'<span style="color:#c0392b">不可达'+(wbSbErr?('：'+wbSbErr):'')+'</span>'):'<span style="color:#7a6f60">验证中…</span>';
   const ghState=wbVerified
     ?(wbGhToken()?(wbGhOk?'已连通 ✓':('不可达'+(wbGhErr?('：'+wbGhErr):''))):'未配置（不开代理也能同步，建议填）')
     :(wbGhToken()?'验证中…':'未配置（不开代理也能同步，建议填）');
