@@ -954,6 +954,18 @@ function wbGhVerify(){
   const token=wbGhToken(); if(!token) return Promise.resolve(false);
   return wbGhGetFile().then(()=>true).catch(e=>{ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; });
 }
+/* 通过链接 #gh=令牌 一次性自动填入（避免手动粘贴；填入后立即抹掉地址栏里的令牌） */
+function wbTryHashToken(){
+  try{
+    const h=location.hash||'';
+    const m=h.match(/[#&]gh=([^&]+)/);
+    if(!m) return false;
+    const t=decodeURIComponent(m[1]);
+    if(t) localStorage.setItem(WB_K_GH_TOKEN, t);
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
 async function wbPush(silent){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   let sbCloud=null, ghCloud=null, sbErr=null, ghErr=null;
@@ -1148,6 +1160,7 @@ function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
 async function wbSilentReconnect(){
   wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
+  wbTryHashToken();       /* 若通过 #gh=令牌 链接打开，自动把令牌写入本地（只此一次） */
   wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
