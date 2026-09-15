@@ -651,7 +651,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260915b';
+const WB_THIS_VER='20260915c';
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
@@ -1000,7 +1000,7 @@ async function wbPush(silent){
     const writes=[];
     if(window.supabase) writes.push((async()=>{ try{ const c=wbSbInit(); if(!c) throw new Error('Supabase 未初始化'); const now=new Date().toISOString(); const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now }; const { error }=await c.from('workbench_sync').upsert(row, { onConflict:'id' }); if(error) throw error; }catch(e){ sbErr=e; throw e; } })());
     if(wbGhToken()) writes.push((async()=>{ try{ await wbPushGithubWith(merged); }catch(e){ ghErr=e; throw e; } })());
-    if(!writes.length){ wbBusy=false; if(!silent) wbToast('没有可用通道：未配置 GitHub 令牌且 Supabase 库未加载'); return; }
+    if(!writes.length){ wbBusy=false; if(!silent) wbToast('没有可用通道：未配置 GitHub 令牌且 Supabase 库未加载'); wbMarkDisconnected(); return; }
     const res=await Promise.allSettled(writes);
     const anyOk=res.some(r=>r.status==='fulfilled');
     if(anyOk){
@@ -1012,9 +1012,9 @@ async function wbPush(silent){
       wbUpdateSyncUI(); if(!silent) wbToast('已同步 ✓ '+fmtHM(new Date()));
     }else{
       const m='同步失败：'+((sbErr&&sbErr.message)||(ghErr&&ghErr.message)||'未知错误');
-      setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m);
+      setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected();
     }
-  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); }
+  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected(); }
   finally{ wbBusy=false; }
   /* 面板开着就顺手刷新出最新通道状态与报错，免得用户看的是旧画面 */
   try{ const m=document.getElementById('wbSyncModal'); if(m && m.style.display!=='none') wbOpenSync(); }catch(e){}
@@ -1137,6 +1137,29 @@ function wbDisconnect(){
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
   wbToast('已断开云同步');
 }
+/* 两通道真正都写不通时调用：把可能卡住的假绿翻红，并安排自动重连（墙恢复/开代理后自绿） */
+function wbMarkDisconnected(){
+  if(wbSync.userDisconnected) return;
+  if(wbSync.connected){ wbSync.connected=false; wbSaveCfg(); wbUpdateSyncUI(); }
+  setTimeout(function(){ if(!wbSync.connected && !wbSync.userDisconnected) wbConnect(); }, 15000);
+}
+/* 心跳：每 90 秒重新真实验证一次，绿点永远 = 当下真实连通，杜绝「连上了却假绿」 */
+async function wbHeartbeat(){
+  if(wbSync.userDisconnected || wbBusy) return;
+  if(!window.supabase && !wbGhToken()) return;
+  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c) return false; const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ return false; } })();
+  const ghTask=(async()=>{ try{ if(!wbGhToken()) return false; await wbGhGetFile(); return true; }catch(e){ return false; } })();
+  const [sbOk, ghOk]=await Promise.all([sbTask, ghTask]);
+  wbSbOk=sbOk; wbGhOk=ghOk; wbVerified=true;
+  const nowConn=sbOk||ghOk;
+  if(nowConn!==wbSync.connected){
+    wbSync.connected=nowConn; wbSaveCfg();
+    if(nowConn){ wbReady=true; try{ wbStartPoll(); }catch(e){} wbToast('已连接（'+(sbOk?'Supabase':'')+(sbOk&&ghOk?' + ':'')+(ghOk?'GitHub':'')+'），开始同步'); }
+    else { wbToast('云同步通道已断开，正在自动重试…'); }
+    wbUpdateSyncUI();
+  }
+}
+setInterval(wbHeartbeat, 90000);
 function wbSaveGhToken(){
   const inp=document.getElementById('wbGhTokenInput'); if(!inp) return;
   const v=inp.value.trim();
