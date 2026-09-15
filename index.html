@@ -408,6 +408,7 @@ const MODULES = {
     title:'股票', note:'行情 · 持仓 · 策略', group:'common',
     sub:[
       {id:'valuation', name:'估值全景',   type:'iframe',  src:'估值全景.html',       status:'online'},
+      {id:'global',  name:'全球视野',     type:'iframe',  src:'全球视野.html',      status:'online', note:'全球股指 · 大宗 · 外汇 · 加密 · 黄金'},
       {id:'gegu',    name:'个股分析',     type:'iframe',  src:'个股分析.html',      status:'online', note:'全维估值体检 · 输入代码实时换股生成报告'},
       {id:'board',   name:'盘面跟踪',     type:'iframe',  src:'股票.html#board',   status:'online'},
       {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
@@ -649,8 +650,8 @@ function wbLoadCfg(){
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
-function wbIframeSrc(src){ var v='20260910d'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260915a';
+function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
+const WB_THIS_VER='20260915b';
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
