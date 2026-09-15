@@ -595,6 +595,20 @@ function wbSbInit(){
 const WB_K_SYNC='wb_cloudsync';
 const WB_K_LAST_SYNC='wb_last_sync_at';
 const WB_K_CLOUD_VER='wb_cloud_ver';
+const WB_K_LAST_ERR='wb_last_sync_err';
+function setLastSyncErr(msg){ try{ localStorage.setItem(WB_K_LAST_ERR, JSON.stringify({msg:String(msg||''), t:new Date().toISOString()})); }catch(e){} }
+function clearLastSyncErr(){ try{ localStorage.removeItem(WB_K_LAST_ERR); }catch(e){} }
+function getLastSyncErr(){ try{ return JSON.parse(localStorage.getItem(WB_K_LAST_ERR)||'null'); }catch(e){ return null; } }
+function fmtHM(d){ try{ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){ return ''; } }
+function wbSyncDetailText(){
+  const err=getLastSyncErr();
+  const last=localStorage.getItem(WB_K_LAST_SYNC);
+  let s='';
+  if(last && last!=='1970-01-01T00:00:00.000Z'){ try{ s+='上次成功同步：'+fmtHM(new Date(last))+'（本地时间）'; }catch(e){} }
+  else { s+='尚未成功同步过（云端暂无本机记录）'; }
+  if(err && err.msg){ s+='<br><span style="color:#c0392b">最近错误：'+escAttr(err.msg)+'（'+fmtHM(new Date(err.t))+'）</span>'; }
+  return s || '—';
+}
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
 let wbReady=false, wbPendingPush=false, wbLastPushSig='';
 const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver','wb_merge_shadow'];
@@ -865,7 +879,7 @@ function wbRequestSave(){
   const f=document.querySelector('.modbody iframe');
   if(!f || !f.contentWindow){ wbToast('已保存到本地'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存，正在同步云端…'); }
+  if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存本地，正在同步云端…'); }
   else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
@@ -875,16 +889,23 @@ function wbUpdateSyncUI(){
   wbLoadCfg();
   if(!wbSync || !wbSync.connected){
     if(dot) dot.style.background='#c9bfae';
-    if(st){ st.textContent='未连接'; st.className='wbsync-state off'; }
+    if(st){ st.textContent='未连接'; st.className='wbsync-state off'; st.title='云同步未连接：点「立即同步」或刷新后自动重连'; }
+    return;
+  }
+  /* 已连接（已通过真实往返验证）但上次推送报错 → 红点 + 失败文案，绝不假装成功 */
+  const err=getLastSyncErr();
+  if(err && err.msg){
+    if(dot) dot.style.background='#d9534f';
+    if(st){ st.textContent='同步失败'; st.className='wbsync-state err'; st.title=err.msg+'（'+fmtHM(new Date(err.t))+'）'; }
     return;
   }
   let txt='已连接';
   const last=localStorage.getItem(WB_K_LAST_SYNC);
   if(last && last!=='1970-01-01T00:00:00.000Z'){
-    try{ const d=new Date(last); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); txt='已同步 '+hh+':'+mm; }catch(e){ txt='已连接'; }
+    try{ const d=new Date(last); txt='已同步 '+fmtHM(d); }catch(e){ txt='已连接'; }
   }
   if(dot) dot.style.background='#3aa76d';
-  if(st){ st.textContent=txt; st.className='wbsync-state ok'; }
+  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功同步时间（本地）'; }
 }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
 async function wbPush(silent){
@@ -896,7 +917,7 @@ async function wbPush(silent){
     try{
       const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
       if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
-    }catch(e){ console.warn('取云端失败，本次跳过推送以免覆盖',e); wbBusy=false; return; }
+    }catch(e){ console.warn('取云端失败',e); const m='同步失败：无法连接云端（'+((e&&e.message)||'网络不可达')+'）'; setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbBusy=false; return; }
     const merged=cloudObj?await wbMergeAll(cloudObj,'push'):await wbCollect();
     const sig=wbSig(merged);
     if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
@@ -912,8 +933,9 @@ async function wbPush(silent){
        认为云端没有更新的内容，再也拉不到另一台设备刚推上来的数据（两端都显示已同步、
        内容却不对齐，就是这么来的）。留着旧值，下次轮询自然会把云端最新内容拉回本机。 */
     try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
-    wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端');
-  }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
+    clearLastSyncErr();
+    wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端 ✓ '+fmtHM(new Date(now)));
+  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); }
   finally{ wbBusy=false; }
 }
 /* ===== 防陈旧云端反向覆盖（2026-09-15 加） =====
@@ -995,13 +1017,25 @@ function wbStartPoll(){
 async function wbConnect(){
   wbLoadCfg();
   try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
-    wbSync.connected=true; wbSaveCfg();      /* 必须先置位，否则 wbPull 会被开头的未连接判断挡掉 */
-    try{ await wbPull(); }catch(e){ }
-    wbReady=true;
+    const client=wbSbInit(); if(!client) throw new Error('Supabase 库未加载（脚本未能加载？）');
+    /* 真实连通性验证：发一次轻量查询，云端真的响应才认为已连接；否则绝不点亮绿点 */
+    const { error } = await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
+    if(error) throw new Error('云端返回错误：'+(error.message||error.code||JSON.stringify(error)));
+    wbSync.connected=true; wbSaveCfg();      /* 验证通过才置位 */
+    wbReady=true;                            /* 连接已确证，放开推送闸门 */
+    try{ await wbPull(); }catch(e){ console.warn('初拉失败',e); }
     wbStartPoll();
-    wbToast('已连接，开始同步'); wbUpdateSyncUI();
-  }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
+    clearLastSyncErr();
+    wbToast('已连接云端，开始同步'); wbUpdateSyncUI();
+  }catch(e){
+    wbSync.connected=false; wbSaveCfg();
+    const m='连接失败：'+(e&&e.message?e.message:e);
+    setLastSyncErr(m);
+    const dot=document.getElementById('wbSyncDot'); if(dot) dot.style.background='#d9534f';
+    wbToast(m); wbUpdateSyncUI();
+    /* 30 秒后自动重试：网络恢复 / 开了代理后能自行转绿，无需手动操作 */
+    setTimeout(function(){ if(!wbSync.connected && !wbSync.userDisconnected) wbSilentReconnect(); }, 30000);
+  }
 }
 function wbDisconnect(){
   wbSync.connected=false; wbSync.userDisconnected=true; wbSaveCfg(); wbUpdateSyncUI();
@@ -1022,16 +1056,16 @@ function wbOpenSync(){
     +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据到你的 Supabase 云端（美食/股票/驱动力/周计划…），电脑与手机自动保持一致。无需令牌、换设备不清数据。</p>'
     +'<div style="margin-bottom:12px;font-size:12px;color:#7a6f60">Supabase 项目：<b style="color:#2c241b">'+escAttr(urlMask)+'</b></div>'
     +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
+    +'<div style="margin:0 0 12px;font-size:12px;color:#7a6f60;line-height:1.6">'+wbSyncDetailText()+'</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
-    +'<button onclick="wbDoConnect()" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">连接并同步</button>'
-    +'<button onclick="wbPush();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即上传</button>'
+    +'<button onclick="wbPush();" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即同步</button>'
+    +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
     +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
     +'</div>';
 }
-function wbDoConnect(){ wbLoadCfg(); wbConnect(); }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
 async function wbSilentReconnect(){
