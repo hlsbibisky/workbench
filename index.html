@@ -754,6 +754,13 @@ function wbSchedulePush(immediate){
      - 基线有、某一侧没有：该侧删除，删除（删除也能同步，不会复活）
      - 没有基线时只做并集，绝不删除（最保守，不会误删数据） */
 const WB_K_SHADOW='wb_merge_shadow';
+/* ===== GitHub 文件同步通道（双写互补备份，不开代理也能跨设备同步） =====
+   令牌存独立键 WB_K_GH_TOKEN（不进 wbSync 对象，故不受旧版自愈清除影响）；
+   用 fine-grained PAT，仅授权本仓库 Contents 读写，泄露危害被锁死。 */
+const WB_K_GH_TOKEN='wb_gh_token';
+const WB_GH_REPO='hlsbibisky/workbench';
+const WB_GH_FILE='data/workbench_sync.json';
+const WB_GH_API='https://api.github.com';
 function wbLoadShadow(){ try{ return JSON.parse(localStorage.getItem(WB_K_SHADOW))||{}; }catch(e){ return {}; } }
 function wbSaveShadow(o){ try{ const s={}; Object.keys(o||{}).forEach(k=>{ if(wbIsArr(o[k])) s[k]=o[k]; }); localStorage.setItem(WB_K_SHADOW, JSON.stringify(s)); }catch(e){} }
 function wbIsArr(v){ try{ const a=JSON.parse(v); return Array.isArray(a); }catch(e){ return false; } }
@@ -892,49 +899,92 @@ function wbUpdateSyncUI(){
     if(st){ st.textContent='未连接'; st.className='wbsync-state off'; st.title='云同步未连接：点「立即同步」或刷新后自动重连'; }
     return;
   }
-  /* 已连接（已通过真实往返验证）但上次推送报错 → 红点 + 失败文案，绝不假装成功 */
+  /* 已连接（至少一通道通过真实往返验证）但上次推送报错 → 红点 + 失败文案，绝不假装成功 */
   const err=getLastSyncErr();
   if(err && err.msg){
     if(dot) dot.style.background='#d9534f';
     if(st){ st.textContent='同步失败'; st.className='wbsync-state err'; st.title=err.msg+'（'+fmtHM(new Date(err.t))+'）'; }
     return;
   }
-  let txt='已连接';
+  /* 绿点：至少一通道可用。文案标明每个通道状态 */
+  let sb='Supabase'+(wbSbOk?'✓':'✗');
+  let gh=wbGhToken()?('GitHub'+(wbGhOk?'✓':'✗')):null;
+  let txt=sb+(gh?(' + '+gh):'');
   const last=localStorage.getItem(WB_K_LAST_SYNC);
   if(last && last!=='1970-01-01T00:00:00.000Z'){
-    try{ const d=new Date(last); txt='已同步 '+fmtHM(d); }catch(e){ txt='已连接'; }
+    try{ txt='已同步 '+fmtHM(new Date(last))+'（'+sb+(gh?(' + '+gh):'')+'）'; }catch(e){}
   }
   if(dot) dot.style.background='#3aa76d';
-  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功同步时间（本地）'; }
+  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功同步时间（本地）· 绿点=至少一通道真实连通'; }
 }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
+/* ================= GitHub 文件同步通道（备份） ================= */
+function wbGhToken(){ try{ return localStorage.getItem(WB_K_GH_TOKEN)||''; }catch(e){ return ''; } }
+function wbGhHeaders(){ const t=wbGhToken(); const h={'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}; if(t) h['Authorization']='Bearer '+t; return h; }
+async function wbGhGetFile(){
+  const url=WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+WB_GH_FILE;
+  const r=await fetch(url,{headers:wbGhHeaders(),cache:'no-store'});
+  if(r.status===404) return {exists:false};
+  if(!r.ok) throw new Error('GitHub 读取失败 HTTP '+r.status);
+  const j=await r.json();
+  let content=''; try{ content=decodeURIComponent(escape(window.atob(j.content.replace(/\s/g,'')))); }catch(e){ content=''; }
+  let obj=null; try{ obj=JSON.parse(content); }catch(e){ obj=null; }
+  return {exists:true, sha:j.sha, obj:obj};
+}
+async function wbPushGithubWith(merged){
+  const token=wbGhToken(); if(!token) return false;
+  const body={ updatedAt:new Date().toISOString(), data:merged };
+  const raw=JSON.stringify(body);
+  const content=btoa(unescape(encodeURIComponent(raw)));
+  const existing=await wbGhGetFile();
+  const payload={ message:'workbench sync '+new Date().toISOString(), content:content };
+  if(existing.exists && existing.sha) payload.sha=existing.sha;
+  const url=WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+WB_GH_FILE;
+  const r=await fetch(url,{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(payload)});
+  if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('GitHub 写入失败 HTTP '+r.status+(t?': '+t.slice(0,120):'')); }
+  return true;
+}
+async function wbPullGithub(){
+  const token=wbGhToken(); if(!token) return null;
+  const f=await wbGhGetFile();
+  if(!f.exists || !f.obj || !f.obj.data) return null;
+  return f.obj;   /* {updatedAt, data} */
+}
+function wbGhVerify(){
+  const token=wbGhToken(); if(!token) return Promise.resolve(false);
+  return wbGhGetFile().then(()=>true).catch(e=>{ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; });
+}
 async function wbPush(silent){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
+  let sbCloud=null, ghCloud=null, sbErr=null, ghErr=null;
   try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
-    /* 关键：推送前先取云端现有内容做合并，绝不整库覆盖，否则会抹掉另一台设备的记录 */
-    let cloudObj=null;
-    try{
-      const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
-      if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
-    }catch(e){ console.warn('取云端失败',e); const m='同步失败：无法连接云端（'+((e&&e.message)||'网络不可达')+'）'; setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbBusy=false; return; }
+    /* 先并行取两通道现有内容，用于合并（任一有即可，绝不整库覆盖） */
+    const reads=[];
+    if(wbSbOk) reads.push((async()=>{ try{ const c=wbSbInit(); if(!c) return; const { data }=await c.from('workbench_sync').select('payload').eq('id','me').maybeSingle(); if(data&&data.payload&&data.payload.data) sbCloud=data.payload.data; }catch(e){ sbErr=e; } })());
+    if(wbGhOk) reads.push((async()=>{ try{ const f=await wbGhGetFile(); if(f.exists&&f.obj&&f.obj.data) ghCloud=f.obj.data; }catch(e){ ghErr=e; } })());
+    if(reads.length) await Promise.allSettled(reads);
+    const cloudObj=sbCloud||ghCloud;
     const merged=cloudObj?await wbMergeAll(cloudObj,'push'):await wbCollect();
     const sig=wbSig(merged);
     if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
-    const now=new Date().toISOString();
-    const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now };
-    const { error }=await client.from('workbench_sync').upsert(row, { onConflict:'id' });
-    if(error) throw error;
-    wbLastPushSig=sig;
-    wbSaveShadow(merged);          /* 记录本次同步快照，作为下次三向合并的基线 */
-    /* 只有推送成功后才推进时间戳 */
-    /* 只更新界面显示的「已同步时间」，不推进 WB_K_CLOUD_VER。
-       push 只上传到云端、不会写回本机；若同时把 CLOUD_VER 推到本次时间，本机就会
-       认为云端没有更新的内容，再也拉不到另一台设备刚推上来的数据（两端都显示已同步、
-       内容却不对齐，就是这么来的）。留着旧值，下次轮询自然会把云端最新内容拉回本机。 */
-    try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
-    clearLastSyncErr();
-    wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端 ✓ '+fmtHM(new Date(now)));
+    /* 双通道并行写入 */
+    const writes=[];
+    if(wbSbOk) writes.push((async()=>{ try{ const c=wbSbInit(); if(!c) throw new Error('Supabase 未初始化'); const now=new Date().toISOString(); const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now }; const { error }=await c.from('workbench_sync').upsert(row, { onConflict:'id' }); if(error) throw error; }catch(e){ sbErr=e; throw e; } })());
+    if(wbGhOk) writes.push((async()=>{ try{ await wbPushGithubWith(merged); }catch(e){ ghErr=e; throw e; } })());
+    if(!writes.length){ wbBusy=false; return; }
+    const res=await Promise.allSettled(writes);
+    const anyOk=res.some(r=>r.status==='fulfilled');
+    if(anyOk){
+      wbLastPushSig=sig;
+      wbSaveShadow(merged);
+      try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
+      clearLastSyncErr();
+      const onlyGh = !sbErr && ghErr && wbSbOk===false;  /* 仅用于提示，不影响成功 */
+      wbUpdateSyncUI(); if(!silent) wbToast('已同步 ✓ '+fmtHM(new Date()));
+    }else{
+      const m='同步失败：'+((sbErr&&sbErr.message)||(ghErr&&ghErr.message)||'未知错误');
+      setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m);
+    }
   }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); }
   finally{ wbBusy=false; }
 }
@@ -974,27 +1024,31 @@ function wbGuardStale(merged, cloudObj){
 async function wbPull(force){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化');
-    const { data, error }=await client.from('workbench_sync').select('*').eq('id','me').maybeSingle();
-    if(error) throw error;
-    if(data && data.payload){
-      /* 用「已见过的云端版本」判断，而不是本机推送时间，否则本机一写入就再也拉不到对端数据 */
-      const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
-      const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
-      if(force || cloudAt>seenVer){
-        let merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
-        let kept=[];
-        if(!force){                                    /* 手动强制拉取=明确要以云端为准，不做保护 */
-          const g=wbGuardStale(merged, data.payload.data);
-          merged=g.merged; kept=g.kept;
-        }
-        await wbApply(merged);
-        wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
-        try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
-        if(kept.length){
-          try{ wbToast('云端数据比你本机旧，已保留本机记录'); }catch(e){}
-          wbSchedulePush(true);                        /* 顺手把本机新数据回传云端，让云端跟上 */
-        }
+    let sbObj=null, ghObj=null;
+    const reads=[];
+    if(wbSbOk) reads.push((async()=>{ try{ const c=wbSbInit(); if(!c) return; const { data, error }=await c.from('workbench_sync').select('*').eq('id','me').maybeSingle(); if(!error&&data&&data.payload) sbObj=data.payload; }catch(e){} })());
+    if(wbGhOk) reads.push((async()=>{ try{ ghObj=await wbPullGithub(); }catch(e){} })());
+    if(reads.length) await Promise.allSettled(reads);
+    /* 两个通道都可能有更新，取 updatedAt 较新的一份落地（双写保证通常一致） */
+    const sbAt=(sbObj&&sbObj.updatedAt)||'1970-01-01T00:00:00.000Z';
+    const ghAt=(ghObj&&ghObj.updatedAt)||'1970-01-01T00:00:00.000Z';
+    const chosen=(ghAt>sbAt)?ghObj:sbObj;
+    if(!chosen||!chosen.data) return;
+    const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
+    const cloudAt=chosen.updatedAt||'1970-01-01T00:00:00.000Z';
+    if(force || cloudAt>seenVer){
+      let merged=await wbMergeAll(chosen.data,'pull');   /* 落地走合并，pull 时云端优先 */
+      let kept=[];
+      if(!force){
+        const g=wbGuardStale(merged, chosen.data);
+        merged=g.merged; kept=g.kept;
+      }
+      await wbApply(merged);
+      wbSaveShadow(merged);
+      try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
+      if(kept.length){
+        try{ wbToast('云端数据比你本机旧，已保留本机记录'); }catch(e){}
+        wbSchedulePush(true);                        /* 顺手把本机新数据回传，让两通道对齐 */
       }
     }
   }catch(e){ console.error(e); }
@@ -1005,10 +1059,15 @@ function wbStartPoll(){
   wbPollTimer=setInterval(async()=>{
     if(!wbSync||!wbSync.connected||wbBusy) return;
     try{
-      const client=wbSbInit(); if(!client) return;
-      const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
-      if(error) return;
-      const cloudAt=(data&&data.updated_at)||'1970-01-01T00:00:00.000Z';
+      let cloudAt='1970-01-01T00:00:00.000Z';
+      if(wbSbOk){
+        const client=wbSbInit(); if(!client) return;
+        const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
+        if(!error && data) cloudAt=(data.updated_at)||cloudAt;
+      } else if(wbGhOk){
+        const f=await wbGhGetFile().catch(()=>null);
+        if(f&&f.exists&&f.obj) cloudAt=(f.obj.updatedAt)||cloudAt;
+      }
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       if(cloudAt>seenVer) wbPull();
     }catch(e){}
@@ -1016,24 +1075,27 @@ function wbStartPoll(){
 }
 async function wbConnect(){
   wbLoadCfg();
-  try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 库未加载（脚本未能加载？）');
-    /* 真实连通性验证：发一次轻量查询，云端真的响应才认为已连接；否则绝不点亮绿点 */
-    const { error } = await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
-    if(error) throw new Error('云端返回错误：'+(error.message||error.code||JSON.stringify(error)));
-    wbSync.connected=true; wbSaveCfg();      /* 验证通过才置位 */
-    wbReady=true;                            /* 连接已确证，放开推送闸门 */
+  /* 并行验证两个通道，任一真实往返成功即算"已连接"；绿点只在点亮时代表真连通 */
+  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c) return false; const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ return false; } })();
+  const ghTask=(async()=>{ try{ if(!wbGhToken()) return false; await wbGhGetFile(); return true; }catch(e){ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; } })();
+  const [sbOk, ghOk]=await Promise.all([sbTask, ghTask]);
+  wbSbOk=sbOk; wbGhOk=ghOk;
+  wbSync.connected=sbOk||ghOk; wbSaveCfg();
+  if(wbSync.connected){
+    wbReady=true;
     try{ await wbPull(); }catch(e){ console.warn('初拉失败',e); }
     wbStartPoll();
     clearLastSyncErr();
-    wbToast('已连接云端，开始同步'); wbUpdateSyncUI();
-  }catch(e){
+    const names=(sbOk?'Supabase':'')+(sbOk&&ghOk?' + ':'')+(ghOk?'GitHub':'');
+    wbToast('已连接（'+names+'），开始同步'); wbUpdateSyncUI();
+  }else{
     wbSync.connected=false; wbSaveCfg();
-    const m='连接失败：'+(e&&e.message?e.message:e);
+    const why=wbGhToken()?('GitHub 也连不上'+(wbGhErr?('：'+wbGhErr):'')):'未配置 GitHub 令牌';
+    const m='连接失败：Supabase 不可达'+(wbGhToken()?('，'+why):'（开代理可连 Supabase，或在面板配置 GitHub 令牌）');
     setLastSyncErr(m);
     const dot=document.getElementById('wbSyncDot'); if(dot) dot.style.background='#d9534f';
     wbToast(m); wbUpdateSyncUI();
-    /* 30 秒后自动重试：网络恢复 / 开了代理后能自行转绿，无需手动操作 */
+    /* 30 秒后自动重试：网络恢复 / 开了代理 / 配上令牌后能自行转绿 */
     setTimeout(function(){ if(!wbSync.connected && !wbSync.userDisconnected) wbSilentReconnect(); }, 30000);
   }
 }
@@ -1043,23 +1105,39 @@ function wbDisconnect(){
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
   wbToast('已断开云同步');
 }
+function wbSaveGhToken(){
+  const inp=document.getElementById('wbGhTokenInput'); if(!inp) return;
+  const v=inp.value.trim();
+  try{ if(v) localStorage.setItem(WB_K_GH_TOKEN, v); else localStorage.removeItem(WB_K_GH_TOKEN); }catch(e){}
+  wbGhErr=null; wbGhOk=false;
+  wbToast('GitHub 令牌已保存，正在验证…');
+  try{ wbConnect(); }catch(e){}
+}
 function wbOpenSync(){
   wbLoadCfg();
   let m=document.getElementById('wbSyncModal');
   if(!m){ m=document.createElement('div'); m.id='wbSyncModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998'; document.body.appendChild(m); }
   m.onclick=e=>{ if(e.target===m) m.style.display='none'; };
   m.style.display='flex';
-  const conn=wbSync.connected?'已连接 ✅（自动同步中）':'未连接';
+  const conn=wbSync.connected?'已连接（自动同步中）':'未连接';
   const urlMask=WB_SUPABASE_URL.replace(/^(https:\/\/[^.]+).*$/,'$1• • • • •');
-  m.innerHTML='<div style="background:#faf7f1;max-width:460px;width:92%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
-    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步</h2>'
-    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据到你的 Supabase 云端（美食/股票/驱动力/周计划…），电脑与手机自动保持一致。无需令牌、换设备不清数据。</p>'
-    +'<div style="margin-bottom:12px;font-size:12px;color:#7a6f60">Supabase 项目：<b style="color:#2c241b">'+escAttr(urlMask)+'</b></div>'
+  const ghState=wbGhToken()?(wbGhOk?'已连通 ✓':('未验证/不可达'+(wbGhErr?('：'+wbGhErr):''))):'未配置（不开代理也能同步，建议填）';
+  m.innerHTML='<div style="background:#faf7f1;max-width:480px;width:94%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步（双通道）</h2>'
+    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据（美食/股票/驱动力/周计划…），电脑与手机自动一致。<b>两通道互为备份</b>：Supabase 主通道 + GitHub 文件备份（不开代理也能存）。任一通即同步。</p>'
+    +'<div style="margin-bottom:10px;font-size:12px;color:#7a6f60">Supabase 主通道：<b style="color:#2c241b">'+escAttr(urlMask)+'</b> · '+(wbSbOk?'<span style="color:#2e8b57">已连通 ✓</span>':'<span style="color:#c0392b">不可达</span>')+'</div>'
+    +'<div style="margin-bottom:12px;padding:10px;background:#f3ece1;border-radius:10px">'
+    +'<div style="font-size:12px;color:#7a6f60;margin-bottom:6px">GitHub 备份令牌（fine-grained，仅授权本仓库 Contents 读写）</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input id="wbGhTokenInput" type="password" placeholder="粘贴 GitHub 受限令牌" value="'+escAttr(wbGhToken())+'" style="flex:1;padding:7px 9px;border:1px solid #d8cdbe;border-radius:8px;font-size:12px">'
+    +'<button onclick="wbSaveGhToken()" style="background:#b8714e;color:#fff;border:0;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px">保存</button>'
+    +'</div>'
+    +'<div style="margin-top:6px;font-size:12px;color:#7a6f60">GitHub：'+ghState+'</div>'
+    +'</div>'
     +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
     +'<div style="margin:0 0 12px;font-size:12px;color:#7a6f60;line-height:1.6">'+wbSyncDetailText()+'</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
     +'<button onclick="wbPush();" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即同步</button>'
-    +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
@@ -1079,17 +1157,14 @@ async function wbSilentReconnect(){
     setTimeout(function(){ wbSilentReconnect(); }, 4000);
     return;
   }
-  if(!wbSync.connected){
-    /* 后端已预配置（无需用户填密钥），打开即自动连接，免手动点「连接」 */
-    try{ await wbConnect(); }catch(e){ if(dot) dot.style.background='#c9bfae'; }
-    return;
+  /* 无论持久化 connected 为何值，都重新真实验证（刷新后不再假绿），绿点=真实连通 */
+  try{ await wbConnect(); }catch(e){ if(dot) dot.style.background='#c9bfae'; }
+  if(wbSync.connected){
+    wbReady=true;                                   /* 连接已确证，放开推送闸门 */
+    if(wbPendingPush){ wbPendingPush=false; wbSchedulePush(); }
+    wbStartPoll();
+    wbUpdateSyncUI();
   }
-  if(dot) dot.style.background='#3aa76d';
-  try{ await wbPull(); }catch(e){}
-  wbReady=true;                                   /* 拉取完成后才放开推送闸门 */
-  if(wbPendingPush){ wbPendingPush=false; wbSchedulePush(); }
-  wbStartPoll();
-  wbUpdateSyncUI();
 }
 
 /* ================= 同步兜底层（2026-09-09 根因修复） =================
