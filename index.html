@@ -597,18 +597,36 @@ const WB_K_SYNC='wb_cloudsync';
 const WB_K_LAST_SYNC='wb_last_sync_at';
 const WB_K_CLOUD_VER='wb_cloud_ver';
 const WB_K_LAST_ERR='wb_last_sync_err';
+const WB_K_LAST_LOCAL_SAVE='wb_last_local_save_at';   /* 最近一次本机保存（任意编辑即时落盘，永远成功，不依赖网络） */
+const WB_K_LAST_TRY='wb_last_try_at';                 /* 最近一次云端推送尝试结果 {t,ok,msg} */
 function setLastSyncErr(msg){ try{ localStorage.setItem(WB_K_LAST_ERR, JSON.stringify({msg:String(msg||''), t:new Date().toISOString()})); }catch(e){} }
 function clearLastSyncErr(){ try{ localStorage.removeItem(WB_K_LAST_ERR); }catch(e){} }
 function getLastSyncErr(){ try{ return JSON.parse(localStorage.getItem(WB_K_LAST_ERR)||'null'); }catch(e){ return null; } }
+function setLastTry(ok,msg){ try{ localStorage.setItem(WB_K_LAST_TRY, JSON.stringify({t:new Date().toISOString(), ok:!!ok, msg:String(msg||'')})); }catch(e){} }
 function fmtHM(d){ try{ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){ return ''; } }
 function wbSyncDetailText(){
   const err=getLastSyncErr();
   const last=localStorage.getItem(WB_K_LAST_SYNC);
+  const local=localStorage.getItem(WB_K_LAST_LOCAL_SAVE);
+  const tryRaw=localStorage.getItem(WB_K_LAST_TRY);
   let s='';
-  if(last && last!=='1970-01-01T00:00:00.000Z'){ try{ s+='上次成功同步：'+fmtHM(new Date(last))+'（本地时间）'; }catch(e){} }
-  else { s+='尚未成功同步过（云端暂无本机记录）'; }
-  if(err && err.msg){ s+='<br><span style="color:#c0392b">最近错误：'+escAttr(err.msg)+'（'+fmtHM(new Date(err.t))+'）</span>'; }
-  return s || '—';
+  /* ① 本机保存：永远成功，证明「打字确实被记录了」 */
+  s+='<div style="margin-bottom:8px;padding:8px;background:#eef6ee;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">📱 本机已保存：<b>'+(local?fmtHM(new Date(local))+'（本地时间）':'—')+'</b></div>'
+    +'<div style="font-size:11px;color:#5a7a5a;margin-top:2px">你每次打字 / 改标签都即时存进本机，永远成功，不依赖网络</div></div>';
+  /* ② 云端上次成功：只有真推上去才更新 */
+  const lastTxt=(last && last!=='1970-01-01T00:00:00.000Z')?fmtHM(new Date(last))+'（本地时间）':'尚未成功过';
+  s+='<div style="margin-bottom:8px;padding:8px;background:#eef1f8;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">☁ 云端上次成功：<b>'+lastTxt+'</b></div>'
+    +'<div style="font-size:11px;color:#5a6a8a;margin-top:2px">只有真正推送到云端才会更新；停在旧时间 = 之后没推成功</div></div>';
+  /* ③ 云端最后尝试：每次尝试都记，让你看到系统在持续重试而非「死了」 */
+  let tryTxt='—';
+  if(tryRaw){ try{ const ti=JSON.parse(tryRaw); tryTxt=fmtHM(new Date(ti.t))+' · '+(ti.ok?'<span style="color:#2e8b57">成功 ✓</span>':'<span style="color:#c0392b">失败：'+escAttr(ti.msg||'')+'</span>'); }catch(e){} }
+  s+='<div style="margin-bottom:8px;padding:8px;background:#f6f1ee;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">☁ 云端最后尝试：<b>'+tryTxt+'</b></div>'
+    +'<div style="font-size:11px;color:#8a6a5a;margin-top:2px">系统在持续自动重试；若一直失败，多为网络被墙（开代理 / 配国内通道可解）</div></div>';
+  if(err && err.msg){ s+='<div style="color:#c0392b;font-size:12px">最近错误：'+escAttr(err.msg)+'（'+fmtHM(new Date(err.t))+'）</div>'; }
+  return s;
 }
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
 let wbReady=false, wbPendingPush=false, wbLastPushSig='';
@@ -651,7 +669,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260915e';
+const WB_THIS_VER='20260916a';
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
@@ -913,6 +931,7 @@ function wbRequestSave(){
   else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){
+  try{ localStorage.setItem(WB_K_LAST_LOCAL_SAVE, new Date().toISOString()); }catch(e2){}
   const base=e.data.msg||'已保存';
   /* 保存即反馈真实同步状态，不再只说「已保存」让人以为同步了 */
   if(wbSync && wbSync.connected) wbToast(base+'，正在同步云端…');
@@ -924,14 +943,14 @@ function wbUpdateSyncUI(){
   wbLoadCfg();
   if(!wbSync || !wbSync.connected){
     if(dot) dot.style.background='#c9bfae';
-    if(st){ st.textContent='未连接'; st.className='wbsync-state off'; st.title='云同步未连接：点「立即同步」或刷新后自动重连'; }
+    if(st){ st.textContent='☁ 未连云端'; st.className='wbsync-state off'; st.title='云同步未连接：本机数据已保存，但还没上传云端。点「立即同步」或刷新后自动重连'; }
     return;
   }
   /* 已连接（至少一通道通过真实往返验证）但上次推送报错 → 红点 + 失败文案，绝不假装成功 */
   const err=getLastSyncErr();
   if(err && err.msg){
     if(dot) dot.style.background='#d9534f';
-    if(st){ st.textContent='同步失败'; st.className='wbsync-state err'; st.title=err.msg+'（'+fmtHM(new Date(err.t))+'）'; }
+    if(st){ st.textContent='☁ 同步异常'; st.className='wbsync-state err'; st.title='云端推送失败：'+err.msg+'（'+fmtHM(new Date(err.t))+'）。本机数据仍安全，系统会持续重试。'; }
     return;
   }
   /* 绿点：至少一通道可用。文案标明每个通道状态 */
@@ -940,10 +959,10 @@ function wbUpdateSyncUI(){
   let txt=sb+(gh?(' + '+gh):'');
   const last=localStorage.getItem(WB_K_LAST_SYNC);
   if(last && last!=='1970-01-01T00:00:00.000Z'){
-    try{ txt='已同步 '+fmtHM(new Date(last))+'（'+sb+(gh?(' + '+gh):'')+'）'; }catch(e){}
+    try{ txt='☁ 云端已同步 '+fmtHM(new Date(last))+'（'+sb+(gh?(' + '+gh):'')+'）'; }catch(e){}
   }
   if(dot) dot.style.background='#3aa76d';
-  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功同步时间（本地）· 绿点=至少一通道真实连通'; }
+  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功上传云端的时间（本地）· 绿点=至少一通道真实连通'; }
 }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
 /* ================= GitHub 文件同步通道（备份） ================= */
@@ -999,7 +1018,7 @@ async function wbPush(silent){
   try{
     /* 未连接/未完成验证时先真实验证一次，而不是空转返回（旧版点「立即同步」毫无反应的根因之一） */
     if(!wbSync.connected || !wbVerified){ try{ await wbConnect(); }catch(e){} }
-    if(!wbSync.connected){ if(!silent) wbToast('未连接：两个通道都连不上，稍后自动重试'); return; }
+    if(!wbSync.connected){ setLastTry(false,'未连接：两个通道都连不上，稍后自动重试'); if(!silent) wbToast('未连接：两个通道都连不上，稍后自动重试'); return; }
   }finally{ wbBusy=false; }
   wbBusy=true;
   let sbCloud=null, ghCloud=null, sbErr=null, ghErr=null;
@@ -1025,14 +1044,14 @@ async function wbPush(silent){
       wbLastPushSig=sig;
       wbSaveShadow(merged);
       try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
-      clearLastSyncErr();
+      clearLastSyncErr(); setLastTry(true);
       const onlyGh = !sbErr && ghErr && wbSbOk===false;  /* 仅用于提示，不影响成功 */
       wbUpdateSyncUI(); if(!silent) wbToast('已同步 ✓ '+fmtHM(new Date()));
     }else{
       const m='同步失败：'+((sbErr&&sbErr.message)||(ghErr&&ghErr.message)||'未知错误');
-      setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected();
+      setLastSyncErr(m); setLastTry(false,m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected();
     }
-  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected(); }
+  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); setLastTry(false,m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected(); }
   finally{ wbBusy=false; }
   /* 面板开着就顺手刷新出最新通道状态与报错，免得用户看的是旧画面 */
   try{ const m=document.getElementById('wbSyncModal'); if(m && m.style.display!=='none') wbOpenSync(); }catch(e){}
