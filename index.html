@@ -678,7 +678,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260917b';
+const WB_THIS_VER='20260917c';
 /* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
    false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
 const WB_SYNC_IMAGES=false;
@@ -1075,6 +1075,8 @@ async function wbImgSyncUp(quiet){
   wbImgBusy=true; let total=0;
   try{
     let idx=await wbImgIndexGet();
+    /* 计数如实刷新：即使两边本来就齐、无需传输，也要写真实数字（否则面板永远显示 0/0） */
+    wbImgStatPut({cloud:Object.keys(idx.ids).length, local:(await wbImgLocalIds()).length});
     for(let round=0; round<WB_IMG_ROUNDS; round++){
       const ids=await wbImgLocalIds();
       const todo=ids.filter(id=>!idx.ids[id]).slice(0, WB_IMG_RUN);
