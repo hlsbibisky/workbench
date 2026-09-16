@@ -669,7 +669,10 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260916a';
+const WB_THIS_VER='20260917a';
+/* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
+   false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
+const WB_SYNC_IMAGES=false;
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
@@ -729,8 +732,16 @@ async function wbCollectExpanded(){
     const k=localStorage.key(i);
     if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
   }
-  // food_* 含 idb:// 引用，从本机 IDB 展开成 base64 再上云
-  for(const k of Object.keys(o)){ if(k.indexOf('food_')===0 && o[k].indexOf('idb://')>=0) o[k]=await wbExpandFoodRefs(o[k]); }
+  /* 2026-09-17 同步急救：food_* 不再把 idb:// 引用展开成 base64 上云（WB_SYNC_IMAGES=false）。
+     事故根因：打卡图 base64 随包同步使包体涨到 2.01MB（food_checkin 一项 1.88MB），
+     大包上传被墙/代理中途掐断 → fetch 抛 Failed to fetch，云端自 9-15 23:48 起再没更新过；
+     且 GitHub contents API 对 >1MB 文件不返回内容，手机端拉取也一直为空。
+     现改为 idb:// 引用直接上云，包体回落到 ~100KB 级，上传/拉取都稳定。
+     代价（用户已确认接受）：同步期间打卡/菜品图片不跨设备（本机 IDB 有图照常显示，
+     其他设备显示占位）。图片单独小文件通道后续再迭代；届时把 WB_SYNC_IMAGES 改回 true。 */
+  if(WB_SYNC_IMAGES){
+    for(const k of Object.keys(o)){ if(k.indexOf('food_')===0 && o[k].indexOf('idb://')>=0) o[k]=await wbExpandFoodRefs(o[k]); }
+  }
   return o;
 }
 function wbCollect(){ return wbCollectExpanded(); }
