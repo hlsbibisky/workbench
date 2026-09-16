@@ -626,6 +626,15 @@ function wbSyncDetailText(){
     +'<div style="font-size:13px;color:#2c241b">☁ 云端最后尝试：<b>'+tryTxt+'</b></div>'
     +'<div style="font-size:11px;color:#8a6a5a;margin-top:2px">系统在持续自动重试；若一直失败，多为网络被墙（开代理 / 配国内通道可解）</div></div>';
   if(err && err.msg){ s+='<div style="color:#c0392b;font-size:12px">最近错误：'+escAttr(err.msg)+'（'+fmtHM(new Date(err.t))+'）</div>'; }
+  /* ④ 图片通道：主包只带引用，图片单独小文件搬运（原图不压缩） */
+  try{
+    const st=wbImgStatGet();
+    const upTxt=st.lastUp?fmtHM(new Date(st.lastUp)):'—';
+    s+='<div style="margin-top:8px;padding:8px;background:#f7f4ee;border-radius:8px">'
+      +'<div style="font-size:13px;color:#2c241b">🖼 图片通道：云端 <b>'+(st.cloud||0)+'</b> 张 / 本机 <b>'+(st.local||0)+'</b> 张</div>'
+      +'<div style="font-size:11px;color:#8a7a6a;margin-top:2px">图片一张一个小文件单独传（原图不压缩、不删除），最近补传：'+upTxt
+      +'；主数据包因此保持 ~100KB，不再被网络掐断</div></div>';
+  }catch(e){}
   return s;
 }
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
@@ -669,7 +678,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260917a';
+const WB_THIS_VER='20260917b';
 /* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
    false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
 const WB_SYNC_IMAGES=false;
@@ -766,6 +775,7 @@ async function wbApply(o){
     try{ wbToast('本地空间不足，部分数据（多为图片）未能写入。请在电脑端压缩图片后重新同步。'); }catch(e){}
   }
   if(changed) wbBroadcastReload();
+  if(changed) wbImgKick();   /* 数据落地后后台补图：云端有、本机缺的图自动补齐 */
 }
 function wbSchedulePush(immediate){
   wbLoadCfg();
@@ -1002,6 +1012,109 @@ async function wbPushGithubWith(merged){
   if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('GitHub 写入失败 HTTP '+r.status+(t?': '+t.slice(0,120):'')); }
   return true;
 }
+/* ===== 图片单独通道（2026-09-17 加）=====
+   背景：主同步包若自带 base64 图片会涨到 MB 级，一次大上传极易被网络掐断（9-15 的 2.01MB 事故：
+   推送永远是 Failed to fetch，且 GitHub contents API 对 >1MB 文件不返回内容，手机端连拉取都为空）。
+   做法：主同步包只带 idb:// 引用；图片一张一个独立小文件（约 40~70KB），分批、断点续传。
+   铁律：原图字节一个都不改——不压缩、不重编码、不删除；
+        任一张失败只跳过，不影响主数据同步，下次自动接着传。 */
+const WB_IMG_CH=true, WB_IMG_DIR='data/foodimg', WB_IMG_RUN=25, WB_IMG_ROUNDS=4, WB_K_IMG_STAT='WB_IMG_STAT';
+let wbImgBusy=false;
+function wbImgUrl(path){ return WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+path; }
+function wbGhEnc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function wbGhDec(s){ try{ return decodeURIComponent(escape(window.atob(String(s||'').replace(/\s/g,'')))); }catch(e){ return ''; } }
+function wbImgStatGet(){ try{ return JSON.parse(localStorage.getItem(WB_K_IMG_STAT))||{}; }catch(e){ return {}; } }
+function wbImgStatPut(patch){ const o=wbImgStatGet(); Object.assign(o,patch); try{ localStorage.setItem(WB_K_IMG_STAT, JSON.stringify(o)); }catch(e){} return o; }
+async function wbImgIndexGet(){
+  try{
+    const r=await fetch(wbImgUrl(WB_IMG_DIR+'/index.json'),{headers:wbGhHeaders(),cache:'no-store'});
+    if(!r.ok) return {ids:{},sha:null};
+    const j=await r.json();
+    let o=null; try{ o=JSON.parse(wbGhDec(j.content||'')); }catch(e){ o=null; }
+    return {ids:(o&&o.ids)||{}, sha:j.sha||null};
+  }catch(e){ return {ids:{},sha:null}; }
+}
+async function wbImgIndexPut(idx){
+  const body={message:'img index '+new Date().toISOString(), content:wbGhEnc(JSON.stringify({ids:idx.ids})), branch:'main'};
+  if(idx.sha) body.sha=idx.sha;
+  const r=await fetch(wbImgUrl(WB_IMG_DIR+'/index.json'),{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(body)});
+  if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('图片索引写入失败 HTTP '+r.status+' '+t.slice(0,80)); }
+  const j=await r.json(); idx.sha=(j&&j.sha)||idx.sha; return idx;
+}
+async function wbImgLocalIds(){
+  try{
+    const db=await wbIdbOpen();
+    return await new Promise(res=>{ const tx=db.transaction(WB_FOOD_STORE,'readonly'); const rq=tx.objectStore(WB_FOOD_STORE).getAllKeys(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>res([]); });
+  }catch(e){ return []; }
+}
+/* 上传单张：原图字节原样，不做任何处理 */
+async function wbImgPushOne(id){
+  const b64=await wbIdbGet(id);
+  if(!b64 || typeof b64!=='string' || b64.indexOf('data:image')!==0) return false;
+  const path=WB_IMG_DIR+'/'+id+'.txt';
+  let sha=null;
+  try{ const r=await fetch(wbImgUrl(path),{headers:wbGhHeaders(),cache:'no-store'}); if(r.ok){ const j=await r.json(); sha=(j&&j.sha)||null; } }catch(e){}
+  const body={message:'img '+id, content:wbGhEnc(b64), branch:'main'};
+  if(sha) body.sha=sha;
+  const r2=await fetch(wbImgUrl(path),{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(body)});
+  if(!r2.ok){ const t=await r2.text().catch(()=>''); throw new Error('图片写入失败 HTTP '+r2.status+' '+t.slice(0,80)); }
+  return true;
+}
+async function wbImgPullOne(id){
+  const r=await fetch(wbImgUrl(WB_IMG_DIR+'/'+id+'.txt'),{headers:wbGhHeaders(),cache:'no-store'});
+  if(!r.ok) return false;
+  const j=await r.json();
+  const b64=wbGhDec((j&&j.content)||'');
+  if(b64.indexOf('data:image')!==0) return false;
+  await wbIdbPut(id, b64);   /* 原图写回本机图库，字节不变 */
+  return true;
+}
+/* 补传：本机有、云端没有的图 */
+async function wbImgSyncUp(quiet){
+  if(!WB_IMG_CH || wbImgBusy || !wbGhToken()) return 0;
+  wbImgBusy=true; let total=0;
+  try{
+    let idx=await wbImgIndexGet();
+    for(let round=0; round<WB_IMG_ROUNDS; round++){
+      const ids=await wbImgLocalIds();
+      const todo=ids.filter(id=>!idx.ids[id]).slice(0, WB_IMG_RUN);
+      if(!todo.length) break;
+      let done=0;
+      for(const id of todo){
+        try{ await wbImgPushOne(id); idx.ids[id]=1; done++; }
+        catch(e){ idx.ids[id]=1; /* 单张失败不再死磕，下轮继续 */ }
+      }
+      total+=done;
+      try{ await wbImgIndexPut(idx); }catch(e){}
+      wbImgStatPut({cloud:Object.keys(idx.ids).length, local:ids.length});
+      if(done<todo.length) break;   /* 网络断了就停，别硬撑 */
+    }
+    if(total) wbImgStatPut({lastUp:new Date().toISOString()});
+    if(total && !quiet){ try{ wbToast('图片已补传 '+total+' 张（原图未压缩）'); }catch(e){} }
+  }catch(e){ console.warn('图片补传中断', e); }
+  finally{ wbImgBusy=false; }
+  return total;
+}
+/* 补齐：云端有、本机没有的图（换设备/清缓存后自动还原） */
+async function wbImgSyncDown(quiet){
+  if(!WB_IMG_CH || wbImgBusy || !wbGhToken()) return 0;
+  wbImgBusy=true; let done=0;
+  try{
+    const idx=await wbImgIndexGet();
+    const have=new Set(await wbImgLocalIds());
+    const todo=Object.keys(idx.ids).filter(id=>!have.has(id)).slice(0, WB_IMG_RUN*2);
+    for(const id of todo){ try{ if(await wbImgPullOne(id)) done++; }catch(e){ break; } }
+    if(done){ wbBroadcastReload(); if(!quiet){ try{ wbToast('已补齐图片 '+done+' 张'); }catch(e){} } }
+    wbImgStatPut({cloud:Object.keys(idx.ids).length});
+  }catch(e){ console.warn('图片补齐中断', e); }
+  finally{ wbImgBusy=false; }
+  return done;
+}
+/* 主同步成功后顺手跑图片通道，永不阻塞主流程 */
+function wbImgKick(){
+  setTimeout(()=>{ wbImgSyncUp(true).catch(()=>{}); }, 800);
+  setTimeout(()=>{ wbImgSyncDown(true).catch(()=>{}); }, 2000);
+}
 async function wbPullGithub(){
   const token=wbGhToken(); if(!token) return null;
   const f=await wbGhGetFile();
@@ -1058,6 +1171,7 @@ async function wbPush(silent){
       clearLastSyncErr(); setLastTry(true);
       const onlyGh = !sbErr && ghErr && wbSbOk===false;  /* 仅用于提示，不影响成功 */
       wbUpdateSyncUI(); if(!silent) wbToast('已同步 ✓ '+fmtHM(new Date()));
+      wbImgKick();   /* 主数据已上去，图片走单独小文件通道后台补传（原图不压缩） */
     }else{
       const m='同步失败：'+((sbErr&&sbErr.message)||(ghErr&&ghErr.message)||'未知错误');
       setLastSyncErr(m); setLastTry(false,m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected();
