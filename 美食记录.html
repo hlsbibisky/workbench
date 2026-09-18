@@ -2443,6 +2443,7 @@ function renderSnacks(){
 function setSnacksCat(t){ state.snacksCat = t; renderSnacks(); }
 function delSnack(id){
   myConfirm('确定删除这款零食？', function(){
+    pushUndoToShell('删除零食', K.snacks, clone(state.snacks));
     state.snacks = state.snacks.filter(r=>r.id!==id);
     save(K.snacks, state.snacks); renderSnacks(); toast('已删除');
   });
@@ -3090,10 +3091,44 @@ function foodDataCollect(){
   Object.keys(localStorage).forEach(k=>{ if(k.indexOf('food_')===0) o[k]=localStorage.getItem(k); });
   return o;
 }
+/* 误删保护：删除前把整份数据快照推给外壳，外壳保留最多 10 步撤销 */
+function pushUndoToShell(label, key, value){
+  try{ if(window.parent && window.parent!==window){ window.parent.postMessage({type:'wb-undo-push', label:label, key:key, value:JSON.stringify(value)}, '*'); } }catch(e){}
+}
+/* 拉取云端数据时「并集合并」而非整键覆盖：避免云端旧快照抹掉本机新记录（9 月打卡反复丢失的根因之一）。 */
 function foodDataApply(o){
   if(!o) return;
-  Object.keys(o).forEach(k=>{ if(k.indexOf('food_')===0) localStorage.setItem(k, o[k]); });
-  setTimeout(()=> location.reload(), 400);
+  let changed=false;
+  Object.keys(o).forEach(k=>{
+    if(k.indexOf('food_')!==0) return;
+    const cur = localStorage.getItem(k);
+    if(cur===o[k]) return;
+    let merged;
+    try{
+      const a = JSON.parse(cur||'null');
+      const b = JSON.parse(o[k]||'null');
+      if(k==='food_checkin'){ merged = foodMergeCheckin(a,b); }
+      else if(Array.isArray(a)&&Array.isArray(b)){ merged = foodMergeArr(a,b); }
+      else if(a&&typeof a==='object'&&b&&typeof b==='object'){ merged = Object.assign({},b,a); }
+      else { merged = (cur!=null)?cur:o[k]; }
+    }catch(e){ merged = o[k]; }
+    try{ localStorage.setItem(k, typeof merged==='string'?merged:JSON.stringify(merged)); changed=true; }catch(e){}
+  });
+  if(changed) setTimeout(()=> location.reload(), 400);
+}
+function foodMergeCheckin(a,b){
+  const map={};
+  const put=x=>{ if(!x||!x.date) return; const c=map[x.date]; if(!c){ map[x.date]=x; return; }
+    const xt=x.updated||x.created||0, ct=c.updated||c.created||0;
+    const xp=typeof xt==='number'?xt:Date.parse(xt)||0, cp=typeof ct==='number'?ct:Date.parse(ct)||0;
+    if(xp>cp) map[x.date]=x; };
+  (Array.isArray(a)?a:[]).forEach(put); (Array.isArray(b)?b:[]).forEach(put);
+  return Object.keys(map).map(d=>map[d]);
+}
+function foodMergeArr(a,b){
+  const map={};
+  a.concat(b).forEach(x=>{ const id=(x&&(x.id||x.name))||JSON.stringify(x); if(id) map[id]=x; });
+  return Object.keys(map).map(k=>map[k]);
 }
 async function cloudPush(){
   if(!syncCfg || !syncCfg.connected || syncBusy) return;
@@ -3146,6 +3181,7 @@ async function ghPull(){
   return JSON.parse(ghUnB64(cur.content));
 }
 function ghStartPoll(){
+  if(window.parent!==window) return;   /* 嵌入工作台时不启动本页独立轮询，避免与外壳双重同步打架 */
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async ()=>{
     if(!syncCfg || !syncCfg.connected || syncCfg.provider!=='github' || syncBusy) return;
