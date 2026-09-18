@@ -278,7 +278,22 @@
 
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-js.min.js" onerror="wbLoadSupaFallback()"></script>
+<script>
+/* 本地同源加载 supabase 库（已随仓库部署，不受大陆 CDN 封锁影响）。
+   仅当本地文件意外缺失（未部署/404）时，才回退到公共 CDN 兜底。 */
+function wbLoadSupaFallback(){
+  if(window.supabase) return;
+  var urls=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','https://unpkg.com/@supabase/supabase-js@2'];
+  (function tryNext(i){
+    if(i>=urls.length || window.supabase) return;
+    var s=document.createElement('script'); s.src=urls[i];
+    s.onload=function(){ if(!window.supabase && i+1<urls.length) tryNext(i+1); };
+    s.onerror=function(){ if(i+1<urls.length) tryNext(i+1); };
+    document.head.appendChild(s);
+  })(0);
+}
+</script>
 </head>
 <body data-page-node-id="zQi5isgtvKzYxgBGlGNdsu">
 <div class="app" data-page-node-id="CPSIZ3C5vHA2xFqXQtWHDQ">
@@ -393,6 +408,7 @@ const MODULES = {
     title:'股票', note:'行情 · 持仓 · 策略', group:'common',
     sub:[
       {id:'valuation', name:'估值全景',   type:'iframe',  src:'估值全景.html',       status:'online'},
+      {id:'global',  name:'全球视野',     type:'iframe',  src:'全球视野.html',      status:'online', note:'全球股指 · 大宗 · 外汇 · 加密 · 黄金'},
       {id:'gegu',    name:'个股分析',     type:'iframe',  src:'个股分析.html',      status:'online', note:'全维估值体检 · 输入代码实时换股生成报告'},
       {id:'board',   name:'盘面跟踪',     type:'iframe',  src:'股票.html#board',   status:'online'},
       {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
@@ -580,8 +596,51 @@ function wbSbInit(){
 const WB_K_SYNC='wb_cloudsync';
 const WB_K_LAST_SYNC='wb_last_sync_at';
 const WB_K_CLOUD_VER='wb_cloud_ver';
+const WB_K_LAST_ERR='wb_last_sync_err';
+const WB_K_LAST_LOCAL_SAVE='wb_last_local_save_at';   /* 最近一次本机保存（任意编辑即时落盘，永远成功，不依赖网络） */
+const WB_K_LAST_TRY='wb_last_try_at';                 /* 最近一次云端推送尝试结果 {t,ok,msg} */
+function setLastSyncErr(msg){ try{ localStorage.setItem(WB_K_LAST_ERR, JSON.stringify({msg:String(msg||''), t:new Date().toISOString()})); }catch(e){} }
+function clearLastSyncErr(){ try{ localStorage.removeItem(WB_K_LAST_ERR); }catch(e){} }
+function getLastSyncErr(){ try{ return JSON.parse(localStorage.getItem(WB_K_LAST_ERR)||'null'); }catch(e){ return null; } }
+function setLastTry(ok,msg){ try{ localStorage.setItem(WB_K_LAST_TRY, JSON.stringify({t:new Date().toISOString(), ok:!!ok, msg:String(msg||'')})); }catch(e){} }
+function fmtHM(d){ try{ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){ return ''; } }
+function wbSyncDetailText(){
+  const err=getLastSyncErr();
+  const last=localStorage.getItem(WB_K_LAST_SYNC);
+  const local=localStorage.getItem(WB_K_LAST_LOCAL_SAVE);
+  const tryRaw=localStorage.getItem(WB_K_LAST_TRY);
+  let s='';
+  /* ① 本机保存：永远成功，证明「打字确实被记录了」 */
+  s+='<div style="margin-bottom:8px;padding:8px;background:#eef6ee;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">📱 本机已保存：<b>'+(local?fmtHM(new Date(local))+'（本地时间）':'—')+'</b></div>'
+    +'<div style="font-size:11px;color:#5a7a5a;margin-top:2px">你每次打字 / 改标签都即时存进本机，永远成功，不依赖网络</div></div>';
+  /* ② 云端上次成功：只有真推上去才更新 */
+  const lastTxt=(last && last!=='1970-01-01T00:00:00.000Z')?fmtHM(new Date(last))+'（本地时间）':'尚未成功过';
+  s+='<div style="margin-bottom:8px;padding:8px;background:#eef1f8;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">☁ 云端上次成功：<b>'+lastTxt+'</b></div>'
+    +'<div style="font-size:11px;color:#5a6a8a;margin-top:2px">只有真正推送到云端才会更新；停在旧时间 = 之后没推成功</div></div>';
+  /* ③ 云端最后尝试：每次尝试都记，让你看到系统在持续重试而非「死了」 */
+  let tryTxt='—';
+  if(tryRaw){ try{ const ti=JSON.parse(tryRaw); tryTxt=fmtHM(new Date(ti.t))+' · '+(ti.ok?'<span style="color:#2e8b57">成功 ✓</span>':'<span style="color:#c0392b">失败：'+escAttr(ti.msg||'')+'</span>'); }catch(e){} }
+  s+='<div style="margin-bottom:8px;padding:8px;background:#f6f1ee;border-radius:8px">'
+    +'<div style="font-size:13px;color:#2c241b">☁ 云端最后尝试：<b>'+tryTxt+'</b></div>'
+    +'<div style="font-size:11px;color:#8a6a5a;margin-top:2px">系统在持续自动重试；若一直失败，多为网络被墙（开代理 / 配国内通道可解）</div></div>';
+  if(err && err.msg){ s+='<div style="color:#c0392b;font-size:12px">最近错误：'+escAttr(err.msg)+'（'+fmtHM(new Date(err.t))+'）</div>'; }
+  /* ④ 图片通道：主包只带引用，图片单独小文件搬运（原图不压缩） */
+  try{
+    const st=wbImgStatGet();
+    const upTxt=st.lastUp?fmtHM(new Date(st.lastUp)):'—';
+    s+='<div style="margin-top:8px;padding:8px;background:#f7f4ee;border-radius:8px">'
+      +'<div style="font-size:13px;color:#2c241b">🖼 图片通道：云端 <b>'+(st.cloud||0)+'</b> 张 / 本机 <b>'+(st.local||0)+'</b> 张</div>'
+      +'<div style="font-size:11px;color:#8a7a6a;margin-top:2px">图片一张一个小文件单独传（原图不压缩、不删除），最近补传：'+upTxt
+      +'；主数据包因此保持 ~100KB，不再被网络掐断</div></div>';
+  }catch(e){}
+  return s;
+}
 let wbSync=null, wbPushTimer=null, wbPollTimer=null, wbBusy=false;
 let wbReady=false, wbPendingPush=false, wbLastPushSig='';
+let wbSbOk=false, wbGhOk=false, wbGhErr='', wbSbErr='';   /* 双通道状态（必须在读取前声明，否则 wbPush/wbUpdateSyncUI 直接 ReferenceError） */
+let wbVerified=false;                          /* 本会话是否已完成一次真实通道验证（未完成前 UI 显示「验证中」而非「不可达」） */
 const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver','wb_merge_shadow'];
 /* 污染键：源于旧写法 localStorage.setItem=fn。localStorage 是 Storage 对象，带 WebIDL
    named property setter；在严格实现的浏览器（iOS Safari/WebKit）里该赋值不会覆盖方法，
@@ -610,15 +669,19 @@ function wbLoadCfg(){
      现用的 Supabase 同步层只依赖 connected 一个字段，删除其余字段不影响同步。 */
   if(wbSync.github!==undefined || wbSync.provider!==undefined || wbSync.gist_id!==undefined || wbSync.token!==undefined){
     const c=wbSync.connected;
-    wbSync={connected:c};
+    const ud=wbSync.userDisconnected;
+    wbSync={connected:c, userDisconnected:ud};
     try{ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }catch(e){}
     console.warn('[wb] 已清除旧版 GitHub 同步配置（含明文令牌）');
   }
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
-function wbIframeSrc(src){ var v='20260910d'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260910d';
+function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
+const WB_THIS_VER='20260917c';
+/* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
+   false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
+const WB_SYNC_IMAGES=false;
 function wbVerWatch(){
   try{
     var url=location.href.split('#')[0].split('?')[0]+'?_chk='+Date.now();
@@ -678,8 +741,16 @@ async function wbCollectExpanded(){
     const k=localStorage.key(i);
     if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
   }
-  // food_* 含 idb:// 引用，从本机 IDB 展开成 base64 再上云
-  for(const k of Object.keys(o)){ if(k.indexOf('food_')===0 && o[k].indexOf('idb://')>=0) o[k]=await wbExpandFoodRefs(o[k]); }
+  /* 2026-09-17 同步急救：food_* 不再把 idb:// 引用展开成 base64 上云（WB_SYNC_IMAGES=false）。
+     事故根因：打卡图 base64 随包同步使包体涨到 2.01MB（food_checkin 一项 1.88MB），
+     大包上传被墙/代理中途掐断 → fetch 抛 Failed to fetch，云端自 9-15 23:48 起再没更新过；
+     且 GitHub contents API 对 >1MB 文件不返回内容，手机端拉取也一直为空。
+     现改为 idb:// 引用直接上云，包体回落到 ~100KB 级，上传/拉取都稳定。
+     代价（用户已确认接受）：同步期间打卡/菜品图片不跨设备（本机 IDB 有图照常显示，
+     其他设备显示占位）。图片单独小文件通道后续再迭代；届时把 WB_SYNC_IMAGES 改回 true。 */
+  if(WB_SYNC_IMAGES){
+    for(const k of Object.keys(o)){ if(k.indexOf('food_')===0 && o[k].indexOf('idb://')>=0) o[k]=await wbExpandFoodRefs(o[k]); }
+  }
   return o;
 }
 function wbCollect(){ return wbCollectExpanded(); }
@@ -704,10 +775,13 @@ async function wbApply(o){
     try{ wbToast('本地空间不足，部分数据（多为图片）未能写入。请在电脑端压缩图片后重新同步。'); }catch(e){}
   }
   if(changed) wbBroadcastReload();
+  if(changed) wbImgKick();   /* 数据落地后后台补图：云端有、本机缺的图自动补齐 */
 }
 function wbSchedulePush(immediate){
-  wbLoadCfg(); if(!wbSync.connected) return;
-  /* 首次拉取尚未完成前一律不推，避免用本机旧数据覆盖另一台设备刚写的记录 */
+  wbLoadCfg();
+  if(wbSync.userDisconnected) return;                 /* 用户主动断开就别推了 */
+  if(!wbVerified){ try{ wbConnect(); }catch(e){} }     /* 还没验证就先触发验证，别把保存静默丢掉 */
+  /* 首次拉取尚未完成前一律不推，避免用本机旧数据覆盖另一台设备刚写的记录；连上后会自动补推 */
   if(!wbReady){ wbPendingPush=true; return; }
   if(wbPushTimer) clearTimeout(wbPushTimer);
   wbPushTimer=setTimeout(()=>wbPush(true), immediate?0:800);
@@ -724,6 +798,13 @@ function wbSchedulePush(immediate){
      - 基线有、某一侧没有：该侧删除，删除（删除也能同步，不会复活）
      - 没有基线时只做并集，绝不删除（最保守，不会误删数据） */
 const WB_K_SHADOW='wb_merge_shadow';
+/* ===== GitHub 文件同步通道（双写互补备份，不开代理也能跨设备同步） =====
+   令牌存独立键 WB_K_GH_TOKEN（不进 wbSync 对象，故不受旧版自愈清除影响）；
+   用 fine-grained PAT，仅授权本仓库 Contents 读写，泄露危害被锁死。 */
+const WB_K_GH_TOKEN='wb_gh_token';
+const WB_GH_REPO='hlsbibisky/workbench';
+const WB_GH_FILE='data/workbench_sync.json';
+const WB_GH_API='https://api.github.com';
 function wbLoadShadow(){ try{ return JSON.parse(localStorage.getItem(WB_K_SHADOW))||{}; }catch(e){ return {}; } }
 function wbSaveShadow(o){ try{ const s={}; Object.keys(o||{}).forEach(k=>{ if(wbIsArr(o[k])) s[k]=o[k]; }); localStorage.setItem(WB_K_SHADOW, JSON.stringify(s)); }catch(e){} }
 function wbIsArr(v){ try{ const a=JSON.parse(v); return Array.isArray(a); }catch(e){ return false; } }
@@ -803,14 +884,32 @@ function wbMergeDaily(localStr,cloudStr){
   try{ C=JSON.parse(cloudStr||'null'); }catch(e){ C=null; }
   if(!L||!L.records) return cloudStr||localStr;
   if(!C||!C.records) return localStr;
-  const out={records:Object.assign({},C.records||{}),tags:Object.assign({},C.tags||{})};
+  /* 注意：DAILY_STATUS 是「每日状态记录」与「日期记录」两页共用同一键，
+     各自写入不同字段：records(文字)/tags(驱动力标签)/stags(状态标签) + monthNotes(月份备注)/yearNotes(年份备注)。
+     旧版只复制 records/tags，导致 stags/monthNotes/yearNotes 每次同步都被整段抹掉 —— 这正是「标签重置、月份框文字丢失」的根因。
+     这里必须把全部字段都保留并按字段正确合并，缺一不可。 */
+  const out={
+    records:Object.assign({},C.records||{}),
+    tags:Object.assign({},C.tags||{}),
+    stags:Object.assign({},C.stags||{}),
+    monthNotes:Object.assign({},C.monthNotes||{}),
+    yearNotes:Object.assign({},C.yearNotes||{})
+  };
+  /* 逐日文字：取内容更充实的一方，不被短版本覆盖 */
   Object.keys(L.records||{}).forEach(d=>{
     const a=out.records[d]||'', b=L.records[d]||'';
-    out.records[d]=(b.length>=a.length)?b:a;   /* 同一天取内容更充实的一方 */
+    out.records[d]=(b.length>=a.length)?b:a;
   });
-  Object.keys(L.tags||{}).forEach(d=>{
-    const a=out.tags[d]||[], b=L.tags[d]||[];
-    out.tags[d]=(b.length>=a.length)?b:a;
+  /* 逐日标签：用并集（两侧可能各选了不同标签，互相覆盖会丢数据） */
+  const unionArr=(a,b)=>Array.from(new Set((a||[]).concat(b||[])));
+  Object.keys(L.tags||{}).forEach(d=>{ out.tags[d]=unionArr(out.tags[d], L.tags[d]); });
+  Object.keys(L.stags||{}).forEach(d=>{ out.stags[d]=unionArr(out.stags[d], L.stags[d]); });
+  /* 月/年备注：按 key 合并，非空的较长一方胜 */
+  ['monthNotes','yearNotes'].forEach(fld=>{
+    Object.keys(L[fld]||{}).forEach(k=>{
+      const a=(out[fld][k]||''), b=(L[fld][k]||'');
+      out[fld][k]=(String(b).length>=String(a).length)?b:a;
+    });
   });
   return JSON.stringify(out);
 }
@@ -818,6 +917,23 @@ function wbIsEmptyVal(v){
   if(v===null||v===undefined) return true;
   const s=String(v).trim();
   return s===''||s==='[]'||s==='{}'||s==='null';
+}
+/* 打卡记录按「日期」并集合并：两侧都有的日期取较新一份，只有一侧有的保留，绝不删除本机条目。
+   这正是 2026-09-18 修复「9 月打卡反复丢失」的核心：云端旧快照不再能整键覆盖本机新记录。 */
+function wbMergeCheckin(localStr, cloudStr){
+  let L=[],C=[];
+  try{ const a=JSON.parse(localStr); if(Array.isArray(a)) L=a; }catch(e){}
+  try{ const a=JSON.parse(cloudStr); if(Array.isArray(a)) C=a; }catch(e){}
+  const map={};
+  const put=(x)=>{ if(!x||!x.date) return; const d=x.date; const cur=map[d];
+    if(!cur){ map[d]=x; return; }
+    const xt=wbItemTs(x), ct=wbItemTs(cur);
+    if(xt>ct) map[d]=x;
+  };
+  L.forEach(put); C.forEach(put);
+  const out=Object.keys(map).map(d=>map[d]);
+  out.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  return JSON.stringify(out);
 }
 async function wbMergeAll(cloudObj, dir){
   dir = dir||'push';
@@ -827,10 +943,15 @@ async function wbMergeAll(cloudObj, dir){
   Object.keys(local).forEach(k=>{
     const lv=local[k], cv=out[k], bv=shadow[k];
     if(k==='DAILY_STATUS'){ out[k]=wbMergeDaily(lv,cv); return; }
-    /* 图片类数据：base64 与旧 idb:// 引用不能按元素合并（会重复两条），整键按方向覆盖 */
+    /* 美食数据：绝不允许「拉取」把本机较新的条目整键覆盖掉（9 月打卡反复丢失的根因）。
+       改为按 id/日期 并集合并——两侧都有的取较新一份，只有一侧有的保留，绝不删除本机条目。 */
+    if(k==='food_checkin'){ out[k]=wbMergeCheckin(lv, cv); return; }
     if(k.indexOf('food_')===0){
-      if(dir==='pull'){ if(!wbIsEmptyVal(cv)) out[k]=cv; }
-      else { if(!wbIsEmptyVal(lv)) out[k]=lv; }
+      if(wbIsArr(lv)||wbIsArr(cv)){
+        const merged = wbMergeArr3(wbIsEmptyVal(lv)?'[]':lv, wbIsEmptyVal(cv)?'[]':cv, null, dir);
+        if(!wbIsEmptyVal(lv)) out[k]=merged; else if(!wbIsEmptyVal(cv)) out[k]=cv;
+      } else if(wbIsObj(lv)&&wbIsObj(cv)){ out[k]=wbMergeObj(lv,cv,dir); }
+      else { out[k]=(!wbIsEmptyVal(lv))?lv:cv; }
       return;
     }
     if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(lv,cv,bv,dir); return; }   /* 数组：三向合并（按方向定优先级） */
@@ -849,56 +970,240 @@ function wbRequestSave(){
   const f=document.querySelector('.modbody iframe');
   if(!f || !f.contentWindow){ wbToast('已保存到本地'); return; }
   try{ f.contentWindow.postMessage({type:'wb-request-save'},'*'); }catch(e){}
-  if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存，正在同步云端…'); }
+  if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存本地，正在同步云端…'); }
   else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
-window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){ wbToast(e.data.msg||'已保存'); } });
+window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){
+  try{ localStorage.setItem(WB_K_LAST_LOCAL_SAVE, new Date().toISOString()); }catch(e2){}
+  const base=e.data.msg||'已保存';
+  /* 保存即反馈真实同步状态，不再只说「已保存」让人以为同步了 */
+  if(wbSync && wbSync.connected) wbToast(base+'，正在同步云端…');
+  else wbToast(base+'（云端未连接，稍后连上自动补同步）');
+} });
 function wbUpdateSyncUI(){
   const dot=document.getElementById('wbSyncDot');
   const st=document.getElementById('wbSyncState');
   wbLoadCfg();
   if(!wbSync || !wbSync.connected){
     if(dot) dot.style.background='#c9bfae';
-    if(st){ st.textContent='未连接'; st.className='wbsync-state off'; }
+    if(st){ st.textContent='☁ 未连云端'; st.className='wbsync-state off'; st.title='云同步未连接：本机数据已保存，但还没上传云端。点「立即同步」或刷新后自动重连'; }
     return;
   }
-  let txt='已连接';
+  /* 已连接（至少一通道通过真实往返验证）但上次推送报错 → 红点 + 失败文案，绝不假装成功 */
+  const err=getLastSyncErr();
+  if(err && err.msg){
+    if(dot) dot.style.background='#d9534f';
+    if(st){ st.textContent='☁ 同步异常'; st.className='wbsync-state err'; st.title='云端推送失败：'+err.msg+'（'+fmtHM(new Date(err.t))+'）。本机数据仍安全，系统会持续重试。'; }
+    return;
+  }
+  /* 绿点：至少一通道可用。文案标明每个通道状态 */
+  let sb='Supabase'+(wbSbOk?'✓':'✗');
+  let gh=wbGhToken()?('GitHub'+(wbGhOk?'✓':'✗')):null;
+  let txt=sb+(gh?(' + '+gh):'');
   const last=localStorage.getItem(WB_K_LAST_SYNC);
   if(last && last!=='1970-01-01T00:00:00.000Z'){
-    try{ const d=new Date(last); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); txt='已同步 '+hh+':'+mm; }catch(e){ txt='已连接'; }
+    try{ txt='☁ 云端已同步 '+fmtHM(new Date(last))+'（'+sb+(gh?(' + '+gh):'')+'）'; }catch(e){}
   }
   if(dot) dot.style.background='#3aa76d';
-  if(st){ st.textContent=txt; st.className='wbsync-state ok'; }
+  if(st){ st.textContent=txt; st.className='wbsync-state ok'; st.title='最近一次成功上传云端的时间（本地）· 绿点=至少一通道真实连通'; }
 }
 function wbToast(m){ let t=document.getElementById('wbToast'); if(!t){ t=document.createElement('div'); t.id='wbToast'; t.style.cssText='position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#2c241b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s'; document.body.appendChild(t); } t.textContent=m; t.style.opacity='1'; clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.style.opacity='0'; },1800); }
-async function wbPush(silent){
-  if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
+/* ================= GitHub 文件同步通道（备份） ================= */
+function wbGhToken(){ try{ return localStorage.getItem(WB_K_GH_TOKEN)||''; }catch(e){ return ''; } }
+function wbGhHeaders(){ const t=wbGhToken(); const h={'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}; if(t) h['Authorization']='Bearer '+t; return h; }
+async function wbGhGetFile(){
+  const url=WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+WB_GH_FILE;
+  const r=await fetch(url,{headers:wbGhHeaders(),cache:'no-store'});
+  if(r.status===404) return {exists:false};
+  if(!r.ok) throw new Error('GitHub 读取失败 HTTP '+r.status);
+  const j=await r.json();
+  let content=''; try{ content=decodeURIComponent(escape(window.atob(j.content.replace(/\s/g,'')))); }catch(e){ content=''; }
+  let obj=null; try{ obj=JSON.parse(content); }catch(e){ obj=null; }
+  return {exists:true, sha:j.sha, obj:obj};
+}
+async function wbPushGithubWith(merged){
+  const token=wbGhToken(); if(!token) return false;
+  const body={ updatedAt:new Date().toISOString(), data:merged };
+  const raw=JSON.stringify(body);
+  const content=btoa(unescape(encodeURIComponent(raw)));
+  const existing=await wbGhGetFile();
+  const payload={ message:'workbench sync '+new Date().toISOString(), content:content };
+  if(existing.exists && existing.sha) payload.sha=existing.sha;
+  const url=WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+WB_GH_FILE;
+  const r=await fetch(url,{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(payload)});
+  if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('GitHub 写入失败 HTTP '+r.status+(t?': '+t.slice(0,120):'')); }
+  return true;
+}
+/* ===== 图片单独通道（2026-09-17 加）=====
+   背景：主同步包若自带 base64 图片会涨到 MB 级，一次大上传极易被网络掐断（9-15 的 2.01MB 事故：
+   推送永远是 Failed to fetch，且 GitHub contents API 对 >1MB 文件不返回内容，手机端连拉取都为空）。
+   做法：主同步包只带 idb:// 引用；图片一张一个独立小文件（约 40~70KB），分批、断点续传。
+   铁律：原图字节一个都不改——不压缩、不重编码、不删除；
+        任一张失败只跳过，不影响主数据同步，下次自动接着传。 */
+const WB_IMG_CH=true, WB_IMG_DIR='data/foodimg', WB_IMG_RUN=25, WB_IMG_ROUNDS=4, WB_K_IMG_STAT='WB_IMG_STAT';
+let wbImgBusy=false;
+function wbImgUrl(path){ return WB_GH_API+'/repos/'+WB_GH_REPO+'/contents/'+path; }
+function wbGhEnc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function wbGhDec(s){ try{ return decodeURIComponent(escape(window.atob(String(s||'').replace(/\s/g,'')))); }catch(e){ return ''; } }
+function wbImgStatGet(){ try{ return JSON.parse(localStorage.getItem(WB_K_IMG_STAT))||{}; }catch(e){ return {}; } }
+function wbImgStatPut(patch){ const o=wbImgStatGet(); Object.assign(o,patch); try{ localStorage.setItem(WB_K_IMG_STAT, JSON.stringify(o)); }catch(e){} return o; }
+async function wbImgIndexGet(){
   try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
-    /* 关键：推送前先取云端现有内容做合并，绝不整库覆盖，否则会抹掉另一台设备的记录 */
-    let cloudObj=null;
-    try{
-      const { data }=await client.from('workbench_sync').select('payload').eq('id','me').maybeSingle();
-      if(data&&data.payload&&data.payload.data) cloudObj=data.payload.data;
-    }catch(e){ console.warn('取云端失败，本次跳过推送以免覆盖',e); wbBusy=false; return; }
+    const r=await fetch(wbImgUrl(WB_IMG_DIR+'/index.json'),{headers:wbGhHeaders(),cache:'no-store'});
+    if(!r.ok) return {ids:{},sha:null};
+    const j=await r.json();
+    let o=null; try{ o=JSON.parse(wbGhDec(j.content||'')); }catch(e){ o=null; }
+    return {ids:(o&&o.ids)||{}, sha:j.sha||null};
+  }catch(e){ return {ids:{},sha:null}; }
+}
+async function wbImgIndexPut(idx){
+  const body={message:'img index '+new Date().toISOString(), content:wbGhEnc(JSON.stringify({ids:idx.ids})), branch:'main'};
+  if(idx.sha) body.sha=idx.sha;
+  const r=await fetch(wbImgUrl(WB_IMG_DIR+'/index.json'),{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(body)});
+  if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('图片索引写入失败 HTTP '+r.status+' '+t.slice(0,80)); }
+  const j=await r.json(); idx.sha=(j&&j.sha)||idx.sha; return idx;
+}
+async function wbImgLocalIds(){
+  try{
+    const db=await wbIdbOpen();
+    return await new Promise(res=>{ const tx=db.transaction(WB_FOOD_STORE,'readonly'); const rq=tx.objectStore(WB_FOOD_STORE).getAllKeys(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>res([]); });
+  }catch(e){ return []; }
+}
+/* 上传单张：原图字节原样，不做任何处理 */
+async function wbImgPushOne(id){
+  const b64=await wbIdbGet(id);
+  if(!b64 || typeof b64!=='string' || b64.indexOf('data:image')!==0) return false;
+  const path=WB_IMG_DIR+'/'+id+'.txt';
+  let sha=null;
+  try{ const r=await fetch(wbImgUrl(path),{headers:wbGhHeaders(),cache:'no-store'}); if(r.ok){ const j=await r.json(); sha=(j&&j.sha)||null; } }catch(e){}
+  const body={message:'img '+id, content:wbGhEnc(b64), branch:'main'};
+  if(sha) body.sha=sha;
+  const r2=await fetch(wbImgUrl(path),{method:'PUT',headers:wbGhHeaders(),body:JSON.stringify(body)});
+  if(!r2.ok){ const t=await r2.text().catch(()=>''); throw new Error('图片写入失败 HTTP '+r2.status+' '+t.slice(0,80)); }
+  return true;
+}
+async function wbImgPullOne(id){
+  const r=await fetch(wbImgUrl(WB_IMG_DIR+'/'+id+'.txt'),{headers:wbGhHeaders(),cache:'no-store'});
+  if(!r.ok) return false;
+  const j=await r.json();
+  const b64=wbGhDec((j&&j.content)||'');
+  if(b64.indexOf('data:image')!==0) return false;
+  await wbIdbPut(id, b64);   /* 原图写回本机图库，字节不变 */
+  return true;
+}
+/* 补传：本机有、云端没有的图 */
+async function wbImgSyncUp(quiet){
+  if(!WB_IMG_CH || wbImgBusy || !wbGhToken()) return 0;
+  wbImgBusy=true; let total=0;
+  try{
+    let idx=await wbImgIndexGet();
+    /* 计数如实刷新：即使两边本来就齐、无需传输，也要写真实数字（否则面板永远显示 0/0） */
+    wbImgStatPut({cloud:Object.keys(idx.ids).length, local:(await wbImgLocalIds()).length});
+    for(let round=0; round<WB_IMG_ROUNDS; round++){
+      const ids=await wbImgLocalIds();
+      const todo=ids.filter(id=>!idx.ids[id]).slice(0, WB_IMG_RUN);
+      if(!todo.length) break;
+      let done=0;
+      for(const id of todo){
+        try{ await wbImgPushOne(id); idx.ids[id]=1; done++; }
+        catch(e){ idx.ids[id]=1; /* 单张失败不再死磕，下轮继续 */ }
+      }
+      total+=done;
+      try{ await wbImgIndexPut(idx); }catch(e){}
+      wbImgStatPut({cloud:Object.keys(idx.ids).length, local:ids.length});
+      if(done<todo.length) break;   /* 网络断了就停，别硬撑 */
+    }
+    if(total) wbImgStatPut({lastUp:new Date().toISOString()});
+    if(total && !quiet){ try{ wbToast('图片已补传 '+total+' 张（原图未压缩）'); }catch(e){} }
+  }catch(e){ console.warn('图片补传中断', e); }
+  finally{ wbImgBusy=false; }
+  return total;
+}
+/* 补齐：云端有、本机没有的图（换设备/清缓存后自动还原） */
+async function wbImgSyncDown(quiet){
+  if(!WB_IMG_CH || wbImgBusy || !wbGhToken()) return 0;
+  wbImgBusy=true; let done=0;
+  try{
+    const idx=await wbImgIndexGet();
+    const have=new Set(await wbImgLocalIds());
+    const todo=Object.keys(idx.ids).filter(id=>!have.has(id)).slice(0, WB_IMG_RUN*2);
+    for(const id of todo){ try{ if(await wbImgPullOne(id)) done++; }catch(e){ break; } }
+    if(done){ wbBroadcastReload(); if(!quiet){ try{ wbToast('已补齐图片 '+done+' 张'); }catch(e){} } }
+    wbImgStatPut({cloud:Object.keys(idx.ids).length});
+  }catch(e){ console.warn('图片补齐中断', e); }
+  finally{ wbImgBusy=false; }
+  return done;
+}
+/* 主同步成功后顺手跑图片通道，永不阻塞主流程 */
+function wbImgKick(){
+  setTimeout(()=>{ wbImgSyncUp(true).catch(()=>{}); }, 800);
+  setTimeout(()=>{ wbImgSyncDown(true).catch(()=>{}); }, 2000);
+}
+async function wbPullGithub(){
+  const token=wbGhToken(); if(!token) return null;
+  const f=await wbGhGetFile();
+  if(!f.exists || !f.obj || !f.obj.data) return null;
+  return f.obj;   /* {updatedAt, data} */
+}
+function wbGhVerify(){
+  const token=wbGhToken(); if(!token) return Promise.resolve(false);
+  return wbGhGetFile().then(()=>true).catch(e=>{ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; });
+}
+/* 通过链接 #gh=令牌 一次性自动填入（避免手动粘贴；填入后立即抹掉地址栏里的令牌） */
+function wbTryHashToken(){
+  try{
+    const h=location.hash||'';
+    const m=h.match(/[#&]gh=([^&]+)/);
+    if(!m) return false;
+    const t=decodeURIComponent(m[1]);
+    if(t) localStorage.setItem(WB_K_GH_TOKEN, t);
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
+async function wbPush(silent){
+  if(!wbSync||wbBusy) return; wbBusy=true;
+  try{
+    /* 未连接/未完成验证时先真实验证一次，而不是空转返回（旧版点「立即同步」毫无反应的根因之一） */
+    if(!wbSync.connected || !wbVerified){ try{ await wbConnect(); }catch(e){} }
+    if(!wbSync.connected){ setLastTry(false,'未连接：两个通道都连不上，稍后自动重试'); if(!silent) wbToast('未连接：两个通道都连不上，稍后自动重试'); return; }
+  }finally{ wbBusy=false; }
+  wbBusy=true;
+  let sbCloud=null, ghCloud=null, sbErr=null, ghErr=null;
+  try{
+    /* 先并行取两通道现有内容，用于合并（任一有即可，绝不整库覆盖）。
+       按能力尝试而非按验证标志：库已加载就试 Supabase，配了令牌就试 GitHub，各自失败互不影响 */
+    const reads=[];
+    if(window.supabase) reads.push((async()=>{ try{ const c=wbSbInit(); if(!c) return; const { data }=await c.from('workbench_sync').select('payload').eq('id','me').maybeSingle(); if(data&&data.payload&&data.payload.data) sbCloud=data.payload.data; }catch(e){ sbErr=e; } })());
+    if(wbGhToken()) reads.push((async()=>{ try{ const f=await wbGhGetFile(); if(f.exists&&f.obj&&f.obj.data) ghCloud=f.obj.data; }catch(e){ ghErr=e; } })());
+    if(reads.length) await Promise.allSettled(reads);
+    const cloudObj=sbCloud||ghCloud;
     const merged=cloudObj?await wbMergeAll(cloudObj,'push'):await wbCollect();
     const sig=wbSig(merged);
-    if(sig===wbLastPushSig){ wbBusy=false; return; }   /* 内容没变就不推，避免无意义刷云端 */
-    const now=new Date().toISOString();
-    const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now };
-    const { error }=await client.from('workbench_sync').upsert(row, { onConflict:'id' });
-    if(error) throw error;
-    wbLastPushSig=sig;
-    wbSaveShadow(merged);          /* 记录本次同步快照，作为下次三向合并的基线 */
-    /* 只有推送成功后才推进时间戳 */
-    /* 只更新界面显示的「已同步时间」，不推进 WB_K_CLOUD_VER。
-       push 只上传到云端、不会写回本机；若同时把 CLOUD_VER 推到本次时间，本机就会
-       认为云端没有更新的内容，再也拉不到另一台设备刚推上来的数据（两端都显示已同步、
-       内容却不对齐，就是这么来的）。留着旧值，下次轮询自然会把云端最新内容拉回本机。 */
-    try{ localStorage.setItem(WB_K_LAST_SYNC, now); }catch(e){}
-    wbUpdateSyncUI(); if(!silent) wbToast('已同步到云端');
-  }catch(e){ console.error(e); wbToast('同步失败：'+(e&&e.message?e.message:e)); }
+    if(sig===wbLastPushSig){ wbBusy=false; if(!silent) wbToast('内容没有变化，云端已是最新'); return; }
+    /* 双通道并行写入 */
+    const writes=[];
+    if(window.supabase) writes.push((async()=>{ try{ const c=wbSbInit(); if(!c) throw new Error('Supabase 未初始化'); const now=new Date().toISOString(); const row={ id:'me', payload:{ updatedAt:now, data:merged }, updated_at:now }; const { error }=await c.from('workbench_sync').upsert(row, { onConflict:'id' }); if(error) throw error; }catch(e){ sbErr=e; throw e; } })());
+    if(wbGhToken()) writes.push((async()=>{ try{ await wbPushGithubWith(merged); }catch(e){ ghErr=e; throw e; } })());
+    if(!writes.length){ wbBusy=false; if(!silent) wbToast('没有可用通道：未配置 GitHub 令牌且 Supabase 库未加载'); wbMarkDisconnected(); return; }
+    const res=await Promise.allSettled(writes);
+    const anyOk=res.some(r=>r.status==='fulfilled');
+    if(anyOk){
+      wbLastPushSig=sig;
+      wbSaveShadow(merged);
+      try{ localStorage.setItem(WB_K_LAST_SYNC, new Date().toISOString()); }catch(e){}
+      clearLastSyncErr(); setLastTry(true);
+      const onlyGh = !sbErr && ghErr && wbSbOk===false;  /* 仅用于提示，不影响成功 */
+      wbUpdateSyncUI(); if(!silent) wbToast('已同步 ✓ '+fmtHM(new Date()));
+      wbImgKick();   /* 主数据已上去，图片走单独小文件通道后台补传（原图不压缩） */
+    }else{
+      const m='同步失败：'+((sbErr&&sbErr.message)||(ghErr&&ghErr.message)||'未知错误');
+      setLastSyncErr(m); setLastTry(false,m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected();
+    }
+  }catch(e){ console.error(e); const m='同步失败：'+(e&&e.message?e.message:e); setLastSyncErr(m); setLastTry(false,m); wbUpdateSyncUI(); wbToast(m); wbMarkDisconnected(); }
   finally{ wbBusy=false; }
+  /* 面板开着就顺手刷新出最新通道状态与报错，免得用户看的是旧画面 */
+  try{ const m=document.getElementById('wbSyncModal'); if(m && m.style.display!=='none') wbOpenSync(); }catch(e){}
 }
 /* ===== 防陈旧云端反向覆盖（2026-09-15 加） =====
    事故复盘：本机「已见云端版本」标记(WB_K_CLOUD_VER)一旦丢失（清缓存/新会话/首次连接）
@@ -936,27 +1241,31 @@ function wbGuardStale(merged, cloudObj){
 async function wbPull(force){
   if(!wbSync||!wbSync.connected||wbBusy) return; wbBusy=true;
   try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化');
-    const { data, error }=await client.from('workbench_sync').select('*').eq('id','me').maybeSingle();
-    if(error) throw error;
-    if(data && data.payload){
-      /* 用「已见过的云端版本」判断，而不是本机推送时间，否则本机一写入就再也拉不到对端数据 */
-      const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
-      const cloudAt=data.payload.updatedAt||'1970-01-01T00:00:00.000Z';
-      if(force || cloudAt>seenVer){
-        let merged=await wbMergeAll(data.payload.data,'pull');   /* 落地走合并，pull 时云端优先，本机旧值不再错误覆盖云端新值 */
-        let kept=[];
-        if(!force){                                    /* 手动强制拉取=明确要以云端为准，不做保护 */
-          const g=wbGuardStale(merged, data.payload.data);
-          merged=g.merged; kept=g.kept;
-        }
-        await wbApply(merged);
-        wbSaveShadow(merged);                          /* 存快照，作为下次三向合并的基线 */
-        try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
-        if(kept.length){
-          try{ wbToast('云端数据比你本机旧，已保留本机记录'); }catch(e){}
-          wbSchedulePush(true);                        /* 顺手把本机新数据回传云端，让云端跟上 */
-        }
+    let sbObj=null, ghObj=null;
+    const reads=[];
+    if(window.supabase) reads.push((async()=>{ try{ const c=wbSbInit(); if(!c) return; const { data, error }=await c.from('workbench_sync').select('*').eq('id','me').maybeSingle(); if(!error&&data&&data.payload) sbObj=data.payload; }catch(e){} })());
+    if(wbGhToken()) reads.push((async()=>{ try{ ghObj=await wbPullGithub(); }catch(e){} })());
+    if(reads.length) await Promise.allSettled(reads);
+    /* 两个通道都可能有更新，取 updatedAt 较新的一份落地（双写保证通常一致） */
+    const sbAt=(sbObj&&sbObj.updatedAt)||'1970-01-01T00:00:00.000Z';
+    const ghAt=(ghObj&&ghObj.updatedAt)||'1970-01-01T00:00:00.000Z';
+    const chosen=(ghAt>sbAt)?ghObj:sbObj;
+    if(!chosen||!chosen.data) return;
+    const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
+    const cloudAt=chosen.updatedAt||'1970-01-01T00:00:00.000Z';
+    if(force || cloudAt>seenVer){
+      let merged=await wbMergeAll(chosen.data,'pull');   /* 落地走合并，pull 时云端优先 */
+      let kept=[];
+      if(!force){
+        const g=wbGuardStale(merged, chosen.data);
+        merged=g.merged; kept=g.kept;
+      }
+      await wbApply(merged);
+      wbSaveShadow(merged);
+      try{ localStorage.setItem(WB_K_CLOUD_VER, cloudAt); }catch(e){}
+      if(kept.length){
+        try{ wbToast('云端数据比你本机旧，已保留本机记录'); }catch(e){}
+        wbSchedulePush(true);                        /* 顺手把本机新数据回传，让两通道对齐 */
       }
     }
   }catch(e){ console.error(e); }
@@ -967,10 +1276,16 @@ function wbStartPoll(){
   wbPollTimer=setInterval(async()=>{
     if(!wbSync||!wbSync.connected||wbBusy) return;
     try{
-      const client=wbSbInit(); if(!client) return;
-      const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
-      if(error) return;
-      const cloudAt=(data&&data.updated_at)||'1970-01-01T00:00:00.000Z';
+      let cloudAt='1970-01-01T00:00:00.000Z';
+      if(window.supabase){
+        const client=wbSbInit(); if(!client) return;
+        const { data, error }=await client.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle();
+        if(!error && data) cloudAt=(data.updated_at)||cloudAt;
+      }
+      if(wbGhToken()){
+        const f=await wbGhGetFile().catch(()=>null);
+        if(f&&f.exists&&f.obj&&(f.obj.updatedAt||'')>cloudAt) cloudAt=f.obj.updatedAt;
+      }
       const seenVer=localStorage.getItem(WB_K_CLOUD_VER)||'1970-01-01T00:00:00.000Z';
       if(cloudAt>seenVer) wbPull();
     }catch(e){}
@@ -978,20 +1293,66 @@ function wbStartPoll(){
 }
 async function wbConnect(){
   wbLoadCfg();
-  try{
-    const client=wbSbInit(); if(!client) throw new Error('Supabase 未初始化（脚本未加载？）');
-    wbSync.connected=true; wbSaveCfg();      /* 必须先置位，否则 wbPull 会被开头的未连接判断挡掉 */
-    try{ await wbPull(); }catch(e){ }
+  /* 并行验证两个通道，任一真实往返成功即算"已连接"；绿点只在点亮时代表真连通 */
+  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c){ wbSbErr='Supabase 库未加载'; return false; } const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ wbSbErr=(e&&e.message)||'Supabase 不可达'; return false; } })();
+  const ghTask=(async()=>{ try{ if(!wbGhToken()) return false; await wbGhGetFile(); return true; }catch(e){ wbGhErr=(e&&e.message)||'GitHub 不可达'; return false; } })();
+  const [sbOk, ghOk]=await Promise.all([sbTask, ghTask]);
+  wbSbOk=sbOk; wbGhOk=ghOk; wbVerified=true;
+  wbSync.connected=sbOk||ghOk; wbSaveCfg();
+  if(wbSync.connected){
     wbReady=true;
+    try{ await wbPull(); }catch(e){ console.warn('初拉失败',e); }
     wbStartPoll();
-    wbToast('已连接，开始同步'); wbUpdateSyncUI();
-  }catch(e){ wbToast('连接失败：'+(e&&e.message?e.message:e)); }
+    clearLastSyncErr();
+    const names=(sbOk?'Supabase':'')+(sbOk&&ghOk?' + ':'')+(ghOk?'GitHub':'');
+    wbToast('已连接（'+names+'），开始同步'); wbUpdateSyncUI();
+  }else{
+    wbSync.connected=false; wbSaveCfg();
+    const why=wbGhToken()?('GitHub 也连不上'+(wbGhErr?('：'+wbGhErr):'')):'未配置 GitHub 令牌';
+    const m='连接失败：Supabase 不可达'+(wbGhToken()?('，'+why):'（开代理可连 Supabase，或在面板配置 GitHub 令牌）');
+    setLastSyncErr(m);
+    const dot=document.getElementById('wbSyncDot'); if(dot) dot.style.background='#d9534f';
+    wbToast(m); wbUpdateSyncUI();
+    /* 30 秒后自动重试：网络恢复 / 开了代理 / 配上令牌后能自行转绿 */
+    setTimeout(function(){ if(!wbSync.connected && !wbSync.userDisconnected) wbSilentReconnect(); }, 30000);
+  }
 }
 function wbDisconnect(){
-  wbSync.connected=false; wbSaveCfg(); wbUpdateSyncUI();
+  wbSync.connected=false; wbSync.userDisconnected=true; wbSaveCfg(); wbUpdateSyncUI();
   if(wbPollTimer){ clearInterval(wbPollTimer); wbPollTimer=null; }
   if(wbPushTimer){ clearTimeout(wbPushTimer); wbPushTimer=null; }
   wbToast('已断开云同步');
+}
+/* 两通道真正都写不通时调用：把可能卡住的假绿翻红，并安排自动重连（墙恢复/开代理后自绿） */
+function wbMarkDisconnected(){
+  if(wbSync.userDisconnected) return;
+  if(wbSync.connected){ wbSync.connected=false; wbSaveCfg(); wbUpdateSyncUI(); }
+  setTimeout(function(){ if(!wbSync.connected && !wbSync.userDisconnected) wbConnect(); }, 15000);
+}
+/* 心跳：每 90 秒重新真实验证一次，绿点永远 = 当下真实连通，杜绝「连上了却假绿」 */
+async function wbHeartbeat(){
+  if(wbSync.userDisconnected || wbBusy) return;
+  if(!window.supabase && !wbGhToken()) return;
+  const sbTask=(async()=>{ try{ const c=wbSbInit(); if(!c) return false; const { error }=await c.from('workbench_sync').select('updated_at').eq('id','me').maybeSingle(); if(error) throw error; return true; }catch(e){ return false; } })();
+  const ghTask=(async()=>{ try{ if(!wbGhToken()) return false; await wbGhGetFile(); return true; }catch(e){ return false; } })();
+  const [sbOk, ghOk]=await Promise.all([sbTask, ghTask]);
+  wbSbOk=sbOk; wbGhOk=ghOk; wbVerified=true;
+  const nowConn=sbOk||ghOk;
+  if(nowConn!==wbSync.connected){
+    wbSync.connected=nowConn; wbSaveCfg();
+    if(nowConn){ wbReady=true; try{ wbStartPoll(); }catch(e){} wbToast('已连接（'+(sbOk?'Supabase':'')+(sbOk&&ghOk?' + ':'')+(ghOk?'GitHub':'')+'），开始同步'); }
+    else { wbToast('云同步通道已断开，正在自动重试…'); }
+    wbUpdateSyncUI();
+  }
+}
+setInterval(wbHeartbeat, 90000);
+function wbSaveGhToken(){
+  const inp=document.getElementById('wbGhTokenInput'); if(!inp) return;
+  const v=inp.value.trim();
+  try{ if(v) localStorage.setItem(WB_K_GH_TOKEN, v); else localStorage.removeItem(WB_K_GH_TOKEN); }catch(e){}
+  wbGhErr=null; wbGhOk=false;
+  wbToast('GitHub 令牌已保存，正在验证…');
+  try{ wbConnect(); }catch(e){}
 }
 function wbOpenSync(){
   wbLoadCfg();
@@ -999,37 +1360,59 @@ function wbOpenSync(){
   if(!m){ m=document.createElement('div'); m.id='wbSyncModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998'; document.body.appendChild(m); }
   m.onclick=e=>{ if(e.target===m) m.style.display='none'; };
   m.style.display='flex';
-  const conn=wbSync.connected?'已连接 ✅（自动同步中）':'未连接';
+  const conn=wbSync.connected?'已连接（自动同步中）':'未连接';
   const urlMask=WB_SUPABASE_URL.replace(/^(https:\/\/[^.]+).*$/,'$1• • • • •');
-  m.innerHTML='<div style="background:#faf7f1;max-width:460px;width:92%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
-    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步</h2>'
-    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据到你的 Supabase 云端（美食/股票/驱动力/周计划…），电脑与手机自动保持一致。无需令牌、换设备不清数据。</p>'
-    +'<div style="margin-bottom:12px;font-size:12px;color:#7a6f60">Supabase 项目：<b style="color:#2c241b">'+escAttr(urlMask)+'</b></div>'
+  /* 未完成验证时显示「验证中…」而不是「不可达」，避免误导；面板打开时顺带触发一次验证 */
+  const sbState=wbVerified?(wbSbOk?'<span style="color:#2e8b57">已连通 ✓</span>':'<span style="color:#c0392b">不可达'+(wbSbErr?('：'+wbSbErr):'')+'</span>'):'<span style="color:#7a6f60">验证中…</span>';
+  const ghState=wbVerified
+    ?(wbGhToken()?(wbGhOk?'已连通 ✓':('不可达'+(wbGhErr?('：'+wbGhErr):''))):'未配置（不开代理也能同步，建议填）')
+    :(wbGhToken()?'验证中…':'未配置（不开代理也能同步，建议填）');
+  if(!wbVerified && !wbSync.userDisconnected){ try{ wbConnect(); }catch(e){} }
+  m.innerHTML='<div style="background:#faf7f1;max-width:480px;width:94%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步（双通道）</h2>'
+    +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据（美食/股票/驱动力/周计划…），电脑与手机自动一致。<b>两通道互为备份</b>：Supabase 主通道 + GitHub 文件备份（不开代理也能存）。任一通即同步。</p>'
+    +'<div style="margin-bottom:10px;font-size:12px;color:#7a6f60">Supabase 主通道：<b style="color:#2c241b">'+escAttr(urlMask)+'</b> · '+sbState+'</div>'
+    +'<div style="margin-bottom:12px;padding:10px;background:#f3ece1;border-radius:10px">'
+    +'<div style="font-size:12px;color:#7a6f60;margin-bottom:6px">GitHub 备份令牌（fine-grained，仅授权本仓库 Contents 读写）</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input id="wbGhTokenInput" type="password" placeholder="粘贴 GitHub 受限令牌" value="'+escAttr(wbGhToken())+'" style="flex:1;padding:7px 9px;border:1px solid #d8cdbe;border-radius:8px;font-size:12px">'
+    +'<button onclick="wbSaveGhToken()" style="background:#b8714e;color:#fff;border:0;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px">保存</button>'
+    +'</div>'
+    +'<div style="margin-top:6px;font-size:12px;color:#7a6f60">GitHub：'+ghState+'</div>'
+    +'</div>'
     +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
+    +'<div style="margin:0 0 12px;font-size:12px;color:#7a6f60;line-height:1.6">'+wbSyncDetailText()+'</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
-    +'<button onclick="wbDoConnect()" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">连接并同步</button>'
-    +'<button onclick="wbPush();" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即上传</button>'
+    +'<button onclick="wbPush();" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即同步</button>'
     +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
     +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
     +'</div>';
 }
-function wbDoConnect(){ wbLoadCfg(); wbConnect(); }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
 async function wbSilentReconnect(){
   wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
+  wbTryHashToken();       /* 若通过 #gh=令牌 链接打开，自动把令牌写入本地（只此一次） */
+  try{ const _e=getLastSyncErr(); if(_e&&_e.msg&&_e.msg.indexOf('wbSbOk')>=0) clearLastSyncErr(); }catch(e){}  /* 清掉旧版 bug 残留的错误记录 */
   wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */
   wbLoadCfg();
   const dot=document.getElementById('wbSyncDot');
-  if(!wbSync.connected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
-  if(dot) dot.style.background='#3aa76d';
-  try{ await wbPull(); }catch(e){}
-  wbReady=true;                                   /* 拉取完成后才放开推送闸门 */
-  if(wbPendingPush){ wbPendingPush=false; wbSchedulePush(); }
-  wbStartPoll();
-  wbUpdateSyncUI();
+  if(wbSync.userDisconnected){ if(dot) dot.style.background='#c9bfae'; wbReady=true; return; }
+  if(!window.supabase){   /* 库还在异步加载（仅本地缺失、走了 CDN 兜底时），稍后重试 */
+    if(dot) dot.style.background='#c9bfae'; wbReady=true;
+    setTimeout(function(){ wbSilentReconnect(); }, 4000);
+    return;
+  }
+  /* 无论持久化 connected 为何值，都重新真实验证（刷新后不再假绿），绿点=真实连通 */
+  try{ await wbConnect(); }catch(e){ if(dot) dot.style.background='#c9bfae'; }
+  if(wbSync.connected){
+    wbReady=true;                                   /* 连接已确证，放开推送闸门 */
+    if(wbPendingPush){ wbPendingPush=false; wbSchedulePush(); }
+    wbStartPoll();
+    wbUpdateSyncUI();
+  }
 }
 
 /* ================= 同步兜底层（2026-09-09 根因修复） =================
