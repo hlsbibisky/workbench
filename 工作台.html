@@ -491,6 +491,7 @@ window.addEventListener('message', e=>{
   else if(d.type==='wb-switch-tab' && d.module && d.subId){
     if(MODULES[d.module]){ selectModule(d.module); selectSub(d.module, d.subId); }
   }
+  else if(d.type==='wb-undo-push'){ wbUndoPush(d); }
 });
 
 /* 底部状态统计（页脚文案为静态，见 HTML 中 .sidefoot） */
@@ -677,7 +678,7 @@ function wbLoadCfg(){
   return wbSync;
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
-function wbIframeSrc(src){ var v='20260915b'; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
+function wbIframeSrc(src){ var v=WB_THIS_VER; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
 const WB_THIS_VER='20260918a';
 /* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
    false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
@@ -980,6 +981,37 @@ window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){
   if(wbSync && wbSync.connected) wbToast(base+'，正在同步云端…');
   else wbToast(base+'（云端未连接，稍后连上自动补同步）');
 } });
+/* ===== 外壳层撤销栈：最多 10 步，防误删 =====
+   子页（如美食记录）在删除前会把「删除前整份数据」通过 postMessage 推过来；
+   这里保留快照，用户点顶栏「撤销」即写回本地并通知子页重载，再同步云端。 */
+const WB_UNDO_MAX = 10;
+let wbUndoStack = [];
+function wbUndoPush(d){
+  try{
+    if(!d || !d.key) return;
+    wbUndoStack.push({ label:d.label||'删除操作', key:d.key, value:d.value, ts:Date.now() });
+    if(wbUndoStack.length > WB_UNDO_MAX) wbUndoStack.shift();
+    wbUpdateUndoBtn();
+  }catch(e){}
+}
+function wbUndo(){
+  if(wbUndoStack.length===0){ wbToast('没有可撤销的操作'); return; }
+  const item = wbUndoStack.pop();
+  try{
+    localStorage.setItem(item.key, item.value);   /* 把删除前的数据写回本地 */
+    wbBroadcastReload();                          /* 通知 iframe 子页重新加载数据 */
+    wbSchedulePush(true);                          /* 同步回云端，避免又被旧云端覆盖 */
+    wbToast('已撤销：'+item.label);
+  }catch(e){ wbToast('撤销失败：'+(e&&e.message?e.message:e)); }
+  wbUpdateUndoBtn();
+}
+function wbUpdateUndoBtn(){
+  const b = document.getElementById('wbUndoBtn');
+  if(!b) return;
+  const n = wbUndoStack.length;
+  b.disabled = (n===0);
+  b.title = n ? ('撤销上一步（还可撤销 '+n+' 步）') : '暂无可撤销的操作';
+}
 function wbUpdateSyncUI(){
   const dot=document.getElementById('wbSyncDot');
   const st=document.getElementById('wbSyncState');
