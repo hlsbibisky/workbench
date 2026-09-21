@@ -557,7 +557,7 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     renderOut(data, chat ? parseChat(chat) : null);
     $('backPanel').style.display = 'none';
     var d = new Date();
-    flashState('解读完成 · ' + d.getMonth()+1 + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), 'ok');
+    flashState('解读完成 · ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), 'ok');
     saveHist({ t: Date.now(), who: whoName(), chat: chat, raw: raw });
   };
 
