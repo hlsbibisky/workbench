@@ -133,10 +133,16 @@ details.set[open] summary{color:var(--accent);}
         <details class="set">
           <summary>视觉模型设置（看图用的）</summary>
           <div class="apigrid">
-            <label>接口地址</label><input type="text" id="vlBase" placeholder="https://open.bigmodel.cn/api/paas/v4">
+            <label>服务商</label>
+            <select id="vlProv">
+              <option value="deepseek">DeepSeek（推荐 · 和全站同一个密钥）</option>
+              <option value="zhipu">智谱</option>
+              <option value="custom">自定义</option>
+            </select>
+            <label>接口地址</label><input type="text" id="vlBase" placeholder="https://api.deepseek.com">
             <label>密钥</label><input type="password" id="vlKey" placeholder="看图模型的密钥">
-            <label>模型</label><input type="text" id="vlModel" placeholder="glm-4v-flash">
-            <div class="tip">看图需要「视觉模型」——文字模型（如 deepseek-chat）看不了图。默认用智谱 glm-4v-flash，<b>免费</b>：open.bigmodel.cn 注册就拿密钥。密钥只存你这台电脑。</div>
+            <label>模型</label><input type="text" id="vlModel" placeholder="deepseek-v4-flash">
+            <div class="tip">看图要用「视觉模型」。DeepSeek 现在支持看图，<b>用你在别处填过的那个密钥就行</b>，不用另外充钱。如果提示「不支持图片」，把模型名改成 <b>deepseek-v4-flash-vision-exp</b>。密钥只存你这台电脑。</div>
           </div>
         </details>
       </div>
@@ -260,11 +266,16 @@ details.set[open] summary{color:var(--accent);}
     '结合入住人，两三句：这套房更衬谁、谁要特别注意什么。'
   ].join('\n');
 
+  var VL_PRESETS = {
+    deepseek: { base:'https://api.deepseek.com', model:'deepseek-v4-flash' },
+    zhipu:    { base:'https://open.bigmodel.cn/api/paas/v4', model:'glm-4v-flash' },
+    custom:   { base:'', model:'' }
+  };
   function cfgVl(){
     return {
-      base: ($('vlBase').value.trim() || 'https://open.bigmodel.cn/api/paas/v4').replace(/\/+$/,''),
+      base: ($('vlBase').value.trim() || VL_PRESETS.deepseek.base).replace(/\/+$/,''),
       key: $('vlKey').value.trim(),
-      model: $('vlModel').value.trim() || 'glm-4v-flash'
+      model: $('vlModel').value.trim() || VL_PRESETS.deepseek.model
     };
   }
 
@@ -385,12 +396,29 @@ details.set[open] summary{color:var(--accent);}
   }
 
   (function(){
-    $('vlBase').value = lsGet(K.vlBase, 'https://open.bigmodel.cn/api/paas/v4');
-    $('vlModel').value = lsGet(K.vlModel, 'glm-4v-flash');
+    var prov = lsGet('ywVlProv', 'deepseek');
+    $('vlProv').value = prov;
+    $('vlBase').value = lsGet(K.vlBase, VL_PRESETS[prov] ? VL_PRESETS[prov].base : VL_PRESETS.deepseek.base);
+    $('vlModel').value = lsGet(K.vlModel, VL_PRESETS[prov] ? VL_PRESETS[prov].model : VL_PRESETS.deepseek.model);
     $('vlKey').value = lsGet(K.vlKey, '');
+    $('vlProv').addEventListener('change', function(){
+      var p = VL_PRESETS[$('vlProv').value] || VL_PRESETS.custom;
+      lsSet('ywVlProv', $('vlProv').value);
+      if(p.base){
+        $('vlBase').value = p.base; $('vlModel').value = p.model;
+        lsSet(K.vlBase, p.base); lsSet(K.vlModel, p.model);
+      }
+      // DeepSeek 的看图密钥跟全站文本密钥是同一个，自动带上
+      if($('vlProv').value === 'deepseek' && !$('vlKey').value){
+        try{ var k = localStorage.getItem('ywApiKey') || ''; if(k){ $('vlKey').value = k; lsSet(K.vlKey, k); } }catch(e){}
+      }
+    });
     $('vlBase').addEventListener('input', function(){ lsSet(K.vlBase, $('vlBase').value); });
     $('vlModel').addEventListener('input', function(){ lsSet(K.vlModel, $('vlModel').value); });
     $('vlKey').addEventListener('input', function(){ lsSet(K.vlKey, $('vlKey').value); });
+    if(prov === 'deepseek' && !$('vlKey').value){
+      try{ var k2 = localStorage.getItem('ywApiKey') || ''; if(k2){ $('vlKey').value = k2; } }catch(e){}
+    }
   })();
 
 })();
