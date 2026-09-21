@@ -472,7 +472,7 @@
       <div style="display:grid;grid-template-columns:76px 1fr;gap:8px;margin-top:8px;align-items:center;max-width:520px;">
         <span style="font-size:12px;color:#8a837a;text-align:right;">接口地址</span><input id="guaBase" placeholder="https://api.deepseek.com">
         <span style="font-size:12px;color:#8a837a;text-align:right;">密钥</span><input id="guaKey" type="password" placeholder="sk-...">
-        <span style="font-size:12px;color:#8a837a;text-align:right;">模型</span><input id="guaModel" placeholder="deepseek-chat">
+        <span style="font-size:12px;color:#8a837a;text-align:right;">模型</span><input id="guaModel" placeholder="deepseek-v4-flash">
       </div>
     </details>
     <div id="aiAnswer" style="margin-top:10px;"></div>
@@ -1031,7 +1031,7 @@ async function askGuaAI(){
   const box=document.getElementById('aiAnswer');
   const key=(document.getElementById('guaKey').value.trim())||(localStorage.getItem('ywApiKey')||'');
   let base=(document.getElementById('guaBase').value.trim())||(localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
-  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-chat');
+  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-v4-flash');
   base=base.replace(/\/+$/,'');
   const prompt=window.__guaPrompt||document.getElementById('aiPrompt').textContent;
   if(!key){ st.innerHTML='<span style="color:#c0392b">先把密钥填上（展开上面「接口设置」）</span>'; document.getElementById('guaSet').open=true; return; }
@@ -1060,7 +1060,7 @@ async function askGuaAI(){
   const g=id=>document.getElementById(id);
   if(!g('guaBase')) return;
   g('guaBase').value=localStorage.getItem('ywApiBase')||'https://api.deepseek.com';
-  g('guaModel').value=localStorage.getItem('ywApiModel')||'deepseek-chat';
+  g('guaModel').value=localStorage.getItem('ywApiModel')||'deepseek-v4-flash';
   g('guaKey').value=localStorage.getItem('ywApiKey')||'';
   const map={guaBase:'ywApiBase',guaModel:'ywApiModel',guaKey:'ywApiKey'};
   ['guaBase','guaModel','guaKey'].forEach(id=>{
