@@ -461,10 +461,27 @@
     <div id="resYaoCi"></div>
   </div>
 
+  <div class="card" id="aiAnswerCard">
+    <div class="card-title">🤖 AI 直接解读</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="copy-btn" id="btnGuaAI" onclick="askGuaAI()">✨ 直接出解读</button>
+      <span id="guaAIState" style="font-size:12px;color:#8a837a;">密钥填一次，全站通用（下方「接口设置」）</span>
+    </div>
+    <details id="guaSet" style="margin-top:10px;">
+      <summary style="font-size:12px;color:#8a837a;cursor:pointer;">接口设置（全站共用 · DeepSeek / 智谱 / Kimi）</summary>
+      <div style="display:grid;grid-template-columns:76px 1fr;gap:8px;margin-top:8px;align-items:center;max-width:520px;">
+        <span style="font-size:12px;color:#8a837a;text-align:right;">接口地址</span><input id="guaBase" placeholder="https://api.deepseek.com">
+        <span style="font-size:12px;color:#8a837a;text-align:right;">密钥</span><input id="guaKey" type="password" placeholder="sk-...">
+        <span style="font-size:12px;color:#8a837a;text-align:right;">模型</span><input id="guaModel" placeholder="deepseek-chat">
+      </div>
+    </details>
+    <div id="aiAnswer" style="margin-top:10px;"></div>
+  </div>
+
   <div class="card copy-area">
-    <div class="card-title">🤖 复制完整信息去问 AI</div>
+    <div class="card-title">📋 备用 · 复制完整信息去问 AI</div>
     <div class="copy-prompt" id="aiPrompt"></div>
-    <button class="copy-btn" onclick="copyPrompt()">📋 一键复制提示词</button>
+    <button class="copy-btn" onclick="copyPrompt()" style="font-size:12px;opacity:.75;">一键复制提示词</button>
   </div>
 </div><!-- end page-result -->
 
@@ -1005,7 +1022,51 @@ function renderAIPrompt(r){
 '约束\n- 不脱离原书体系，不引入其他流派规则\n- 原文引用不超过 100 字；仅在必要处引用\n- 明确区分已知事实、推断与假设\n- 若信息不足或规则不覆盖，明确说明"无法断定"';
 
   document.getElementById('aiPrompt').textContent = prompt;
+  window.__guaPrompt = prompt;
 }
+
+async function askGuaAI(){
+  const btn=document.getElementById('btnGuaAI');
+  const st=document.getElementById('guaAIState');
+  const box=document.getElementById('aiAnswer');
+  const key=(document.getElementById('guaKey').value.trim())||(localStorage.getItem('ywApiKey')||'');
+  let base=(document.getElementById('guaBase').value.trim())||(localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
+  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-chat');
+  base=base.replace(/\/+$/,'');
+  const prompt=window.__guaPrompt||document.getElementById('aiPrompt').textContent;
+  if(!key){ st.innerHTML='<span style="color:#c0392b">先把密钥填上（展开上面「接口设置」）</span>'; document.getElementById('guaSet').open=true; return; }
+  btn.disabled=true; st.textContent='解卦中，通常十几秒…'; box.innerHTML='';
+  try{
+    const ctrl=('AbortController' in window)?new AbortController():null;
+    const timer=ctrl?setTimeout(()=>ctrl.abort(),120000):null;
+    const r=await fetch(base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,temperature:0.4,messages:[{role:'user',content:prompt}]}),signal:ctrl?ctrl.signal:undefined});
+    if(timer)clearTimeout(timer);
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ throw (j&&j.error&&j.error.message)?j.error.message:('HTTP '+r.status); }
+    const txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+    if(!txt) throw '回复为空，再试一次';
+    box.innerHTML='<div class="copy-prompt" style="white-space:pre-wrap;">'+String(txt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*/g,'')+'</div>';
+    st.innerHTML='<span style="color:#3f9d6b">解读完成</span>';
+    try{ localStorage.setItem('guaLastAnswer',txt); }catch(e){}
+  }catch(e){
+    if(timer)clearTimeout(timer);
+    let m=(e&&e.name==='AbortError')?'等太久放弃了':String((e&&e.message)||e);
+    if(m.indexOf('Failed to fetch')>=0)m='连不上接口——检查网络或接口地址';
+    st.innerHTML='<span style="color:#c0392b">'+m+'</span>';
+  }finally{ btn.disabled=false; }
+}
+
+(function initGuaApi(){
+  const g=id=>document.getElementById(id);
+  if(!g('guaBase')) return;
+  g('guaBase').value=localStorage.getItem('ywApiBase')||'https://api.deepseek.com';
+  g('guaModel').value=localStorage.getItem('ywApiModel')||'deepseek-chat';
+  g('guaKey').value=localStorage.getItem('ywApiKey')||'';
+  const map={guaBase:'ywApiBase',guaModel:'ywApiModel',guaKey:'ywApiKey'};
+  ['guaBase','guaModel','guaKey'].forEach(id=>{
+    g(id).addEventListener('change',()=>{ try{ localStorage.setItem(map[id],g(id).value.trim()); }catch(e){} });
+  });
+})();
 
 function copyPrompt(){
   const text = document.getElementById('aiPrompt').textContent;
