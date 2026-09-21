@@ -679,7 +679,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v=WB_THIS_VER; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260920a';
+const WB_THIS_VER='20260921a';
 /* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
    false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
 const WB_SYNC_IMAGES=false;
@@ -1386,6 +1386,26 @@ function wbSaveGhToken(){
   wbToast('GitHub 令牌已保存，正在验证…');
   try{ wbConnect(); }catch(e){}
 }
+/* 本机数据自检：把「打卡存了多少天、本地占多大、最近何时保存」直接摆出来，
+   以后不用再猜数据到底有没有落盘（2026-09-21 加，针对「填了却像没保存」）。 */
+function wbSelfCheckHTML(){
+  try{
+    let kb=0, n=0;
+    for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(!k) continue; const v=localStorage.getItem(k)||''; kb+=(k.length+v.length); n++; }
+    const cnt=(s)=>{ try{ const a=JSON.parse(localStorage.getItem(s)||'[]'); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } };
+    let ckN=0, ckLast='—';
+    try{ const a=JSON.parse(localStorage.getItem('food_checkin')||'[]'); if(Array.isArray(a)){ ckN=a.length; const ds=a.map(function(x){return x&&x.date;}).filter(Boolean).sort(); ckLast=ds.length?ds[ds.length-1]:'—'; } }catch(e){}
+    const lastSave=localStorage.getItem(WB_K_LAST_LOCAL_SAVE)||'';
+    let lastSaveTxt='—';
+    try{ if(lastSave) lastSaveTxt=fmtHM(new Date(lastSave)); }catch(e){}
+    return '<div style="margin:0 0 12px;padding:10px;background:#f3ece1;border-radius:10px;font-size:12px;color:#7a6f60;line-height:1.75">'
+      +'<b style="color:#2c241b">本机数据自检</b><br>'
+      +'打卡记录：<b style="color:#b8714e">'+ckN+'</b> 天（最近 '+(ckLast||'—')+'）<br>'
+      +'菜品/饮品/零食：'+cnt('food_menu')+' / '+cnt('food_drinks')+' / '+cnt('food_snacks')+'<br>'
+      +'localStorage：'+n+' 项 · 约 '+Math.round(kb/1024)+' KB（上限约 5MB）<br>'
+      +'最近本机保存：'+lastSaveTxt+'</div>';
+  }catch(e){ return ''; }
+}
 function wbOpenSync(){
   wbLoadCfg();
   let m=document.getElementById('wbSyncModal');
@@ -1413,7 +1433,8 @@ function wbOpenSync(){
     +'<div style="margin-top:6px;font-size:12px;color:#7a6f60">GitHub：'+ghState+'</div>'
     +'</div>'
     +'<div id="wbSyncStatus" style="margin:10px 0;font-size:13px;color:#b8714e">状态：'+conn+'</div>'
-    +'<div style="margin:0 0 12px;font-size:12px;color:#7a6f60;line-height:1.6">'+wbSyncDetailText()+'</div>'
+    +'<div style="margin:0 0 10px;font-size:12px;color:#7a6f60;line-height:1.6">'+wbSyncDetailText()+'</div>'
+    + wbSelfCheckHTML()
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
     +'<button onclick="wbPush();" style="background:#b8714e;color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">立即同步</button>'
     +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
