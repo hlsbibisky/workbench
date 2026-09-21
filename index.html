@@ -348,7 +348,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20260922d';
+const WB_THIS_VER='20260922e';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -771,8 +771,22 @@ async function wbApply(o){
         v=await wbShrinkFoodB64(v);
       }
       const cur=localStorage.getItem(k);
-      if(cur!==v){
-        try{ localStorage.setItem(k,v); changed=true; }
+      /* ★ 拉取落地同样禁止整键覆盖（2026-09-22 修复）：
+         过去这里直接把云端值写回本机；一旦拉到的是较旧的云端快照，
+         本机刚填的打卡 / 菜品就会被整键抹掉 —— 这正是「美食记录填了却存不下」的根因之一。
+         现改为：food_* 一律做「本机 ∪ 云端」并集合并，本机有而云端没有的条目必须留下。 */
+      let finalV = v;
+      if(k.indexOf('food_')===0){
+        try{
+          if(wbIsEmptyVal(cur)){ finalV = v; }
+          else if(k==='food_checkin'){ finalV = wbMergeCheckin(cur, v); }
+          else if(wbIsArr(cur) || wbIsArr(v)){ finalV = wbMergeArr3(cur, v, null, 'pull'); }
+          else if(wbIsObj(cur) && wbIsObj(v)){ finalV = wbMergeObj(cur, v, 'pull'); }
+          else { finalV = cur; }
+        }catch(e){ finalV = wbIsEmptyVal(cur) ? v : cur; }
+      }
+      if(cur!==finalV){
+        try{ localStorage.setItem(k,finalV); changed=true; }
         catch(e){ quotaHit=true; console.error('wbApply 配额超限，跳过',k,e); }
       }
     }
