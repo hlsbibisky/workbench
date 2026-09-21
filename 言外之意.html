@@ -25,6 +25,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .lab b{font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0;}
 .lnk{color:var(--sub);cursor:pointer;text-decoration:underline dotted;font-size:12px;}
 .lnk:hover{color:var(--accent);}
+.wpick{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 12px;font-size:12.5px;cursor:pointer;margin:0 6px 0 0;color:var(--sub);transition:.15s;}
+.wpick:hover{border-color:var(--accent);color:var(--accent);}
+.wpick.on{background:var(--mark);border-color:var(--accent);color:#8d5233;font-weight:500;}
+#whoPick{display:none;margin-top:10px;padding:9px 12px;border:1px solid #e8d3c1;background:#fdf8f2;border-radius:10px;}
 
 textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-size:13.5px;line-height:1.8;padding:11px 12px;resize:vertical;outline:none;transition:.15s;display:block;}
 textarea:focus{border-color:var(--accent);}
@@ -113,7 +117,8 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
 
   <div class="card">
     <div class="lab"><b>聊天记录</b><span><span id="cntIn">0 字</span> · <span class="lnk" id="btnFlip">对调自己/对方</span> · <span class="lnk" id="btnClear">清空</span></span></div>
-    <textarea class="ta" id="chat" placeholder="从微信里复制聊天记录，整段粘贴到这里——名字不用管，会自动换成「自己 / 对方」。&#10;&#10;也支持手动写：&#10;自己：周六要不要一起吃饭？&#10;对方：这周有点忙"></textarea>
+    <textarea class="ta" id="chat" placeholder="从微信里复制聊天记录，整段粘贴到这里——昵称、日期时间会自动去掉，换成「自己 / 对方」。&#10;&#10;也支持手动写：&#10;自己：周六要不要一起吃饭？&#10;对方：这周有点忙"></textarea>
+    <div id="whoPick"></div>
 
     <div class="actrow">
       <button class="btn primary big" id="btnGo">开始解读</button>
@@ -216,57 +221,109 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
   ].join('\n');
 
   /* ---------- 对话解析 ---------- */
+  /* 微信复制出来的真实格式是三行：昵称一行 / 日期时间一行 / 内容一行 */
   var HEAD_RE = /^(.{1,24}?)[\s\u00a0]+(\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}日?)([\s\u00a0]+\d{1,2}:\d{2}(?::\d{2})?)?\s*$/;
   var TIMERE = /^(.{1,24}?)[\s\u00a0]+(\d{1,2}:\d{2}(?::\d{2})?)\s*$/;
   var ONLYTIME_RE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
+  var DATE_RE = /^(\d{4}年\d{1,2}月\d{1,2}日|\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}日?|昨天|今天|前天)(\s*[\u00a0\s]+\d{1,2}:\d{2}(?::\d{2})?)?$/;
+  var PUNC_RE = /[，。！？,.!?、；;：:（）()"'「」【】]/;
 
-  function isMeName(n){ n=String(n||'').trim(); return n==='我'||n==='自己'||n==='本人'||n==='me'||n==='Me'||n==='ME'; }
-  function isThemName(n){ n=String(n||'').trim(); return n==='对方'||n==='他'||n==='她'||n==='ta'||n==='TA'||n==='Ta'; }
+  function isNameLine(t, lines, i){
+    if(!t || t.length > 20) return false;
+    if(DATE_RE.test(t) || ONLYTIME_RE.test(t)) return false;
+    if(PUNC_RE.test(t)) return false;
+    if(/\s/.test(t)) return false;
+    var nx = lines[i+1] ? String(lines[i+1]).trim() : '';
+    if(!nx) return false;
+    return DATE_RE.test(nx) || ONLYTIME_RE.test(nx);
+  }
+
+  var meName = '';
+  try{ meName = localStorage.getItem('ywMeName') || ''; }catch(e){}
+
+  function roleOfName(nm, nameMap, unknown){
+    if(isMeName(nm)) return 'me';
+    if(isThemName(nm)) return 'them';
+    if(meName && nm === meName) return 'me';
+    if(nameMap[nm]) return nameMap[nm];
+    if(unknown.indexOf(nm) < 0) unknown.push(nm);
+    var r = meName ? 'them' : (unknown.length === 2 ? 'me' : 'them');
+    nameMap[nm] = r;
+    return r;
+  }
 
   function parseChat(raw){
     var lines = String(raw||'').replace(/\r/g,'').split('\n');
-    var msgs = [], cur = null, curRole = null;
-    var nameMap = {}, unknownCount = 0;
+    var msgs = [], cur = null, curRole = null, roleKnown = false;
+    var nameMap = {}, unknown = [], pendingName = '';
     function push(role, text){
-      if(cur && curRole===role){
-        cur.text += (cur.text? '\n':'') + text;
-      } else {
-        cur = { role: role, text: text };
+      if(!cur || cur.role !== role){
+        cur = { role: role, text: text, locked: !!roleKnown };
         msgs.push(cur);
         curRole = role;
+      } else {
+        cur.text += (cur.text ? '\n' : '') + text;
+        if(roleKnown) cur.locked = true;
       }
-    }
-    function roleOfName(nm){
-      if(isMeName(nm)) return 'me';
-      if(isThemName(nm)) return 'them';
-      if(nameMap[nm]) return nameMap[nm];
-      unknownCount++;
-      var r = (unknownCount===2) ? 'me' : 'them';
-      nameMap[nm] = r;
-      return r;
     }
     for(var i=0;i<lines.length;i++){
       var t = lines[i].trim();
       if(!t){ continue; }
+
+      /* ③ 纯日期 / 时间行 —— 必须放最前，否则「2026年09月21日 18:06」会被误当成「昵称+时间」 */
+      if(DATE_RE.test(t) || ONLYTIME_RE.test(t)){ continue; }
+
+      /* ① 昵称 + 日期时间 写在同一行 */
+      var hm = HEAD_RE.exec(t) || TIMERE.exec(t);
+      if(hm && !DATE_RE.test(hm[1].trim())){
+        curRole = roleOfName(hm[1].trim(), nameMap, unknown);
+        roleKnown = true;
+        cur = null; pendingName = '';
+        continue;
+      }
+
+      /* ② 昵称单独一行（下一行是日期/时间）——昵称绝不进内容 */
+      if(isNameLine(t, lines, i)){
+        var nm = t;
+        var r0 = roleOfName(nm, nameMap, unknown);
+        /* 「内容在前、昵称在后」的复制格式：把刚收到、还没归属的那条收回给这个昵称 */
+        if(cur && !cur.locked){ cur.role = r0; cur.locked = true; }
+        pendingName = nm;
+        curRole = r0;
+        roleKnown = true;
+        cur = null;
+        continue;
+      }
+
+      /* ④ "我：" / "对方：" 这类前缀 */
       var pm = /^([^\s:：]{1,12})\s*[:：]\s*([\s\S]*)$/.exec(t);
       if(pm){
-        var role = isMeName(pm[1]) ? 'me' : (isThemName(pm[1]) ? 'them' : null);
+        var role = isMeName(pm[1]) ? 'me'
+                 : (isThemName(pm[1]) ? 'them'
+                 : (meName && pm[1].trim() === meName ? 'me' : null));
         if(role){
-          if(pm[2].trim()===''){ curRole = role; cur = null; continue; }
+          curRole = role; roleKnown = true;
+          if(pm[2].trim()===''){ cur = null; continue; }
           push(role, pm[2].trim());
           continue;
         }
       }
-      var hm = HEAD_RE.exec(t) || TIMERE.exec(t);
-      if(hm){
-        curRole = roleOfName(hm[1].trim());
-        cur = null;
-        continue;
-      }
-      if(ONLYTIME_RE.test(t)){ continue; }
+
       push(curRole || 'them', t);
     }
-    return msgs;
+    /* 兜底：哪怕漏网，也绝不允许昵称出现在聊天内容里 */
+    var allNames = {};
+    for(var k in nameMap) allNames[k] = 1;
+    if(pendingName) allNames[pendingName] = 1;
+    lastUnknown = unknown;
+    msgs.forEach(function(m){
+      m.text = m.text.split('\n').filter(function(ln){
+        var x = ln.trim();
+        if(!x) return false;
+        return !(x.length <= 20 && allNames[x]);
+      }).join('\n');
+    });
+    return msgs.filter(function(m){ return m.text.trim() !== ''; });
   }
 
   function toNormalized(msgs){
@@ -275,13 +332,38 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     }).join('\n');
   }
 
-  var lastMsgs = null, lastChat = null;
+  var lastMsgs = null, lastChat = null, lastUnknown = [];
   function getMsgs(){
     var raw = $('chat').value;
     if(lastMsgs && lastChat === raw) return lastMsgs;
     lastMsgs = parseChat(raw);
     lastChat = raw;
+    renderWhoPick(lastUnknown);
     return lastMsgs;
+  }
+
+  function renderWhoPick(names){
+    var box = $('whoPick');
+    if(!box) return;
+    if(!names || names.length === 0){ box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    var h = '<span style="font-size:12.5px;color:#8d5233;">这一步很重要：点一下哪个是你（点一次就记住，以后自动认）</span><div style="margin-top:7px;">';
+    names.forEach(function(n){
+      var isMe = (meName === n) || (!meName && names.length > 1 && names.indexOf(n) === 1);
+      h += '<span class="wpick'+(isMe?' on':'')+'" data-n="'+esc(n)+'">'+esc(n)+(isMe?' · 你':'')+'</span>';
+    });
+    h += '</div>';
+    if(!meName) h += '<div style="font-size:11.5px;color:#a89c8f;margin-top:7px;">没点之前，默认第一个算对方。点错了不要紧，再点另一个就行。</div>';
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll('.wpick'), function(el){
+      el.onclick = function(){
+        meName = el.getAttribute('data-n');
+        try{ localStorage.setItem('ywMeName', meName); }catch(e){}
+        lastMsgs = null; lastChat = null;
+        getMsgs();
+        flash('好了，「' + meName + '」是你，另一个算对方', 'ok');
+      };
+    });
   }
   function renderPreview(msgs){
     var h = '<div class="summary"><span class="k">确认</span>角色认对了吗？反了就点上面的「对调自己/对方」，没问题就点「开始解读」。</div><div class="thread" style="margin-top:16px;">';
@@ -494,7 +576,13 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
   }
 
   /* ---------- 事件 ---------- */
-  $('chat').addEventListener('input', function(){ lsSet(K.chat, $('chat').value); syncCnt(); });
+  var parseTimer = null;
+  $('chat').addEventListener('input', function(){
+    lsSet(K.chat, $('chat').value);
+    syncCnt();
+    if(parseTimer) clearTimeout(parseTimer);
+    parseTimer = setTimeout(function(){ try{ getMsgs(); }catch(e){} }, 400);
+  });
   $('back').addEventListener('input', function(){ lsSet(K.back, $('back').value); });
   $('apiKey').addEventListener('input', function(){ lsSet(K.key, $('apiKey').value); });
   $('baseURL').addEventListener('input', function(){ lsSet(K.base, $('baseURL').value); });
@@ -583,7 +671,7 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     var rawChat = $('chat').value.trim();
     if(!rawChat){ flash('先把聊天记录粘进来', 'bad'); return; }
     var norm = toNormalized(getMsgs());
-    var txt = '帮我翻译这段聊天记录的言外之意。\n\n' + norm;
+    var txt = '用「Ta在说什么」解读这段聊天记录。\n\n' + norm;
     copyText(txt).then(function(ok){
       if(ok){
         flash('已复制（名字已换成 自己/对方）· 去对话里粘贴发出去', 'ok');
