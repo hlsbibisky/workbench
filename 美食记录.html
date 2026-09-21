@@ -708,8 +708,23 @@ function handleStorageFull(){
     __storageAlertShown = false;
     scheduleCloudPush();   // 压缩已写回各 food_* 键，重新触发云端同步
   }).catch(function(){
-    toast('本地存储空间已满：图片太多已占满浏览器上限。请在「数据管理」压缩或删除不用的图片，否则这些图无法跨设备同步。');
+    __storageAlertShown = false;
+    loudStorageWarn();     // 压缩也救不回来：必须让用户立刻知道，绝不再默默吞掉
   });
+}
+/* 本机写入失败时的醒目、持久提示：以前这里只弹一次 console/toast 就没了，
+   用户根本不知道「刚才这条没存上」，是「填了却像没保存」的直接原因之一。 */
+function loudStorageWarn(){
+  var msg='⚠ 本机存储写满，刚才的编辑没能保存到本机！请立刻点右上角「导出」备份，再清理不用的图片或记录。';
+  try{ toast(msg); }catch(e){}
+  try{ if(window.parent && window.parent!==window) window.parent.postMessage({type:'wb-saved', msg:msg}, '*'); }catch(e){}
+  try{ window.__storageWriteFailed = true; }catch(e){}
+}
+/* 校验某键是否真的写进去了；写失败就报警（返回是否成功） */
+function saveVerify(key, v){
+  try{ localStorage.setItem(key, JSON.stringify(toStorageValue(v))); }catch(e){ loudStorageWarn(); return false; }
+  if(localStorage.getItem(key)==null){ loudStorageWarn(); return false; }
+  return true;
 }
 function refreshCurrentTab(){
   if(state.tab==='menu') renderMenu();
