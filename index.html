@@ -345,6 +345,10 @@ function wbLoadSupaFallback(){
 <div class="menu-mask" id="wbMenuMask" data-page-node-id="x5GAgCxw8ONSi0ycrJ9JRV"></div>
 
 <script>
+/* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
+   若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
+   —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
+const WB_THIS_VER='20260922a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -679,7 +683,7 @@ function wbLoadCfg(){
 }
 function wbSaveCfg(){ localStorage.setItem(WB_K_SYNC, JSON.stringify(wbSync)); }
 function wbIframeSrc(src){ var v=WB_THIS_VER; if(!src || typeof src!=='string') return src; var hi=src.indexOf('#'); var path=hi<0?src:src.slice(0,hi); var hash=hi<0?'':src.slice(hi); var sep=path.indexOf('?')<0?'?':'&'; return path+sep+'wbv='+v+hash; }
-const WB_THIS_VER='20260921a';
+/* WB_THIS_VER 已上移到脚本顶部声明，避免 TDZ 中断外壳初始化 */
 /* 图片是否随同步包上云：true=展开 idb:// 为 base64（包体大，已被 2MB 事故证伪）；
    false=引用直上云（包小、稳定）。图片单独通道上线后再改回 true。 */
 const WB_SYNC_IMAGES=false;
@@ -773,7 +777,7 @@ async function wbApply(o){
     }
   }
   if(quotaHit){
-    try{ wbToast('本地空间不足，部分数据（多为图片）未能写入。请在电脑端压缩图片后重新同步。'); }catch(e){}
+    try{ wbToast('本地存储空间不足，部分数据暂未写入；图片会转入本机图库并走图片通道上传（原图不压缩），可稍后重试或在「数据管理」清理不用的记录。'); }catch(e){}
   }
   if(changed) wbBroadcastReload();
   if(changed) wbImgKick();   /* 数据落地后后台补图：云端有、本机缺的图自动补齐 */
@@ -1444,7 +1448,13 @@ function wbOpenSync(){
     +'</div>';
 }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-data-changed'){ wbSchedulePush(); } });
+window.addEventListener('message', e=>{
+  if(!e.data) return;
+  /* 子页（美食记录等）写入后会投递 wb-data-changed / wb-food-sync 通知上传。
+     旧版没有 wb-food-sync 分支，子页展开好的整包数据被静默丢弃，只能靠 6 秒指纹兜底，
+     这是「美食记录改了半天传不上去」的关键一环。 */
+  if(e.data.type==='wb-data-changed' || e.data.type==='wb-food-sync'){ wbSchedulePush(); }
+});
 async function wbSilentReconnect(){
   wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
   wbTryHashToken();       /* 若通过 #gh=令牌 链接打开，自动把令牌写入本地（只此一次） */
