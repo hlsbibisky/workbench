@@ -21,7 +21,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:15px 18px 12px;border-bottom:1px solid var(--line);background:rgba(255,253,249,.74);position:sticky;top:0;z-index:8;backdrop-filter:blur(6px);flex-wrap:wrap;}
 .brand b{font-size:17px;font-weight:700;letter-spacing:2px;color:var(--accent);}
 .brand small{font-size:11.5px;color:var(--sub);margin-left:9px;letter-spacing:.4px;}
-.topacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.topacts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 
 .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s;}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -29,14 +29,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .btn.primary:hover{background:#a05f3d;color:#fff;}
 .btn.ghost{background:transparent;}
 .btn.wide{display:block;width:100%;padding:10px 12px;font-size:13.5px;}
-.btn:disabled{opacity:.45;cursor:not-allowed;}
 
-.wrap{display:flex;gap:16px;padding:16px 18px 30px;align-items:flex-start;}
+.wrap{display:flex;gap:16px;padding:16px 18px 26px;align-items:flex-start;}
 .col-in{width:338px;flex:0 0 338px;position:sticky;top:78px;}
 .col-out{flex:1;min-width:0;}
 
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;}
-.card + .card,.col-in > details{margin-top:12px;}
+.card + .card{margin-top:12px;}
 
 .lab{font-size:12px;letter-spacing:.8px;color:var(--sub);margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
 .lab b{font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0;}
@@ -44,19 +43,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;line-height:1.75;padding:10px 11px;resize:vertical;outline:none;transition:.15s;display:block;}
 textarea:focus{border-color:var(--accent);}
 textarea::placeholder{color:#b8b0a5;}
-.ta-chat{height:196px;}
-.ta-back{height:200px;}
-.ta-req{height:150px;font-size:12px;background:#fbf8f4;}
+.ta-chat{height:188px;}
+.ta-back{height:150px;}
+.ta-req{height:130px;font-size:12px;background:#fbf8f4;}
 
-input[type=text],input[type=password]{width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;transition:.15s;}
+input[type=password]{width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;transition:.15s;}
 input:focus{border-color:var(--accent);}
 input::placeholder{color:#b8b0a5;}
 
 .hint{font-size:11.5px;color:var(--sub);line-height:1.7;margin:9px 0 0;}
-.hint em{font-style:normal;color:var(--accent);}
 .sect{margin-top:13px;padding-top:13px;border-top:1px dashed var(--line);}
 
-.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:13px;}
 .state{font-size:12.5px;color:var(--sub);}
 .state b{color:var(--noted);font-weight:500;}
 .state i{font-style:normal;color:var(--bad);}
@@ -85,7 +82,7 @@ input::placeholder{color:#b8b0a5;}
 .risk.mid{color:#8a5a12;border-color:#efd9ae;background:#faeeda;}
 .risk.lo{color:#3b6d11;border-color:#d6e3c0;background:#eaf3de;}
 
-.empty{text-align:center;color:#b3aa9e;font-size:12.8px;padding:56px 20px;line-height:2.1;}
+.empty{text-align:center;color:#b3aa9e;font-size:12.8px;padding:60px 20px;line-height:2.1;}
 .empty .big{font-size:14.5px;color:#8a837a;display:block;margin-bottom:7px;}
 
 .hist-item{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;cursor:pointer;transition:.15s;background:#fff;}
@@ -94,18 +91,18 @@ input::placeholder{color:#b8b0a5;}
 .hist-item .t{color:var(--sub);font-size:11px;}
 .hist-item .s{color:var(--ink);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-.backpanel{border:1px solid #e8d3c1;background:#fdfaf6;border-radius:12px;padding:12px 14px;margin-bottom:14px;}
 .boxpanel{border:1px solid #e8d3c1;background:#fbf8f4;border-radius:10px;padding:10px;margin-top:10px;}
 
-details.set{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;}
-details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:none;}
-.foot{font-size:11.5px;color:#a89c8f;text-align:center;padding:2px 20px 26px;line-height:1.8;}
+details.set{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:11px 14px;margin:0 18px 14px;max-width:420px;}
+details.set summary{font-size:12px;color:var(--sub);cursor:pointer;outline:none;}
+.foot{font-size:11.5px;color:#a89c8f;text-align:center;padding:0 20px 24px;line-height:1.8;}
 
 @media (max-width:880px){
   .wrap{flex-direction:column;padding:12px;}
   .col-in{width:100%;flex:1 1 auto;position:static;}
   .bubble,.read{max-width:100%;}
   .row .k{flex:0 0 58px;}
+  details.set{margin:0 12px 12px;}
 }
 </style>
 </head>
@@ -114,8 +111,8 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
 <div class="top">
   <div class="brand"><b>言外之意</b><small>把他的话，翻译成你会听懂的样子</small></div>
   <div class="topacts">
-    <span class="state" id="whoLbl"></span>
-    <button class="btn ghost" id="btnClear">清空当前</button>
+    <span class="state" id="state">还没有解读</span>
+    <button class="btn ghost" id="btnClear">清空</button>
   </div>
 </div>
 
@@ -126,18 +123,21 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     <div class="card">
       <div class="lab"><b>原始对话</b><span id="cntIn">0 字</span></div>
       <textarea class="ta-chat" id="chat" placeholder="从微信里复制聊天记录，粘贴到这里。&#10;&#10;也支持手动写成：&#10;我：周六要不要一起吃饭？&#10;对方：这周有点忙"></textarea>
-
-      <div class="lab" style="margin-top:13px;"><b>对方怎么称呼</b><span>只影响显示</span></div>
-      <input type="text" id="who" placeholder="对方" maxlength="12">
-
       <div class="sect">
-        <button class="btn primary wide" id="btnReq">复制分析请求</button>
-        <p class="hint">复制后，到对话里粘贴发给 WorkBuddy。它会按固定格式逐句解读，再把结果复制回来，粘到右边。</p>
+        <button class="btn primary wide" id="btnCopy">复制给 WorkBuddy</button>
+        <p class="hint">复制后到对话里粘贴发出去。也可以直接把聊天记录贴给 WorkBuddy，说一句「翻译一下」就行——它认识这个功能。</p>
         <div class="boxpanel" id="reqBox" style="display:none;">
-          <div class="lab" style="margin:0 0 6px;"><b>没自动复制成功</b><span>按 Ctrl+C</span></div>
+          <div class="lab" style="margin:0 0 6px;"><b>自动复制没成功</b><span>按 Ctrl+C</span></div>
           <textarea class="ta-req" id="req" readonly></textarea>
         </div>
-        <button class="btn wide" id="btnParse" style="margin-top:9px;">只把对话拆成气泡</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="lab"><b>解读结果</b><span>整段粘贴</span></div>
+      <textarea class="ta-back" id="back" placeholder="把 WorkBuddy 给的解读整段粘进来，带不带代码块都行。"></textarea>
+      <div style="margin-top:10px;">
+        <button class="btn primary wide" id="btnRender">存档并渲染</button>
       </div>
     </div>
 
@@ -146,50 +146,34 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
       <div id="hist"></div>
     </div>
 
-    <details class="set">
-      <summary>接口设置 · 预留，暂未启用</summary>
-      <div style="margin-top:11px;">
-        <input type="password" id="apiKey" placeholder="大模型密钥（现在不用填）">
-        <p class="hint">这一格是给以后直连大模型留的位置。现在留空完全不影响使用——走「复制分析请求」这条路就够了。</p>
-      </div>
-    </details>
-
   </div>
 
   <div class="col-out">
-    <div class="bar">
-      <div class="state" id="state">还没有解读</div>
-      <div class="topacts">
-        <button class="btn" id="btnBack">粘贴解读结果</button>
-      </div>
-    </div>
-
-    <div class="backpanel" id="backPanel" style="display:none;">
-      <div class="lab"><b>把 WorkBuddy 给的解读整段粘进来</b><span>带不带代码块都行</span></div>
-      <textarea class="ta-back" id="back" placeholder="【整体】&#10;……&#10;&#10;【1】对方|这周有点忙&#10;字面：……&#10;真意：……"></textarea>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button class="btn primary" id="btnRender">解读给我看</button>
-        <button class="btn" id="btnCancel">收起</button>
-      </div>
-    </div>
-
     <div id="out">
       <div class="empty">
-        <span class="big">左边粘贴对话，点「复制分析请求」</span>
-        把请求发给 WorkBuddy，再把它给的解读粘回来<br>
-        对方的每一句话下面，就会多出一张解读卡
+        <span class="big">左边粘贴对话</span>
+        点「复制给 WorkBuddy」，或者直接把聊天记录发给它说「翻译一下」<br>
+        拿到解读后整段粘回左边，每句话下面就会多出一张解读卡
       </div>
     </div>
   </div>
 
 </div>
 
+<details class="set">
+  <summary>接口设置 · 预留，暂未启用</summary>
+  <div style="margin-top:10px;">
+    <input type="password" id="apiKey" placeholder="大模型密钥（现在不用填）">
+    <p class="hint">这一格是给以后直连大模型留的位置。留空完全不影响使用。</p>
+  </div>
+</details>
+
 <div class="foot">所有内容只保存在你这台电脑的浏览器里，不会上传到任何地方——除非你自己把它发给 WorkBuddy。</div>
 
 <script>
 (function(){
   var $ = function(id){ return document.getElementById(id); };
-  var K = { who:'ywWho', hist:'ywHist', key:'ywKey', chat:'ywChat', back:'ywBack' };
+  var K = { hist:'ywHist', key:'ywKey', chat:'ywChat', back:'ywBack' };
 
   function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } }
   function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -200,61 +184,67 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
       .replace(/"/g,'&quot;');
   }
   function pad(n){ return (n<10?'0':'')+n; }
-  function whoName(){ var w=(lsGet(K.who,'')||'').trim(); return w||'对方'; }
 
-  /* ---------- 对话解析 ---------- */
+  var PRONOUN = ['我','自己','本人','对方','他','她','ta','TA','Ta','tA','me','Me','ME'];
+  var curWho = '对方';
+
   var HEAD_RE = /^(.{1,24}?)[\s\u00a0]+(\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}日?)([\s\u00a0]+\d{1,2}:\d{2}(?::\d{2})?)?\s*$/;
   var TIMERE = /^(.{1,24}?)[\s\u00a0]+(\d{1,2}:\d{2}(?::\d{2})?)\s*$/;
   var ONLYTIME_RE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 
-  function myAliases(){ return ['我','自己','本人','me','Me','ME']; }
-  function themAliases(){
-    return ['对方','他','她','ta','TA','Ta','tA', whoName()];
-  }
   function knownSpeaker(n){
     if(!n) return null;
-    var t=n.trim();
-    if(myAliases().indexOf(t)>=0) return 'me';
-    if(themAliases().indexOf(t)>=0) return 'them';
+    var t = n.trim();
+    if(t==='我' || t==='自己' || t==='本人' || t==='me' || t==='Me' || t==='ME') return 'me';
+    if(t==='对方' || t==='他' || t==='她' || t==='ta' || t==='TA' || t==='Ta' || t==='tA') return 'them';
+    if(t === curWho) return 'them';
     return null;
   }
 
   function parseChat(raw){
     var lines = String(raw||'').replace(/\r/g,'').split('\n');
-    var msgs = [], cur = null, curRole = null;
-    function push(role, text){
+    var msgs = [], cur = null, curRole = null, curName = '';
+    function push(role, text, name){
       if(cur && curRole===role){
         cur.text += (cur.text? '\n':'') + text;
       } else {
-        cur = { role: role, text: text };
+        cur = { role: role, text: text, name: name||'' };
         msgs.push(cur);
         curRole = role;
       }
     }
     for(var i=0;i<lines.length;i++){
-      var raw0 = lines[i], t = raw0.trim();
+      var t = lines[i].trim();
       if(!t){ continue; }
       var pm = /^([^\s:：]{1,12})\s*[:：]\s*([\s\S]*)$/.exec(t);
       if(pm){
         var role = knownSpeaker(pm[1]);
         if(role){
           if(pm[2].trim()===''){ curRole = role; cur = null; continue; }
-          push(role, pm[2].trim());
+          push(role, pm[2].trim(), pm[1].trim());
           continue;
         }
       }
       var hm = HEAD_RE.exec(t) || TIMERE.exec(t);
       if(hm){
         var r2 = knownSpeaker(hm[1]);
-        if(r2){ curRole = r2; cur = null; continue; }
+        if(r2){ curRole = r2; cur = null; curName = hm[1].trim(); continue; }
+        if(hm[1] && !ONLYTIME_RE.test(hm[1].trim())){ curName = hm[1].trim(); curRole = null; cur = null; continue; }
       }
       if(ONLYTIME_RE.test(t)){ continue; }
-      push(curRole || 'them', t);
+      push(curRole || 'them', t, curName);
     }
     return msgs;
   }
 
-  /* ---------- 解读结果解析 ---------- */
+  function detectWho(msgs){
+    for(var i=0;i<msgs.length;i++){
+      var m = msgs[i];
+      if(m.role==='them' && m.name && PRONOUN.indexOf(m.name)<0 && m.name.length<=12) return m.name;
+    }
+    return '对方';
+  }
+
   function cleanLine(s){
     return String(s||'')
       .replace(/^\s*[-*·]\s+/,'')
@@ -281,7 +271,7 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
       var hm = headRe.exec(lt);
       if(hm){
         var body = hm[3] || '';
-        var isField = /^(字面|真意|别读成|误读|风险|可以接|可以回|传达到的|建议|他收到的是|收到的是)/.test(body);
+        var isField = /^(字面|真意|别读成|误读|风险|可以接|可以回|传达到的|建议|收到的是)/.test(body);
         if(!isField){
           var role = 'them', quote = body;
           var sp = body.split(/[|｜丨]/);
@@ -316,11 +306,10 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     return { summary: summary, items: items };
   }
 
-  /* ---------- 渲染 ---------- */
   var state = { data: { summary:'', items:[] } };
   var lastMsgs = null;
 
-  var EMPTY = '<div class="empty"><span class="big">左边粘贴对话，点「复制分析请求」</span>把请求发给 WorkBuddy，再把它给的解读粘回来<br>对方的每一句话下面，就会多出一张解读卡</div>';
+  var EMPTY = '<div class="empty"><span class="big">左边粘贴对话</span>点「复制给 WorkBuddy」，或者直接把聊天记录发给它说「翻译一下」<br>拿到解读后整段粘回左边，每句话下面就会多出一张解读卡</div>';
 
   function riskBadge(v){
     var t = String(v||'').trim();
@@ -336,10 +325,10 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     var summary = (data && data.summary) ? data.summary : '';
 
     if(!items.length && lastMsgs && lastMsgs.length){
-      var h0 = '<div class="summary"><span class="k">提示</span>对话已经拆好了，但还没有解读。点左边的「复制分析请求」，把结果粘回来，每句话下面就会多一张解读卡。</div><div class="thread">';
+      var h0 = '<div class="summary"><span class="k">提示</span>对话已经读进来了，但还没有解读。把 WorkBuddy 给的解读粘到左边，每句话下面就会多一张解读卡。</div><div class="thread">';
       lastMsgs.forEach(function(m){
         h0 += '<div class="msg '+(m.role==='me'?'me':'them')+'">';
-        h0 += '<div class="whoLbl">'+(m.role==='me'?'我':esc(whoName()))+'</div>';
+        h0 += '<div class="whoLbl">'+(m.role==='me'?'我':esc(curWho))+'</div>';
         h0 += '<div class="bubble">'+esc(m.text)+'</div>';
         h0 += '</div>';
       });
@@ -356,7 +345,7 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     h += '<div class="thread">';
     items.forEach(function(it){
       h += '<div class="msg '+(it.me?'me':'them')+'">';
-      h += '<div class="whoLbl">'+(it.me?'我':esc(whoName()))+'</div>';
+      h += '<div class="whoLbl">'+(it.me?'我':esc(curWho))+'</div>';
       h += '<div class="bubble">'+esc(it.quote || '（未写原话）')+'</div>';
       if(it.fields && it.fields.length){
         h += '<div class="read">';
@@ -371,39 +360,6 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     });
     h += '</div>';
     out.innerHTML = h;
-  }
-
-  /* ---------- 请求文本 ---------- */
-  function buildRequest(chat, who){
-    var L = [
-      '请用「言外之意」的方式，逐句解读下面这段聊天记录。',
-      '',
-      '要求：',
-      '1. 不做好感度打分、不做评级，只做潜台词翻译。',
-      '2. 每一句都单独处理，包括我说的和' + who + '说的。',
-      '3. 对' + who + '的话，给这几个字段：字面、真意、别读成、风险、可以接。风险只填「高」或「中」或「低」。',
-      '4. 对我自己的话，只给两个字段：传达到的、' + who + '收到的是。',
-      '5. 最后给一段【整体】，一两句说清这段关系的氛围和走向。',
-      '6. 严格按下面的格式输出，方便我粘回页面：',
-      '',
-      '【整体】',
-      '……',
-      '',
-      '【1】' + who + '|原话',
-      '字面：……',
-      '真意：……',
-      '别读成：……',
-      '风险：高',
-      '可以接：……',
-      '',
-      '【2】我|原话',
-      '传达到的：……',
-      who + '收到的是：……',
-      '',
-      '——聊天记录——',
-      chat
-    ];
-    return L.join('\n');
   }
 
   function copyText(text){
@@ -430,7 +386,6 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     });
   }
 
-  /* ---------- 历史 ---------- */
   function loadHist(){
     try{ var v = JSON.parse(lsGet(K.hist,'[]')); return Array.isArray(v)?v:[]; }catch(e){ return []; }
   }
@@ -449,40 +404,38 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
   function renderHist(){
     var list = loadHist(), box = $('hist');
     $('cntHist').textContent = list.length + ' 条';
-    if(!list.length){ box.innerHTML = '<p class="hint" style="margin:0;">还没有记录。解读成功一次就会自动存一条。</p>'; return; }
+    if(!list.length){ box.innerHTML = '<p class="hint" style="margin:0;">还没有记录。存档一次就会自动存一条。</p>'; return; }
     box.innerHTML = list.map(function(r,i){
       var d = new Date(r.t||Date.now());
       var ts = (d.getMonth()+1) + '-' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-      var s = firstLine(r.chat) || '（无内容）';
       return '<div class="hist-item" data-i="'+i+'">' +
              '<div class="t">'+ts+' · '+esc(r.who || '对方')+'</div>' +
-             '<div class="s">'+esc(s)+'</div></div>';
+             '<div class="s">'+esc(firstLine(r.chat) || '（无内容）')+'</div></div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.hist-item'), function(el){
       el.onclick = function(){
         var r = list[+el.dataset.i];
         if(!r) return;
-        lsSet(K.chat, r.chat||'');
-        lsSet(K.back, r.raw||'');
         $('chat').value = r.chat||'';
         $('back').value  = r.raw||'';
-        if(r.who){ lsSet(K.who, r.who); $('who').value = r.who; }
+        lsSet(K.chat, r.chat||'');
+        lsSet(K.back, r.raw||'');
         syncCnt();
+        var msgs = r.chat ? parseChat(r.chat) : null;
+        curWho = msgs ? detectWho(msgs) : (r.who || '对方');
         var data = parseAnalysis(r.raw||'');
-        renderOut(data, parseChat(r.chat||''));
-        $('backPanel').style.display = 'none';
-        $('state').innerHTML = '已载入 · <b>'+esc(r.who||'对方')+'</b> · ' + ts;
+        state.data = data;
+        renderOut(data, msgs);
+        var d = new Date(r.t||Date.now());
+        flashState('已载入 · ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()));
         window.scrollTo({ top:0, behavior:'smooth' });
       };
     });
   }
 
-  /* ---------- 交互 ---------- */
   function syncCnt(){
     $('cntIn').textContent = $('chat').value.length + ' 字';
-    $('whoLbl').textContent = '称呼 · ' + whoName();
   }
-
   function flashState(msg, kind){
     var el = $('state');
     el.innerHTML = kind==='bad' ? '<i>'+esc(msg)+'</i>' : (kind==='ok' ? '<b>'+esc(msg)+'</b>' : esc(msg));
@@ -493,72 +446,42 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     syncCnt();
   });
   $('back').addEventListener('input', function(){ lsSet(K.back, $('back').value); });
-  $('who').addEventListener('input', function(){
-    lsSet(K.who, $('who').value);
-    syncCnt();
-    if(document.querySelector('#out .thread')){ renderOut(state.data, lastMsgs); }
-  });
   $('apiKey').addEventListener('input', function(){ lsSet(K.key, $('apiKey').value); });
 
-  $('btnReq').onclick = function(){
+  $('btnCopy').onclick = function(){
     var chat = $('chat').value.trim();
     if(!chat){ flashState('先在上面粘贴聊天记录', 'bad'); return; }
-    var txt = buildRequest(chat, whoName());
-    lsSet(K.back, '');
+    curWho = detectWho(parseChat(chat));
+    var txt = '帮我翻译这段聊天记录的言外之意。\n\n' + chat;
     copyText(txt).then(function(ok){
       if(ok){
         $('reqBox').style.display = 'none';
-        flashState('分析请求已复制 · 去对话里粘贴发给 WorkBuddy', 'ok');
+        flashState('已复制 · 去对话里粘贴发出去', 'ok');
       } else {
         $('reqBox').style.display = 'block';
         $('req').value = txt;
         $('req').focus(); $('req').select();
         flashState('请手动全选复制下面那段', 'bad');
       }
-      var bb = $('btnBack');
-      bb.style.background = '#b8714e';
-      bb.style.color = '#fff';
-      bb.style.borderColor = '#b8714e';
-      setTimeout(function(){
-        bb.style.background = '#fff';
-        bb.style.color = '';
-        bb.style.borderColor = '';
-      }, 4000);
     });
   };
-
-  $('btnParse').onclick = function(){
-    var chat = $('chat').value.trim();
-    if(!chat){ flashState('先在上面粘贴聊天记录', 'bad'); return; }
-    var msgs = parseChat(chat);
-    if(!msgs.length){ flashState('没能拆出内容，检查一下格式', 'bad'); return; }
-    state.data = { summary:'', items:[] };
-    renderOut(state.data, msgs);
-    flashState('已拆出 ' + msgs.length + ' 条 · 还没解读');
-  };
-
-  $('btnBack').onclick = function(){
-    var p = $('backPanel');
-    p.style.display = (p.style.display==='none' || !p.style.display) ? 'block' : 'none';
-    if(p.style.display==='block'){ $('back').value = lsGet(K.back,''); $('back').focus(); }
-  };
-  $('btnCancel').onclick = function(){ $('backPanel').style.display = 'none'; };
 
   $('btnRender').onclick = function(){
     var raw = $('back').value.trim();
     var chat = $('chat').value.trim();
-    if(!raw){ flashState('里面还是空的', 'bad'); return; }
+    if(!raw){ flashState('解读结果那一栏还是空的', 'bad'); return; }
+    var msgs = chat ? parseChat(chat) : null;
+    curWho = msgs ? detectWho(msgs) : '对方';
     var data = parseAnalysis(raw);
     if(!data.items.length && !data.summary){
       flashState('这段内容里没找到解读格式，检查一下', 'bad');
       return;
     }
     state.data = data;
-    renderOut(data, chat ? parseChat(chat) : null);
-    $('backPanel').style.display = 'none';
+    renderOut(data, msgs);
     var d = new Date();
-    flashState('解读完成 · ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), 'ok');
-    saveHist({ t: Date.now(), who: whoName(), chat: chat, raw: raw });
+    flashState('已存档 · ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), 'ok');
+    saveHist({ t: Date.now(), who: curWho, chat: chat, raw: raw });
   };
 
   $('btnClear').onclick = function(){
@@ -571,17 +494,17 @@ details.set summary{font-size:12.5px;color:var(--sub);cursor:pointer;outline:non
     flashState('已清空');
   };
 
-  /* 初始化 */
   (function init(){
     $('chat').value = lsGet(K.chat,'');
     $('back').value = lsGet(K.back,'');
-    $('who').value  = lsGet(K.who,'');
     $('apiKey').value = lsGet(K.key,'');
     syncCnt();
     renderHist();
     if($('back').value.trim()){
+      var msgs = $('chat').value.trim() ? parseChat($('chat').value) : null;
+      curWho = msgs ? detectWho(msgs) : '对方';
       var d = parseAnalysis($('back').value);
-      if(d.items.length){ state.data = d; renderOut(d, $('chat').value? parseChat($('chat').value):null); flashState('已恢复上次的解读'); }
+      if(d.items.length){ state.data = d; renderOut(d, msgs); flashState('已恢复上次的解读'); }
     }
   })();
 
