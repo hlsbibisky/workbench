@@ -17,7 +17,9 @@
 html{-webkit-text-size-adjust:100%;}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
 ::selection{background:var(--mark);}
-.page{max-width:860px;margin:0 auto;padding:16px 16px 40px;}
+.page{max-width:100%;margin:0;padding:14px 20px 34px;}
+.checkgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:16px;align-items:start;}
+@media (max-width:1020px){ .checkgrid{grid-template-columns:1fr;} }
 
 .tabs{display:flex;gap:8px;margin-bottom:14px;}
 .tab{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.15s;}
@@ -31,9 +33,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .card-title .req{color:var(--bad);}
 .card-sub{font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:10px;}
 
-.drop{border:2px dashed #d8cfc2;border-radius:12px;background:#fff;padding:26px 16px;text-align:center;color:var(--sub);font-size:13px;cursor:pointer;transition:.15s;display:block;line-height:2;}
+.drop{border:2px dashed #d8cfc2;border-radius:12px;background:#fff;padding:46px 20px;text-align:center;color:var(--sub);font-size:14px;cursor:pointer;transition:.15s;display:block;line-height:2.2;}
 .drop:hover{border-color:var(--accent);color:var(--accent);}
-#fpImg{max-width:100%;max-height:420px;border-radius:10px;border:1px solid var(--line);display:block;margin:0 auto;}
+#fpImg{max-width:100%;max-height:58vh;border-radius:10px;border:1px solid var(--line);display:block;margin:0 auto;}
 
 .person{display:grid;grid-template-columns:1fr 110px 90px 34px;gap:8px;margin-bottom:8px;align-items:center;}
 .person input,.person select,textarea,input[type=text],input[type=number],input[type=password],select{border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;width:100%;}
@@ -63,16 +65,16 @@ details.set[open] summary{color:var(--accent);}
 .apigrid label{font-size:12px;color:var(--sub);text-align:right;}
 .tip{grid-column:1 / -1;font-size:11.5px;color:var(--sub);line-height:1.7;}
 
-.verdict{border-radius:12px;padding:12px 16px;font-size:14px;font-weight:700;margin-top:12px;border:1px solid;}
+.verdict{border-radius:12px;padding:15px 20px;font-size:16px;font-weight:700;margin-top:14px;border:1px solid;}
 .verdict.ok{background:#eaf3de;border-color:#cfe3b4;color:#3b6d11;}
 .verdict.mid{background:#faeeda;border-color:#efd9ae;color:#8a5a12;}
 .verdict.bad{background:#fcebeb;border-color:#eec3c3;color:#a32d2d;font-size:15.5px;}
 
-.sec{margin-top:12px;border-left:3px solid #c98a63;background:#fdfaf6;border-radius:0 10px 10px 0;padding:11px 14px;}
-.sec h4{margin:0 0 6px;font-size:13px;color:#8d5233;}
+.sec{margin-top:14px;border-left:3px solid #c98a63;background:#fdfaf6;border-radius:0 10px 10px 0;padding:13px 18px;}
+.sec h4{margin:0 0 7px;font-size:14.5px;color:#8d5233;}
 .sec.bad{border-left-color:var(--bad);background:#fdf3f3;}
 .sec.bad h4{color:var(--bad);}
-.sec p{margin:0;font-size:13px;line-height:2;color:#5b5148;white-space:pre-wrap;}
+.sec p{margin:0;font-size:14px;line-height:2.15;color:#5b5148;white-space:pre-wrap;}
 </style>
 </head>
 <body>
@@ -85,6 +87,8 @@ details.set[open] summary{color:var(--accent);}
 
   <div class="pane show" id="paneCheck">
 
+   <div class="checkgrid">
+    <div>
     <div class="card">
       <div class="card-title">第一步 · 上传户型图 <span class="req">*</span></div>
       <div class="card-sub">开发商户型图、手画的都行，拍清楚一点。AI 会直接看图分析。</div>
@@ -98,9 +102,12 @@ details.set[open] summary{color:var(--accent);}
       </div>
     </div>
 
+    </div><!-- /左列 -->
+
+    <div><!-- 右列 -->
     <div class="card">
       <div class="card-title">第二步 · 谁住进来 <span class="req">*</span></div>
-      <div class="card-sub">几个人住、什么性别、多大年纪——同一套房，住的人不同，好坏完全不一样。</div>
+      <div class="card-sub">住在里面的人是谁，这是判断好坏的关键——同一套房，住的人不同，结论完全相反。加几个人就加几行。</div>
       <div id="persons">
         <div class="person">
           <input type="text" class="p-name" placeholder="称呼（可空，如：我 / 老婆 / 儿子）">
@@ -122,40 +129,36 @@ details.set[open] summary{color:var(--accent);}
         <span class="chip" data-v="睡眠">睡眠</span>
         <span class="chip" data-v="孩子学业">孩子学业</span>
       </div>
-      <textarea id="extra" style="margin-top:10px;" rows="3" placeholder="还想补充的写这里（可不填）：比如楼层、门朝向、附近有什么、装修能不能动……"></textarea>
+      <textarea id="extra" style="margin-top:10px;" rows="4" placeholder="可写可不写。有图上看不出来的信息，写这里 AI 会优先采信：朝向（图上有指北针就不用写）、第几层、租的还是买的、装修能不能大动、家里有人身体不好之类的。"></textarea>
     </div>
-
     <div class="card">
-      <div class="actrow" style="margin-top:0;">
-        <button class="btn primary" id="btnGo" style="padding:10px 26px;font-size:14px;" onclick="analyze()">AI 分析这个户型</button>
-        <span class="state" id="state">传图 + 填好入住人，就能直接出结果</span>
-        <span style="flex:1;"></span>
-        <details class="set">
-          <summary>视觉模型设置（看图用的）</summary>
-          <div class="apigrid">
-            <label>服务商</label>
-            <select id="vlProv">
-              <option value="deepseek">DeepSeek（推荐 · 和全站同一个密钥）</option>
-              <option value="zhipu">智谱</option>
-              <option value="custom">自定义</option>
-            </select>
-            <label>接口地址</label><input type="text" id="vlBase" placeholder="https://api.deepseek.com">
-            <label>密钥</label><input type="password" id="vlKey" placeholder="看图模型的密钥">
-            <label>模型</label><input type="text" id="vlModel" placeholder="deepseek-v4-flash">
-            <div class="tip">看图要用「视觉模型」。DeepSeek 现在支持看图，<b>用你在别处填过的那个密钥就行</b>，不用另外充钱。如果提示「不支持图片」，把模型名改成 <b>deepseek-v4-flash-vision-exp</b>。密钥只存你这台电脑。</div>
-          </div>
-        </details>
-      </div>
+      <button class="btn primary" id="btnGo" style="width:100%;padding:13px 0;font-size:15px;" onclick="analyze()">AI 分析这个户型</button>
+      <div class="state" id="state" style="margin-top:10px;">传图 + 填好入住人，就能直接出结果</div>
+      <details class="set" style="margin-top:12px;">
+        <summary>视觉模型设置（看图用的）</summary>
+        <div class="apigrid">
+          <label>服务商</label>
+          <select id="vlProv">
+            <option value="deepseek">DeepSeek（推荐 · 和全站同一个密钥）</option>
+            <option value="zhipu">智谱</option>
+            <option value="custom">自定义</option>
+          </select>
+          <label>接口地址</label><input type="text" id="vlBase" placeholder="https://api.deepseek.com">
+          <label>密钥</label><input type="password" id="vlKey" placeholder="看图模型的密钥">
+          <label>模型</label><input type="text" id="vlModel" placeholder="deepseek-v4-flash">
+          <div class="tip">看图要用「视觉模型」。DeepSeek 现在支持看图，<b>用你在别处填过的那个密钥就行</b>，不用另外充钱。如果提示「不支持图片」，把模型名改成 <b>deepseek-v4-flash-vision-exp</b>。密钥只存你这台电脑。</div>
+        </div>
+      </details>
     </div>
+    </div><!-- /右列 -->
+   </div><!-- /checkgrid -->
 
     <div id="out"></div>
 
   </div>
 
   <div class="pane" id="paneBook">
-    <div class="card" style="padding:6px;">
-      <iframe id="bookFrame" style="width:100%;height:78vh;border:0;border-radius:10px;display:block;"></iframe>
-    </div>
+    <iframe id="bookFrame" style="width:100%;height:calc(100vh - 138px);border:1px solid var(--line);border-radius:12px;display:block;background:#fff;"></iframe>
   </div>
 
 </div>
