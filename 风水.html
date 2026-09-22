@@ -17,64 +17,110 @@
 html{-webkit-text-size-adjust:100%;}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
 ::selection{background:var(--mark);}
-.page{max-width:100%;margin:0;padding:14px 20px 34px;}
-.checkgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:16px;align-items:start;}
-@media (max-width:1020px){ .checkgrid{grid-template-columns:1fr;} }
+.page{max-width:100%;margin:0;padding:14px 20px 22px;}
 
-.tabs{display:flex;gap:8px;margin-bottom:14px;}
-.tab{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.15s;}
-.tab.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.tabs{display:flex;gap:8px;margin-bottom:12px;}
+.tab{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 20px;font-size:13.5px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.15s;}
+.tab:hover{color:var(--accent);border-color:#e2d5c7;}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(184,113,78,.25);}
 .pane{display:none;}
 .pane.show{display:block;}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
-.card + .card{margin-top:12px;}
-.card-title{font-size:13.5px;font-weight:700;margin-bottom:4px;}
-.card-title .req{color:var(--bad);}
-.card-sub{font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:10px;}
+/* ── 主栅格：左图右表，两列强制等高 ── */
+.checkgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr);gap:16px;align-items:stretch;}
+.coleft{display:flex;flex-direction:column;min-width:0;}
+.coright{display:flex;flex-direction:column;gap:12px;min-width:0;}
+@media (max-width:1020px){ .checkgrid{grid-template-columns:1fr;} }
 
-.drop{border:2px dashed #d8cfc2;border-radius:12px;background:#fff;padding:46px 20px;text-align:center;color:var(--sub);font-size:14px;cursor:pointer;transition:.15s;display:block;line-height:2.2;}
-.drop:hover{border-color:var(--accent);color:var(--accent);}
-#fpImg{max-width:100%;max-height:58vh;border-radius:10px;border:1px solid var(--line);display:block;margin:0 auto;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 17px;}
+.card-title{display:flex;align-items:center;font-size:14px;font-weight:700;margin-bottom:5px;}
+.card-title .stepno{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:var(--mark);color:#8d5233;font-size:11.5px;font-weight:700;margin-right:8px;flex:none;}
+.card-title .req{color:var(--bad);margin-left:4px;}
+.card-title .card-mini{font-weight:400;font-size:12px;color:var(--sub);margin-left:6px;}
+.card-sub{font-size:12.5px;color:var(--sub);line-height:1.7;margin-bottom:10px;}
+.titlerow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.titlerow .card-title{margin-bottom:0;}
 
-.person{display:grid;grid-template-columns:1fr 110px 90px 34px;gap:8px;margin-bottom:8px;align-items:center;}
-.person input,.person select,textarea,input[type=text],input[type=number],input[type=password],select{border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;width:100%;}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+/* 上传卡：撑满左列，虚线框自动变高 */
+.card.upload{display:flex;flex-direction:column;flex:1;}
+.drop{border:2px dashed #d8cfc2;border-radius:12px;background:#fff;color:var(--sub);cursor:pointer;transition:.18s;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+      flex:1;min-height:270px;padding:30px 22px;text-align:center;}
+.drop:hover{border-color:var(--accent);background:#fffdfb;}
+.dropico{width:46px;height:46px;border-radius:50%;border:1.5px dashed #d8cfc2;display:flex;align-items:center;justify-content:center;color:#bdb2a4;font-size:21px;line-height:1;transition:.18s;}
+.drop:hover .dropico{border-color:var(--accent);color:var(--accent);}
+.drop .d1{font-size:14.5px;font-weight:600;color:#6b635a;}
+.drop .d2{font-size:12px;color:var(--sub);}
+.drop .d3{font-size:11.5px;color:#b0a698;margin-top:5px;}
+#fpPreview{flex:1;flex-direction:column;justify-content:center;}
+#fpImg{max-width:100%;max-height:60vh;border-radius:10px;border:1px solid var(--line);display:block;margin:0 auto;}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
+.pnote{font-size:11.5px;color:var(--sub);}
+
+/* 表单区：两段式，虚线分隔 */
+.card.form{padding:13px 16px 14px;}
+.seg + .seg{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+
+.person{display:grid;grid-template-columns:minmax(0,1.4fr) 82px 74px 32px;gap:8px;margin-bottom:8px;align-items:center;}
+.person input,.person select,textarea,input[type=text],input[type=number],input[type=password],select{border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:13px;padding:8px 11px;outline:none;width:100%;transition:.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,113,78,.08);}
 textarea{resize:vertical;line-height:1.7;display:block;}
+.person .btn.mini{width:32px;padding:7px 0;line-height:1;}
 
-.chips{display:flex;gap:8px;flex-wrap:wrap;}
-.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 14px;font-size:12.5px;cursor:pointer;color:var(--sub);transition:.15s;user-select:none;}
-.chip.on{background:var(--mark);border-color:var(--accent);color:#8d5233;}
+@media (max-width:560px){
+  .drop{min-height:190px;padding:22px 18px;}
+  .person{grid-template-columns:minmax(0,1fr) 76px 64px 30px;gap:7px;}
+  .person input,.person select,textarea,input[type=text],input[type=number],select{padding:8px 9px;}
+  .page{padding:14px 14px 22px;}
+  .card{padding:14px 14px;}
+}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap;}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:12.5px;cursor:pointer;color:var(--sub);transition:.15s;user-select:none;}
+.chip:hover{border-color:#e2d5c7;color:var(--accent);}
+.chip.on{background:var(--mark);border-color:var(--accent);color:#8d5233;font-weight:600;}
 
 .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 15px;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s;}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
 .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn.primary:hover{background:#a05f3d;color:#fff;}
 .btn.primary:disabled{opacity:.55;cursor:wait;}
-.btn.mini{padding:4px 10px;font-size:12px;border-radius:8px;}
+.btn.mini{padding:5px 11px;font-size:12px;border-radius:8px;}
 
-.actrow{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
-.state{font-size:12.5px;color:var(--sub);}
+/* 操作卡 */
+.card.go{padding:15px 17px 14px;}
+.card.go .btn.primary{width:100%;padding:13px 0;font-size:15.5px;letter-spacing:.5px;border-radius:11px;box-shadow:0 4px 14px rgba(184,113,78,.22);}
+.state{font-size:12.5px;color:var(--sub);text-align:center;margin-top:8px;line-height:1.7;}
 .state b{color:var(--noted);}
 .state i{font-style:normal;color:var(--bad);}
 
-details.set summary{list-style:none;cursor:pointer;font-size:12.5px;color:var(--sub);user-select:none;}
+details.set{margin-top:11px;border-top:1px dashed var(--line);padding-top:9px;}
+details.set summary{list-style:none;cursor:pointer;font-size:12.5px;color:var(--sub);user-select:none;transition:.15s;}
 details.set summary::-webkit-details-marker{display:none;}
+details.set summary::before{content:"▸";margin-right:6px;font-size:11px;display:inline-block;}
+details.set summary:hover{color:var(--accent);}
 details.set[open] summary{color:var(--accent);}
-.apigrid{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px 10px;align-items:center;margin-top:10px;}
+details.set[open] summary::before{content:"▾";}
+.apigrid{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 10px;align-items:center;margin-top:11px;}
 .apigrid label{font-size:12px;color:var(--sub);text-align:right;}
 .tip{grid-column:1 / -1;font-size:11.5px;color:var(--sub);line-height:1.7;}
 
-.verdict{border-radius:12px;padding:15px 20px;font-size:16px;font-weight:700;margin-top:14px;border:1px solid;}
+/* ── 结果区 ── */
+#out{margin-top:14px;}
+#out .card{margin-top:12px;}
+.verdict{border-radius:12px;padding:15px 20px;font-size:16px;font-weight:700;border:1px solid;}
 .verdict.ok{background:#eaf3de;border-color:#cfe3b4;color:#3b6d11;}
 .verdict.mid{background:#faeeda;border-color:#efd9ae;color:#8a5a12;}
 .verdict.bad{background:#fcebeb;border-color:#eec3c3;color:#a32d2d;font-size:15.5px;}
-
-.sec{margin-top:14px;border-left:3px solid #c98a63;background:#fdfaf6;border-radius:0 10px 10px 0;padding:13px 18px;}
+.secgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;}
+@media (max-width:900px){ .secgrid{grid-template-columns:1fr;} }
+.secgrid .sec{margin-top:0;}
+.secgrid .sec.wide{grid-column:1 / -1;}
+.sec{border-left:3px solid #c98a63;background:#fdfaf6;border-radius:0 10px 10px 0;padding:13px 18px;}
 .sec h4{margin:0 0 7px;font-size:14.5px;color:#8d5233;}
 .sec.bad{border-left-color:var(--bad);background:#fdf3f3;}
 .sec.bad h4{color:var(--bad);}
-.sec p{margin:0;font-size:14px;line-height:2.15;color:#5b5148;white-space:pre-wrap;}
+.sec p{margin:0;font-size:14px;line-height:2.05;color:#5b5148;white-space:pre-wrap;}
 </style>
 </head>
 <body>
@@ -88,53 +134,63 @@ details.set[open] summary{color:var(--accent);}
   <div class="pane show" id="paneCheck">
 
    <div class="checkgrid">
-    <div>
-    <div class="card">
-      <div class="card-title">第一步 · 上传户型图 <span class="req">*</span></div>
+    <div class="coleft">
+    <div class="card upload">
+      <div class="card-title"><span class="stepno">1</span>上传户型图<span class="req">*</span></div>
       <div class="card-sub">开发商户型图、手画的都行，拍清楚一点。AI 会直接看图分析。</div>
       <label class="drop" id="fpDrop">
         <input type="file" id="fpInp" accept="image/*" style="display:none;" onchange="onFp(this.files[0])">
-        点击上传户型图（也可以直接把图拖进来）
+        <span class="dropico">＋</span>
+        <span class="d1">点击上传户型图</span>
+        <span class="d2">也可以直接把图片拖到这里</span>
+        <span class="d3">把指北针、房间名、尺寸一起拍进去，AI 判断会更准</span>
       </label>
-      <div id="fpPreview" style="margin-top:10px;display:none;">
+      <div id="fpPreview" style="display:none;">
         <img id="fpImg" alt="户型图预览">
-        <div style="margin-top:6px;text-align:right;"><span class="btn mini" style="display:inline-block;cursor:pointer;" onclick="clearFp()">换一张</span></div>
-      </div>
-    </div>
-
-    </div><!-- /左列 -->
-
-    <div><!-- 右列 -->
-    <div class="card">
-      <div class="card-title">第二步 · 谁住进来 <span class="req">*</span></div>
-      <div class="card-sub">住在里面的人是谁，这是判断好坏的关键——同一套房，住的人不同，结论完全相反。加几个人就加几行。</div>
-      <div id="persons">
-        <div class="person">
-          <input type="text" class="p-name" placeholder="称呼（可空，如：我 / 老婆 / 儿子）">
-          <select class="p-sex"><option value="">性别</option><option>男</option><option>女</option></select>
-          <input type="number" class="p-age" placeholder="年龄" min="1" max="100">
-          <button class="btn mini" title="删掉这个人" onclick="delPerson(this)">×</button>
+        <div class="prow">
+          <span class="pnote">本次分析用的就是这张图</span>
+          <span class="btn mini" style="cursor:pointer;" onclick="clearFp()">换一张</span>
         </div>
       </div>
-      <button class="btn mini" onclick="addPerson()">+ 再加一个入住人</button>
+    </div>
+    </div><!-- /左列 -->
+
+    <div class="coright">
+    <div class="card form">
+      <div class="seg">
+        <div class="titlerow">
+          <div class="card-title"><span class="stepno">2</span>谁住进来<span class="req">*</span></div>
+          <button class="btn mini" onclick="addPerson()">+ 加一个人</button>
+        </div>
+        <div class="card-sub">同一套房，住的人不同，结论可能完全相反。加几个人就加几行。</div>
+        <div id="persons">
+          <div class="person">
+            <input type="text" class="p-name" placeholder="称呼（可空，如：我 / 老婆 / 儿子）">
+            <select class="p-sex"><option value="">性别</option><option>男</option><option>女</option></select>
+            <input type="number" class="p-age" placeholder="年龄" min="1" max="100">
+            <button class="btn mini" title="删掉这个人" onclick="delPerson(this)">×</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="seg">
+        <div class="card-title"><span class="stepno">3</span>想重点看什么<span class="card-mini">（可多选，也可以不选）</span></div>
+        <div class="chips" id="focusChips">
+          <span class="chip" data-v="财运">财运</span>
+          <span class="chip" data-v="健康">健康</span>
+          <span class="chip" data-v="感情婚姻">感情婚姻</span>
+          <span class="chip" data-v="事业">事业</span>
+          <span class="chip" data-v="睡眠">睡眠</span>
+          <span class="chip" data-v="孩子学业">孩子学业</span>
+        </div>
+        <textarea id="extra" style="margin-top:11px;" rows="3" placeholder="可写可不写。有图上看不出来的信息，写这里 AI 会优先采信：朝向（图上有指北针就不用写）、第几层、租的还是买的、装修能不能大动、家里有人身体不好之类的。"></textarea>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">第三步 · 想重点看什么（可多选，也可以不选）</div>
-      <div class="chips" id="focusChips">
-        <span class="chip" data-v="财运">财运</span>
-        <span class="chip" data-v="健康">健康</span>
-        <span class="chip" data-v="感情婚姻">感情婚姻</span>
-        <span class="chip" data-v="事业">事业</span>
-        <span class="chip" data-v="睡眠">睡眠</span>
-        <span class="chip" data-v="孩子学业">孩子学业</span>
-      </div>
-      <textarea id="extra" style="margin-top:10px;" rows="4" placeholder="可写可不写。有图上看不出来的信息，写这里 AI 会优先采信：朝向（图上有指北针就不用写）、第几层、租的还是买的、装修能不能大动、家里有人身体不好之类的。"></textarea>
-    </div>
-    <div class="card">
-      <button class="btn primary" id="btnGo" style="width:100%;padding:13px 0;font-size:15px;" onclick="analyze()">AI 分析这个户型</button>
-      <div class="state" id="state" style="margin-top:10px;">传图 + 填好入住人，就能直接出结果</div>
-      <details class="set" style="margin-top:12px;">
+    <div class="card go">
+      <button class="btn primary" id="btnGo" onclick="analyze()">AI 分析这个户型</button>
+      <div class="state" id="state">传图 + 填好入住人，就能直接出结果</div>
+      <details class="set">
         <summary>视觉模型设置（看图用的）</summary>
         <div class="apigrid">
           <label>服务商</label>
@@ -215,7 +271,7 @@ details.set[open] summary{color:var(--accent);}
         cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
         fpData = cv.toDataURL('image/jpeg', 0.85);
         $('fpImg').src = fpData;
-        $('fpPreview').style.display = 'block';
+        $('fpPreview').style.display = 'flex';
         $('fpDrop').style.display = 'none';
       };
       img.src = reader.result;
@@ -225,7 +281,7 @@ details.set[open] summary{color:var(--accent);}
   window.clearFp = function(){
     fpData = null;
     $('fpPreview').style.display = 'none';
-    $('fpDrop').style.display = 'block';
+    $('fpDrop').style.display = '';
     $('fpInp').value = '';
   };
   var drop = $('fpDrop');
@@ -381,20 +437,22 @@ details.set[open] summary{color:var(--accent);}
     }
     if(!secs.length){ $('out').innerHTML = '<div class="card" style="margin-top:12px;"><p style="margin:0;font-size:13px;white-space:pre-wrap;">'+esc(t)+'</p></div>'; return; }
 
+    var WIDE = { '总评':1, '给谁住':1, '严重警示':1 };
     var verdict = '';
     var html = '';
     secs.forEach(function(s){
       var body = s.rest.join('\n');
       if(s.name.indexOf('适合入住') >= 0){ verdict = body; return; }
       var isBad = (s.name === '严重警示');
-      html += '<div class="sec'+(isBad?' bad':'')+'"><h4>'+esc(s.name)+'</h4><p>'+esc(body)+'</p></div>';
+      var wide = !!WIDE[s.name];
+      html += '<div class="sec'+(isBad?' bad':'')+(wide?' wide':'')+'"><h4>'+esc(s.name)+'</h4><p>'+esc(body)+'</p></div>';
     });
     var vc = '';
     if(verdict){
       var cls = /不建议/.test(verdict) ? 'bad' : (/谨慎/.test(verdict) ? 'mid' : 'ok');
       vc = '<div class="verdict '+cls+'">结论：'+esc(verdict)+'</div>';
     }
-    $('out').innerHTML = vc + '<div class="card" style="margin-top:12px;">' + html + '</div>';
+    $('out').innerHTML = vc + '<div class="card"><div class="secgrid">' + html + '</div></div>';
     try{ $('out').scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
   }
 
