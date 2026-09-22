@@ -484,7 +484,7 @@
       <div style="display:grid;grid-template-columns:76px 1fr;gap:8px;margin-top:8px;align-items:center;max-width:520px;">
         <span style="font-size:12px;color:#8a837a;text-align:right;">接口地址</span><input id="guaBase" placeholder="https://api.deepseek.com">
         <span style="font-size:12px;color:#8a837a;text-align:right;">密钥</span><input id="guaKey" type="password" placeholder="sk-...">
-        <span style="font-size:12px;color:#8a837a;text-align:right;">模型</span><input id="guaModel" placeholder="deepseek-v4-flash">
+        <span style="font-size:12px;color:#8a837a;text-align:right;">模型</span><input id="guaModel" placeholder="deepseek-flash">
       </div>
     </details>
     <div id="aiAnswer" style="margin-top:10px;"></div>
@@ -513,7 +513,7 @@
     <p>全站共用，填一次就行。密钥只存在你这台电脑的浏览器里。</p>
     <label>接口地址</label><input id="fabBase" placeholder="https://api.deepseek.com">
     <label>密钥</label><input id="fabKey" type="password" placeholder="sk-...">
-    <label>模型</label><input id="fabModel" placeholder="deepseek-v4-flash">
+    <label>模型</label><input id="fabModel" placeholder="deepseek-flash">
     <div class="api-acts">
       <button class="bb-ghost" onclick="closeApiPanel()">关闭</button>
       <button class="bb-main" onclick="saveApiPanel()">保存</button>
@@ -1058,7 +1058,7 @@ async function askGuaAI(){
   const box=document.getElementById('aiAnswer');
   const key=(document.getElementById('guaKey').value.trim())||(localStorage.getItem('ywApiKey')||'');
   let base=(document.getElementById('guaBase').value.trim())||(localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
-  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-v4-flash');
+  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-flash');
   base=base.replace(/\/+$/,'');
   const prompt=window.__guaPrompt||document.getElementById('aiPrompt').textContent;
   if(!key){ st.innerHTML='<span style="color:#c0392b">先把密钥填上（展开上面「接口设置」）</span>'; document.getElementById('guaSet').open=true; return; }
@@ -1086,7 +1086,7 @@ async function askGuaAI(){
 function openApiPanel(){
   const g = id => document.getElementById(id);
   g('fabBase').value = localStorage.getItem('ywApiBase') || 'https://api.deepseek.com';
-  g('fabModel').value = localStorage.getItem('ywApiModel') || 'deepseek-v4-flash';
+  g('fabModel').value = localStorage.getItem('ywApiModel') || 'deepseek-flash';
   g('fabKey').value = localStorage.getItem('ywApiKey') || '';
   g('apiMask').classList.add('show');
 }
@@ -1112,7 +1112,7 @@ function saveApiPanel(){
   const g=id=>document.getElementById(id);
   if(!g('guaBase')) return;
   g('guaBase').value=localStorage.getItem('ywApiBase')||'https://api.deepseek.com';
-  g('guaModel').value=localStorage.getItem('ywApiModel')||'deepseek-v4-flash';
+  g('guaModel').value=localStorage.getItem('ywApiModel')||'deepseek-flash';
   g('guaKey').value=localStorage.getItem('ywApiKey')||'';
   const map={guaBase:'ywApiBase',guaModel:'ywApiModel',guaKey:'ywApiKey'};
   ['guaBase','guaModel','guaKey'].forEach(id=>{
