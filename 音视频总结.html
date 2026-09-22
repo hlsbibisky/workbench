@@ -311,7 +311,7 @@
       <label class="fld">API 地址（OpenAI 兼容）</label>
       <input type="text" id="setBase" placeholder="https://api.deepseek.com/v1">
       <label class="fld">模型名</label>
-      <input type="text" id="setModel" placeholder="deepseek-chat">
+      <input type="text" id="setModel" placeholder="deepseek-v4-flash">
       <label class="fld">API Key</label>
       <input type="password" id="setKey" placeholder="仅存于本机浏览器，不会上传">
       <div class="note">填好 Key 后，上传即全自动出报告，全程无需找助手。Key 只保存在你本机 localStorage，不上传任何服务器。</div>
@@ -354,12 +354,22 @@ const VOICES = [
 ];
 
 function defaultCfg(){
-  return { engine:'assistant', base:'', model:'deepseek-chat', key:'',
+  return { engine:'assistant', base:'', model:'deepseek-v4-flash', key:'',
            model_size:'base', voice:'zh-CN-XiaoxiaoNeural', tts:true, rate:true };
 }
 function loadCfg(){
-  try{ return Object.assign(defaultCfg(), JSON.parse(localStorage.getItem(CFG_LS))||{}); }
-  catch(e){ return defaultCfg(); }
+  let c;
+  try{ c = Object.assign(defaultCfg(), JSON.parse(localStorage.getItem(CFG_LS))||{}); }
+  catch(e){ c = defaultCfg(); }
+  /* 回落到全站共享的接口设置（Ta在说什么 / 起卦 / 放映室 用的那一套） */
+  try{
+    if(!c.key) c.key = localStorage.getItem('ywApiKey') || '';
+    if(!c.base) c.base = localStorage.getItem('ywApiBase') || '';
+    if(!c.model || c.model === 'deepseek-v4-flash') c.model = localStorage.getItem('ywApiModel') || 'deepseek-v4-flash';
+  }catch(e){}
+  if(!c.base) c.base = 'https://api.deepseek.com';
+  if(!c.model) c.model = 'deepseek-v4-flash';
+  return c;
 }
 function saveCfg(c){ localStorage.setItem(CFG_LS, JSON.stringify(c)); }
 
@@ -693,7 +703,7 @@ function md2html(md){
 /* ============ 设置抽屉 ============ */
 function openDrawer(){
   $('#setApi').value = apiBase();
-  $('#setBase').value = CFG.base||''; $('#setModel').value=CFG.model||'deepseek-chat'; $('#setKey').value=CFG.key||'';
+  $('#setBase').value = CFG.base||''; $('#setModel').value=CFG.model||'deepseek-v4-flash'; $('#setKey').value=CFG.key||'';
   $('#setModel2').value = CFG.model_size; $('#setVoice2').value = CFG.voice;
   $$('#setEngine button').forEach(b=> b.classList.toggle('active', b.dataset.v===CFG.engine));
   $('#apiBox').style.display = CFG.engine==='api' ? '' : 'none';
@@ -708,7 +718,7 @@ $('#setEngine').addEventListener('click', e=>{ const b=e.target.closest('button'
   CFG.engine=b.dataset.v; $('#apiBox').style.display = CFG.engine==='api'?'':'none'; });
 $('#saveSet').onclick = ()=>{
   setApiBase($('#setApi').value);
-  CFG.base=$('#setBase').value.trim(); CFG.model=$('#setModel').value.trim()||'deepseek-chat';
+  CFG.base=$('#setBase').value.trim(); CFG.model=$('#setModel').value.trim()||'deepseek-v4-flash';
   CFG.key=$('#setKey').value.trim(); CFG.model_size=$('#setModel2').value; CFG.voice=$('#setVoice2').value;
   saveCfg(CFG);
   // 同步主面板
