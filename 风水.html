@@ -201,8 +201,8 @@ details.set[open] summary::before{content:"▾";}
           </select>
           <label>接口地址</label><input type="text" id="vlBase" placeholder="https://api.deepseek.com">
           <label>密钥</label><input type="password" id="vlKey" placeholder="看图模型的密钥">
-          <label>模型</label><input type="text" id="vlModel" placeholder="deepseek-v4-flash">
-          <div class="tip">看图要用「视觉模型」。DeepSeek 现在支持看图，<b>用你在别处填过的那个密钥就行</b>，不用另外充钱。如果提示「不支持图片」，把模型名改成 <b>deepseek-v4-flash-vision-exp</b>。密钥只存你这台电脑。</div>
+          <label>模型</label><input type="text" id="vlModel" placeholder="deepseek-flash">
+          <div class="tip">看图要用「视觉模型」。DeepSeek 现在支持看图，<b>用你在别处填过的那个密钥就行</b>，不用另外充钱。如果提示「不支持图片」，把模型名改成 <b>deepseek-flash</b>。密钥只存你这台电脑。</div>
         </div>
       </details>
     </div>
@@ -326,7 +326,7 @@ details.set[open] summary::before{content:"▾";}
   ].join('\n');
 
   var VL_PRESETS = {
-    deepseek: { base:'https://api.deepseek.com', model:'deepseek-v4-flash' },
+    deepseek: { base:'https://api.deepseek.com', model:'deepseek-flash' },
     zhipu:    { base:'https://open.bigmodel.cn/api/paas/v4', model:'glm-4v-flash' },
     custom:   { base:'', model:'' }
   };
