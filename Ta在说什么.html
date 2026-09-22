@@ -145,8 +145,8 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
             <label>密钥</label>
             <input type="password" id="apiKey" placeholder="sk-...">
             <label>模型</label>
-            <input type="text" id="model" placeholder="deepseek-v4-flash">
-            <div class="tip">密钥只存在你这台电脑的浏览器里。<br>模型那一格填什么，请求里就发什么：填 <b>deepseek-v4-flash</b> 走便宜那个，填 <b>deepseek-v4-pro</b> 走贵那个。</div>
+            <input type="text" id="model" placeholder="deepseek-flash">
+            <div class="tip">密钥只存在你这台电脑的浏览器里。<br>模型那一格填什么，请求里就发什么：填 <b>deepseek-flash</b> 走便宜那个，填 <b>deepseek-v4-pro</b> 走贵那个。</div>
           </div>
         </div>
       </details>
@@ -187,7 +187,7 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
   function pad(n){ return (n<10?'0':'')+n; }
 
   var PRESETS = {
-    deepseek: { base:'https://api.deepseek.com', model:'deepseek-v4-flash' },
+    deepseek: { base:'https://api.deepseek.com', model:'deepseek-flash' },
     zhipu:    { base:'https://open.bigmodel.cn/api/paas/v4', model:'glm-4-flash' },
     moonshot: { base:'https://api.moonshot.cn/v1', model:'moonshot-v1-8k' },
     dashscope:{ base:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus' },
