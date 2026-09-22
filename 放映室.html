@@ -238,7 +238,7 @@
           </div>
           <textarea id="aiKey" placeholder="API Key（也可在「AI配置」里填写，仅存在本机）" style="margin-top:6px;"></textarea>
           <div class="aiopts">
-            <input id="aiModel" placeholder="模型，如 deepseek-v4-flash">
+            <input id="aiModel" placeholder="模型，如 deepseek-flash">
             <input id="aiEndpoint" placeholder="API 地址，留空用 DeepSeek">
           </div>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
@@ -295,7 +295,7 @@
   <div class="mdialog">
     <h3>AI 配置</h3>
     <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.deepseek.com"></div>
-    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="deepseek-v4-flash"></div>
+    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="deepseek-flash"></div>
     <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
     <div class="mrow"><label>实时视觉分析间隔（秒，0=关闭）</label><input id="cfgVision" type="number" min="0" step="5" placeholder="0"></div>
     <div class="hint">实时视觉分析会定时截图并调用多模态模型，费用较高，默认关闭。</div>
@@ -368,11 +368,11 @@ function loadCfg(){
   try{
     if(!cfg.key) cfg.key=localStorage.getItem('ywApiKey')||'';
     if(!cfg.endpoint) cfg.endpoint=localStorage.getItem('ywApiBase')||'';
-    if(!cfg.model || cfg.model==='deepseek-v4-flash') cfg.model=localStorage.getItem('ywApiModel')||cfg.model;
+    if(!cfg.model || cfg.model==='deepseek-flash') cfg.model=localStorage.getItem('ywApiModel')||cfg.model;
   }catch(e){}
   cfg.endpoint=(cfg.endpoint||'https://api.deepseek.com').replace(/\/+$/,'');
   if(cfg.endpoint.indexOf('/chat/completions')<0) cfg.endpoint=cfg.endpoint+'/chat/completions';
-  cfg.model=cfg.model||'deepseek-v4-flash';
+  cfg.model=cfg.model||'deepseek-flash';
   cfg.key=cfg.key||'';
   cfg.vision=cfg.vision||0;
   return cfg;
@@ -667,7 +667,7 @@ function sendChat(){
 async function chatWithAI(userText){
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
   const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){
     aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
@@ -733,7 +733,7 @@ async function genAiNotes(){
   if(!plot && !state.subtitle.length){ alert('请先粘贴剧情文本，或上传字幕文件'); return; }
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
   const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){ alert('请先在 AI配置 或右侧面板填写 API Key'); return; }
   const btn=$('genBtn'); const old=btn.textContent; btn.textContent='生成中…'; btn.disabled=true;
@@ -830,7 +830,7 @@ function onShotSelect(files){
   if(!files || !files.length) return;
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
   const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){ alert('请先在 AI配置 里填写 API Key'); return; }
   Array.from(files).forEach(file=>analyzeShot(file,endpoint,model,key));
@@ -906,7 +906,7 @@ async function captureAndAnalyze(){
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
       body:JSON.stringify({
-        model:cfg.model||'deepseek-v4-flash',
+        model:cfg.model||'deepseek-flash',
         messages:[{
           role:'user',
           content:[
