@@ -263,10 +263,10 @@
     <h3>放映室使用说明</h3>
     <p style="font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 12px;">
       1. 点击「选择影片」加载本地视频，支持 mp4 / mkv / webm 等格式。<br><br>
-      2. 右侧「AI 陪伴」面板显示 AI 和你自己的消息；下方标签可切换「时间轴 / AI生成 / 截图分析 / 观影记录」。<br><br>
-      3. 「AI生成」建议先「上传字幕」(.srt/.vtt)，AI 会基于真实时间轴写评论；没字幕也可粘贴剧情文本。填好 API Key 后一键生成。<br><br>
-      4. 播放时，到点的 AI 评论会自动出现在上方陪伴面板；你也可以直接在输入框打字或点 🎤 说话，AI 会结合当前播放位置真实回复（不再只是罐头话）。<br><br>
-      5. 「截图分析」上传电影截图，AI 会基于画面内容发表看法。<br><br>
+      2. 右侧「AI 陪伴」面板显示 AI 和你自己的消息；下方标签可切换「时间轴 / AI生成 / 观影记录」。<br><br>
+      3. 「AI生成」页最上面是「上传字幕 / 上传截图」两个按钮：字幕(.srt/.vtt)最准，AI 会基于真实时间轴写评论；没字幕也可粘贴剧情文本。填好 API Key（右上角「AI配置」）后一键生成。<br><br>
+      4. 播放时，到点的 AI 评论会自动以消息形式出现在上方陪伴面板；你也可以直接在输入框打字或点 🎤 说话，AI 会结合当前播放位置真实回复。<br><br>
+      5. 「上传截图」让 AI 看图点评；播放位置附近的画面截图也可以在「AI配置」里开启定时自动分析（默认关，费用较高）。<br><br>
       6. 「观影记录」里每部电影都有海报、标题、观看日期和进度；点记录可联网搜索海报或手动上传。
     </p>
     <div class="macts"><button class="btn primary" onclick="closeHelp()">知道了</button></div>
@@ -715,10 +715,10 @@ async function genAiNotes(){
   const plot=$('plotText').value.trim();
   if(!plot && !state.subtitle.length){ alert('请先粘贴剧情文本，或上传字幕文件'); return; }
   const cfg=loadCfg();
-  const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
-  if(!key){ alert('请先在 AI配置 或右侧面板填写 API Key'); return; }
+  const key=cfg.key;
+  const model=cfg.model||'deepseek-flash';
+  const endpoint=cfg.endpoint||'https://api.deepseek.com';
+  if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
   const btn=$('genBtn'); const old=btn.textContent; btn.textContent='生成中…'; btn.disabled=true;
   try{
     const dur=isFinite(video.duration)&&video.duration>0?fmt(video.duration):'';
