@@ -79,22 +79,15 @@
   .coins-area{text-align:center;padding:20px 0 28px;}
   .coins{display:flex;justify-content:center;gap:40px;margin:28px 0;align-items:flex-end;}
   .coin-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
-  .coin{width:130px;height:130px;position:relative;cursor:pointer;perspective:800px;transition:transform .15s;}
-  .coin:hover{transform:scale(1.06);}
-  .coin-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.25,.46,.45,.94);}
-  .coin.flipping .coin-inner{animation:coinFlip3d .8s ease-in-out;}
-  @keyframes coinFlip3d{
-    0%{transform:rotateY(0deg) rotateX(0deg) scale(1);}
-    20%{transform:rotateY(180deg) rotateX(60deg) translateY(-50px) scale(1.12);}
-    40%{transform:rotateY(450deg) rotateX(120deg) translateY(-85px) scale(1.07);}
-    60%{transform:rotateY(720deg) rotateX(200deg) translateY(-35px) scale(1.03);}
-    80%{transform:rotateY(1000deg) rotateX(300deg) translateY(-12px) scale(1);}
-    100%{transform:rotateY(1440deg) rotateX(360deg) translateY(0) scale(1);}
-  }
+  .coin{width:130px;height:130px;position:relative;cursor:pointer;perspective:900px;
+    transform:rotateX(10deg);transition:transform .15s;}
+  .coin:hover{transform:rotateX(10deg) scale(1.06);}
+  /* 旋转由 JS（Web Animations API）驱动，保证原地绕竖轴、无位移 */
+  .coin-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;}
   .coin-face{position:absolute;width:100%;height:100%;border-radius:50%;
     backface-visibility:hidden;display:flex;align-items:center;justify-content:center;
     transition:opacity .3s;}
-  .coin-face svg{width:94%;height:94%;filter:drop-shadow(0 7px 20px rgba(0,0,0,.45));}
+  .coin-face svg{width:97%;height:97%;filter:drop-shadow(0 5px 14px rgba(70,48,22,.34));}
   .coin-tail{transform:rotateY(180deg);}
   .coin-label{font-size:15px;color:var(--sub);font-weight:600;letter-spacing:3px;
     height:24px;display:flex;align-items:center;justify-content:center;}
@@ -166,10 +159,40 @@
   .yao-ci{font-size:15px;color:var(--ink);margin:4px 0;line-height:1.7;}
   .yao-explain{font-size:14px;color:var(--sub);line-height:1.8;}
 
-  /* AI提示词 */
-  .copy-prompt{background:var(--ink);color:#f0ead6;padding:18px 20px;border-radius:14px;
-    font-size:13px;line-height:1.9;white-space:pre-wrap;word-break:break-all;
-    max-height:320px;overflow-y:auto;font-family:inherit;border:1px solid rgba(255,255,255,.08);}
+  /* AI提示词（黑底备用区 · 高度已收紧） */
+  .copy-prompt{background:var(--ink);color:#f0ead6;padding:12px 14px;border-radius:12px;
+    font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;
+    max-height:156px;overflow-y:auto;font-family:inherit;border:1px solid rgba(255,255,255,.08);
+    scrollbar-width:thin;scrollbar-color:rgba(240,234,214,.28) transparent;}
+  .copy-prompt::-webkit-scrollbar{width:6px;}
+  .copy-prompt::-webkit-scrollbar-track{background:transparent;}
+  .copy-prompt::-webkit-scrollbar-thumb{background:rgba(240,234,214,.26);border-radius:3px;}
+  .copy-prompt::-webkit-scrollbar-thumb:hover{background:rgba(240,234,214,.46);}
+
+  /* ===== AI 直接解读 · 结构化结果（白底 · 与工作台同调性） ===== */
+  .ai-ans{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .ai-sec{padding:13px 16px;border-top:1px dashed var(--line);}
+  .ai-sec:first-child{border-top:none;}
+  .ai-sec-h{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:7px;
+    display:flex;align-items:center;gap:7px;}
+  .ai-sec-h .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+    border-radius:50%;background:var(--mark);color:var(--accent);font-size:11px;font-weight:700;flex:none;}
+  .ai-sec-b{font-size:14.5px;line-height:1.9;color:var(--ink);}
+  .ai-sec-b p{margin:0 0 6px;}
+  .ai-sec-b p:last-child{margin-bottom:0;}
+  .ai-sec-b ul{margin:4px 0 0;padding-left:19px;}
+  .ai-sec-b li{margin:3px 0;}
+  .ai-sec-b b{color:#8a4f2c;font-weight:700;}
+  .ai-verdict{font-size:20px;font-weight:700;line-height:1.55;color:#2c241b;letter-spacing:.5px;}
+  .ai-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
+  .ai-chip{font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--mark);color:#6b5a45;
+    border:1px solid #ecdfc9;line-height:1.45;}
+  .ai-chip b{color:var(--accent);font-weight:700;margin-right:3px;}
+  .ai-chip.warn{background:#fdf0e8;border-color:#f2d9c6;color:#a4592f;}
+  .ai-loading{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--sub);padding:14px 4px;}
+  .ai-spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:aiSpin .8s linear infinite;flex:none;}
+  @keyframes aiSpin{to{transform:rotate(360deg);}}
   .copy-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;
     margin-top:10px;border:2px solid var(--accent);color:var(--accent);background:transparent;
     border-radius:12px;cursor:pointer;font-size:15px;font-family:inherit;font-weight:600;transition:.2s;}
@@ -327,14 +350,24 @@
       <div style="text-align:center;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:4px;" id="coinsTitle">投掷铜钱</div>
       <div class="coins">
         <defs>
-          <filter id="agedMetal"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" result="noise"/><feDiffuseLighting in="noise" lighting-color="#6b5b4e" surfaceScale="1.8" result="diff"/><feComposite in="SourceGraphic" in2="diff" operator="arithmetic" k1="1" k2=".35" k3=".1" k4="0"/></filter>
-          <radialGradient id="cg" cx="38%" cy="32%" r="68%">
-            <stop offset="0%" stop-color="#7a6a58"/><stop offset="35%" stop-color="#5c4d3f"/>
-            <stop offset="72%" stop-color="#3e3429"/><stop offset="100%" stop-color="#2a231c"/>
+          <filter id="agedMetal"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" result="noise"/><feDiffuseLighting in="noise" lighting-color="#7a5f22" surfaceScale="1.6" result="diff"/><feComposite in="SourceGraphic" in2="diff" operator="arithmetic" k1="1" k2=".32" k3=".1" k4="0"/></filter>
+          <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e6d195"/><stop offset="46%" stop-color="#a98c44"/>
+            <stop offset="100%" stop-color="#6f5a24"/>
+          </linearGradient>
+          <radialGradient id="cg" cx="32%" cy="26%" r="78%">
+            <stop offset="0%" stop-color="#eacd8b"/><stop offset="28%" stop-color="#d2b068"/>
+            <stop offset="58%" stop-color="#ba974e"/><stop offset="86%" stop-color="#997c3c"/>
+            <stop offset="100%" stop-color="#7d6428"/>
           </radialGradient>
-          <radialGradient id="cb" cx="38%" cy="32%" r="68%">
-            <stop offset="0%" stop-color="#6e5e4d"/><stop offset="35%" stop-color="#504337"/>
-            <stop offset="72%" stop-color="#362d24"/><stop offset="100%" stop-color="#241e19"/>
+          <radialGradient id="cb" cx="32%" cy="26%" r="78%">
+            <stop offset="0%" stop-color="#e2c483"/><stop offset="28%" stop-color="#caa960"/>
+            <stop offset="58%" stop-color="#b08f48"/><stop offset="86%" stop-color="#917438"/>
+            <stop offset="100%" stop-color="#765f26"/>
+          </radialGradient>
+          <radialGradient id="coinShade" cx="30%" cy="24%" r="82%">
+            <stop offset="56%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#4a3408" stop-opacity=".34"/>
           </radialGradient>
         </defs>
         <!-- 铜钱0 -->
@@ -342,26 +375,44 @@
           <div class="coin" id="coin0"><div class="coin-inner">
             <div class="coin-face coin-head">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cg)" stroke="#2a231c" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#8a7a68" stroke-width=".4" opacity=".3"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#1a1510" stroke-width=".3" opacity=".15"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#2a231c" stroke="#1a1510" stroke-width=".5"/>
-                <text x="51" y="25" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">乾</text>
-                <text x="74" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">通</text>
-                <text x="49" y="81" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">隆</text>
-                <text x="26" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">宝</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".18" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cg)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17.5" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".42" paint-order="stroke" opacity=".93">
+                  <text x="50" y="31.8">乾</text>
+                  <text x="80.5" y="56.2">通</text>
+                  <text x="50" y="86.8">隆</text>
+                  <text x="19.5" y="56.2">宝</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".1" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".1" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
             <div class="coin-face coin-tail">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cb)" stroke="#1e1814" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#7a6a58" stroke-width=".4" opacity=".25"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#140f0c" stroke-width=".3" opacity=".12"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#1e1814" stroke="#140f0c" stroke-width=".5"/>
-                <text x="27" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᡠ</text>
-                <text x="73" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᠪ</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".2" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cb)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".4" paint-order="stroke" opacity=".9">
+                  <text x="24" y="56.5">ᡠ</text>
+                  <text x="76" y="56.5">ᠪ</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".11" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".09" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
           </div></div>
@@ -372,26 +423,44 @@
           <div class="coin" id="coin1"><div class="coin-inner">
             <div class="coin-face coin-head">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cg)" stroke="#2a231c" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#8a7a68" stroke-width=".4" opacity=".3"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#1a1510" stroke-width=".3" opacity=".15"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#2a231c" stroke="#1a1510" stroke-width=".5"/>
-                <text x="51" y="25" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">乾</text>
-                <text x="74" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">通</text>
-                <text x="49" y="81" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">隆</text>
-                <text x="26" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">宝</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".18" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cg)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17.5" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".42" paint-order="stroke" opacity=".93">
+                  <text x="50" y="31.8">乾</text>
+                  <text x="80.5" y="56.2">通</text>
+                  <text x="50" y="86.8">隆</text>
+                  <text x="19.5" y="56.2">宝</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".1" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".1" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
             <div class="coin-face coin-tail">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cb)" stroke="#1e1814" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#7a6a58" stroke-width=".4" opacity=".25"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#140f0c" stroke-width=".3" opacity=".12"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#1e1814" stroke="#140f0c" stroke-width=".5"/>
-                <text x="27" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᡠ</text>
-                <text x="73" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᠪ</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".2" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cb)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".4" paint-order="stroke" opacity=".9">
+                  <text x="24" y="56.5">ᡠ</text>
+                  <text x="76" y="56.5">ᠪ</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".11" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".09" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
           </div></div>
@@ -402,26 +471,44 @@
           <div class="coin" id="coin2"><div class="coin-inner">
             <div class="coin-face coin-head">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cg)" stroke="#2a231c" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#8a7a68" stroke-width=".4" opacity=".3"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#1a1510" stroke-width=".3" opacity=".15"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#2a231c" stroke="#1a1510" stroke-width=".5"/>
-                <text x="51" y="25" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">乾</text>
-                <text x="74" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">通</text>
-                <text x="49" y="81" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">隆</text>
-                <text x="26" y="54" text-anchor="middle" fill="#1a1510" font-size="12.5" font-weight="700" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".88">宝</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".18" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cg)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17.5" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".42" paint-order="stroke" opacity=".93">
+                  <text x="50" y="31.8">乾</text>
+                  <text x="80.5" y="56.2">通</text>
+                  <text x="50" y="86.8">隆</text>
+                  <text x="19.5" y="56.2">宝</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".1" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".1" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
             <div class="coin-face coin-tail">
               <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="47.5" fill="url(#cb)" stroke="#1e1814" stroke-width="1.2"/>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#7a6a58" stroke-width=".4" opacity=".25"/>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#140f0c" stroke-width=".3" opacity=".12"/>
-                <rect x="40.5" y="40.5" width="19" height="19" rx="1" fill="#1e1814" stroke="#140f0c" stroke-width=".5"/>
-                <text x="27" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᡠ</text>
-                <text x="73" y="55" text-anchor="middle" fill="#140f0c" font-size="11" font-weight="600" font-family="KaiTi,STKaiti,SimSun,serif" opacity=".8">ᠪ</text>
-                <circle cx="50" cy="50" r="47.5" fill="url(#agedMetal)" opacity=".2" style="mix-blend-mode:multiply;"/>
+                <circle cx="50" cy="50" r="48" fill="#6a5424"/>
+                <circle cx="50" cy="50" r="47.4" fill="url(#rim)"/>
+                <circle cx="50" cy="50" r="44.8" fill="none" stroke="#f7ebc4" stroke-width=".7" opacity=".26"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#cb)"/>
+                <circle cx="50" cy="50" r="44.6" fill="url(#coinShade)"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#7b6228" stroke-width="1.7"/>
+                <rect x="38.6" y="38.6" width="22.8" height="22.8" rx="1.8" fill="none" stroke="#f2e2b4" stroke-width=".55" opacity=".3" transform="translate(0,-.5)"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="#241c11"/>
+                <rect x="41.6" y="41.6" width="16.8" height="16.8" rx="1.2" fill="none" stroke="#120d07" stroke-width=".8"/>
+                <g font-family="KaiTi,STKaiti,SimSun,serif" font-size="17" font-weight="700" text-anchor="middle"
+                   fill="#31220a" stroke="#f0dfae" stroke-width=".4" paint-order="stroke" opacity=".9">
+                  <text x="24" y="56.5">ᡠ</text>
+                  <text x="76" y="56.5">ᠪ</text>
+                </g>
+                <circle cx="50" cy="50" r="47.4" fill="url(#agedMetal)" opacity=".11" style="mix-blend-mode:multiply;"/>
+                <ellipse cx="32" cy="26" rx="18" ry="11" fill="#fff6d8" opacity=".09" transform="rotate(-38 32 26)"/>
               </svg>
             </div>
           </div></div>
@@ -749,6 +836,41 @@ function startDivination(){
   }
 }
 
+/* 三枚铜钱各自累计旋转角度：每次从当前朝向接着原地绕竖轴旋转，转完急停定面 */
+let coinAngles = [0,0,0];
+const COIN_TIMERS = [null,null,null];
+const SPIN_DUR = 700;   // 单枚旋转时长(ms)
+const SPIN_GAP = 55;    // 三枚依次起转的间隔(ms)
+const SPIN_TURNS = 4;   // 原地旋转圈数
+
+/* 单枚铜钱：绕竖轴匀速原地旋转 → 急停 → 末段轻微回弹（用 JS 逐帧驱动，保证只转不跑） */
+function spinCoin(i, isHead, onSettle){
+  const coin = document.getElementById('coin'+i);
+  const inner = coin.querySelector('.coin-inner');
+  const from = coinAngles[i];
+  const curMod = ((from % 360) + 360) % 360;          // 当前朝向 0 / 180
+  const target = isHead ? 0 : 180;                    // 0=字(正) 180=背
+  const delta = (target - curMod + 360) % 360;
+  const end = from + 360*SPIN_TURNS + delta;          // 原地转满整圈后补到目标面
+  coinAngles[i] = end;
+  if(COIN_TIMERS[i]){ clearTimeout(COIN_TIMERS[i]); COIN_TIMERS[i]=null; }
+
+  const t0 = performance.now() + i*SPIN_GAP;
+  const STEP = 16;
+  const draw = p => {
+    const ang = from + (end - from) * p;
+    const sc = p > 0.93 ? (1.045 - 0.045*((p-0.93)/0.07)) : 1.045;
+    inner.style.transform = 'rotateY('+ang.toFixed(2)+'deg) scale('+sc.toFixed(4)+')';
+  };
+  const tick = () => {
+    const p = Math.min(1, Math.max(0, (performance.now() - t0) / SPIN_DUR));
+    draw(p);
+    if(p < 1){ COIN_TIMERS[i] = setTimeout(tick, STEP); }
+    else { COIN_TIMERS[i] = null; inner.style.transform = 'rotateY('+end+'deg)'; if(onSettle) onSettle(); }
+  };
+  COIN_TIMERS[i] = setTimeout(tick, i*SPIN_GAP);
+}
+
 function throwCoins(){
   if(appState.currentThrow >= 6) return;
   const btn = document.getElementById('throwBtn');
@@ -757,14 +879,10 @@ function throwCoins(){
   appState.throws.push(result);
 
   for(let i=0;i<3;i++){
-    const coin = document.getElementById('coin'+i);
-    coin.classList.add('flipping');
-    setTimeout(()=>{
-      coin.classList.remove('flipping');
-      coin.querySelector('.coin-inner').style.transform = result[i] ? 'rotateY(0deg)' : 'rotateY(180deg)';
+    spinCoin(i, !!result[i], () => {
       document.getElementById('cr'+i).textContent = result[i] ? '字' : '背';
       document.getElementById('cr'+i).style.opacity = '1';
-    }, 820);
+    });
   }
 
   setTimeout(()=>{
@@ -787,7 +905,7 @@ function throwCoins(){
         }
       }, 1400);
     }
-  }, 900);
+  }, SPIN_DUR + SPIN_GAP*2 + 110);
 }
 
 function updateFormingRow(idx, result){
@@ -823,10 +941,13 @@ function updateThrowUI(){
   document.getElementById('throwBtn').style.display = '';
   document.getElementById('throwHint').textContent = '点击下方按钮投掷铜钱';
   document.getElementById('throwProgress').textContent = '';
+  coinAngles = [0,0,0];
   for(let i=0;i<3;i++){
     const c = document.getElementById('coin'+i);
+    const inner = c.querySelector('.coin-inner');
+    if(COIN_TIMERS[i]){ clearTimeout(COIN_TIMERS[i]); COIN_TIMERS[i]=null; }
     c.classList.remove('flipping');
-    c.querySelector('.coin-inner').style.transform = '';
+    inner.style.transform = '';
     document.getElementById('cr'+i).textContent = '';
     document.getElementById('cr'+i).style.opacity = '0';
   }
@@ -1045,11 +1166,136 @@ function renderAIPrompt(r){
 '目标\n- 让新手一眼看懂"结论是什么、为什么、要补什么"。\n- 将解卦过程结构化、可复核、可复现。\n- 用清晰的逻辑链条解释结论来源。\n\n' +
 '输入要求（尽量完整）\n- 所问事项与背景（具体到时间/对象/范围）\n- 起卦方式与时间（年/月/日/时）\n- 卦象信息：本卦、变卦、动爻、世应、六亲（若有月建/日辰/旬空/六神也提供）\n- 若为代占或意念不明，说明占卜意念来源\n\n' +
 '工作流程\n1. 信息校验：标注缺失项与冲突项。\n2. 取用神：说明取用神依据（书中规则/章节）。\n3. 定旺衰：结合日月、动变与相关规则判断旺衰。\n4. 看动变：分析动爻、变爻、化进化退、暗动等影响。\n5. 看冲合：六冲、六合、三合等格局影响。\n6. 看特殊格局：伏吟、反吟、句空、三墓、三绊等。\n7. 断应期：给出应期推断与依据。\n8. 汇总结论：区分"可断结论"与"待证结论"。\n\n' +
-'输出格式（新手友好）\n1. 结论卡片（必须先给）\n   - 结论：明确回答"成/不成/利/不利/吉/凶/有/无/快/慢"等\n   - 置信度：高/中/低（并说明是信息不足还是卦象不明）\n   - 时间提示：若可断应期，用"xx时间段"；不可断则写"无法断定"\n2. 一句话原因（100 字内，面向新手）\n3. 趋避建议（可执行、简短；仅基于书中规则推导，不引入外部常识）\n4. 依据链路（按顺序列出：取用神/旺衰/动变/冲合/特殊格局/应期）\n5. 证据引用（短引用 + 对应章节/关键词）\n6. 不确定项与缺失信息（必要时提出补充问题）\n\n' +
+'输出格式（必须严格遵守：六个小节全部输出，标题原样照抄，不要增删、不要改序号、不要多写别的小节）\n' +
+'【1. 结论卡片】\n' +
+'- 结论：一句话直接回答，用"成／不成／利／不利／吉／凶／有／无／快／慢"这类大白话，不要术语。\n' +
+'- 置信度：高／中／低 ——（紧跟一句说明：是信息不够，还是卦象本身含糊）\n' +
+'- 时间提示：能断就写具体时间段（如"本月下旬""下周三前后"）；不能断就写"无法断定"。\n' +
+'【2. 一句话原因】\n' +
+'- 100 字以内，像跟朋友聊天那样解释为什么是这个结论。\n' +
+'【3. 趋避建议】\n' +
+'- 最多 3 条，每条一行，具体到"该做什么／不该做什么"。\n' +
+'【4. 依据链路】\n' +
+'- 按 取用神 → 旺衰 → 动变 → 冲合 → 特殊格局 → 应期 的顺序，每步一行，写成"因为…，所以…"。\n' +
+'【5. 证据引用】\n' +
+'- 一行一条：《古筮真诠》相关章节名 + 关键词，不要长段照抄原文。\n' +
+'【6. 不确定项与缺失信息】\n' +
+'- 哪些是推测、还缺什么信息才能定论；没有就写"无"。\n\n' +
+'语言要求（非常重要，直接决定回答有没有用）\n' +
+'- 读者完全不懂六爻。所有术语（旬空、伏吟、反吟、三墓、三绊、化进化退、六冲六合、进神退神等）第一次出现时，必须用一句大白话解释它是什么意思、对结论有什么影响。\n' +
+'- 先给结论，再讲原因。不要绕弯子，不要写"仅供参考""需综合判断""因人而异"这类空话。\n' +
+'- 每个小节都要有实质内容，不要用一句话敷衍，也不要堆砌术语充数。\n\n' +
 '约束\n- 不脱离原书体系，不引入其他流派规则\n- 原文引用不超过 100 字；仅在必要处引用\n- 明确区分已知事实、推断与假设\n- 若信息不足或规则不覆盖，明确说明"无法断定"';
 
   document.getElementById('aiPrompt').textContent = prompt;
   window.__guaPrompt = prompt;
+}
+
+/* ===== AI 解读结果：轻量 Markdown → 结构化卡片渲染 ===== */
+function aiEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function aiInline(s){
+  return aiEsc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<b>$1</b>');
+}
+const GUA_SECS=[
+  {n:1, title:'结论卡片', key:'verdict', re:/^(结论卡片|结论卡|核心结论|结论)$/},
+  {n:2, title:'一句话原因', key:'reason', re:/^(一句话原因|原因|为什么)$/},
+  {n:3, title:'趋避建议', key:'advice', re:/^(趋避建议|趋避|建议)$/},
+  {n:4, title:'依据链路', key:'chain', re:/^(依据链路|推断链路|推理链路|依据)$/},
+  {n:5, title:'证据引用', key:'proof', re:/^(证据引用|引用|证据)$/},
+  {n:6, title:'不确定项与缺失信息', key:'uncertain', re:/^(不确定项与缺失信息|不确定项|不确定|缺失信息|待证)$/}
+];
+function guaSecOf(line){
+  const t=String(line).trim();
+  if(!t) return null;
+  if(/^[-•]\s+/.test(t)) return null;                       // 列表项不是标题
+  const ci=Math.max(t.lastIndexOf('：'), t.lastIndexOf(':'));
+  if(ci>0 && t.slice(ci+1).replace(/[*_`\s。．\.]/g,'').length>0) return null;  // 冒号后有内容 → 内容行
+  let clean=t
+    .replace(/^#+\s*/,'')
+    .replace(/^[*_]{1,3}/,'').replace(/[*_]{1,3}$/,'')
+    .replace(/\d\uFE0F?\u20E3/g,'')        // 1️⃣ 这类序号
+    .replace(/^[①-⑩]/,'')
+    .replace(/^\d+\s*[\.、\)．]?\s*/,'')
+    .replace(/^【\s*/,'').replace(/\s*】$/,'')
+    .replace(/^[（(]\s*/,'').replace(/\s*[）)]$/,'')
+    .replace(/[：:]\s*$/,'').replace(/[。．\.\s]+$/,'')
+    .trim();
+  if(!clean || clean.length>14) return null;
+  for(const s of GUA_SECS){ if(s.re.test(clean)) return s; }
+  return null;
+}
+function aiBody(lines){
+  let html='', list=[];
+  const flush=()=>{ if(list.length){ html+='<ul>'+list.map(x=>'<li>'+x+'</li>').join('')+'</ul>'; list=[]; } };
+  lines.forEach(raw=>{
+    const t=String(raw).trim();
+    if(!t){ flush(); return; }
+    if(/^[-•]\s+/.test(t)){ list.push(aiInline(t.replace(/^[-•]\s+/,''))); return; }
+    if(/^#{1,6}\s+/.test(t)||/^\|/.test(t)||/^[-=]{3,}$/.test(t)){ flush(); return; }
+    flush();
+    html+='<p>'+aiInline(t)+'</p>';
+  });
+  flush();
+  return html;
+}
+function aiVerdictSec(lines){
+  let verdict='', extra=[], chips=[];
+  lines.forEach(raw=>{
+    let t=String(raw).trim(); if(!t) return;
+    t=t.replace(/^[-•]\s+/,'');
+    const m1=t.match(/^(?:\*\*)?结\s*论(?:\*\*)?\s*[：:]\s*(.+)$/);
+    const m2=t.match(/^(?:\*\*)?置信度(?:\*\*)?\s*[：:]\s*(.+)$/);
+    const m3=t.match(/^(?:\*\*)?时间提示(?:\*\*)?\s*[：:]\s*(.+)$/);
+    if(m1){ verdict=m1[1].trim(); }
+    else if(m2){
+      const v=m2[1].trim();
+      const short=(v.match(/^(偏高|偏低|高|中|低)/)||[])[0];
+      if(short){
+        chips.push({label:'置信度', val:short, warn:(short==='低'||short==='偏低')});
+        const rest=v.replace(short,'').replace(/^[\s—\-－–:：,，、]+/,'').trim();
+        if(rest) extra.push('置信度说明：'+rest);
+      } else { chips.push({label:'置信度', val:v, warn:/低/.test(v)}); }
+    }
+    else if(m3){
+      const v=m3[1].trim();
+      if(v.length>24){ const r=m3[1].trim().replace(/^[*\s]+/,''); extra.push('时间提示：'+r); }
+      else { chips.push({label:'时间提示', val:v, warn:/无法断定/.test(v)}); }
+    }
+    else { extra.push(t.replace(/^[*\s]+/,'').trim()); }
+  });
+  let h='<div class="ai-sec"><div class="ai-sec-h"><span class="n">1</span>结论卡片</div>';
+  if(verdict) h+='<div class="'+(verdict.length>30?'ai-sec-b':'ai-verdict')+'">'+aiInline(verdict)+'</div>';
+  if(chips.length) h+='<div class="ai-chips">'+chips.map(c=>'<span class="ai-chip'+(c.warn?' warn':'')+'"><b>'+c.label+'</b>'+aiInline(c.val)+'</span>').join('')+'</div>';
+  const eb=aiBody(extra);
+  if(eb) h+='<div class="ai-sec-b" style="margin-top:10px;">'+eb+'</div>';
+  return h+'</div>';
+}
+function renderGuaAnswer(md){
+  const lines=String(md||'').split(/\r?\n/);
+  const secs=[]; let cur=null;
+  lines.forEach(raw=>{
+    const d=guaSecOf(raw);
+    if(d){ cur={def:d, lines:[]}; secs.push(cur); return; }
+    if(!cur){ cur={def:null, lines:[]}; secs.push(cur); }
+    cur.lines.push(raw);
+  });
+  const used=secs.filter(s=>s.def || s.lines.join('').trim()!=='');
+  if(!used.some(s=>s.def)){
+    return '<div class="ai-ans"><div class="ai-sec"><div class="ai-sec-h"><span class="n">·</span>解读结果</div>'
+      +'<div class="ai-sec-b">'+aiBody(lines)+'</div></div></div>';
+  }
+  let html='<div class="ai-ans">';
+  used.forEach(s=>{
+    if(!s.def){
+      const b=aiBody(s.lines);
+      if(b) html+='<div class="ai-sec"><div class="ai-sec-b">'+b+'</div></div>';
+      return;
+    }
+    if(s.def.key==='verdict'){ html+=aiVerdictSec(s.lines); return; }
+    html+='<div class="ai-sec"><div class="ai-sec-h"><span class="n">'+s.def.n+'</span>'+s.def.title+'</div>'
+      +'<div class="ai-sec-b">'+aiBody(s.lines)+'</div></div>';
+  });
+  return html+'</div>';
 }
 
 async function askGuaAI(){
@@ -1062,7 +1308,8 @@ async function askGuaAI(){
   base=base.replace(/\/+$/,'');
   const prompt=window.__guaPrompt||document.getElementById('aiPrompt').textContent;
   if(!key){ st.innerHTML='<span style="color:#c0392b">先把密钥填上（展开上面「接口设置」）</span>'; document.getElementById('guaSet').open=true; return; }
-  btn.disabled=true; st.textContent='解卦中，通常十几秒…'; box.innerHTML='';
+  btn.disabled=true; st.textContent='解卦中，通常十几秒…';
+  box.innerHTML='<div class="ai-loading"><span class="ai-spin"></span>正在按「结论 → 原因 → 建议 → 依据」的结构生成解读…</div>';
   try{
     const ctrl=('AbortController' in window)?new AbortController():null;
     const timer=ctrl?setTimeout(()=>ctrl.abort(),120000):null;
@@ -1072,7 +1319,7 @@ async function askGuaAI(){
     if(!r.ok){ throw (j&&j.error&&j.error.message)?j.error.message:('HTTP '+r.status); }
     const txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
     if(!txt) throw '回复为空，再试一次';
-    box.innerHTML='<div class="copy-prompt" style="white-space:pre-wrap;">'+String(txt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*/g,'')+'</div>';
+    box.innerHTML=renderGuaAnswer(txt);
     st.innerHTML='<span style="color:#3f9d6b">解读完成</span>';
     try{ localStorage.setItem('guaLastAnswer',txt); }catch(e){}
   }catch(e){
@@ -1080,6 +1327,7 @@ async function askGuaAI(){
     let m=(e&&e.name==='AbortError')?'等太久放弃了':String((e&&e.message)||e);
     if(m.indexOf('Failed to fetch')>=0)m='连不上接口——检查网络或接口地址';
     st.innerHTML='<span style="color:#c0392b">'+m+'</span>';
+    box.innerHTML='<div class="ai-ans"><div class="ai-sec"><div class="ai-sec-b" style="color:#c0392b;">解读没成功：'+aiEsc(m)+'</div></div></div>';
   }finally{ btn.disabled=false; }
 }
 
