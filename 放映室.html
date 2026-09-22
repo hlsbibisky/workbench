@@ -216,7 +216,6 @@
       <div class="tooltabs">
         <button class="ttab active" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
         <button class="ttab" onclick="switchTab('ai')" data-tab="ai">AI生成</button>
-        <button class="ttab" onclick="switchTab('shot')" data-tab="shot">截图分析</button>
         <button class="ttab" onclick="switchTab('records')" data-tab="records">观影记录</button>
       </div>
 
@@ -230,37 +229,21 @@
       </div>
 
       <div class="tpane" id="pane-ai">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <label class="btn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;">📝 上传字幕<input type="file" class="fileinp" accept=".srt,.vtt" onchange="onSubtitle(this.files[0])"></label>
+          <label class="btn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;">🎬 上传截图<input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)"></label>
+        </div>
+        <div id="subInfo" style="font-size:11px;color:var(--sub);margin-bottom:8px;">有字幕就用字幕，AI 评论更准</div>
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <label class="btn" style="font-size:12px;padding:6px 10px;cursor:pointer;">📝 上传字幕<input type="file" class="fileinp" accept=".srt,.vtt" onchange="onSubtitle(this.files[0])"></label>
-            <span id="subInfo" style="font-size:11px;color:var(--sub);">有字幕就用字幕，AI 评论更准</span>
-          </div>
-          <textarea id="aiKey" placeholder="API Key（也可在「AI配置」里填写，仅存在本机）" style="margin-top:6px;"></textarea>
-          <div class="aiopts">
-            <input id="aiModel" placeholder="模型，如 deepseek-flash">
-            <input id="aiEndpoint" placeholder="API 地址，留空用 DeepSeek">
-          </div>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
           <div class="hint">
             <b>AI 是怎么「看」电影的？</b><br>
-            这里先用「剧情文本预读」：你把剧情/字幕给 AI，它提前写好每个时间点的评论。右侧 AI 陪伴面板会在播放时自动显示。
+            先上传字幕（最准）或粘贴剧情，AI 一次性写好每个时间点的评论；播放到对应时间，评论会以 AI 消息的形式出现在上方陪伴面板，不飘屏、不弹幕。截图上传后 AI 会看图点评。API Key 在右上角「AI配置」里填一次即可。
           </div>
         </div>
-      </div>
-
-      <div class="tpane" id="pane-shot">
-        <div class="shot-drop" id="shotDrop" onclick="var i=document.getElementById('shotInp'); if(i) i.click();">
-          点击或拖拽上传电影截图<br>
-          <span style="font-size:10.5px">AI 会分析画面内容并发表看法</span>
-        </div>
-        <input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)">
         <div class="shot-preview" id="shotPreview"></div>
         <div id="shotList"></div>
-        <div class="hint" style="margin-top:8px;">
-          <b>实时画面分析</b><br>
-          在「AI配置」里可开启定时自动截图分析，费用由多模态模型产生，默认关闭。
-        </div>
       </div>
 
       <div class="tpane" id="pane-records">
@@ -666,9 +649,9 @@ function sendChat(){
 /* 真实调用 AI 聊天（含「问这一幕」隐藏上下文） */
 async function chatWithAI(userText){
   const cfg=loadCfg();
-  const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
+  const key=cfg.key;
+  const model=cfg.model||'deepseek-flash';
+  const endpoint=cfg.endpoint||'https://api.deepseek.com';
   if(!key){
     aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
     return;
@@ -829,10 +812,10 @@ function onSubtitle(file){
 function onShotSelect(files){
   if(!files || !files.length) return;
   const cfg=loadCfg();
-  const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'deepseek-flash';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
-  if(!key){ alert('请先在 AI配置 里填写 API Key'); return; }
+  const key=cfg.key;
+  const model=cfg.model||'deepseek-flash';
+  const endpoint=cfg.endpoint||'https://api.deepseek.com';
+  if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
   Array.from(files).forEach(file=>analyzeShot(file,endpoint,model,key));
 }
 async function analyzeShot(file,endpoint,model,key){
@@ -876,11 +859,11 @@ function fileToBase64(file){
     r.readAsDataURL(file);
   });
 }
-const shotDrop=$('shotDrop');
-shotDrop.addEventListener('dragover',e=>{ e.preventDefault(); shotDrop.style.borderColor='var(--accent)'; });
-shotDrop.addEventListener('dragleave',e=>{ e.preventDefault(); shotDrop.style.borderColor=''; });
-shotDrop.addEventListener('drop',e=>{
-  e.preventDefault(); shotDrop.style.borderColor='';
+const paneAi=$('pane-ai');
+paneAi.addEventListener('dragover',e=>{ e.preventDefault(); paneAi.style.outline='2px dashed var(--accent)'; });
+paneAi.addEventListener('dragleave',e=>{ e.preventDefault(); paneAi.style.outline=''; });
+paneAi.addEventListener('drop',e=>{
+  e.preventDefault(); paneAi.style.outline='';
   onShotSelect(e.dataTransfer.files);
 });
 
@@ -974,9 +957,6 @@ function toggleMic(){
 /* ================= 启动 ================= */
 function init(){
   renderRecords();
-  const cfg=loadCfg();
-  $('aiModel').value=cfg.model;
-  $('aiEndpoint').value=cfg.endpoint;
   initSpeech();
   setupVision();
 }
