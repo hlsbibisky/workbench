@@ -102,7 +102,7 @@
   .hint b{color:var(--accent);}
 
   /* 截图分析 */
-  .shot-drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);font-size:12px;background:#fff;cursor:pointer;transition:.14s;}
+  .shot-drop{display:block;line-height:2.1;border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);font-size:12px;background:#fff;cursor:pointer;transition:.14s;}
   .shot-drop:hover{border-color:var(--accent);color:var(--accent);background:#fffbf7;}
   .shot-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
   .shot-thumb{width:72px;height:48px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer;}
@@ -238,8 +238,8 @@
           </div>
           <textarea id="aiKey" placeholder="API Key（也可在「AI配置」里填写，仅存在本机）" style="margin-top:6px;"></textarea>
           <div class="aiopts">
-            <input id="aiModel" placeholder="模型，如 gpt-4o-mini">
-            <input id="aiEndpoint" placeholder="API 地址，留空用 OpenAI">
+            <input id="aiModel" placeholder="模型，如 deepseek-v4-flash">
+            <input id="aiEndpoint" placeholder="API 地址，留空用 DeepSeek">
           </div>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
           <div class="hint">
@@ -250,15 +250,11 @@
       </div>
 
       <div class="tpane" id="pane-shot">
-        <label class="shot-drop" id="shotDrop">
-          <input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:5px;opacity:.8;">
-            <rect x="3" y="6" width="18" height="12" rx="2"></rect>
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M7 6l1-2h8l1 2"></path>
-          </svg>
-          点击或拖拽上传电影截图<br><span style="font-size:10.5px">AI 会分析画面内容并发表看法</span>
-        </label>
+        <div class="shot-drop" id="shotDrop" onclick="var i=document.getElementById('shotInp'); if(i) i.click();">
+          点击或拖拽上传电影截图<br>
+          <span style="font-size:10.5px">AI 会分析画面内容并发表看法</span>
+        </div>
+        <input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)">
         <div class="shot-preview" id="shotPreview"></div>
         <div id="shotList"></div>
         <div class="hint" style="margin-top:8px;">
@@ -298,8 +294,8 @@
 <div class="modal" id="cfgModal" onclick="if(event.target===this)closeAiCfg()">
   <div class="mdialog">
     <h3>AI 配置</h3>
-    <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.openai.com/v1/chat/completions"></div>
-    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="gpt-4o-mini"></div>
+    <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.deepseek.com"></div>
+    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="deepseek-v4-flash"></div>
     <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
     <div class="mrow"><label>实时视觉分析间隔（秒，0=关闭）</label><input id="cfgVision" type="number" min="0" step="5" placeholder="0"></div>
     <div class="hint">实时视觉分析会定时截图并调用多模态模型，费用较高，默认关闭。</div>
@@ -369,8 +365,14 @@ window.__wbStorageHooked=true; } }catch(e){}
 
 function loadCfg(){
   let cfg=lsGet(K_CFG)||{};
-  cfg.endpoint=cfg.endpoint||'';
-  cfg.model=cfg.model||'gpt-4o-mini';
+  try{
+    if(!cfg.key) cfg.key=localStorage.getItem('ywApiKey')||'';
+    if(!cfg.endpoint) cfg.endpoint=localStorage.getItem('ywApiBase')||'';
+    if(!cfg.model || cfg.model==='deepseek-v4-flash') cfg.model=localStorage.getItem('ywApiModel')||cfg.model;
+  }catch(e){}
+  cfg.endpoint=(cfg.endpoint||'https://api.deepseek.com').replace(/\/+$/,'');
+  if(cfg.endpoint.indexOf('/chat/completions')<0) cfg.endpoint=cfg.endpoint+'/chat/completions';
+  cfg.model=cfg.model||'deepseek-v4-flash';
   cfg.key=cfg.key||'';
   cfg.vision=cfg.vision||0;
   return cfg;
@@ -665,8 +667,8 @@ function sendChat(){
 async function chatWithAI(userText){
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.openai.com/v1/chat/completions';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){
     aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
     return;
@@ -731,8 +733,8 @@ async function genAiNotes(){
   if(!plot && !state.subtitle.length){ alert('请先粘贴剧情文本，或上传字幕文件'); return; }
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.openai.com/v1/chat/completions';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){ alert('请先在 AI配置 或右侧面板填写 API Key'); return; }
   const btn=$('genBtn'); const old=btn.textContent; btn.textContent='生成中…'; btn.disabled=true;
   try{
@@ -828,8 +830,8 @@ function onShotSelect(files){
   if(!files || !files.length) return;
   const cfg=loadCfg();
   const key=cfg.key||$('aiKey').value.trim();
-  const model=cfg.model||$('aiModel').value.trim()||'gpt-4o-mini';
-  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.openai.com/v1/chat/completions';
+  const model=cfg.model||$('aiModel').value.trim()||'deepseek-v4-flash';
+  const endpoint=cfg.endpoint||$('aiEndpoint').value.trim()||'https://api.deepseek.com';
   if(!key){ alert('请先在 AI配置 里填写 API Key'); return; }
   Array.from(files).forEach(file=>analyzeShot(file,endpoint,model,key));
 }
@@ -900,11 +902,11 @@ async function captureAndAnalyze(){
     canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||360;
     const ctx=canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
     const base64=canvas.toDataURL('image/jpeg',0.7);
-    const res=await fetch(cfg.endpoint||'https://api.openai.com/v1/chat/completions',{
+    const res=await fetch(cfg.endpoint||'https://api.deepseek.com',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
       body:JSON.stringify({
-        model:cfg.model||'gpt-4o-mini',
+        model:cfg.model||'deepseek-v4-flash',
         messages:[{
           role:'user',
           content:[
