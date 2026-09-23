@@ -146,12 +146,14 @@
   .shot-row .txt{font-size:12px;color:var(--ink);line-height:1.5;}
   .shot-row .meta{font-size:10px;color:var(--sub);margin-top:4px;}
 
-  /* 观影记录 */
-  .rec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  /* 历史记录（每部影片一条：字幕 + AI 评论 + 进度） */
+  .rec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;}
   .rec-head .cnt{font-size:12px;color:var(--sub);}
   .rec-head .cnt b{color:var(--accent);}
-  .rec-card{display:flex;gap:10px;padding:9px;border:1px solid var(--line);border-radius:11px;margin-bottom:9px;cursor:pointer;background:#fff;transition:.12s;}
+  .rec-card{padding:9px;border:1px solid var(--line);border-radius:11px;margin-bottom:9px;background:#fff;transition:.12s;}
   .rec-card:hover{border-color:var(--accent);background:#fffbf7;}
+  .rec-card.open{border-color:var(--accent);background:#fffbf7;}
+  .rec-top{display:flex;gap:10px;cursor:pointer;}
   .rec-poster{width:54px;flex:0 0 54px;aspect-ratio:3/4;background:var(--mark);border-radius:8px;overflow:hidden;display:grid;place-items:center;color:var(--sub);font-size:10px;text-align:center;}
   .rec-poster img{width:100%;height:100%;object-fit:cover;}
   .rec-info{flex:1;min-width:0;}
@@ -159,7 +161,20 @@
   .rec-date{font-size:10.5px;color:var(--sub);margin:2px 0 5px;}
   .rec-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;}
   .rec-bar span{display:block;height:100%;background:var(--accent2);}
-  .rec-pct{font-size:10px;color:var(--sub);margin-top:3px;}
+  .rec-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .rec-badge{font-size:10px;padding:1px 6px;border-radius:20px;background:#f2ece3;color:var(--sub);border:1px solid var(--line);}
+  .rec-badge.ok{background:#e7f2ec;color:#2f6f55;border-color:#cfe4d9;}
+  .rec-badge.warn{background:#fbf0e2;color:#a35f19;border-color:#f0dcc2;}
+  .rec-acts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+  .mini{font-size:11px;padding:3px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font-family:inherit;transition:.12s;}
+  .mini:hover{border-color:var(--accent);color:var(--accent);}
+  .mini.danger:hover{border-color:var(--bad);color:var(--bad);}
+  .hist-cmts{display:none;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);max-height:280px;overflow:auto;}
+  .hist-cmts.show{display:block;}
+  .hist-cmt{display:flex;gap:8px;padding:5px 0;font-size:11.5px;line-height:1.5;}
+  .hist-cmt .t{flex:0 0 46px;color:var(--accent);font-variant-numeric:tabular-nums;font-size:11px;}
+  .hist-cmt .c{flex:1;color:var(--ink);}
+  .hist-sub{font-size:11px;color:var(--sub);padding:2px 0 6px;}
 
   /* 弹窗 */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;}
@@ -259,7 +274,7 @@
         <button class="ttab active" onclick="switchTab('chat')" data-tab="chat">💬 对话<span class="unread" id="chatUnread"></span></button>
         <button class="ttab" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
         <button class="ttab" onclick="switchTab('ai')" data-tab="ai">AI生成</button>
-        <button class="ttab" onclick="switchTab('records')" data-tab="records">观影记录</button>
+        <button class="ttab" onclick="switchTab('records')" data-tab="records">历史记录</button>
       </div>
 
       <div class="tpane show" id="pane-chat">
@@ -311,8 +326,11 @@
 
       <div class="tpane" id="pane-records">
         <div class="rec-head">
-          <span class="cnt">已记录 <b id="recCount">0</b> 部</span>
-          <button class="btn primary" style="padding:5px 10px;font-size:12px;" onclick="openEditor(null)">＋ 添加记录</button>
+          <span class="cnt">已存档 <b id="recCount">0</b> 部 · AI 评论 <b id="notesCount">0</b> 条</span>
+          <button class="btn primary" style="padding:5px 10px;font-size:12px;" onclick="openEditor(null)">＋ 新建</button>
+        </div>
+        <div class="hint" style="margin:0 0 10px;">
+          每部影片的字幕、AI 评论、播放进度都自动存在这里。<b>刷新或下次打开，点卡片就能调出来，不用重新生成（少花钱）。</b>
         </div>
         <div id="recList"></div>
       </div>
@@ -327,11 +345,11 @@
     <p style="font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 12px;">
       1. 点击右上角「选择影片」或直接把影片拖进画面，支持 mp4 / mkv / webm / avi 等格式。<br><br>
       2. 播放器控制条：播放/暂停、快退 10 秒、快进 10 秒、进度条、音量、画面亮度、倍速、关灯（只留画面亮）、全屏。点画面可暂停，双击画面进全屏。<br><br>
-      3. 右侧标签：<b>💬 对话</b>（AI 和你聊天，麦克风与输入框在这里）、时间轴、AI生成、观影记录。<br><br>
+      3. 右侧标签：<b>💬 对话</b>（AI 和你聊天，麦克风与输入框在这里）、时间轴、AI生成、<b>历史记录</b>。<br><br>
       4. 「AI生成」页最上面是「上传字幕 / 上传截图」两个按钮：字幕(.srt/.vtt)最准，AI 会按片长分段把整部电影评论一次写好；没字幕也可粘贴剧情文本。填好 API Key（右上角「AI配置」）后一键生成。<br><br>
       5. 播放时，到点的 AI 评论会像聊天消息一样出现在「对话」页；你也可以在那里打字或点 🎤 说话，AI 会结合当前播放位置真实回复。<br><br>
-      6. 「上传截图」让 AI 看图点评；若影片画面在走却完全没声音，多半是 mkv 里的 DTS/AC3 音轨浏览器解不了，建议转成 MP4（H.264+AAC）。<br><br>
-      7. 「观影记录」里每部电影都有海报、标题、观看日期和进度；点记录可联网搜索海报或手动上传。
+      6. <b>「历史记录」每部影片一条档</b>：字幕、AI 评论、播放进度都自动存下来。刷新、关掉浏览器、下次再打开，点卡片上的「继续观看」重选一次文件，评论和字幕就全回来了 —— <b>不用重新生成，也就不会再花钱</b>。点卡片本身还能直接看这部片的全部评论。<br><br>
+      7. 「上传截图」让 AI 看图点评；若影片画面在走却完全没声音，多半是 mkv 里的 DTS/AC3 音轨浏览器解不了，建议转成 MP4（H.264+AAC）。
     </p>
     <div class="macts"><button class="btn primary" onclick="closeHelp()">知道了</button></div>
   </div>
@@ -388,25 +406,44 @@
 </div>
 
 <script>
-/* ================= 数据层 ================= */
+/* ================= 数据层 =================
+   存储模型（2026-09-23 重构）：
+     cinema_movie_<文件id>  —— 一部影片一条：片名/海报/日期/字幕原文/AI评论（重，只在内容变化时写）
+     cinema_prog_<文件id>   —— 播放进度（轻，独立存，避免播放中反复重写大记录）
+     文件 id = 文件名 + '_' + 文件字节数 → 重选同一部片能找回全部内容
+   ========================================== */
 const LS_PREFIX='cinema_';
 const K_CFG=LS_PREFIX+'ai_cfg';
-const K_RECORDS=LS_PREFIX+'records';
+const K_RECORDS=LS_PREFIX+'records';     /* 旧版观影记录：仅用于一次性迁移，不再写入 */
+const K_MOVIE=LS_PREFIX+'movie_';
+const K_PROG=LS_PREFIX+'prog_';
 let state={
   file:null, url:null, currentId:null, recordId:null,
   meta:{title:'',info:'',plot:''},
   notes:[], shown:new Set(), visionTimer:null,
   editingId:null, recPoster:null,
-  subtitle:[], subtitleRaw:''  /* 字幕线索（上传 .srt/.vtt 后生效） */
+  subtitle:[], subtitleRaw:'',
+  pendingId:null,        /* 从历史记录点「继续观看」时记下 id，选到文件后自动把档挂上 */
+  lastProgSave:0
 };
+let saveWarned=false;
 
 function lsGet(k){ try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;} }
-function lsSet(k,v){ localStorage.setItem(k,JSON.stringify(v)); notifyParent(); }
+function lsSet(k,v){
+  try{ localStorage.setItem(k,JSON.stringify(v)); notifyParent(); return true; }
+  catch(e){
+    /* 绝不静默失败：存储满时必须让用户知道，否则会出现「填了但没存下」的假象 */
+    if(!saveWarned){ saveWarned=true; alert('本机存储空间不足，这次没能保存成功。\n可先在工作台里清理不用的记录，再重试。数据没损坏，只是这一步没落盘。'); }
+    console.error('[cinema] 保存失败',k,e);
+    return false;
+  }
+}
+function lsDel(k){ try{ localStorage.removeItem(k); notifyParent(); }catch(e){} }
 function notifyParent(){ try{parent.postMessage({type:'wb-data-changed'},'*');}catch(e){} }
 
 try{ if(!window.__wbStorageHooked){
 var _oS=Storage.prototype.setItem, _oR=Storage.prototype.removeItem;
-Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
+Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ if(String(k).indexOf('cinema_prog_')!==0) notifyParent(); }catch(e){} return r; };
 Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
 window.__wbStorageHooked=true; } }catch(e){}
 
@@ -426,20 +463,100 @@ function loadCfg(){
 }
 function saveCfg(cfg){ lsSet(K_CFG,cfg); }
 
-function loadRecords(){ return lsGet(K_RECORDS)||[]; }
-function saveRecords(a){ lsSet(K_RECORDS,a); renderRecords(); }
-
-function movieKey(id){ return LS_PREFIX+'movie_'+id; }
+/* ===== 影片档 ===== */
+function movieKey(id){ return K_MOVIE+id; }
+function progKey(id){ return K_PROG+id; }
 function loadMovie(id){
-  let m=lsGet(movieKey(id))||{};
-  state.meta=m.meta||{title:'',info:'',plot:''};
-  state.notes=m.notes||[];
-  state.subtitle=m.subtitle||[];
+  const m=lsGet(movieKey(id))||{};
+  /* 兼容旧版结构（标题曾存在 meta.title 里） */
+  const t=m.title||(m.meta&&m.meta.title)||'';
+  state.meta={title:t,info:'',plot:m.plot||(m.meta&&m.meta.plot)||''};
+  state.notes=Array.isArray(m.notes)?m.notes:[];
+  state.recPoster=m.poster||null;
   state.subtitleRaw=m.subtitleRaw||'';
+  state.subtitle=state.subtitleRaw?parseSubtitleText(state.subtitleRaw):[];
+  state.pendingId=null;
+  updateSubInfo();
 }
-function saveMovie(){
+/* 把当前内存里的状态写回影片档；extra 可覆盖/补充字段 */
+function saveMovie(extra){
+  if(!state.currentId) return false;
+  const old=lsGet(movieKey(state.currentId))||{};
+  const rec=Object.assign({},old,{
+    v:2,
+    id:state.currentId,
+    title:(state.meta&&state.meta.title)||old.title||'',
+    plot:(state.meta&&state.meta.plot)||old.plot||'',
+    notes:state.notes||[],
+    subtitleRaw:state.subtitleRaw||'',
+    subCount:(state.subtitle||[]).length,
+    updated:Date.now()
+  });
+  if(extra) Object.assign(rec,extra);
+  const ok=lsSet(movieKey(state.currentId),rec);
+  if(ok) renderHistory();
+  return ok;
+}
+function saveProgress(force){
   if(!state.currentId) return;
-  lsSet(movieKey(state.currentId),{meta:state.meta,notes:state.notes,subtitle:state.subtitle,subtitleRaw:state.subtitleRaw,updated:Date.now()});
+  const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
+  if(!dur) return;
+  const now=Date.now();
+  if(!force && now-state.lastProgSave<30000) return;
+  state.lastProgSave=now;
+  const cur=video.currentTime||0;
+  try{ localStorage.setItem(progKey(state.currentId),JSON.stringify({pct:Math.min(100,Math.round(cur/dur*100)),pos:Math.round(cur),at:now})); }catch(e){}
+}
+/* 扫描本机所有影片档（单一口径，不设索引，避免两份数据不一致） */
+function movieList(){
+  const out=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.indexOf(K_MOVIE)!==0) continue;
+      const id=k.slice(K_MOVIE.length);
+      if(!id) continue;
+      let m=null; try{ m=JSON.parse(localStorage.getItem(k)); }catch(e){ continue; }
+      if(!m||typeof m!=='object') continue;
+      let p=null; try{ p=JSON.parse(localStorage.getItem(progKey(id))); }catch(e){}
+      out.push({
+        id, title:m.title||(m.meta&&m.meta.title)||'(未命名影片)', poster:m.poster||null,
+        date:m.date||'', year:m.year||'', plot:m.plot||(m.meta&&m.meta.plot)||'',
+        notes:Array.isArray(m.notes)?m.notes:[],
+        subCount:m.subCount||((m.subtitle&&m.subtitle.length)||0), duration:m.duration||0,
+        pct:(p&&typeof p.pct==='number')?p.pct:(m.pct||0),
+        updated:m.updated||0
+      });
+    }
+  }catch(e){}
+  out.sort((a,b)=>b.updated-a.updated);
+  return out;
+}
+function delHistory(id){
+  const m=lsGet(movieKey(id))||{};
+  if(!confirm('确定删除《'+(m.title||'这条记录')+'》的存档？\n其中的字幕和 AI 评论会一起删掉，无法恢复。')) return;
+  lsDel(movieKey(id)); lsDel(progKey(id));
+  if(state.currentId===id){ state.notes=[]; state.subtitle=[]; state.subtitleRaw=''; renderNotes(); updateSubInfo(); }
+  closeRecModal(); renderHistory();
+}
+/* 旧版「观影记录」（cinema_records）一次性迁移进影片档，原键保留不动 */
+function migrateLegacyRecords(){
+  const arr=lsGet(K_RECORDS);
+  if(!Array.isArray(arr)||!arr.length) return;
+  let n=0;
+  arr.forEach(r=>{
+    if(!r||!r.title) return;
+    const id='legacy_'+r.id;
+    if(lsGet(movieKey(id))) return;
+    lsSet(movieKey(id),{
+      v:2,id,title:r.title,poster:r.poster||null,year:r.year||'',plot:r.plot||'',
+      date:r.date||'',duration:r.duration||0,notes:[],subtitleRaw:'',subCount:0,
+      updated:r.updated||Date.now()
+    });
+    if(r.progress) lsSet(progKey(id),{pct:r.progress,pos:0,at:r.updated||Date.now()});
+    n++;
+  });
+  if(n) console.log('[cinema] 已迁移旧观影记录',n,'条');
 }
 
 /* ================= UI ================= */
@@ -474,56 +591,118 @@ function renderNotes(){
   `).join('');
 }
 
-/* ================= 观影记录 ================= */
-function renderRecords(){
-  const recs=loadRecords();
-  $('recCount').textContent=recs.length;
-  const el=$('recList');
-  if(!recs.length){ el.innerHTML='<div class="empty-tip" style="font-size:11.5px;color:var(--sub);text-align:center;padding:14px 0;">还没有观影记录。看片时自动记录，或点「添加记录」。</div>'; return; }
-  el.innerHTML=recs.map(r=>`
-    <div class="rec-card" onclick="openEditor('${r.id}')">
-      <div class="rec-poster">${r.poster?`<img src="${r.poster}" onerror="this.parentNode.innerHTML='无海报'">`:'无海报'}</div>
-      <div class="rec-info">
-        <div class="rec-title">${esc(r.title)}</div>
-        <div class="rec-date">观看：${esc(r.date||'—')}${r.year?(' · '+esc(r.year)):''}</div>
-        <div class="rec-bar"><span style="width:${r.progress||0}%"></span></div>
-        <div class="rec-pct">已看 ${r.progress||0}%</div>
-      </div>
-    </div>`).join('');
+/* ================= 历史记录（= 观影记录 + AI 存档） ================= */
+function fmtDate(ts){
+  if(!ts) return '—';
+  const d=new Date(ts), p=n=>String(n).padStart(2,'0');
+  return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-
-function ensureRecord(duration){
-  const title=state.meta.title;
-  if(!title) return;
-  let recs=loadRecords();
-  let r=recs.find(x=>x.title && x.title.toLowerCase()===title.toLowerCase());
-  if(r){
-    r.duration=duration; r.date=todayStr(); r.updated=Date.now(); state.recordId=r.id;
-  }else{
-    r={id:Date.now()+'', title, poster:null, date:todayStr(), progress:0, duration, year:'', plot:'', updated:Date.now()};
-    recs.unshift(r); state.recordId=r.id;
+function updateSubInfo(){
+  const el=$('subInfo'); if(!el) return;
+  const n=(state.subtitle||[]).length;
+  el.textContent = n ? `已载入 ${n} 条字幕（已存档，刷新不会丢）` : '有字幕就用字幕，AI 评论更准';
+}
+function renderHistory(){
+  const el=$('recList'); if(!el) return;
+  const arr=movieList();
+  let noteTotal=0; arr.forEach(m=>noteTotal+=m.notes.length);
+  if($('recCount')) $('recCount').textContent=arr.length;
+  if($('notesCount')) $('notesCount').textContent=noteTotal;
+  if(!arr.length){
+    el.innerHTML='<div class="empty-tip" style="font-size:11.5px;color:var(--sub);text-align:center;padding:14px 0;">还没有存档。加载影片、上传字幕后会自动出现在这里。</div>';
+    return;
   }
-  saveRecords(recs);
+  el.innerHTML=arr.map(m=>{
+    const aiN=m.notes.filter(n=>n.type==='ai').length;
+    const myN=m.notes.length-aiN;
+    const isCur=(m.id===state.currentId);
+    return `
+    <div class="rec-card${isCur?' open':''}" id="hcard-${esc(m.id)}">
+      <div class="rec-top" onclick="toggleHistory('${esc(m.id)}')">
+        <div class="rec-poster">${m.poster?`<img src="${m.poster}" onerror="this.parentNode.innerHTML='无海报'">`:'无海报'}</div>
+        <div class="rec-info">
+          <div class="rec-title">${esc(m.title)}${isCur?' <span class="rec-badge ok">正在看</span>':''}</div>
+          <div class="rec-date">观看：${esc(m.date||'—')}${m.year?(' · '+esc(m.year)):''} · 进度 ${m.pct||0}%</div>
+          <div class="rec-bar"><span style="width:${m.pct||0}%"></span></div>
+          <div class="rec-badges">
+            ${aiN?`<span class="rec-badge ok">AI 评论 ${aiN} 条</span>`:`<span class="rec-badge warn">还没生成 AI 评论</span>`}
+            ${myN?`<span class="rec-badge">我写的 ${myN} 条</span>`:''}
+            ${m.subCount?`<span class="rec-badge ok">字幕 ${m.subCount} 条</span>`:`<span class="rec-badge">无字幕</span>`}
+            <span class="rec-badge">更新 ${fmtDate(m.updated)}</span>
+          </div>
+          <div class="rec-acts">
+            <button class="mini" onclick="event.stopPropagation();resumeMovie('${esc(m.id)}')">▶ 继续观看</button>
+            <button class="mini" onclick="event.stopPropagation();openEditor('${esc(m.id)}')">片名/海报</button>
+            <button class="mini danger" onclick="event.stopPropagation();delHistory('${esc(m.id)}')">删除</button>
+          </div>
+        </div>
+      </div>
+      <div class="hist-cmts" id="hcmt-${esc(m.id)}"></div>
+    </div>`;
+  }).join('');
 }
-function updateRecordProgress(id,pct){
-  const recs=loadRecords(); const r=recs.find(x=>x.id===id);
-  if(r && r.progress!==pct){ r.progress=pct; r.updated=Date.now(); saveRecords(recs); }
+/* 展开某部影片的评论清单（不加载影片也能看） */
+function toggleHistory(id){
+  const box=$('hcmt-'+id), card=$('hcard-'+id);
+  if(!box) return;
+  const show=!box.classList.contains('show');
+  box.classList.toggle('show',show);
+  if(card) card.classList.toggle('open',show);
+  if(!show) return;
+  const m=lsGet(movieKey(id))||{};
+  const ns=(Array.isArray(m.notes)?m.notes:[]).slice().sort((a,b)=>a.time-b.time);
+  let html='';
+  if(m.subtitleRaw) html+=`<div class="hist-sub">字幕已存档（${m.subCount||0} 条）——重新生成评论不用再传一次字幕。</div>`;
+  html+= ns.length
+    ? ns.map(n=>`<div class="hist-cmt"><div class="t">${fmt(n.time)}</div><div class="c">${n.type==='ai'?'':'<b>[我]</b> '}${esc(n.text)}</div></div>`).join('')
+    : '<div class="hist-sub">这部片还没有评论。到「AI生成」页上传字幕生成一次，会一直存在这里。</div>';
+  if(ns.length){
+    const mn=fmt(ns[0].time), mx=fmt(ns[ns.length-1].time);
+    html+=`<div class="hist-sub" style="margin-top:8px;">共 ${ns.length} 条，覆盖 ${mn} – ${mx}</div>`;
+  }
+  html+='<div class="rec-acts" style="margin-top:8px;">'
+      + `<button class="mini" onclick="restoreToPlayer('${esc(id)}')">载入到播放器</button>`
+      + `</div>`;
+  box.innerHTML=html;
+}
+/* 把某部影片的存档调回内存（评论 + 字幕），不要求立刻选文件 */
+function restoreToPlayer(id){
+  const m=lsGet(movieKey(id))||{};
+  state.pendingId=id;
+  state.currentId=id;
+  loadMovie(id);
+  if(!state.meta.title) state.meta.title=m.title||'';
+  state.shown.clear();
+  $('movTitle').textContent=state.meta.title||'';
+  renderNotes(); updateSubInfo(); renderHistory(); switchTab('chat');
+  const tail=state.notes.length ? '，播放到对应时间会自动出现。' : '。到「AI生成」页生成一次，以后就能一直用。';
+  aiSay('系统',`已调出《${state.meta.title||'这部片'}》的存档：AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条${tail}`);
+}
+/* 从历史记录点「继续观看」：先记下 id，选到文件后自动挂上（文件名变了也能认） */
+function resumeMovie(id){
+  const m=lsGet(movieKey(id))||{};
+  state.pendingId=id;
+  switchTab('chat');
+  aiSay('系统',`请选择《${m.title||'这部片'}》的影片文件（点右上角「选择影片」，或把文件拖进画面）。选好后评论和字幕会自动挂上，不用重新生成。`);
+  try{ $('fileInp').value=''; $('fileInp').click(); }catch(e){}
 }
 
-/* 编辑弹窗 */
+/* 编辑弹窗（片名 / 海报 / 年份 / 简介 / 进度） */
 function openEditor(id){
   state.editingId=id||null;
   state.recPoster=null;
   if(id){
-    const r=loadRecords().find(x=>x.id===id);
-    if(!r) return;
-    $('recTitle').value=r.title||'';
-    $('recDate').value=r.date||todayStr();
-    $('recProg').value=r.progress||0; $('recProgLabel').textContent=(r.progress||0)+'%';
-    $('recYear').value=r.year||'';
-    $('recPlot').value=r.plot||'';
-    state.recPoster=r.poster||null;
-    $('recPreview').innerHTML=r.poster?`<img src="${r.poster}">`:'无海报';
+    const m=lsGet(movieKey(id));
+    if(!m) return;
+    const p=lsGet(progKey(id))||{};
+    $('recTitle').value=m.title||'';
+    $('recDate').value=m.date||todayStr();
+    const pct=(typeof p.pct==='number')?p.pct:(m.pct||0);
+    $('recProg').value=pct; $('recProgLabel').textContent=pct+'%';
+    $('recYear').value=m.year||'';
+    $('recPlot').value=m.plot||'';
+    state.recPoster=m.poster||null;
+    $('recPreview').innerHTML=m.poster?`<img src="${m.poster}">`:'无海报';
     $('recDel').style.display='';
   }else{
     $('recTitle').value=''; $('recDate').value=todayStr();
@@ -545,29 +724,27 @@ function onRecUpload(inp){
 function saveRecord(){
   const title=$('recTitle').value.trim();
   if(!title){ alert('请填写片名'); return; }
-  const recs=loadRecords();
-  const rec={
+  const pct=parseInt($('recProg').value,10)||0;
+  const fields={
     title, poster:state.recPoster||null,
     date:$('recDate').value||todayStr(),
-    progress:parseInt($('recProg').value,10)||0,
     year:$('recYear').value.trim(),
-    plot:$('recPlot').value.trim(),
-    updated:Date.now()
+    plot:$('recPlot').value.trim()
   };
   if(state.editingId){
-    const idx=recs.findIndex(r=>r.id===state.editingId);
-    if(idx>=0){ rec.id=state.editingId; rec.duration=recs[idx].duration||0; recs[idx]=rec; }
-    else { rec.id=Date.now()+''; rec.duration=0; recs.unshift(rec); }
+    const m=lsGet(movieKey(state.editingId))||{v:2,notes:[],subtitleRaw:'',subCount:0};
+    lsSet(movieKey(state.editingId),Object.assign({},m,fields,{id:state.editingId,updated:Date.now()}));
+    lsSet(progKey(state.editingId),Object.assign({},lsGet(progKey(state.editingId))||{},{pct,at:Date.now()}));
   }else{
-    rec.id=Date.now()+''; rec.duration=0; recs.unshift(rec);
+    const id='m_'+Date.now();
+    lsSet(movieKey(id),Object.assign({v:2,id,duration:0,notes:[],subtitleRaw:'',subCount:0,updated:Date.now()},fields));
+    lsSet(progKey(id),{pct,pos:0,at:Date.now()});
   }
-  saveRecords(recs); closeRecModal(); renderRecords();
+  closeRecModal(); renderHistory();
 }
 function deleteRecord(){
   if(!state.editingId) return;
-  if(!confirm('确定删除这条观影记录？')) return;
-  const recs=loadRecords().filter(r=>r.id!==state.editingId);
-  saveRecords(recs); closeRecModal(); renderRecords();
+  delHistory(state.editingId);
 }
 
 /* 联网搜索海报（维基百科，免 Key） */
@@ -624,20 +801,52 @@ function loadFile(file){
   video.src=state.url;
   video.load();
   $('screen').classList.add('has-video');
-  state.currentId=file.name+'_'+file.size;   /* 用文件名+大小做稳定 ID，重选同一部片可找回评论 */
-  const had=lsGet(movieKey(state.currentId));
-  if(had){
-    loadMovie(state.currentId); state.shown.clear();
+  const id=file.name+'_'+file.size;                 /* 文件 id：重选同一部片能找回全部存档 */
+  const title=file.name.replace(/\.[^.]+$/,'');
+  const pend=state.pendingId; state.pendingId=null; /* 从历史记录点「继续观看」时带过来的 id */
+  state.lastProgSave=0;
+  let msg='';
+  if(lsGet(movieKey(id))){
+    /* 这部片有存档：评论 / 字幕 / 海报 全部恢复 */
+    state.currentId=id;
+    loadMovie(id);
+    if(!state.meta.title) state.meta.title=title;
+    state.shown.clear();
+    $('movTitle').textContent=state.meta.title;
+    clearAi();
+    if(state.notes.length || state.subtitle.length){
+      msg=`已恢复《${state.meta.title}》的存档：AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条。播放到对应时间会自动出现，不用重新生成。`;
+    }else{
+      msg=`已加载影片：${state.meta.title}`;
+    }
+    aiSay('系统',msg);
+  }else if(pend && lsGet(movieKey(pend))){
+    /* 用户是从历史记录里点进来的，但文件名/大小变了 —— 把存档挂过来 */
+    state.currentId=id;
+    loadMovie(pend);
+    if(!state.meta.title) state.meta.title=title;
+    const oldProg=lsGet(progKey(pend));
+    saveMovie({date:todayStr()});                   /* 先写新键，成功后再清旧键，避免丢数据 */
+    if(oldProg) lsSet(progKey(id),oldProg);
+    lsDel(movieKey(pend)); lsDel(progKey(pend));
+    state.shown.clear();
+    $('movTitle').textContent=state.meta.title;
+    clearAi();
+    aiSay('系统',`已把历史记录挂到这部影片上（AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条）。播放即可，不用重新生成。`);
   }else{
-    const title=file.name.replace(/\.[^.]+$/,'');
+    state.currentId=id;
     state.meta={title,info:'',plot:''};
-    state.notes=[]; state.shown.clear();
+    state.notes=[]; state.subtitle=[]; state.subtitleRaw='';
+    state.recPoster=null;
+    state.shown.clear();
+    $('movTitle').textContent=title;
+    clearAi();
+    saveMovie({date:todayStr(),duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0});
+    aiSay('系统',`已加载影片：${title}。上传字幕生成评论后会自动存进「历史记录」，下次点一下就能调出，不用重复花钱生成。`);
   }
-  renderNotes(); clearAi();
-  $('movTitle').textContent=title;
-  aiSay('系统','已加载影片：'+title);
-  saveMovie();
-  ensureRecord(video.duration||0);
+  renderNotes(); updateSubInfo(); renderHistory();
+  saveMovie({duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0,date:todayStr()});
+  renderHistory();
 }
 
 $('fileInp').addEventListener('change',e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
@@ -651,7 +860,8 @@ window.addEventListener('drop',e=>{
 function togglePlay(){ if(video.paused) video.play(); else video.pause(); }
 function onPlayState(){
   playBtn.textContent=video.paused?'▶':'❚❚';
-  if(video.paused) document.querySelector('.main').classList.remove('idle'); else pokeControls();
+  if(video.paused){ document.querySelector('.main').classList.remove('idle'); saveProgress(true); }
+  else pokeControls();
 }
 function onScreenClick(e){ if(e.target.closest('.dropzone')) return; togglePlay(); }
 function setSpeed(v){ video.playbackRate=parseFloat(v); }
@@ -707,21 +917,22 @@ function checkAudio(){
 function onLoaded(){
   timeTxt.textContent=`00:00 / ${fmt(video.duration)}`;
   audioWarned=false;
-  ensureRecord(video.duration);
+  saveMovie({duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0,date:todayStr()});
 }
 function onTimeUpdate(){
   const cur=video.currentTime, dur=video.duration||1;
   timeTxt.textContent=`${fmt(cur)} / ${fmt(video.duration)}`;
   bar.style.width=(cur/dur*100)+'%';
-  if(state.recordId && Math.floor(cur)%3===0) updateRecordProgress(state.recordId, Math.round(cur/dur*100));
+  saveProgress(false);      /* 进度独立存，内部节流：最多每 30 秒写一次，不拖累同步 */
   checkNotes(cur);
   checkAudio();
 }
-function onEnded(){ if(state.recordId) updateRecordProgress(state.recordId,100); }
+function onEnded(){ saveProgress(true); }
 function seek(e){
   const rect=progress.getBoundingClientRect();
   const p=(e.clientX-rect.left)/rect.width;
   video.currentTime=p*(video.duration||0);
+  saveProgress(true);
 }
 function seekTo(t){ video.currentTime=t; if(video.paused) video.play(); }
 
@@ -870,6 +1081,15 @@ async function genAiNotes(){
   const plot=$('plotText').value.trim();
   const hasSub=!!(state.subtitle && state.subtitle.length);
   if(!plot && !hasSub){ alert('请先上传字幕文件，或粘贴剧情文本'); return; }
+  if(!state.currentId){ alert('请先选择影片（右上角「选择影片」），这样生成的评论才会存档到这部片名下。'); return; }
+  /* 已有评论时先确认，避免重复花钱生成 */
+  const existAi=(state.notes||[]).filter(n=>n.type==='ai').length;
+  if(existAi){
+    const go=confirm(`《${state.meta.title||'这部片'}》已经有 ${existAi} 条 AI 评论了。\n\n`
+      +'继续生成会补充新评论，并覆盖时间点相近的旧评论（会再消耗一次 API 费用）。\n'
+      +'如果只是想看以前生成的评论，去「历史记录」点开卡片就能看，不花钱。\n\n确定继续生成吗？');
+    if(!go) return;
+  }
   const cfg=loadCfg();
   const key=cfg.key, model=cfg.model||'deepseek-flash', endpoint=cfg.endpoint||'https://api.deepseek.com';
   if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
@@ -937,11 +1157,14 @@ ${plot}`;
       state.notes.push(n);
     });
     state.notes.sort((a,b)=>a.time-b.time);
-    saveMovie(); renderNotes();
+    const saved=saveMovie({date:todayStr()});
+    renderNotes();
+    switchTab('chat');
     const mn=Math.min.apply(null,collected.map(n=>n.time));
     const mx=Math.max.apply(null,collected.map(n=>n.time));
-    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}。播放到对应时间，它们会像聊天消息一样出现在这里。`);
-    switchTab('notes');
+    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，共 ${state.notes.filter(n=>n.type==='ai').length} 条。`
+      +(saved?'已存档到「历史记录」，刷新或下次打开都能直接调出，不用再生成。':'⚠ 存档失败（本机存储可能已满），请清理后再试。')
+      +'播放到对应时间，它们会像聊天消息一样出现在这里。');
   }catch(e){
     alert('生成失败：'+e.message+'\n\n请检查 API Key、模型名和接口地址是否正确。');
   }finally{ btn.textContent=old; btn.disabled=false; }
@@ -976,6 +1199,11 @@ function parseVTT(txt){
   }
   return out;
 }
+/* 只存字幕原文，读取时现场解析 —— 存档更小、也不会因格式升级而失效 */
+function parseSubtitleText(txt){
+  if(!txt) return [];
+  return /^\uFEFF?\s*WEBVTT/i.test(txt.trim()) ? parseVTT(txt) : parseSRT(txt);
+}
 function onSubtitle(file){
   if(!file) return;
   const r=new FileReader();
@@ -983,9 +1211,18 @@ function onSubtitle(file){
     const txt=r.result;
     const cues=/\.vtt$/i.test(file.name)?parseVTT(txt):parseSRT(txt);
     if(!cues.length){ $('subInfo').textContent='字幕解析失败，请检查格式（.srt / .vtt）'; return; }
-    state.subtitle=cues; state.subtitleRaw=txt.slice(0,20000);
-    $('subInfo').textContent=`已加载 ${cues.length} 条字幕，AI 评论将基于真实时间轴`;
-    saveMovie();
+    state.subtitle=cues;
+    state.subtitleRaw=txt.slice(0,400000);           /* 上限 40 万字符，正常一部电影远不到 */
+    state.subCount=cues.length;
+    $('subInfo').textContent=`已载入 ${cues.length} 条字幕，AI 评论将基于真实时间轴`;
+    let saved='';
+    if(!state.currentId){
+      saved='（还没选影片，先选影片再上传字幕，才能存档）';
+    } else {
+      saved = saveMovie({subCount:cues.length}) ? '，已存档（刷新不会丢）' : '，但存档失败了';
+    }
+    aiSay('系统',`字幕已解析：${cues.length} 条${saved}。点「✨ 生成时间轴评论」让 AI 按真实台词写评论，整部片一次写好，播放时零消耗。`);
+    renderHistory();
   };
   r.readAsText(file);
 }
@@ -1089,20 +1326,6 @@ async function captureAndAnalyze(){
   }catch(e){ console.error(e); }
 }
 
-/* ================= 历史记录恢复（点击记录卡→续看） ================= */
-function restoreHistory(id){
-  const r=loadRecords().find(x=>x.id===id);
-  if(!r) return;
-  state.currentId=id; state.recordId=id;
-  loadMovie(id);
-  renderNotes(); clearAi();
-  $('movTitle').textContent=r.title;
-  aiSay('系统','继续观看：'+r.title);
-  if(!state.file){
-    aiSay('系统','本地影片文件未保留，请重新选择同一部影片。');
-  }
-}
-
 /* ================= 语音输入 ================= */
 let recognizer=null, isRec=false;
 function initSpeech(){
@@ -1138,7 +1361,8 @@ function toggleMic(){
 
 /* ================= 启动 ================= */
 function init(){
-  renderRecords();
+  migrateLegacyRecords();
+  renderHistory();
   initSpeech();
   setupVision();
 }
