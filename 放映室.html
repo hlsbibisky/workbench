@@ -312,6 +312,7 @@
           <label class="btn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;">🎬 上传截图<input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)"></label>
         </div>
         <div id="subInfo" style="font-size:11px;color:var(--sub);margin-bottom:8px;">有字幕就用字幕，AI 评论更准</div>
+        <div id="subMatch"></div>
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
@@ -475,8 +476,11 @@ function loadMovie(id){
   state.recPoster=m.poster||null;
   state.subtitleRaw=m.subtitleRaw||'';
   state.subtitle=state.subtitleRaw?parseSubtitleText(state.subtitleRaw):[];
+  state.subOffset=m.subOffset||0;                 /* 上次校过的整体平移要接着用 */
+  if(state.subOffset) state.subtitle=state.subtitle.map(c=>({start:Math.max(0,c.start+state.subOffset),text:c.text}));
   state.pendingId=null;
   updateSubInfo();
+  renderSubMatch();
 }
 /* 把当前内存里的状态写回影片档；extra 可覆盖/补充字段 */
 function saveMovie(extra){
@@ -569,11 +573,16 @@ function fmt(sec){
   const p=n=>String(n).padStart(2,'0');
   return h>0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
 }
+/* 只接受纯数字时间（mm:ss / hh:mm:ss）；解析不出就返回 -1，调用方必须丢弃，
+   绝不能再像旧版那样返回 0 —— 那会把一批评论全塞到片头然后互相覆盖掉。
+   ⚠ 分钟必须允许三位以上：1 小时 48 分既可以写成 "108:30" 也可以写成 "01:48:30"，
+   旧正则只吃两位 → 100 分钟之后的评论会被全部丢掉，后半部凭空消失。 */
 function parseTime(t){
-  const p=t.split(':').map(Number);
-  if(p.length===2) return p[0]*60+p[1];
-  if(p.length===3) return p[0]*3600+p[1]*60+p[2];
-  return 0;
+  const s=String(t==null?'':t).trim();
+  const m=s.match(/^(\d{1,4}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if(!m) return -1;
+  if(m[3]!==undefined) return (+m[1])*3600+(+m[2])*60+(+m[3]);
+  return (+m[1])*60+(+m[2]);
 }
 function todayStr(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -918,6 +927,7 @@ function onLoaded(){
   timeTxt.textContent=`00:00 / ${fmt(video.duration)}`;
   audioWarned=false;
   saveMovie({duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0,date:todayStr()});
+  renderSubMatch();          /* 影片时长出来了，匹配检测才有得比 */
 }
 function onTimeUpdate(){
   const cur=video.currentTime, dur=video.duration||1;
@@ -950,6 +960,7 @@ function addNote(){
   const t=$('noteTime').value, txt=$('noteText').value.trim();
   if(!t || !txt) return;
   const sec=parseTime(t);
+  if(sec<0) return;
   state.notes.push({id:Date.now()+'',time:sec,text:txt,type:'manual'});
   saveMovie(); renderNotes();
   $('noteText').value='';
@@ -1097,63 +1108,96 @@ async function genAiNotes(){
   const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
   const durTxt=dur?fmt(dur):'';
   const collected=[];
+  const diag=[];                       /* 记录哪几段没有字幕，最后如实告诉用户 */
   try{
     if(hasSub){
-      /* 有字幕：按时间切段、逐段生成，保证从片头覆盖到片尾 */
+      /* 有字幕：按 15 分钟切段、逐段生成。
+         ⚠ 分段终点 = max(字幕末尾, 影片时长) —— 只按字幕算会让「字幕不全」的后半部整段空白。
+         ⚠ 某段没有字幕也不能 continue，要改用剧情资料补生成，否则后面一小时一个字都没有。 */
       const segSec=15*60;
       const lastCue=state.subtitle[state.subtitle.length-1];
-      const endSec=lastCue?lastCue.start:(dur||0);
-      const total=Math.max(1,Math.ceil((endSec+1)/segSec));
+      const subEnd=lastCue?lastCue.start:0;
+      const endSec=Math.max(subEnd, dur||0, 1);
+      const total=Math.max(1,Math.ceil(endSec/segSec));
       for(let i=0;i<total;i++){
-        const s=i*segSec, e=(i+1)*segSec;
+        const s=i*segSec, e=Math.min((i+1)*segSec, endSec);   /* 末段按真实片尾收口，别让 AI 写到片外去 */
         const cues=state.subtitle.filter(c=>c.start>=s && c.start<e);
-        if(!cues.length) continue;
+        /* 密度：约每 4 分钟 1 条（2 小时 ≈ 30 条）。按段长实算，短视频自动变少，不设硬性下限 */
+        const segMin=Math.max(1,Math.round((Math.min(e,endSec)-s)/60));
+        const want=Math.max(1,Math.round(segMin/4));
         btn.textContent=`生成中… 第 ${i+1}/${total} 段`;
-        const body=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
-        const prompt=`你是一位陪用户看电影的 AI 朋友。下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段的对白字幕（方括号里的时间就是电影真实时间）。
+        let prompt;
+        if(cues.length){
+          const body=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
+          prompt=`你是一位陪用户看电影的 AI 朋友。下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）的对白字幕，方括号里的时间就是电影的真实时间。
 请为这一段生成「观影时间轴评论」。
 要求：
-1. 输出必须是合法 JSON 数组，不要 markdown 代码块。
+1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
-3. time 必须直接取用下面字幕里出现该情节的真实时间点（mm:ss），不要自造时间；所有评论的时间都要落在 ${fmt(s)}–${fmt(e)} 这一段之内。
-4. 这一段至少 2 条。遇到关键情节、情绪高点、反转铺垫、值得吐槽的细节，可以密集一些，同一小段里连着来两三条也没问题；平淡处 1 条就够。宁可准而少，不要没话找话说。
+3. time 必须直接取用下面字幕里真实出现过的时间点，不要自造；所有评论的时间都要落在 ${fmt(s)}–${fmt(e)} 之内。
+4. 【数量】这一段请生成 ${want}~${want+2} 条（相当于每 4 分钟 1 条）。关键情节、情绪高点、反转铺垫、值得吐槽的细节处要密集地连着来两三条；平淡处也要保持住这个密度，可以从画面、配乐、表演、节奏、氛围这些角度说。不要敷衍地只给一两条。
 5. 【防剧透】只可引用该时间点之前已经出现的内容，绝对不要提到这之后的剧情或结局。
-6. 每条 25~70 字，口语化、有情绪，像朋友坐在旁边小声吐槽。
+6. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "07:30"、"63:30"（即 1 小时 3 分）、"01:07:30"。写成"约10分钟处"这类文字的会被直接丢弃，务必不要这样写。
+7. 每条 25~70 字，口语化、有情绪，像朋友坐在旁边小声吐槽。
 
 字幕如下：
 ${body}`;
+        } else {
+          diag.push(`${fmt(s)}–${fmt(e)}`);
+          prompt=`你是一位陪用户看电影的 AI 朋友。现在要为一部电影的 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）写「观影时间轴评论」，但这一段没有对白字幕可供参考。
+请基于下面给出的剧情资料，推测这一段大致会是什么氛围、什么进展，生成 ${want}~${want+2} 条评论。
+要求：
+1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
+2. 每条格式：{"time":"mm:ss","text":"评论内容"}
+3. time 要均匀分布在 ${fmt(s)}–${fmt(e)} 之内。
+4. 【数量】请生成 ${want}~${want+2} 条（相当于每 4 分钟 1 条），不要只给一两条。
+5. 【重要】因为没有字幕，评论要写得有分寸：只谈氛围、节奏、情绪、镜头、配乐、表演这类可以合理推测的东西，**绝对不要编造具体的台词、人名或具体情节**；拿不准就说感受，不要断言。
+6. 【防剧透】只可引用该时间点之前的内容，不要提到后面的剧情或结局。
+7. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "52:30"、"108:30"（即 1 小时 48 分）、"01:52:30"。写成"约10分钟处"这类文字的会被直接丢弃。
+8. 每条 25~70 字，口语化、有情绪。
+
+剧情资料如下：
+${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜头、配乐的通用感受，不要编造任何具体情节）'}`;
+        }
         const arr=await callJson(endpoint,model,key,prompt);
         arr.forEach(it=>{
           const sec=parseTime(it.time);
-          if(sec>=0 && it.text) collected.push({id:Date.now()+Math.random()+'',time:sec,text:String(it.text).trim(),type:'ai'});
+          if(sec<0) return;                                  /* 时间格式不合法 → 丢弃（旧版会当成 0 秒堆到片头） */
+          if(sec < s-5 || sec > Math.min(e,endSec)+5) return; /* 时间跑到本段之外 → 丢弃 */
+          const txt=String(it.text||'').trim();
+          if(txt) collected.push({id:Date.now()+Math.random()+'',time:sec,text:txt,type:'ai'});
         });
       }
     } else {
-      /* 没有字幕：只有剧情文本，按片长估算条数（每 15 分钟至少 1 条） */
-      const n=dur?Math.max(8,Math.round(dur/60/15*2.5)):12;
+      /* 完全没字幕：只有剧情文本，条数按「每 4 分钟 1 条」随片长走，不设硬性下限（短视频会自然变少） */
+      const n=dur?Math.max(2,Math.round(dur/60/4)):6;
       btn.textContent='生成中…';
       const prompt=`你是一位陪用户看电影的 AI 朋友，会在用户观看时发消息陪他聊。
 下面是一部电影的剧情资料${durTxt?('，影片总时长约 '+durTxt):''}。请生成约 ${n} 条「观影时间轴评论」。
 要求：
-1. 输出必须是合法 JSON 数组，不要 markdown 代码块。
+1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
-3. 时间点要覆盖整部影片（${durTxt?('从开头一直到接近 '+durTxt):'从头到尾'}），平均每 15 分钟至少 1 条；在关键桥段、情绪高点、反转铺垫处可以密集地连着来几条，平淡处少说或不说。宁可准而少，不要没话找话说。
+3. 时间点要覆盖整部影片（${durTxt?('从开头一直到接近 '+durTxt):'从头到尾'}），平均每 4 分钟 1 条；在关键桥段、情绪高点、反转铺垫处可以密集地连着来几条；平淡处也保持住密度，可以从画面、配乐、表演、节奏这些角度说。不要敷衍地只给几条。
 4. 【防剧透】每条评论只可引用该时间点之前的内容，绝对不要提前说破后面的剧情或结局。
-5. 每条 25~70 字，口语化、有情绪、有互动感。
+5. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "07:30"、"63:30"（即 1 小时 3 分）、"01:07:30"。写成"约10分钟处"这类文字的会被直接丢弃。
+6. 每条 25~70 字，口语化、有情绪、有互动感。
 
 剧情资料如下：
 ${plot}`;
       const arr=await callJson(endpoint,model,key,prompt);
       arr.forEach(it=>{
         const sec=parseTime(it.time);
-        if(sec>=0 && it.text) collected.push({id:Date.now()+Math.random()+'',time:sec,text:String(it.text).trim(),type:'ai'});
+        if(sec<0) return;
+        const txt=String(it.text||'').trim();
+        if(txt) collected.push({id:Date.now()+Math.random()+'',time:sec,text:txt,type:'ai'});
       });
     }
 
     if(!collected.length) throw new Error('AI 没有返回可用的评论');
-    /* 合并进已有评论：时间点差 3 秒内视为同一条，保留新生成的 */
+    /* 合并：时间点差 3 秒内视为同一条（保留新的）。
+       ⚠ 只清理旧的 AI 评论 —— 旧版不区分类型，会把用户自己写的评论一并删掉。 */
     collected.forEach(n=>{
-      state.notes=state.notes.filter(o=>Math.abs(o.time-n.time)>3);
+      state.notes=state.notes.filter(o=>(o.type==='ai')?Math.abs(o.time-n.time)>3:true);
       state.notes.push(n);
     });
     state.notes.sort((a,b)=>a.time-b.time);
@@ -1162,9 +1206,11 @@ ${plot}`;
     switchTab('chat');
     const mn=Math.min.apply(null,collected.map(n=>n.time));
     const mx=Math.max.apply(null,collected.map(n=>n.time));
-    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，共 ${state.notes.filter(n=>n.type==='ai').length} 条。`
-      +(saved?'已存档到「历史记录」，刷新或下次打开都能直接调出，不用再生成。':'⚠ 存档失败（本机存储可能已满），请清理后再试。')
-      +'播放到对应时间，它们会像聊天消息一样出现在这里。');
+    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，本片现有 ${state.notes.filter(n=>n.type==='ai').length} 条。播放到对应时间，它们会像聊天消息一样出现在这里。`);
+    if(diag.length){
+      aiSay('系统',`说明：有 ${diag.length} 段没有字幕（${diag.slice(0,4).join('、')}${diag.length>4?' 等':''}），这几段是依据剧情资料补的，会比有字幕的段落粗略一些，也不会引用具体台词。`);
+    }
+    aiSay('系统', saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
   }catch(e){
     alert('生成失败：'+e.message+'\n\n请检查 API Key、模型名和接口地址是否正确。');
   }finally{ btn.textContent=old; btn.disabled=false; }
@@ -1204,6 +1250,84 @@ function parseSubtitleText(txt){
   if(!txt) return [];
   return /^\uFEFF?\s*WEBVTT/i.test(txt.trim()) ? parseVTT(txt) : parseSRT(txt);
 }
+/* ================= 字幕 / 视频 时间轴匹配检测 =================
+   目的：在花钱让 AI 生成之前，先告诉你字幕和这部片子对不对得上。
+   能看到的问题：字幕比影片短/长、中间有整段没字幕、字幕之间有大空档。
+   整体偏移（字幕整体快了或慢了）靠手动平移校正——输入框填秒数，正数=字幕往后推。 */
+function subMatchInfo(){
+  const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
+  const subs=(state.subtitle||[]).slice().sort((a,b)=>a.start-b.start);
+  if(!subs.length) return {ok:false,dur:dur};
+  const first=subs[0].start, last=subs[subs.length-1].start;
+  const upto=Math.max(last,dur||0);
+  /* 找「整段没字幕」的 15 分钟窗口 */
+  const holes=[]; const win=15*60;
+  for(let s=0;s<upto;s+=win){
+    const e=s+win;
+    if(!subs.filter(c=>c.start>=s&&c.start<e).length) holes.push([s,Math.min(e,upto)]);
+  }
+  /* 相邻字幕之间的最大空档 */
+  let maxGap=0, gapAt=0;
+  for(let i=1;i<subs.length;i++){
+    const g=subs[i].start-subs[i-1].start;
+    if(g>maxGap){ maxGap=g; gapAt=subs[i-1].start; }
+  }
+  const lenScore = dur>0 ? Math.min(last,dur)/Math.max(last,dur)*100 : 100;
+  const holePenalty = Math.min(45, holes.length*9);
+  const gapPenalty  = maxGap>600 ? Math.min(20, Math.round((maxGap-600)/60)) : 0;
+  const score = Math.max(0, Math.min(100, Math.round(lenScore-holePenalty-gapPenalty)));
+  const level = score>=90 ? ['ok','很匹配'] : score>=70 ? ['warn','基本匹配，有些偏差'] : ['bad','明显不匹配'];
+  return {ok:true,dur:dur,count:subs.length,first:first,last:last,maxGap:maxGap,gapAt:gapAt,holes:holes,score:score,level:level};
+}
+function renderSubMatch(){
+  const el=$('subMatch'); if(!el) return;
+  const m=subMatchInfo();
+  if(!m.ok){ el.innerHTML=''; return; }
+  const f=fmt;
+  const color = m.level[0]==='ok' ? '#3f7d4a' : m.level[0]==='warn' ? '#b57a1f' : '#c0392b';
+  const bg    = m.level[0]==='ok' ? '#f0f7f1' : m.level[0]==='warn' ? '#fdf6e8' : '#fdefec';
+  const warns=[];
+  if(m.dur>0 && m.last < m.dur-120)
+    warns.push(`⚠ 字幕比影片<b>短 ${Math.round((m.dur-m.last)/60)} 分钟</b>（到 ${f(m.last)} 就没了）。后面那几段没有台词可参考，AI 会依据剧情资料补，评论会比较粗。`);
+  if(m.dur>0 && m.last > m.dur+120)
+    warns.push(`⚠ 字幕比影片<b>长 ${Math.round((m.last-m.dur)/60)} 分钟</b>，时间轴对不上，很可能不是这一版的字幕。`);
+  if(m.holes.length)
+    warns.push(`⚠ 有 <b>${m.holes.length} 段完全没字幕</b>：${m.holes.slice(0,3).map(h=>f(h[0])+'–'+f(h[1])).join('、')}${m.holes.length>3?' 等':''}。`);
+  if(m.maxGap>600)
+    warns.push(`⚠ 字幕之间最大空档 <b>${Math.round(m.maxGap/60)} 分钟</b>（在 ${f(m.gapAt)} 之后），那段可能本来就没台词。`);
+  if(!warns.length) warns.push('✓ 没发现明显问题，可以放心生成。');
+  el.innerHTML =
+   `<div style="border:1px solid ${color}33;background:${bg};border-radius:8px;padding:9px 10px;margin-bottom:9px;">
+      <div style="font-size:11.5px;font-weight:600;color:${color};margin-bottom:5px;">字幕 / 视频 时间轴匹配检测</div>
+      <div style="font-size:11px;color:var(--sub);line-height:1.6;">
+        影片 <b style="color:var(--ink)">${m.dur?f(m.dur):'未载入'}</b> ·
+        字幕 <b style="color:var(--ink)">${f(m.last)}</b>（${m.count} 条，起于 ${f(m.first)}）${state.subOffset?(' · 已平移 '+(state.subOffset>0?'+':'')+state.subOffset+' 秒'):''}
+      </div>
+      <div style="height:5px;background:#e8e0d4;border-radius:3px;margin:6px 0 3px;overflow:hidden;">
+        <span style="display:block;height:100%;width:${m.score}%;background:${color};border-radius:3px;"></span>
+      </div>
+      <div style="font-size:11px;color:${color};font-weight:600;">匹配度 ${m.score}% · ${m.level[1]}</div>
+      <div style="font-size:11px;color:var(--ink);line-height:1.65;margin-top:5px;">${warns.join('<br>')}</div>
+      <div style="margin-top:7px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:11px;">
+        <span style="color:var(--sub);">整体平移：</span>
+        <button class="mini" onclick="applySubOffset(-10)">−10秒</button>
+        <button class="mini" onclick="applySubOffset(-1)">−1秒</button>
+        <button class="mini" onclick="applySubOffset(1)">+1秒</button>
+        <button class="mini" onclick="applySubOffset(10)">+10秒</button>
+        <input id="offInp" type="number" value="${state.subOffset||0}" style="width:66px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;font-size:11px;">
+        <button class="mini" onclick="setSubOffset(Number($('offInp').value)||0)">应用</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--sub);margin-top:4px;">字幕整体比画面<b>早</b>就减，比画面<b>晚</b>就加；改完上面的匹配度会跟着变。</div>
+    </div>`;
+}
+function setSubOffset(off){
+  state.subOffset=off;
+  state.subtitle=parseSubtitleText(state.subtitleRaw).map(c=>({start:Math.max(0,c.start+off),text:c.text}));
+  saveMovie({subOffset:off});
+  renderSubMatch(); updateSubInfo(); renderHistory();
+}
+function applySubOffset(delta){ setSubOffset((state.subOffset||0)+delta); }
+
 function onSubtitle(file){
   if(!file) return;
   const r=new FileReader();
@@ -1221,8 +1345,9 @@ function onSubtitle(file){
     } else {
       saved = saveMovie({subCount:cues.length}) ? '，已存档（刷新不会丢）' : '，但存档失败了';
     }
-    aiSay('系统',`字幕已解析：${cues.length} 条${saved}。点「✨ 生成时间轴评论」让 AI 按真实台词写评论，整部片一次写好，播放时零消耗。`);
+    aiSay('系统',`字幕已解析：${cues.length} 条${saved}。先看上面的「匹配检测」对不对得上，再点「✨ 生成时间轴评论」。`);
     renderHistory();
+    renderSubMatch();
   };
   r.readAsText(file);
 }
