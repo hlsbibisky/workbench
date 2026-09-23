@@ -313,12 +313,44 @@
         </div>
         <div id="subInfo" style="font-size:11px;color:var(--sub);margin-bottom:8px;">有字幕就用字幕，AI 评论更准</div>
         <div id="subMatch"></div>
+        <div id="styleBox" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:7px;">评论风格</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);">
+              <span style="width:30px;flex:none;">长短</span>
+              <select id="stLen" onchange="onStyleChange()" style="flex:1;min-width:0;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);">
+                <option value="short">精简 · 15~30 字</option>
+                <option value="normal" selected>正常 · 25~70 字</option>
+                <option value="long">话痨 · 40~110 字</option>
+              </select>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);">
+              <span style="width:30px;flex:none;">语气</span>
+              <select id="stTone" onchange="onStyleChange()" style="flex:1;min-width:0;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);">
+                <option value="friend" selected>朋友吐槽 · 口语、有情绪</option>
+                <option value="serious">认真聊 · 分析镜头与人物</option>
+                <option value="sharp">毒舌刻薄 · 犀利带幽默</option>
+              </select>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);">
+              <span style="width:30px;flex:none;">密度</span>
+              <select id="stDens" onchange="onStyleChange()" style="flex:1;min-width:0;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);">
+                <option value="sparse">克制 · 只挑最硬的干货</option>
+                <option value="normal" selected>适中 · 值得聊的就聊</option>
+                <option value="dense">密集 · 边角细节也聊</option>
+              </select>
+            </label>
+          </div>
+          <div id="styleHint" style="font-size:11px;color:var(--sub);margin-top:7px;line-height:1.6;"></div>
+        </div>
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
           <div class="hint">
+          <div class="hint">
             <b>AI 是怎么「看」电影的？</b><br>
-            先上传字幕（最准）或粘贴剧情，AI 会按片长分段把整部电影的评论一次写好（每 15 分钟至少 1 条，关键桥段处会更密集）；播放到对应时间，评论会像聊天消息一样出现在「💬 对话」页，不飘屏、不弹幕。截图上传后 AI 会看图点评。API Key 在右上角「AI配置」里填一次即可。
+            先上传字幕（最准）或粘贴剧情，AI 会按 15 分钟一段通读全片，<b>只在真有讨论价值的地方发评论</b>——反转、伏笔、动机说不通、话外音、两难抉择、容易看漏的细节、镜头配乐在替角色说话；平淡的过场它一句都不说。关键桥段会连着来几条。<b>不设固定条数</b>，全看片子本身有多少值得聊的。如果连续 20 分钟一个字都没有，系统会自动补一轮，不会让你干等。播放到对应时间，评论会像聊天消息一样出现在「💬 对话」页，不飘屏、不弹幕。截图上传后 AI 会看图点评。API Key 在右上角「AI配置」里填一次即可。
+          </div>
           </div>
         </div>
         <div class="shot-preview" id="shotPreview"></div>
@@ -1007,11 +1039,13 @@ async function chatWithAI(userText){
     aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
     return;
   }
-  // 隐藏上下文：当前影片 + 播放位置 + 附近字幕（仅之前内容）
+  // 隐藏上下文：当前影片 + 播放位置 + 附近字幕 + 附近的 AI 评论（仅之前内容）
   let ctx=`当前影片：${state.meta.title||'未命名'}`;
   if(isFinite(video.duration)&&video.duration>0) ctx+=`；当前播放位置：${fmt(video.currentTime)} / ${fmt(video.duration)}`;
   const near=nearbySubtitle(video.currentTime);
   if(near) ctx+=`；当前附近字幕（之前内容）：${near}`;
+  const nearNotes=nearbyNotes(video.currentTime);
+  if(nearNotes) ctx+=`；刚刚出现过的 AI 评论：${nearNotes}`;
   try{
     const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
     const res=await fetch(endpoint,{
@@ -1032,6 +1066,12 @@ function nearbySubtitle(t){
   if(!state.subtitle || !state.subtitle.length) return '';
   const before=state.subtitle.filter(c=>c.start<=t).slice(-3);
   return before.map(c=>`[${fmt(c.start)}] ${c.text}`).join('  ');
+}
+/* 取播放点前后 ±3 分钟内的 AI 评论（最多 4 条）——用户接话时让 AI 知道「刚才说了什么」 */
+function nearbyNotes(t){
+  const ai=(state.notes||[]).filter(n=>n.type==='ai' && Math.abs(n.time-t)<=180)
+    .sort((a,b)=>a.time-b.time).slice(0,4);
+  return ai.map(n=>`[${fmt(n.time)}] ${n.text}`).join('  ');
 }
 
 /* ================= 标签切换 ================= */
@@ -1088,6 +1128,76 @@ async function callJson(endpoint,model,key,prompt){
   if(!Array.isArray(arr)) throw new Error('返回格式不是数组');
   return arr;
 }
+/* ================= 评论风格旋钮 =================
+   三个下拉框 → 拼进提示词。改了风格要重新生成才生效（旧评论不会被改写）。
+   存 localStorage 键 cinema_note_style，纯本机偏好，不进云同步包。 */
+const STYLE_KEY='cinema_note_style';
+const STYLE_DEF={len:'normal', tone:'friend', dens:'normal'};
+function loadStyle(){
+  try{ const o=JSON.parse(localStorage.getItem(STYLE_KEY)||'{}');
+       return {len:o.len||STYLE_DEF.len, tone:o.tone||STYLE_DEF.tone, dens:o.dens||STYLE_DEF.dens}; }
+  catch(e){ return Object.assign({},STYLE_DEF); }
+}
+function saveStyle(o){ try{ localStorage.setItem(STYLE_KEY,JSON.stringify(o)); }catch(e){} }
+function syncStyleUI(){
+  const st=loadStyle();
+  if($('stLen')) $('stLen').value=st.len;
+  if($('stTone')) $('stTone').value=st.tone;
+  if($('stDens')) $('stDens').value=st.dens;
+  updateStyleHint();
+}
+function onStyleChange(){
+  saveStyle({len:$('stLen').value, tone:$('stTone').value, dens:$('stDens').value});
+  updateStyleHint();
+}
+function updateStyleHint(){
+  const el=$('styleHint'); if(!el) return;
+  const st=loadStyle();
+  const lenTxt={short:'精简',normal:'正常',long:'话痨'}[st.len]||'正常';
+  const toneTxt={friend:'朋友吐槽',serious:'认真聊',sharp:'毒舌刻薄'}[st.tone]||'朋友吐槽';
+  const densTxt={sparse:'克制',normal:'适中',dense:'密集'}[st.dens]||'适中';
+  el.textContent='当前：'+lenTxt+' · '+toneTxt+' · '+densTxt+'。改了要重新生成才生效（旧的评论不会被改写）。';
+}
+function styleLenSpec(){
+  const st=loadStyle();
+  if(st.len==='short') return '每条 15~30 字，短、准、点到为止，不要铺陈。';
+  if(st.len==='long')  return '每条 40~110 字，可以展开说，多聊一层。';
+  return '每条 25~70 字，说清楚就行，别啰嗦。';
+}
+function styleToneSpec(){
+  const st=loadStyle();
+  if(st.tone==='serious') return '语气是认真聊片子的人：偏分析，会聊镜头语言、叙事结构、人物动机、主题，冷静克制，不油不贱。';
+  if(st.tone==='sharp')   return '语气是毒舌刻薄的朋友：犀利、敢吐槽、带黑色幽默，可以直接说这片哪里蠢哪里假，但不要人身攻击、不要骂演员本人。';
+  return '语气是坐在旁边陪看的朋友：口语、有情绪、像小声吐槽，会替角色着急、会感叹、会开玩笑。';
+}
+function styleDensSpec(){
+  const st=loadStyle();
+  if(st.dens==='sparse') return '密度要【克制】：只挑全片最硬、最值得停下来想一想的几个点，一段 15 分钟通常 0~2 条；宁可整段交白卷，也不要为了凑数说。';
+  if(st.dens==='dense')  return '密度要【密集】：除了主干情节，边边角角也聊——配乐、构图、剪辑节奏、演员微表情、服装道具、一句台词的潜台词，一段 15 分钟通常 3~6 条。';
+  return '密度【适中】：值得聊的就聊，一段 15 分钟通常 1~4 条；剧情密集、情绪上来的时候可以连着来几条，平淡过场就少说或不说。';
+}
+/* 值得聊的六类理由 —— 写进提示词，让 AI 照着筛 */
+const NOTE_WORTHY='只有符合下面这些情况之一，才值得发一条评论：\n'
+  +'· 反转、伏笔埋下或回收\n'
+  +'· 人物动机说不通、或一句话背后有话外音\n'
+  +'· 一个两难的抉择、价值观的碰撞\n'
+  +'· 容易一眼看漏、但回头看很关键的细节\n'
+  +'· 镜头、配乐、剪辑、沉默在替角色说话\n'
+  +'· 人物的关系、处境发生了实质变化\n'
+  +'都不符合 → 这一段就返回空数组 []，一句都别发。';
+/* 找出评论时间轴上「连续 gapSec 秒以上没有任何评论」的区间，用于均匀兜底。
+   返回 [[起,止],...]；片头到第一条、最后一条到片尾都要算进去。 */
+function findGaps(list, endSec, gapSec){
+  const ts=(list||[]).map(n=>n.time).filter(t=>typeof t==='number').sort((a,b)=>a-b);
+  const gaps=[]; let prev=0;
+  ts.forEach(t=>{
+    if(t-prev>=gapSec) gaps.push([prev,t]);
+    if(t>prev) prev=t;
+  });
+  if(endSec-prev>=gapSec) gaps.push([prev,endSec]);
+  return gaps;
+}
+
 async function genAiNotes(){
   const plot=$('plotText').value.trim();
   const hasSub=!!(state.subtitle && state.subtitle.length);
@@ -1109,6 +1219,8 @@ async function genAiNotes(){
   const durTxt=dur?fmt(dur):'';
   const collected=[];
   const diag=[];                       /* 记录哪几段没有字幕，最后如实告诉用户 */
+  const L=styleLenSpec(), T=styleToneSpec(), D=styleDensSpec();
+  const patched=[];                    /* 记录哪些区间走了「均匀兜底」补轮 */
   try{
     if(hasSub){
       /* 有字幕：按 15 分钟切段、逐段生成。
@@ -1122,39 +1234,50 @@ async function genAiNotes(){
       for(let i=0;i<total;i++){
         const s=i*segSec, e=Math.min((i+1)*segSec, endSec);   /* 末段按真实片尾收口，别让 AI 写到片外去 */
         const cues=state.subtitle.filter(c=>c.start>=s && c.start<e);
-        /* 密度：约每 4 分钟 1 条（2 小时 ≈ 30 条）。按段长实算，短视频自动变少，不设硬性下限 */
         const segMin=Math.max(1,Math.round((Math.min(e,endSec)-s)/60));
-        const want=Math.max(1,Math.round(segMin/4));
         btn.textContent=`生成中… 第 ${i+1}/${total} 段`;
         let prompt;
         if(cues.length){
           const body=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
           prompt=`你是一位陪用户看电影的 AI 朋友。下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）的对白字幕，方括号里的时间就是电影的真实时间。
-请为这一段生成「观影时间轴评论」。
-要求：
+请为这一段写「观影时间轴评论」。
+
+【最重要的一条：宁缺毋滥】
+绝对不要为了凑数而发言。这里的每一条评论，都必须是因为这一点真的值得停下来聊一聊。
+${NOTE_WORTHY}
+反过来，剧情密集、情绪上来、反转发生的时候，允许你连着来 3~5 条——那一刻本来就有话说。
+${D}
+【不要设任何固定条数】这一段值 0 条就返回空数组 []，值 6 条就给 6 条，全看内容本身有多少值得聊的。
+
+【写法要求】
 1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
 3. time 必须直接取用下面字幕里真实出现过的时间点，不要自造；所有评论的时间都要落在 ${fmt(s)}–${fmt(e)} 之内。
-4. 【数量】这一段请生成 ${want}~${want+2} 条（相当于每 4 分钟 1 条）。关键情节、情绪高点、反转铺垫、值得吐槽的细节处要密集地连着来两三条；平淡处也要保持住这个密度，可以从画面、配乐、表演、节奏、氛围这些角度说。不要敷衍地只给一两条。
-5. 【防剧透】只可引用该时间点之前已经出现的内容，绝对不要提到这之后的剧情或结局。
-6. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "07:30"、"63:30"（即 1 小时 3 分）、"01:07:30"。写成"约10分钟处"这类文字的会被直接丢弃，务必不要这样写。
-7. 每条 25~70 字，口语化、有情绪，像朋友坐在旁边小声吐槽。
+4. 【防剧透】只可引用该时间点之前已经出现的内容，绝对不要提到这之后的剧情或结局。
+5. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "07:30"、"63:30"（即 1 小时 3 分）、"01:07:30"。写成"约10分钟处"这类文字的会被直接丢弃，务必不要这样写。
+6. ${L}
+7. ${T}
 
 字幕如下：
 ${body}`;
         } else {
           diag.push(`${fmt(s)}–${fmt(e)}`);
           prompt=`你是一位陪用户看电影的 AI 朋友。现在要为一部电影的 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）写「观影时间轴评论」，但这一段没有对白字幕可供参考。
-请基于下面给出的剧情资料，推测这一段大致会是什么氛围、什么进展，生成 ${want}~${want+2} 条评论。
-要求：
+请基于下面给出的剧情资料，推测这一段大致会是什么氛围、什么进展，再决定要不要发言。
+
+【最重要的一条：宁缺毋滥】
+${NOTE_WORTHY}
+${D}
+
+【写法要求】
 1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
-3. time 要均匀分布在 ${fmt(s)}–${fmt(e)} 之内。
-4. 【数量】请生成 ${want}~${want+2} 条（相当于每 4 分钟 1 条），不要只给一两条。
-5. 【重要】因为没有字幕，评论要写得有分寸：只谈氛围、节奏、情绪、镜头、配乐、表演这类可以合理推测的东西，**绝对不要编造具体的台词、人名或具体情节**；拿不准就说感受，不要断言。
-6. 【防剧透】只可引用该时间点之前的内容，不要提到后面的剧情或结局。
-7. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "52:30"、"108:30"（即 1 小时 48 分）、"01:52:30"。写成"约10分钟处"这类文字的会被直接丢弃。
-8. 每条 25~70 字，口语化、有情绪。
+3. time 要落在 ${fmt(s)}–${fmt(e)} 之内。
+4. 【防剧透】只可引用该时间点之前的内容，不要提到后面的剧情或结局。
+5. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "52:30"、"108:30"（即 1 小时 48 分）、"01:52:30"。写成"约10分钟处"这类文字的会被直接丢弃。
+6. 【分寸】因为没有字幕，绝对不要编造具体的台词、人名或具体情节；只谈氛围、节奏、情绪、镜头、配乐、表演这类可以合理推测的东西，拿不准就说感受，不要断言。
+7. ${L}
+8. ${T}
 
 剧情资料如下：
 ${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜头、配乐的通用感受，不要编造任何具体情节）'}`;
@@ -1162,25 +1285,71 @@ ${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜
         const arr=await callJson(endpoint,model,key,prompt);
         arr.forEach(it=>{
           const sec=parseTime(it.time);
-          if(sec<0) return;                                  /* 时间格式不合法 → 丢弃（旧版会当成 0 秒堆到片头） */
+          if(sec<0) return;                                  /* 时间格式不合法 → 丢弃 */
           if(sec < s-5 || sec > Math.min(e,endSec)+5) return; /* 时间跑到本段之外 → 丢弃 */
           const txt=String(it.text||'').trim();
           if(txt) collected.push({id:Date.now()+Math.random()+'',time:sec,text:txt,type:'ai'});
         });
       }
-    } else {
-      /* 完全没字幕：只有剧情文本，条数按「每 4 分钟 1 条」随片长走，不设硬性下限（短视频会自然变少） */
-      const n=dur?Math.max(2,Math.round(dur/60/4)):6;
-      btn.textContent='生成中…';
-      const prompt=`你是一位陪用户看电影的 AI 朋友，会在用户观看时发消息陪他聊。
-下面是一部电影的剧情资料${durTxt?('，影片总时长约 '+durTxt):''}。请生成约 ${n} 条「观影时间轴评论」。
+      /* 【均匀兜底】主轮宁缺毋滥，可能整段交白卷。这里扫一遍：
+         凡是连续 GAP_SEC 以上一条评论都没有的区间，用宽松标准补一轮，
+         保证不会出现「半小时没人说话」。最多补 2 轮，防止死循环。 */
+      const GAP_SEC=20*60;
+      for(let round=0; round<2; round++){
+        const gaps=findGaps(collected, endSec, GAP_SEC);
+        if(!gaps.length) break;
+        btn.textContent=`补第 ${round+1} 轮… ${gaps.length} 段空档`;
+        for(const g of gaps){
+          const gs=g[0], ge=Math.min(g[1], endSec);
+          patched.push(`${fmt(gs)}–${fmt(ge)}`);
+          const cues=state.subtitle.filter(c=>c.start>=gs && c.start<ge);
+          const gMin=Math.max(1,Math.round((ge-gs)/60));
+          const need=Math.max(1,Math.min(4,Math.round(gMin/20)));
+          const body=cues.length?('这一段的字幕：\n'+cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n')):'（这一段没有字幕）';
+          const prompt=`你是一位陪用户看电影的 AI 朋友。电影的 ${fmt(gs)}–${fmt(ge)} 这一段（约 ${gMin} 分钟）在严格筛选后一条评论都没有，但用户不希望看这么久没人陪着说话。
+请放宽标准，从氛围、节奏、镜头、配乐、表演、人物状态、场景调度这些角度，挑 ${need}~${need+1} 条说一说——可以只是一句很轻的感受，不必非得是关键情节。
 要求：
 1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
 2. 每条格式：{"time":"mm:ss","text":"评论内容"}
-3. 时间点要覆盖整部影片（${durTxt?('从开头一直到接近 '+durTxt):'从头到尾'}），平均每 4 分钟 1 条；在关键桥段、情绪高点、反转铺垫处可以密集地连着来几条；平淡处也保持住密度，可以从画面、配乐、表演、节奏这些角度说。不要敷衍地只给几条。
+3. time 落在 ${fmt(gs)}–${fmt(ge)} 之内，尽量均匀分布。
+4. 【防剧透】只可引用该时间点之前的内容。
+5. 【时间格式】time 只能是纯数字 mm:ss 或 hh:mm:ss，例如 "63:30"、"01:07:30"。
+6. ${L}
+7. ${T}
+8. ${cues.length?'有字幕就尽量结合真实台词来说，不要编造。':'没有字幕，绝对不要编造具体台词、人名、情节，只说氛围和感受。'}
+
+${body}`;
+          const arr=await callJson(endpoint,model,key,prompt);
+          arr.forEach(it=>{
+            const sec=parseTime(it.time);
+            if(sec<0) return;
+            if(sec < gs-5 || sec > ge+5) return;
+            const txt=String(it.text||'').trim();
+            if(txt) collected.push({id:Date.now()+Math.random()+'',time:sec,text:txt,type:'ai'});
+          });
+        }
+      }
+    } else {
+      /* 完全没字幕：只有剧情文本，条数按「每 4 分钟 1 条」随片长走，不设硬性下限（短视频会自然变少） */
+      btn.textContent='生成中…';
+      const prompt=`你是一位陪用户看电影的 AI 朋友，会在用户观看时发消息陪他聊。
+下面是一部电影的剧情资料${durTxt?('，影片总时长约 '+durTxt):''}。请生成「观影时间轴评论」。
+
+【最重要的一条：宁缺毋滥】
+绝对不要为了凑数而发言。每一条评论，都必须是因为这一点真的值得停下来聊一聊。
+${NOTE_WORTHY}
+剧情密集、情绪上来、反转发生的地方，允许你连着来 3~5 条。
+${D}
+【不要设固定条数】值多少条就给多少条，全看这部片有多少值得聊的。
+
+【写法要求】
+1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
+2. 每条格式：{"time":"mm:ss","text":"评论内容"}
+3. 时间点要覆盖整部影片（${durTxt?('从开头一直到接近 '+durTxt):'从头到尾'}）。如果连续 20 分钟以上没有任何评论，那是不可接受的——那种空档至少挑一个点说一句，可以从氛围、节奏、配乐、表演这些角度说。
 4. 【防剧透】每条评论只可引用该时间点之前的内容，绝对不要提前说破后面的剧情或结局。
 5. 【时间格式】time 只能是纯数字：mm:ss 或 hh:mm:ss 都行，例如 "07:30"、"63:30"（即 1 小时 3 分）、"01:07:30"。写成"约10分钟处"这类文字的会被直接丢弃。
-6. 每条 25~70 字，口语化、有情绪、有互动感。
+6. ${L}
+7. ${T}
 
 剧情资料如下：
 ${plot}`;
@@ -1206,7 +1375,12 @@ ${plot}`;
     switchTab('chat');
     const mn=Math.min.apply(null,collected.map(n=>n.time));
     const mx=Math.max.apply(null,collected.map(n=>n.time));
-    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，本片现有 ${state.notes.filter(n=>n.type==='ai').length} 条。播放到对应时间，它们会像聊天消息一样出现在这里。`);
+    const st=loadStyle();
+    const stTxt={short:'精简',normal:'正常',long:'话痨'}[st.len]+' · '+{friend:'朋友吐槽',serious:'认真聊',sharp:'毒舌刻薄'}[st.tone]+' · '+{sparse:'克制',normal:'适中',dense:'密集'}[st.dens];
+    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，本片现有 ${state.notes.filter(n=>n.type==='ai').length} 条。这次用的风格：${stTxt}。觉得话多话少、语气不对，去「AI生成」页调「评论风格」再重新生成就行。播放到对应时间，它们会像聊天消息一样出现在这里。`);
+    if(patched.length){
+      aiSay('系统',`说明：${patched.slice(0,4).join('、')}${patched.length>4?' 等':''} 这 ${patched.length} 段在严格筛选后一条评论都没有，为了不让你看太久没人说话，按宽松标准（氛围、节奏这类轻的感受）补了几条。`);
+    }
     if(diag.length){
       aiSay('系统',`说明：有 ${diag.length} 段没有字幕（${diag.slice(0,4).join('、')}${diag.length>4?' 等':''}），这几段是依据剧情资料补的，会比有字幕的段落粗略一些，也不会引用具体台词。`);
     }
@@ -1490,6 +1664,7 @@ function init(){
   renderHistory();
   initSpeech();
   setupVision();
+  syncStyleUI();
 }
 init();
 
