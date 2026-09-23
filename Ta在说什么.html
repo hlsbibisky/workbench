@@ -25,6 +25,25 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .lab b{font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0;}
 .lnk{color:var(--sub);cursor:pointer;text-decoration:underline dotted;font-size:12px;}
 .lnk:hover{color:var(--accent);}
+
+/* ---- 折叠 ---- */
+.fold-body.off{display:none;}
+.lab .sep{color:#d8d0c4;margin:0 2px;}
+.lab .acts{display:inline-flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:flex-end;}
+.card.mini .card-pad{padding:9px 14px;}
+.foldtip{font-size:11.5px;color:#a89c8f;}
+
+/* ---- 输出区折叠条 ---- */
+.outwrap{max-width:780px;margin:16px auto 6px;}
+.outwrap.off{display:none;}
+.out-hd{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);cursor:pointer;user-select:none;}
+.out-hd:hover{border-color:#e0d3c2;}
+.out-hd .oh-i{font-size:14px;}
+.out-hd .oh-t{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;}
+.out-hd .oh-s{flex:1;min-width:0;font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.out-hd .oh-a{font-size:12px;color:var(--sub);white-space:nowrap;}
+.out-body.off{display:none;}
 .wpick{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 12px;font-size:12.5px;cursor:pointer;margin:0 6px 0 0;color:var(--sub);transition:.15s;}
 .wpick:hover{border-color:var(--accent);color:var(--accent);}
 .wpick.on{background:var(--mark);border-color:var(--accent);color:#8d5233;font-weight:500;}
@@ -57,12 +76,21 @@ details.mini summary{list-style:none;cursor:pointer;border:1px solid var(--line)
 details.mini summary::-webkit-details-marker{display:none;}
 details.mini summary:hover{border-color:var(--accent);color:var(--accent);}
 details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
-.drop{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:330px;max-width:84vw;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(58,54,49,.14);padding:12px;}
-.hist-item{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;cursor:pointer;transition:.15s;background:#fff;}
+.drop{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:400px;max-width:88vw;max-height:62vh;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(58,54,49,.14);padding:12px;}
+.hgroup{font-size:11px;color:#a89c8f;letter-spacing:.6px;margin:12px 0 7px;padding-left:2px;display:flex;align-items:center;gap:8px;}
+.hgroup::after{content:"";flex:1;height:1px;background:var(--line);}
+.hgroup:first-child{margin-top:2px;}
+.hist-item{position:relative;border:1px solid var(--line);border-radius:9px;padding:8px 30px 8px 10px;font-size:12.5px;cursor:pointer;transition:.15s;background:#fff;}
 .hist-item + .hist-item{margin-top:6px;}
 .hist-item:hover{border-color:var(--accent);}
 .hist-item .t{color:var(--sub);font-size:11px;}
 .hist-item .s{color:var(--ink);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hist-item .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;line-height:19px;text-align:center;border-radius:6px;
+  color:#bcb3a6;font-size:14px;}
+.hist-item .x:hover{background:#f6efe7;color:var(--bad);}
+.hist-empty{font-size:12px;color:#b3aa9e;line-height:1.9;padding:2px;}
+.hist-foot{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);display:flex;justify-content:flex-end;}
 
 .apigrid{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px 10px;align-items:center;}
 .apigrid label{font-size:12px;color:var(--sub);text-align:right;}
@@ -115,10 +143,20 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
 
 <div class="page">
 
-  <div class="card">
-    <div class="lab"><b>聊天记录</b><span><span id="cntIn">0 字</span> · <span class="lnk" id="btnFlip">对调自己/对方</span> · <span class="lnk" id="btnClear">清空</span></span></div>
-    <textarea class="ta" id="chat" placeholder="从微信里复制聊天记录，整段粘贴到这里——昵称、日期时间会自动去掉，换成「自己 / 对方」。&#10;&#10;也支持手动写：&#10;自己：周六要不要一起吃饭？&#10;对方：这周有点忙"></textarea>
-    <div id="whoPick"></div>
+  <div class="card" id="cardIn">
+    <div class="lab">
+      <b>✎ 聊天记录</b>
+      <span class="acts">
+        <span id="cntIn">0 字</span><span class="sep">·</span>
+        <span class="lnk" id="btnFlip">对调自己/对方</span><span class="sep">·</span>
+        <span class="lnk" id="btnClear">清空</span><span class="sep">·</span>
+        <span class="lnk" id="btnFoldIn">收起</span>
+      </span>
+    </div>
+    <div class="fold-body" id="inBody">
+      <textarea class="ta" id="chat" placeholder="从微信里复制聊天记录，整段粘贴到这里——昵称、日期时间会自动去掉，换成「自己 / 对方」。&#10;&#10;也支持手动写：&#10;自己：周六要不要一起吃饭？&#10;对方：这周有点忙"></textarea>
+      <div id="whoPick"></div>
+    </div>
 
     <div class="actrow">
       <button class="btn primary big" id="btnGo">开始解读</button>
@@ -153,8 +191,16 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     </div>
   </div>
 
-  <div class="outwrap">
-    <div id="out"></div>
+  <div class="outwrap off" id="outWrap">
+    <div class="out-hd" id="outHd">
+      <span class="oh-i">💬</span>
+      <span class="oh-t">解读结果</span>
+      <span class="oh-s" id="outBrief"></span>
+      <span class="oh-a" id="outToggle">收起 ▴</span>
+    </div>
+    <div class="out-body" id="outBody">
+      <div id="out"></div>
+    </div>
   </div>
 
   <div class="lowbar">
@@ -174,7 +220,8 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
 <script>
 (function(){
   var $ = function(id){ return document.getElementById(id); };
-  var K = { hist:'ywHist', key:'ywApiKey', prov:'ywApiProv', base:'ywApiBase', model:'ywApiModel', chat:'ywChat', back:'ywBack' };
+  var K = { hist:'ywHist', key:'ywApiKey', prov:'ywApiProv', base:'ywApiBase', model:'ywApiModel', chat:'ywChat', back:'ywBack',
+            foldIn:'ywFoldIn', foldOut:'ywFoldOut' };
 
   function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } }
   function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -384,6 +431,9 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
       h += '</div>';
     });
     $('out').innerHTML = h + '</div>';
+    $('outBrief').textContent = dlabel(Date.now()) + ' ' + timeOf(Date.now()) + ' · 先确认角色对不对';
+    showOutWrap(true);
+    setFold('out', false);
   }
 
   /* ---------- 解读结果解析 ---------- */
@@ -461,11 +511,30 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     return esc(t) + '<span class="risk '+cls+'">误读风险</span>';
   }
 
-  function renderOut(data){
+  /* ---- 折叠：输入区 / 输出区 ---- */
+  function setFold(which, off){
+    if(which === 'in'){
+      $('inBody').classList.toggle('off', !!off);
+      $('btnFoldIn').textContent = off ? '展开' : '收起';
+      $('cardIn').classList.toggle('mini', !!off);
+      lsSet(K.foldIn, off ? '1' : '0');
+    } else {
+      $('outBody').classList.toggle('off', !!off);
+      $('outToggle').textContent = off ? '展开 ▾' : '收起 ▴';
+      lsSet(K.foldOut, off ? '1' : '0');
+    }
+  }
+  function showOutWrap(show){ $('outWrap').classList.toggle('off', !show); }
+
+  function renderOut(data, rec){
     var out = $('out');
     var items = (data && data.items) ? data.items : [];
     var summary = (data && data.summary) ? data.summary : '';
-    if(!items.length && !summary){ out.innerHTML = EMPTY; return; }
+    if(!items.length && !summary){ out.innerHTML = EMPTY; showOutWrap(false); return; }
+
+    var ts = rec && rec.t ? (dlabel(rec.t) + ' ' + timeOf(rec.t)) : (dlabel(Date.now()) + ' ' + timeOf(Date.now()));
+    $('outBrief').textContent = ts + ' · ' + briefOf(summary, (rec && rec.chat) || '');
+    showOutWrap(true);
 
     /* 「可以接」是"我下一句该怎么说"——从对方条目挪到我自己这一侧 */
     var pendingReply = '';
@@ -569,8 +638,15 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
   function saveHist(rec){
     var list = loadHist();
     list.unshift(rec);
-    if(list.length>60) list = list.slice(0,60);
-    lsSet(K.hist, JSON.stringify(list));
+    if(list.length>200) list = list.slice(0,200);
+    try{ lsSet(K.hist, JSON.stringify(list)); }
+    catch(e){
+      /* 存不下就淘汰最旧的，直到能存进去 */
+      while(list.length>10){
+        list = list.slice(0, Math.floor(list.length/2));
+        try{ lsSet(K.hist, JSON.stringify(list)); break; }catch(e2){}
+      }
+    }
     renderHist();
   }
   function firstLine(s){
@@ -578,27 +654,82 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     for(var i=0;i<ls.length;i++){ var t = ls[i].trim(); if(t) return t; }
     return '';
   }
+  /* 一句话简介：优先「整体」那段；没有就拿第一句原话 */
+  function briefOf(s, chatNorm){
+    var t = String(s||'').replace(/\s+/g,' ').trim();
+    t = t.replace(/^【\s*(整体|总览|氛围|总结|概述)\s*】\s*/,'');
+    if(t.length > 42) t = t.slice(0,42) + '…';
+    if(t) return t;
+    var c = firstLine(chatNorm||'');
+    if(c.length > 42) c = c.slice(0,42) + '…';
+    return c || '（无内容）';
+  }
+  function dkey(ts){
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+  function todayKey(){ return dkey(Date.now()); }
+  function yestKey(){ return dkey(Date.now() - 86400000); }
+  var WK = ['周日','周一','周二','周三','周四','周五','周六'];
+  function dlabel(ts){
+    var k = dkey(ts);
+    if(k === todayKey()) return '今天';
+    if(k === yestKey())  return '昨天';
+    var d = new Date(ts);
+    return (d.getMonth()+1) + '月' + d.getDate() + '日 ' + WK[d.getDay()];
+  }
+  function timeOf(ts){
+    var d = new Date(ts);
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
   function renderHist(){
     var list = loadHist(), box = $('hist');
     $('cntHist').textContent = list.length;
-    if(!list.length){ box.innerHTML = '<p class="lowhint" style="margin:2px;">还没有记录。</p>'; return; }
-    box.innerHTML = list.map(function(r,i){
-      var d = new Date(r.t||Date.now());
-      var ts = (d.getMonth()+1) + '-' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-      return '<div class="hist-item" data-i="'+i+'">' +
-             '<div class="t">'+ts+'</div>' +
-             '<div class="s">'+esc(firstLine(r.raw) || '（无内容）')+'</div></div>';
-    }).join('');
+    if(!list.length){
+      box.innerHTML = '<div class="hist-empty">还没有记录。<br>解读一次，或把 WorkBuddy 给的解读粘回来，就会自动收进这里。</div>';
+      return;
+    }
+    var h = '', lastKey = '';
+    list.forEach(function(r,i){
+      var k = dkey(r.t || Date.now());
+      if(k !== lastKey){ h += '<div class="hgroup">' + esc(dlabel(r.t||Date.now())) + '</div>'; lastKey = k; }
+      h += '<div class="hist-item" data-i="'+i+'">' +
+             '<div class="t">'+timeOf(r.t||Date.now())+'</div>' +
+             '<div class="s">'+esc(briefOf(r.brief, r.chat))+'</div>' +
+             '<span class="x" data-x="'+i+'" title="删除这条">×</span>' +
+           '</div>';
+    });
+    h += '<div class="hist-foot"><span class="lnk" id="btnClrHist">清空全部历史</span></div>';
+    box.innerHTML = h;
+
     Array.prototype.forEach.call(box.querySelectorAll('.hist-item'), function(el){
-      el.onclick = function(){
+      el.onclick = function(ev){
+        if(ev && ev.target && ev.target.getAttribute('data-x') !== null){
+          var xi = +ev.target.getAttribute('data-x');
+          var rr = list[xi];
+          if(rr && window.confirm('删掉这条历史记录？删了就找不回来了。')){
+            var nl = loadHist(); nl.splice(xi,1); lsSet(K.hist, JSON.stringify(nl)); renderHist();
+          }
+          if(ev.stopPropagation) ev.stopPropagation();
+          return;
+        }
         var r = list[+el.dataset.i];
         if(!r) return;
         var data = parseAnalysis(r.raw||'');
-        renderOut(data);
+        renderOut(data, r);
+        setFold('out', false);
         var d2 = new Date(r.t||Date.now());
-        flash('已载入 · ' + (d2.getMonth()+1) + '月' + d2.getDate() + '日 ' + pad(d2.getHours()) + ':' + pad(d2.getMinutes()));
+        flash('已载入 · ' + (d2.getMonth()+1) + '月' + d2.getDate() + '日 ' + pad(d2.getHours()) + ':' + pad(d2.getMinutes()), 'ok');
+        try{ $('outWrap').scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
       };
     });
+    var bc = $('btnClrHist');
+    if(bc) bc.onclick = function(ev){
+      if(ev && ev.stopPropagation) ev.stopPropagation();
+      if(window.confirm('清空全部 ' + loadHist().length + ' 条历史？删了就找不回来了。')){
+        lsSet(K.hist,'[]'); renderHist(); flash('历史已清空');
+      }
+    };
   }
 
   function syncCnt(){ $('cntIn').textContent = $('chat').value.length + ' 字'; }
@@ -635,7 +766,16 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     lsDel(K.chat);
     renderOut(null);
     syncCnt();
+    setFold('in', false);
     flash('已清空');
+  };
+
+  $('btnFoldIn').onclick = function(){
+    setFold('in', !$('inBody').classList.contains('off'));
+  };
+  $('outHd').onclick = function(){
+    if($('outWrap').classList.contains('off')) return;
+    setFold('out', !$('outBody').classList.contains('off'));
   };
 
   $('btnFlip').onclick = function(){
@@ -653,11 +793,15 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
       flash('这次回复里没读到解读格式，再试一次', 'bad');
       return false;
     }
-    renderOut(data);
+    var now = Date.now();
+    renderOut(data, { t: now, chat: chatNorm || '' });
     lsSet(K.back, raw);
-    var d = new Date();
+    var d = new Date(now);
     flash('解读完成 · ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()), 'ok');
-    saveHist({ t: Date.now(), raw: raw, chat: chatNorm||'' });
+    saveHist({ t: now, raw: raw, chat: chatNorm || '', brief: data.summary || '' });
+    setFold('in', true);    /* 解读完把原始聊天自动收成一行，页面不摊着 */
+    setFold('out', false);
+    try{ $('outWrap').scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
     return true;
   }
 
@@ -743,10 +887,12 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     syncCnt();
     renderHist();
     renderWhoPick(null, !!$('chat').value.trim());
+    setFold('in', lsGet(K.foldIn,'0') === '1');
+    setFold('out', lsGet(K.foldOut,'0') === '1');
     var savedBack = lsGet(K.back,'');
     if(savedBack.trim()){
       var d = parseAnalysis(savedBack);
-      if(d.items.length){ renderOut(d); flash('已恢复上次的解读'); }
+      if(d.items.length){ renderOut(d); setFold('out', lsGet(K.foldOut,'0')==='1'); flash('已恢复上次的解读'); }
     }
     if(!$('apiKey').value){ flash('填好接口密钥，结果直接出在下面'); }
   })();
