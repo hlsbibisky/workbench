@@ -263,6 +263,39 @@
   .api-panel input{width:100%;box-sizing:border-box;border:1px solid #e6dccd;border-radius:9px;background:#fff;color:#3a3631;font-family:inherit;font-size:13px;padding:8px 10px;outline:none;}
   .api-panel input:focus{border-color:#b8714e;}
   .api-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+
+  /* ===== 卦例历史 ===== */
+  .hist-btn{border:1px solid #e6dccd;background:#fffdf9;color:#8d5233;border-radius:999px;
+    padding:5px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:.15s;}
+  .hist-btn:hover{border-color:#b8714e;color:#b8714e;}
+  .hist-btn b{font-weight:700;}
+  .hist-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    background:#fdf6ee;border:1px solid #eddcc9;border-radius:12px;padding:9px 14px;margin-bottom:14px;font-size:13px;color:#8d5233;}
+  .hist-bar .lnk{color:#b8714e;cursor:pointer;font-size:12.5px;text-decoration:underline dotted;}
+  .hgroup{font-size:11.5px;color:#a89c8f;letter-spacing:1px;margin:18px 2px 9px;display:flex;align-items:center;gap:9px;}
+  .hgroup::after{content:"";flex:1;height:1px;background:var(--line);}
+  .hgroup:first-child{margin-top:2px;}
+  .hitem{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:11px 14px;cursor:pointer;transition:.15s;box-shadow:var(--shadow);}
+  .hitem + .hitem{margin-top:8px;}
+  .hitem:hover{border-color:#b8714e;transform:translateY(-1px);}
+  .hitem .hm{flex:0 0 auto;text-align:center;min-width:52px;}
+  .hitem .hm .d{font-size:16px;font-weight:700;color:var(--accent);line-height:1.25;}
+  .hitem .hm .t{font-size:11px;color:#a89c8f;}
+  .hitem .hb{flex:1;min-width:0;}
+  .hitem .hg{font-size:15px;font-weight:700;color:var(--ink);}
+  .hitem .hg em{font-style:normal;font-size:12px;color:#a89c8f;font-weight:400;margin-left:6px;}
+  .hitem .hq{font-size:12.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+  .hitem .hr{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .htag{font-size:10.5px;border-radius:6px;padding:1px 7px;border:1px solid #e8d3c1;background:#fdf8f2;color:#8d5233;white-space:nowrap;}
+  .htag.ai{border-color:#cfe3d6;background:#eef6f0;color:#3f7a55;}
+  .hitem .hx{width:24px;height:24px;line-height:22px;text-align:center;border-radius:7px;color:#c3bab0;font-size:15px;}
+  .hitem .hx:hover{background:#f7ece2;color:#c0392b;}
+  .hempty{text-align:center;color:#b3aa9e;font-size:13px;padding:40px 16px;line-height:2.1;}
+  @media (max-width:640px){
+    .hitem{flex-wrap:wrap;}
+    .hitem .hr{width:100%;justify-content:flex-end;margin-top:-4px;}
+  }
 </style>
 </head>
 <body>
@@ -275,7 +308,10 @@
     <span class="top-title">⚊ 六爻起卦</span>
     <span class="top-sub">诚心默念 · 一卦一问</span>
   </div>
-  <span class="top-time" id="topTime"></span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="hist-btn" onclick="showPage('hist')">📜 卦例历史 <b id="guaHistCnt">0</b></button>
+    <span class="top-time" id="topTime"></span>
+  </div>
 </div>
 
 <!-- ===== 页面1：输入问题 ===== -->
@@ -533,6 +569,11 @@
 
 <!-- ===== 页面3：结果展示 ===== -->
 <div class="page" id="page-result">
+  <div class="hist-bar" id="guaHistBar" style="display:none;">
+    <span>📜 正在查看历史卦例（<span id="guaHistWhen"></span>）</span>
+    <span><span class="lnk" onclick="showPage('hist')">← 回历史列表</span> &nbsp;·&nbsp; <span class="lnk" onclick="resetAll()">起新的一卦</span></span>
+  </div>
+
   <div class="result-header">
     <div class="result-gua-name" id="resGuaName"></div>
     <div class="result-gua-change" id="resGuaChange"></div>
@@ -583,6 +624,18 @@
     <button class="copy-btn" onclick="copyPrompt()" style="font-size:12px;opacity:.75;">一键复制提示词</button>
   </div>
 </div><!-- end page-result -->
+
+<!-- ===== 页面4：卦例历史 ===== -->
+<div class="page" id="page-hist">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+    <div style="font-size:17px;font-weight:700;color:var(--ink);">📜 卦例历史</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;color:var(--sub);" id="guaHistTip">每卦自动存档，AI 解读也会一起收进来</span>
+      <button class="btn-ghost" id="btnClrGuaHist" style="border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:9px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;">清空</button>
+    </div>
+  </div>
+  <div id="guaHistList"></div>
+</div>
 
 </div><!-- end page-wrap -->
 
@@ -990,6 +1043,9 @@ function computeAndShowResult(){
   };
 
   renderResult();
+  /* 新卦自动存档；不是在看历史，所以把历史横幅收起来 */
+  const hb = document.getElementById('guaHistBar'); if(hb) hb.style.display='none';
+  try{ guaHistAdd(appState.result); }catch(e){}
   showPage('result');
   document.querySelectorAll('#st3 .step-dot, #st3b .step-dot').forEach(e => e.textContent = '✓');
   document.getElementById('st3').className = 'step done';
@@ -1322,6 +1378,7 @@ async function askGuaAI(){
     box.innerHTML=renderGuaAnswer(txt);
     st.innerHTML='<span style="color:#3f9d6b">解读完成</span>';
     try{ localStorage.setItem('guaLastAnswer',txt); }catch(e){}
+    try{ guaHistWriteAI(appState.histId, txt); }catch(e){}
   }catch(e){
     if(timer)clearTimeout(timer);
     let m=(e&&e.name==='AbortError')?'等太久放弃了':String((e&&e.message)||e);
@@ -1382,7 +1439,10 @@ function fallbackCopy(text,cb){
 }
 
 function resetAll(){
-  appState = {question:'',mode:'manual',throws:[],currentThrow:0,result:null};
+  appState = {question:'',mode:'manual',throws:[],currentThrow:0,result:null,histId:null,viewHist:null};
+  const hb = document.getElementById('guaHistBar'); if(hb) hb.style.display='none';
+  const ab = document.getElementById('aiAnswer'); if(ab) ab.innerHTML='';
+  const as = document.getElementById('guaAIState'); if(as) as.textContent='密钥填一次，全站通用（下方「接口设置」）';
   document.getElementById('questionInput').value=''; updateQCount();
   selectMode('manual'); updateThrowUI(); resetFormingArea();
   showPage('input');
@@ -1395,6 +1455,163 @@ function resetAll(){
 }
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function resolveUpper(r){ return getGuaParts(r.yaos).upper; }
+
+/* ============================================================
+//  卦例历史
+// ============================================================ */
+const GUA_HIST_KEY = 'guaHist';
+const GUA_WK = ['周日','周一','周二','周三','周四','周五','周六'];
+function guaPad2(n){ return (n<10?'0':'')+n; }
+
+function guaHistLoad(){
+  try{ const v = JSON.parse(localStorage.getItem(GUA_HIST_KEY)||'[]'); return Array.isArray(v)?v:[]; }
+  catch(e){ return []; }
+}
+function guaHistSave(list){
+  try{ localStorage.setItem(GUA_HIST_KEY, JSON.stringify(list)); return true; }
+  catch(e){
+    let l = list.slice();
+    while(l.length>5){
+      l = l.slice(0, Math.floor(l.length/2));
+      try{ localStorage.setItem(GUA_HIST_KEY, JSON.stringify(l)); break; }catch(e2){}
+    }
+    return false;
+  }
+}
+function guaDayKey(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function guaDayLabel(ts){
+  const now = new Date(), k = guaDayKey(ts);
+  if(k === guaDayKey(now.getTime())) return '今天';
+  if(k === guaDayKey(now.getTime()-86400000)) return '昨天';
+  const d = new Date(ts);
+  const y = (d.getFullYear()!==now.getFullYear()) ? (d.getFullYear()+'年') : '';
+  return y + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + GUA_WK[d.getDay()];
+}
+
+function guaHistAdd(r){
+  const rec = {
+    id: 'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    t: (r.time instanceof Date) ? r.time.getTime() : Date.now(),
+    question: r.question || '',
+    benGua: r.benGua, bianGua: r.bianGua, gong: r.gong,
+    yaos: r.yaos, bianyaos: r.bianyaos, dongYaos: r.dongYaos,
+    ganzhi: r.ganzhi, xunkong: r.xunkong, shiYing: r.shiYing,
+    ai: ''
+  };
+  const list = guaHistLoad();
+  list.unshift(rec);
+  if(list.length > 300) list.length = 300;
+  guaHistSave(list);
+  appState.histId = rec.id;
+  appState.viewHist = null;
+  guaHistRender();
+  return rec.id;
+}
+function guaHistWriteAI(id, txt){
+  if(!id) return;
+  const list = guaHistLoad();
+  for(let i=0;i<list.length;i++){
+    if(list[i].id === id){ list[i].ai = txt; guaHistSave(list); guaHistRender(); return; }
+  }
+}
+function guaHistDel(id){
+  const list = guaHistLoad().filter(x => x.id !== id);
+  guaHistSave(list);
+  if(appState.histId === id){ appState.histId = null; }
+  if(appState.viewHist === id){ appState.viewHist = null; }
+  guaHistRender();
+}
+
+function guaHistRender(){
+  const list = guaHistLoad();
+  const cnt = document.getElementById('guaHistCnt');
+  if(cnt) cnt.textContent = list.length;
+  const box = document.getElementById('guaHistList');
+  if(!box) return;
+  if(!list.length){
+    box.innerHTML = '<div class="hempty">还没有卦例。<br>起一卦，结果会自动存到这里；<br>AI 解读出来后，会一并收进同一条。</div>';
+    return;
+  }
+  let h = '', lastK = '';
+  list.forEach(r => {
+    const ts = r.t || Date.now();
+    const k = guaDayKey(ts);
+    if(k !== lastK){ h += '<div class="hgroup">'+escHtml(guaDayLabel(ts))+'</div>'; lastK = k; }
+    const d = new Date(ts);
+    const dong = (r.dongYaos||[]).length;
+    const chg = dong > 0 ? (' → ' + r.bianGua) : '';
+    h += '<div class="hitem" data-id="'+escHtml(r.id)+'">' +
+           '<div class="hm"><div class="d">'+(d.getMonth()+1)+'/'+d.getDate()+'</div>' +
+           '<div class="t">'+guaPad2(d.getHours())+':'+guaPad2(d.getMinutes())+'</div></div>' +
+           '<div class="hb"><div class="hg">'+escHtml(r.benGua + chg) +
+             '<em>'+(dong>0 ? (dong+' 爻动') : '无变爻')+' · '+escHtml(r.gong||'')+'宫</em></div>' +
+           '<div class="hq">'+escHtml(r.question || '（没写问事）')+'</div></div>' +
+           '<div class="hr">'+(r.ai ? '<span class="htag ai">已解读</span>' : '<span class="htag">未解读</span>') +
+           '<span class="hx" data-del="'+escHtml(r.id)+'" title="删除这个卦例">×</span></div>' +
+         '</div>';
+  });
+  box.innerHTML = h;
+  box.querySelectorAll('.hitem').forEach(el => {
+    el.onclick = function(ev){
+      const delId = (ev.target && ev.target.getAttribute) ? ev.target.getAttribute('data-del') : null;
+      if(delId){
+        if(ev.stopPropagation) ev.stopPropagation();
+        if(confirm('删掉这个卦例？删了就找不回来了。')) guaHistDel(delId);
+        return;
+      }
+      guaHistOpen(el.getAttribute('data-id'));
+    };
+  });
+}
+
+function guaHistOpen(id){
+  const rec = guaHistLoad().filter(x => x.id === id)[0];
+  if(!rec) return;
+  const benData = GUA64[rec.benGua] || {gong: rec.gong||'乾', ci:{original:'',xiang:'',explain:''}, yaoco:[]};
+  const bianData = rec.bianGua ? (GUA64[rec.bianGua] || null) : null;
+  appState.viewHist = rec.id;
+  appState.histId = rec.id;
+  appState.result = {
+    question: rec.question, time: new Date(rec.t), ganzhi: rec.ganzhi, xunkong: rec.xunkong,
+    benGua: rec.benGua, bianGua: rec.bianGua, gong: benData.gong,
+    yaos: rec.yaos || [], bianyaos: rec.bianyaos || [], dongYaos: rec.dongYaos || [],
+    shiYing: rec.shiYing, data: benData, bianData: bianData
+  };
+  renderResult();
+  const box = document.getElementById('aiAnswer');
+  const st  = document.getElementById('guaAIState');
+  if(box) box.innerHTML = rec.ai ? renderGuaAnswer(rec.ai) : '';
+  if(st)  st.innerHTML = rec.ai
+    ? '<span style="color:#3f9d6b">这条已经解读过了</span>'
+    : '这一卦还没解读，点「✨ 直接出解读」后会自动存进这条记录';
+  const d = new Date(rec.t);
+  const when = document.getElementById('guaHistWhen');
+  if(when) when.textContent = (d.getMonth()+1)+'月'+d.getDate()+'日 '+guaPad2(d.getHours())+':'+guaPad2(d.getMinutes());
+  const bar = document.getElementById('guaHistBar');
+  if(bar) bar.style.display = 'flex';
+  showPage('result');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* 初始化：历史列表 + 清空按钮 */
+try{ guaHistRender(); }catch(e){}
+(function(){
+  const b = document.getElementById('btnClrGuaHist');
+  if(!b) return;
+  b.onclick = function(){
+    let n = 0;
+    try{ n = guaHistLoad().length; }catch(e){}
+    if(!n) return;
+    if(confirm('清空全部 ' + n + ' 个卦例？删了就找不回来了。')){
+      guaHistSave([]);
+      appState.histId = null; appState.viewHist = null;
+      guaHistRender();
+    }
+  };
+})();
 
 </script>
 </body>
