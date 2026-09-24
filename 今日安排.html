@@ -225,20 +225,65 @@ let calY, calM;          // 历史视图当前年月
 function todayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function dayObj(k){
-  if(!store.days[k]) store.days[k]={focus:'',tasks:[],waiting:[]};
+  if(!store.days[k]) store.days[k]={focus:'',tasks:[],waiting:[],dels:[]};
   const d=store.days[k];
   if(!Array.isArray(d.tasks)) d.tasks=[];
   if(!Array.isArray(d.waiting)) d.waiting=[];
+  if(!Array.isArray(d.dels)) d.dels=[];
   return d;
+}
+/* 删除墓碑：删掉/转正的条目 id 记进 dels，随同步上云；
+   合并端（工作台 wbMergeToday）见到墓碑就不再让该条目复活——否则并集合并会让删除永远同步不出去。 */
+function pushDel(d,id){
+  d.dels=(d.dels||[]).filter(x=>String(x.id)!==String(id));
+  d.dels.push({id:id,ts:Date.now()});
+  if(d.dels.length>300) d.dels=d.dels.slice(-300);
 }
 function cur(){ return dayObj(todayKey()); }
 
+/* 自愈：清掉墓碑对应的残留条目 + 同一天同名重复项（同步旧缺陷留下的脏数据）。
+   只在单日范围内去重，不同天同名是正常习惯，绝不动。 */
+function healDay(d){
+  let changed=false;
+  if(!Array.isArray(d.dels)) d.dels=[];
+  const dead={}; d.dels.forEach(x=>{ if(x&&x.id!==undefined) dead[String(x.id)]=1; });
+  ['tasks','waiting'].forEach(fld=>{
+    const arr=Array.isArray(d[fld])?d[fld]:[];
+    const out=[],seen={};
+    arr.forEach(it=>{
+      if(!it||it.id===undefined){ changed=true; return; }        /* 残缺项丢弃 */
+      if(dead[String(it.id)]){ changed=true; return; }           /* 已删除项：直接清掉 */
+      const key=String(it.text||'');
+      const si=seen[key];
+      if(si!==undefined){
+        changed=true;
+        /* 任务同名去重优先保留已完成那条（对历史统计更有价值） */
+        if(fld==='tasks' && it.done && !out[si].done){
+          pushDel(d, out[si].id); out[si]=it;
+        } else {
+          pushDel(d, it.id);
+        }
+        return;
+      }
+      seen[key]=out.length; out.push(it);
+    });
+    if(out.length!==arr.length) d[fld]=out;
+  });
+  return changed;
+}
 function load(){
   let raw=null;
   try{ raw=JSON.parse(localStorage.getItem(K)); }catch(e){ raw=null; }
   if(!raw||typeof raw!=='object'||!raw.days) raw={days:{}};
   store={days:raw.days};
+  let healed=false;
+  Object.keys(store.days).forEach(k=>{
+    const d=store.days[k];
+    if(!d||typeof d!=='object'){ delete store.days[k]; healed=true; return; }
+    if(healDay(d)) healed=true;
+  });
   const t=new Date(); calY=t.getFullYear(); calM=t.getMonth();
+  if(healed) save();   /* 修完立即落盘并通知外壳推送，墓碑随包上云，别的设备也能收敛 */
 }
 function save(){
   try{ localStorage.setItem(K, JSON.stringify(store)); }catch(e){ toast('保存失败：本地存储空间不足'); return; }
@@ -305,7 +350,7 @@ function renderToday(){
     if(t.est) bits.push(t.est);
     if(bits.length){ const s=document.createElement('span'); const od=isOverdue(t); s.className=od?'tm overdue':''; s.textContent=bits.join(' · ')+(od?' · 已过期':''); mt.appendChild(s); }
     body.appendChild(tx); if(mt.childNodes.length) body.appendChild(mt);
-    const del=document.createElement('button'); del.className='del'; del.textContent='✕'; del.title='删除这条'; del.onclick=()=>{ if(confirm('删除这条任务？')){ d.tasks=d.tasks.filter(x=>x.id!==t.id); save(); renderToday(); } };
+    const del=document.createElement('button'); del.className='del'; del.textContent='✕'; del.title='删除这条'; del.onclick=()=>{ if(confirm('删除这条任务？')){ pushDel(d,t.id); d.tasks=d.tasks.filter(x=>x.id!==t.id); save(); renderToday(); } };
     row.appendChild(ck); row.appendChild(body); row.appendChild(del);
     tl.appendChild(row);
   });
@@ -325,9 +370,9 @@ function renderToday(){
     if(w.note){ const n=document.createElement('div'); n.className='wnote'; n.textContent=w.note; body.appendChild(n); }
     const acts=document.createElement('div'); acts.className='wacts';
     const ok=document.createElement('button'); ok.className='mini'; ok.textContent='转正 →'; ok.title='移到「现在要做」';
-    ok.onclick=()=>{ d.waiting=d.waiting.filter(x=>x.id!==w.id); d.tasks.push({id:uid(),text:w.text,cat:'',time:'',est:'',done:false,created:todayKey()}); save(); renderToday(); toast('已转到「现在要做」'); };
+    ok.onclick=()=>{ pushDel(d,w.id); d.waiting=d.waiting.filter(x=>x.id!==w.id); d.tasks.push({id:uid(),text:w.text,cat:'',time:'',est:'',done:false,created:todayKey()}); save(); renderToday(); toast('已转到「现在要做」'); };
     const del=document.createElement('button'); del.className='mini'; del.textContent='删除';
-    del.onclick=()=>{ if(confirm('删除这条？')){ d.waiting=d.waiting.filter(x=>x.id!==w.id); save(); renderToday(); } };
+    del.onclick=()=>{ if(confirm('删除这条？')){ pushDel(d,w.id); d.waiting=d.waiting.filter(x=>x.id!==w.id); save(); renderToday(); } };
     acts.appendChild(ok); acts.appendChild(del);
     row.appendChild(dot); row.appendChild(body); row.appendChild(acts);
     wl.appendChild(row);
