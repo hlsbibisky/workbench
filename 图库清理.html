@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="IPk3kOGpXqAiTc4Wlcso4q">
+<head data-page-node-id="CXO4n80FTZcdGNXIvQx1qC">
+<meta charset="UTF-8" data-page-node-id="07HobneK6OhEoLbWaUiPkX">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="x7MbDbSpAfP6jpTN5WQTnN">
 <title>图库清理</title>
 <style>
   :root{
@@ -49,26 +49,26 @@
   .empty{padding:40px 14px;text-align:center;color:var(--sub);}
 </style>
 </head>
-<body>
-<div class="bar">
-  <h1>图库清理</h1>
-  <span class="stat">共 <b id="sTotal">0</b> 张</span>
-  <span class="stat">疑似模糊 <b id="sBlur">0</b> 张</span>
-  <span class="stat">被菜品引用 <b id="sUsed">0</b> 张</span>
-  <span class="stat">已选 <b id="sSel">0</b> 张</span>
-  <span class="ctl">最长边 &lt; <input id="thr" type="number" value="1000" min="50" step="50"> 判为模糊</span>
-  <button id="btnSmart" class="sec">一键选疑似模糊（未被使用）</button>
-  <button id="btnInv" class="sec">反选</button>
-  <button id="btnClr" class="sec">清空选择</button>
-  <button id="btnBak" class="sec">下载整库备份</button>
-  <button id="btnDel">删除选中（先备份）</button>
+<body data-page-node-id="46dvtt1hIYyZEPrPsik53r">
+<div class="bar" data-page-node-id="RaqBQaQo1snDADwi4DxXXw">
+  <h1 data-page-node-id="o3L2bE7bKZQtg84sYXh1to">图库清理</h1>
+  <span class="stat" data-page-node-id="sDIAYap99EDJ74P0HFwOBl">共 <b id="sTotal" data-page-node-id="3HhxbvkCmiPuPVNAh10x7d">0</b> 张</span>
+  <span class="stat" data-page-node-id="vxJ96ccEYJJBjcH8CQNayw">疑似模糊 <b id="sBlur" data-page-node-id="Dfs8rJjNgh7DbGMttdlHro">0</b> 张</span>
+  <span class="stat" data-page-node-id="rcLAuBRKptWWK5oM3lpPrk">被菜品引用 <b id="sUsed" data-page-node-id="wUyP8ZlrwOIGfZGODXy1Px">0</b> 张</span>
+  <span class="stat" data-page-node-id="Oh2WDiTOLRMYkjmN5AKeuP">已选 <b id="sSel" data-page-node-id="AHLzUp3eGCOF5EOcVfVUYY">0</b> 张</span>
+  <span class="ctl" data-page-node-id="6pwyxbeFYenjpLOxn5p33b">最长边 &lt; <input id="thr" type="number" value="1000" min="50" step="50" data-page-node-id="lr3NXxm8SWccBhobQLAm2h"> 判为模糊</span>
+  <button id="btnSmart" class="sec" data-page-node-id="4kWl27bUH9AwtzdHGyFHpb">一键选疑似模糊（未被使用）</button>
+  <button id="btnInv" class="sec" data-page-node-id="dxRAEoSFFMUJDuMBd8PBG8">反选</button>
+  <button id="btnClr" class="sec" data-page-node-id="s2BeUyox8O4gZe8YBTPnpw">清空选择</button>
+  <button id="btnBak" class="sec" data-page-node-id="A8muAm9DIqOyF1yQm23L3i">下载整库备份</button>
+  <button id="btnDel" data-page-node-id="CIKhIQLAN8Kwp5X6wriXKG">删除选中（先备份）</button>
 </div>
-<div class="tip">
-  每张图都放大预览，标了<b>分辨率</b>和<b>文件大小</b>——模糊图通常是被压缩过的，分辨率低、体积小。<br>
-  被某道菜引用着的图会标「被使用」，默认不在一键选择范围内（避免误删正在用的图）。<br>
-  <b>删除不可撤销</b>：点「删除选中」会先把整个图库下载成备份 JSON（可恢复），再删除。务必先确认预览里确实是模糊图。
+<div class="tip" data-page-node-id="Jq5p64IcSO5USFEESQBmSB">
+  每张图都放大预览，标了<b data-page-node-id="NgzOtvhniwgt9PDvTUNcjY">分辨率</b>和<b data-page-node-id="odu0ISAXRi3zGZYfJb5ern">文件大小</b>——模糊图通常是被压缩过的，分辨率低、体积小。<br data-page-node-id="j8WzFsyuHpyYyd9lupu24K">
+  被某道菜引用着的图会标「被使用」，默认不在一键选择范围内（避免误删正在用的图）。<br data-page-node-id="sGXIbGveuZXF3XoCixV8lQ">
+  <b data-page-node-id="hue5CrBqPlS2b5ByVnS5t6">删除不可撤销</b>：点「删除选中」会先把整个图库下载成备份 JSON（可恢复），再删除。务必先确认预览里确实是模糊图。
 </div>
-<div class="grid" id="grid"></div>
+<div class="grid" id="grid" data-page-node-id="kcpYvEU2HWQtb4N5F8K5DB"></div>
 
 <script>
 const IDB_NAME='food_img_db', IDB_STORE='images';
