@@ -476,7 +476,7 @@ function notifyParent(){ try{parent.postMessage({type:'wb-data-changed'},'*');}c
 
 try{ if(!window.__wbStorageHooked){
 var _oS=Storage.prototype.setItem, _oR=Storage.prototype.removeItem;
-Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ if(String(k).indexOf('cinema_prog_')!==0) notifyParent(); }catch(e){} return r; };
+Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ if(!window.__syncSilent && String(k).indexOf('cinema_prog_')!==0) notifyParent(); }catch(e){} return r; };
 Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
 window.__wbStorageHooked=true; } }catch(e){}
 
@@ -1228,6 +1228,9 @@ async function genAiNotes(){
   const key=cfg.key, model=cfg.model||'deepseek-flash', endpoint=cfg.endpoint||'https://api.deepseek.com';
   if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
   const btn=$('genBtn'), old=btn.textContent; btn.disabled=true;
+  /* 生成期间上锁：① 禁止云同步回流的 wb-reload 把页面重载（否则跑到一半全丢）
+                    ② 暂停写盘通知，避免每写一次就触发一轮同步包推送 */
+  window.__genBusy=true; window.__syncSilent=true;
   const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
   const durTxt=dur?fmt(dur):'';
   const collected=[];
@@ -1399,8 +1402,20 @@ ${plot}`;
     }
     aiSay('系统', saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
   }catch(e){
-    alert('生成失败：'+e.message+'\n\n请检查 API Key、模型名和接口地址是否正确。');
-  }finally{ btn.textContent=old; btn.disabled=false; }
+    const msg=String((e&&e.message)||e);
+    /* 网络类错误和「填错密钥」看起来很像，不分开说会白折腾半天 */
+    let tip='请检查右上角「AI配置」里的 API Key、模型名和接口地址是否正确。';
+    if(/failed to fetch|networkerror|network request failed|load failed|ERR_/i.test(msg)){
+      tip='这是网络连不上接口地址，多半是代理 / 梯子把请求拦了，也可能接口地址被墙。\n'
+         +'先把代理关掉再试一次；当前用的接口地址是：'+endpoint;
+    }
+    alert('生成失败：'+msg+'\n\n'+tip);
+  }finally{
+    btn.textContent=old; btn.disabled=false;
+    window.__genBusy=false; window.__syncSilent=false;
+    try{ notifyParent(); }catch(err){}      /* 解锁后统一通知外壳同步一次 */
+    try{ flushPendingReload(); }catch(err){}
+  }
 }
 
 /* ================= 字幕解析（字幕优先） ================= */
@@ -1681,8 +1696,24 @@ function init(){
 }
 init();
 
+/* ⚠ 子页绝不能被外壳随意重载（2026-09-25 修复「点生成后页面闪一下、回到刚刷新的样子」）
+   只要云同步拉到新数据，外壳就会广播 wb-reload；以前这里无条件 location.reload()，
+   于是正在播放的电影被打断、跑到一半的评论生成被整个抹掉（state 全丢，看着就像刚刷新）。
+   新策略：忙的时候只刷新历史列表，把重载推迟；空闲且手里没片子时才真正重载。 */
+function wbSafeReload(){
+  try{ renderHistory(); }catch(e){}
+  if(window.__genBusy){ window.__pendingReload=true; return false; }          /* 正在生成评论 */
+  if(video && video.src && !video.paused){ window.__pendingReload=true; return false; }  /* 正在播放 */
+  if(state.currentId){ window.__pendingReload=true; return false; }           /* 手里有片子，别打断 */
+  return true;
+}
+function flushPendingReload(){
+  if(!window.__pendingReload) return;
+  window.__pendingReload=false;
+  if(wbSafeReload()) location.reload();
+}
 window.addEventListener('message',e=>{
-  if(e.data && e.data.type==='wb-reload') location.reload();
+  if(e.data && e.data.type==='wb-reload'){ if(wbSafeReload()) location.reload(); }
 });
 </script>
 </body>
