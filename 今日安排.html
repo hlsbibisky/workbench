@@ -16,20 +16,30 @@
   *{box-sizing:border-box; margin:0;}
   body{background:var(--bg); color:var(--ink); font-family:var(--font); line-height:1.55; -webkit-font-smoothing:antialiased; padding:18px 16px 60px;}
   ::selection{background:var(--mark);}
-  .wrap{max-width:760px; margin:0 auto;}
+  .wrap{max-width:1280px; margin:0 auto; padding:0 24px 46px;}
 
-  /* 顶部：标题 + 视图切换 */
-  .hd{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
-  .hd h1{font-size:21px; letter-spacing:1px; font-weight:700;}
-  .hd h1 small{font-size:12.5px; color:var(--sub); font-weight:400; margin-left:10px; letter-spacing:0;}
+  /* 顶部：只放视图切换（右上角），页面内不放与外壳重复的大标题 */
+  .hd{display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:14px;}
   .tabs{display:flex; background:#efe9df; border-radius:10px; padding:3px; gap:2px;}
   .tabs button{border:0; background:transparent; color:var(--sub); font-family:inherit; font-size:13px; padding:6px 16px; border-radius:8px; cursor:pointer; transition:.15s;}
   .tabs button.on{background:#fff; color:var(--accent); font-weight:600; box-shadow:0 1px 3px rgba(58,54,49,.08);}
+
+  /* 满宽分栏：大屏两列，窄屏单列 */
+  .grid2{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:14px; align-items:start;}
+  .hgrid{display:grid; grid-template-columns:minmax(0,1.12fr) minmax(0,1fr); gap:14px; align-items:start;}
 
   /* 通用卡片 */
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:14px;}
   .card h2{font-size:13px; letter-spacing:2px; color:var(--sub); font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
   .card h2 .n{background:var(--mark); color:var(--accent); border-radius:8px; font-size:11.5px; padding:0 8px; letter-spacing:0;}
+  .card h2 .dnum{margin-left:auto; font-size:12px; color:var(--sub); letter-spacing:0; font-weight:400;}
+
+  /* 常用标签：点一下直接选中/添加 */
+  .chips{margin-top:10px; display:flex; flex-direction:column; gap:7px;}
+  .chips-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .chips-label{font-size:11px; color:var(--sub); letter-spacing:1px; flex:0 0 auto; margin-right:2px;}
+  .chip{border:1px solid #e3d9c8; background:#faf6ee; color:var(--ink); border-radius:999px; padding:4px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; transition:.13s; max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .chip:hover{border-color:var(--accent); color:var(--accent); background:var(--mark);}
 
   /* 今日重点 */
   .focus{display:flex; align-items:flex-start; gap:12px;}
@@ -119,8 +129,12 @@
   #toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(10px); background:rgba(58,50,42,.92); color:#fff; font-size:13px; padding:9px 20px; border-radius:10px; opacity:0; transition:.2s; pointer-events:none; z-index:99;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
+  @media (max-width:920px){
+    .grid2,.hgrid{grid-template-columns:1fr;}
+  }
   @media (max-width:520px){
-    body{padding:12px 10px 50px;}
+    body{padding:12px 0 50px;}
+    .wrap{padding:0 12px 40px;}
     .card{padding:14px 14px;}
     #focusText{font-size:16.5px;}
     .addrow .short{width:84px;}
@@ -131,7 +145,6 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>今日安排<small id="dateLabel"></small></h1>
     <div class="tabs">
       <button id="tabToday" class="on" onclick="switchView('today')">今天</button>
       <button id="tabHist" onclick="switchView('hist')">历史</button>
@@ -140,7 +153,7 @@
 
   <div id="todayView">
     <div class="card">
-      <h2>今日重点</h2>
+      <h2>今日重点 <span class="dnum" id="dateLabel"></span></h2>
       <div class="focus">
         <div class="bar"></div>
         <div id="focusText" contenteditable="true" spellcheck="false"></div>
@@ -148,45 +161,53 @@
       <div class="focus-meta" id="focusMeta"></div>
     </div>
 
-    <div class="card">
-      <h2>现在要做 <span class="n" id="todoN"></span></h2>
-      <div id="taskList"></div>
-      <div class="addrow">
-        <input class="ti" id="newText" placeholder="要做什么？" onkeydown="if(event.key==='Enter')addTask()">
-        <input class="short" id="newCat" placeholder="分类">
-        <input class="time" id="newTime" type="time" title="时间（可选）">
-        <button class="addbtn" onclick="addTask()">＋添加</button>
+    <div class="grid2">
+      <div class="card">
+        <h2>现在要做 <span class="n" id="todoN"></span></h2>
+        <div id="taskList"></div>
+        <div class="addrow">
+          <input class="ti" id="newText" placeholder="要做什么？" onkeydown="if(event.key==='Enter')addTask()">
+          <input class="short" id="newCat" placeholder="分类">
+          <input class="time" id="newTime" type="time" title="时间（可选）">
+          <button class="addbtn" onclick="addTask()">＋添加</button>
+        </div>
+        <div class="chips" id="taskChips"></div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>等待确认 <span class="n" id="waitN"></span></h2>
-      <div id="waitList"></div>
-      <div class="addrow">
-        <input class="ti" id="newWait" placeholder="暂定的事，想好了再转正" onkeydown="if(event.key==='Enter')addWait()">
-        <button class="ghostbtn" onclick="addWait()">＋记一笔</button>
+      <div class="card">
+        <h2>等待确认 <span class="n" id="waitN"></span></h2>
+        <div id="waitList"></div>
+        <div class="addrow">
+          <input class="ti" id="newWait" placeholder="暂定的事，想好了再转正" onkeydown="if(event.key==='Enter')addWait()">
+          <button class="ghostbtn" onclick="addWait()">＋记一笔</button>
+        </div>
+        <div class="chips" id="waitChips"></div>
       </div>
     </div>
   </div>
 
   <div id="histView">
-    <div class="mh">
-      <button onclick="shiftMonth(-1)">‹</button>
-      <div class="mt" id="monLabel"></div>
-      <button onclick="shiftMonth(1)">›</button>
-    </div>
-    <div class="cal">
-      <div class="calgrid" id="calGrid"></div>
-      <div class="callegend">
-        <span><i style="background:var(--accent2)"></i>全部完成</span>
-        <span><i style="background:#fdf3e9;border:1px solid #f0ddc6"></i>部分完成</span>
-        <span><i style="background:#fff;border:1px solid var(--line)"></i>有安排</span>
+    <div class="hgrid">
+      <div>
+        <div class="mh">
+          <button onclick="shiftMonth(-1)">‹</button>
+          <div class="mt" id="monLabel"></div>
+          <button onclick="shiftMonth(1)">›</button>
+        </div>
+        <div class="cal">
+          <div class="calgrid" id="calGrid"></div>
+          <div class="callegend">
+            <span><i style="background:var(--accent2)"></i>全部完成</span>
+            <span><i style="background:#fdf3e9;border:1px solid #f0ddc6"></i>部分完成</span>
+            <span><i style="background:#fff;border:1px solid var(--line)"></i>有安排</span>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <h2>本月完成清单</h2>
-      <div class="mon-summary" id="monSummary"></div>
-      <div id="recList"></div>
+      <div class="card">
+        <h2>本月完成清单</h2>
+        <div class="mon-summary" id="monSummary"></div>
+        <div id="recList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -311,6 +332,7 @@ function renderToday(){
     row.appendChild(dot); row.appendChild(body); row.appendChild(acts);
     wl.appendChild(row);
   });
+  renderChips();
 }
 function addTask(){
   const inp=document.getElementById('newText');
@@ -326,6 +348,67 @@ function addWait(){
   const text=inp.value.trim(); if(!text){ inp.focus(); return; }
   cur().waiting.push({id:uid(),text:text,note:'',created:todayKey()});
   inp.value=''; save(); renderToday(); inp.focus();
+}
+
+/* ===== 常用标签：从历史数据自动收集，点一下直接选中/添加，不用每次手打 ===== */
+function escAttr(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+                  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function scanFreq(){
+  const tasks={}, cats={}, waits={};
+  Object.keys(store.days).forEach(k=>{
+    const d=store.days[k];
+    (d.tasks||[]).forEach(t=>{
+      if(t.text){
+        const o=tasks[t.text]||(tasks[t.text]={text:t.text,cat:'',est:'',count:0});
+        o.count++; if(t.cat) o.cat=t.cat; if(t.est) o.est=t.est;
+      }
+      if(t.cat) cats[t.cat]=(cats[t.cat]||0)+1;
+    });
+    (d.waiting||[]).forEach(w=>{ if(w.text) waits[w.text]=(waits[w.text]||0)+1; });
+  });
+  return {
+    tasks:Object.values(tasks).sort((a,b)=>b.count-a.count),
+    cats:Object.keys(cats).sort((a,b)=>cats[b]-cats[a]),
+    waits:Object.keys(waits).sort((a,b)=>waits[b]-waits[a])
+  };
+}
+function renderChips(){
+  const f=scanFreq();
+  const todayTasks=cur().tasks.map(t=>t.text);
+  const todayWaits=cur().waiting.map(w=>w.text);
+  const ft=f.tasks.filter(t=>todayTasks.indexOf(t.text)<0).slice(0,8);
+  const fc=f.cats.slice(0,8);
+  let html='';
+  if(ft.length){
+    html+='<div class="chips-row"><span class="chips-label">常用 · 点一下直接添加</span>';
+    ft.forEach(t=>{ html+='<button class="chip" title="直接添加：'+escAttr(t.text)+'" onclick="quickTask(\''+escAttr(t.text)+'\',\''+escAttr(t.cat||'')+'\')">＋ '+escAttr(t.text)+'</button>'; });
+    html+='</div>';
+  }
+  if(fc.length){
+    html+='<div class="chips-row"><span class="chips-label">分类</span>';
+    fc.forEach(c=>{ html+='<button class="chip" onclick="pickCat(\''+escAttr(c)+'\')">'+escAttr(c)+'</button>'; });
+    html+='</div>';
+  }
+  document.getElementById('taskChips').innerHTML=html;
+  const fw=f.waits.filter(t=>todayWaits.indexOf(t)<0).slice(0,8);
+  document.getElementById('waitChips').innerHTML = fw.length?
+    ('<div class="chips-row"><span class="chips-label">常用 · 点一下直接记</span>'
+     + fw.map(t=>'<button class="chip" onclick="quickWait(\''+escAttr(t)+'\')">＋ '+escAttr(t)+'</button>').join('') + '</div>')
+    : '';
+}
+function quickTask(text,cat){
+  cur().tasks.push({id:uid(),text:text,cat:cat||'',time:'',est:'',done:false,created:todayKey()});
+  save(); renderToday(); toast('已添加：'+text);
+}
+function pickCat(c){
+  document.getElementById('newCat').value=c;
+  document.getElementById('newText').focus();
+}
+function quickWait(text){
+  cur().waiting.push({id:uid(),text:text,note:'',created:todayKey()});
+  save(); renderToday(); toast('已记下：'+text);
 }
 function bindFocusEdit(){
   const ft=document.getElementById('focusText');
