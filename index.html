@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20260924e';
+const WB_THIS_VER='20260924f';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -1028,9 +1028,11 @@ function wbMergeCinemaProg(localStr,cloudStr){
   if(!C||typeof C!=='object') return localStr;
   return JSON.stringify(((C.at||0)>(L.at||0))?C:L);
 }
-/* ===== 今日安排合并（2026-09-24）=====
-   TODAY_PLAN 结构 {days:{日期:{focus,tasks[],waiting[]}}}。
-   按日期键合并，同一天的任务/待确认按 id 并集（完成态优先、字段互补），绝不整键覆盖。 */
+/* ===== 今日安排合并（2026-09-24；2026-09-25 加删除墓碑）=====
+   TODAY_PLAN 结构 {days:{日期:{focus,tasks[],waiting[],dels[]}}}。
+   按日期键合并，同一天的任务/待确认按 id 并集（完成态优先、字段互补），绝不整键覆盖。
+   ★ dels 是删除墓碑：删除/转正过的条目 id 记在里面，合并时凡在墓碑里的一律剔除——
+     否则纯并集合并「只会加不会减」，用户删掉的条目会从云端旧快照里复活（已实测复现）。 */
 function wbMergeToday(localStr,cloudStr){
   let L=null,C=null;
   try{ L=JSON.parse(localStr||'null'); }catch(e){}
@@ -1042,19 +1044,29 @@ function wbMergeToday(localStr,cloudStr){
     const l=L.days[k];
     if(!out.days[k]){ out.days[k]=l; return; }
     const c=out.days[k];
+    /* 墓碑并集：双侧 dels 合一（同 id 保留较新 ts），再据此过滤双侧条目 */
+    const dm={};
+    (Array.isArray(l.dels)?l.dels:[]).concat(Array.isArray(c.dels)?c.dels:[]).forEach(x=>{
+      if(x&&x.id!==undefined){ const s=String(x.id), t=x.ts||0; if(dm[s]===undefined||t>dm[s]) dm[s]=t; }
+    });
+    const dels=Object.keys(dm).map(s=>({id:s,ts:dm[s]}));
     out.days[k]={
       focus:(String(l.focus||'').length>=String(c.focus||'').length)?(l.focus||''):(c.focus||''),
-      tasks:wbTodayUnion(c.tasks,l.tasks),
-      waiting:wbTodayUnion(c.waiting,l.waiting)
+      tasks:wbTodayUnion(c.tasks,l.tasks,dels),
+      waiting:wbTodayUnion(c.waiting,l.waiting,dels),
+      dels:dels
     };
   });
   return JSON.stringify(out);
 }
-function wbTodayUnion(a,b){
-  a=(Array.isArray(a)?a:[]).slice(); b=(Array.isArray(b)?b:[]);
+function wbTodayUnion(a,b,dels){
+  const dead={}; (Array.isArray(dels)?dels:[]).forEach(x=>{ if(x&&x.id!==undefined) dead[String(x.id)]=1; });
+  a=(Array.isArray(a)?a:[]).filter(x=>!(x&&x.id!==undefined&&dead[String(x.id)]));
+  b=(Array.isArray(b)?b:[]);
   const idx={}; a.forEach((x,i)=>{ if(x&&x.id!==undefined) idx[String(x.id)]=i; });
   b.forEach(y=>{
     if(!y||y.id===undefined) return;
+    if(dead[String(y.id)]) return;
     const i=idx[String(y.id)];
     if(i===undefined){ a.push(y); return; }
     const x=a[i];
