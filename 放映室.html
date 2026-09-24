@@ -501,6 +501,7 @@ function movieKey(id){ return K_MOVIE+id; }
 function progKey(id){ return K_PROG+id; }
 function loadMovie(id){
   const m=lsGet(movieKey(id))||{};
+  if(m.deleted) return;                        /* 墓碑：已删除的不载入（正常路径点不到，保底） */
   /* 兼容旧版结构（标题曾存在 meta.title 里） */
   const t=m.title||(m.meta&&m.meta.title)||'';
   state.meta={title:t,info:'',plot:m.plot||(m.meta&&m.meta.plot)||''};
@@ -521,6 +522,7 @@ function saveMovie(extra){
   const rec=Object.assign({},old,{
     v:2,
     id:state.currentId,
+    deleted:0,                                  /* 又用上这部片了 → 撤销删除标记 */
     title:(state.meta&&state.meta.title)||old.title||'',
     plot:(state.meta&&state.meta.plot)||old.plot||'',
     notes:state.notes||[],
@@ -554,6 +556,7 @@ function movieList(){
       if(!id) continue;
       let m=null; try{ m=JSON.parse(localStorage.getItem(k)); }catch(e){ continue; }
       if(!m||typeof m!=='object') continue;
+      if(m.deleted) continue;                    /* 墓碑：已删除的影片不再显示 */
       let p=null; try{ p=JSON.parse(localStorage.getItem(progKey(id))); }catch(e){}
       out.push({
         id, title:m.title||(m.meta&&m.meta.title)||'(未命名影片)', poster:m.poster||null,
@@ -571,9 +574,19 @@ function movieList(){
 function delHistory(id){
   const m=lsGet(movieKey(id))||{};
   if(!confirm('确定删除《'+(m.title||'这条记录')+'》的存档？\n其中的字幕和 AI 评论会一起删掉，无法恢复。')) return;
-  lsDel(movieKey(id)); lsDel(progKey(id));
+  /* ★ 墓碑式删除（2026-09-24 修复「删了过一天又跳回来」）
+     过去这里直接把键删掉，结果云同步的「并集合并」一看：本机没数据、云端有 →
+     当成「你缺数据」，好心把云端旧记录补回来，删除就白做了。
+     现在改成留一个极小的删除标记（只有片名 + 删除时间戳），重数据（字幕/评论/海报）全部清掉释放空间；
+     云同步看到墓碑就知道这是「主动删的」，不会再回填。 */
+  const ts=Date.now();
+  /* 注意：lsSet 内部会自己 JSON.stringify，这里必须传对象，不能先转成字符串（会被二次编码） */
+  lsSet(movieKey(id),{v:2,id:id,title:m.title||'',deleted:ts,updated:ts});
+  lsDel(progKey(id));
   if(state.currentId===id){ state.notes=[]; state.subtitle=[]; state.subtitleRaw=''; renderNotes(); updateSubInfo(); }
   closeRecModal(); renderHistory();
+  /* 被工作台 iframe 承载时，通知外壳立刻推一次，把墓碑同步到云端和其他设备 */
+  if(window.parent!==window){ try{ window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} }
 }
 /* 旧版「观影记录」（cinema_records）一次性迁移进影片档，原键保留不动 */
 function migrateLegacyRecords(){
