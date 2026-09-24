@@ -279,6 +279,23 @@
 
 
 
+  /* ===== 顶栏全局搜索 ===== */
+  .wbsearch{ position:relative; flex:0 1 220px; min-width:110px; max-width:260px; }
+  .wbsearch input{ width:100%; border:1px solid var(--line); background:#fff; border-radius:10px; padding:7px 12px 7px 30px; font-size:13px; font-family:inherit; color:var(--ink); outline:none; transition:.15s; }
+  .wbsearch input:focus{ border-color:var(--accent); }
+  .wbsearch .sic{ position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--sub); pointer-events:none; }
+  .wbresults{ position:absolute; top:calc(100% + 6px); right:0; width:330px; max-width:80vw; max-height:54vh; overflow:auto; background:#fffdf9; border:1px solid var(--line); border-radius:12px; box-shadow:0 16px 44px rgba(90,70,50,.22); display:none; z-index:150; }
+  .wbresults.show{ display:block; }
+  .wbr-group{ font-size:11px; color:var(--sub); letter-spacing:2px; padding:10px 14px 3px; }
+  .wbr-item{ padding:8px 14px; cursor:pointer; font-size:13px; display:flex; gap:8px; align-items:baseline; }
+  .wbr-item:hover{ background:var(--mark); }
+  .wbr-item .rmod{ color:var(--accent); font-size:11.5px; flex:0 0 auto; }
+  .wbr-item .rtxt{ color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+  .wbr-item mark{ background:none; color:var(--accent); font-weight:700; padding:0; }
+  .wbr-empty{ padding:16px; font-size:12.5px; color:var(--sub); text-align:center; }
+  @media (max-width:740px){ .wbsearch{ flex:0 1 130px; } }
+  @media (max-width:420px){ .wbsearch{ flex:0 1 96px; } }
+
   /* 全站统一的 AI 接口设置 */
   .wbaimask{position:fixed;inset:0;z-index:200;background:rgba(58,50,42,.36);display:none;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto;}
   .wbaimask.show{display:flex;}
@@ -343,6 +360,11 @@ function wbLoadSupaFallback(){
       </button>
       <div class="crumb" id="crumb" data-page-node-id="Beb0kYe6cS60XxwN5enp1b"></div>
       <div class="topright" data-page-node-id="9GmuQzvhkCIFJLdKlLNBnJ">
+        <div class="wbsearch" id="wbSearch">
+          <span class="sic">🔍</span>
+          <input id="wbSearchInput" type="text" placeholder="搜索工作台" autocomplete="off" oninput="wbSearchRun(this.value)" onfocus="wbSearchRun(this.value)">
+          <div class="wbresults" id="wbResults"></div>
+        </div>
         <button class="wb-icon-btn" onclick="wbExport()" title="导出全部数据为 JSON 备份" data-page-node-id="UWOdHJXg7AShtt3tJw62w4"><span class="icn" data-page-node-id="gclYuG7UymY0WoCCwzOAxq">⬇</span><span class="lbl" data-page-node-id="LyB8M03TyYeAfStgZm4myl"> 导出</span></button>
         <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer" data-page-node-id="v58VDoubB0obEuEKlqzHEh"><span class="icn" data-page-node-id="i53SjLqQvuKDNRU8VD035h">⬆</span><span class="lbl" data-page-node-id="BEoG5PBrWOn2SC28rbACGE"> 导入</span><input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])" data-page-node-id="XY3v8oWUEhG1nRdRX9k93h"></label>
         <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地；若已连接云同步则同时上传" data-page-node-id="D5xBf3F2QYLUQaFOSbLuhD"><span class="icn" data-page-node-id="rTLCCSFLtdtaJFWC7TKf94">💾</span><span class="lbl" data-page-node-id="q9g6j7HqH0bT6kL46mMXJl"> 保存</span></button>
@@ -369,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20260923d';
+const WB_THIS_VER='20260924a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -420,6 +442,10 @@ const MODULES = {
       {id:'calendar', name:'日期记录', type:'iframe', src:'日期记录.html', status:'online'},
       {id:'history', name:'历史检索', type:'iframe', src:'历史检索.html', status:'online'},
     ]
+  },
+  today: {
+    title:'今日安排', note:'今天要做什么', group:'common',
+    sub:[ {id:'today', name:'今日安排', type:'iframe', src:'今日安排.html', status:'online'} ]
   },
   week: {
     title:'周计划', note:'一周安排 · 待办', group:'common',
@@ -485,7 +511,7 @@ function tick(){
 tick(); setInterval(tick, 1000*20);
 
 /* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
-const NAV_ORDER = ['inner','week','daily','stock','drive','cinema','tools'];
+const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools'];
 NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
   if(!m) return;
@@ -814,6 +840,10 @@ async function wbApply(o){
       } else if(k.indexOf('cinema_prog_')===0){
         try{ finalV = wbIsEmptyVal(cur) ? v : wbMergeCinemaProg(cur, v); }
         catch(e){ finalV = wbIsEmptyVal(cur) ? v : cur; }
+      } else if(k==='TODAY_PLAN'){
+        /* 今日安排：按日期/任务 id 合并，拉取不得覆盖本机当天新写内容 */
+        try{ finalV = wbIsEmptyVal(cur) ? v : wbMergeToday(cur, v); }
+        catch(e){ finalV = wbIsEmptyVal(cur) ? v : cur; }
       } else if(k.indexOf('food_')===0){
         try{
           if(wbIsEmptyVal(cur)){ finalV = v; }
@@ -976,6 +1006,44 @@ function wbMergeCinemaProg(localStr,cloudStr){
   if(!C||typeof C!=='object') return localStr;
   return JSON.stringify(((C.at||0)>(L.at||0))?C:L);
 }
+/* ===== 今日安排合并（2026-09-24）=====
+   TODAY_PLAN 结构 {days:{日期:{focus,tasks[],waiting[]}}}。
+   按日期键合并，同一天的任务/待确认按 id 并集（完成态优先、字段互补），绝不整键覆盖。 */
+function wbMergeToday(localStr,cloudStr){
+  let L=null,C=null;
+  try{ L=JSON.parse(localStr||'null'); }catch(e){}
+  try{ C=JSON.parse(cloudStr||'null'); }catch(e){}
+  if(!L||typeof L!=='object'||!L.days) return (localStr&&localStr.days!==undefined)?localStr:(cloudStr||localStr||'{"days":{}}');
+  if(!C||typeof C!=='object'||!C.days) return localStr;
+  const out={days:Object.assign({},C.days)};
+  Object.keys(L.days).forEach(k=>{
+    const l=L.days[k];
+    if(!out.days[k]){ out.days[k]=l; return; }
+    const c=out.days[k];
+    out.days[k]={
+      focus:(String(l.focus||'').length>=String(c.focus||'').length)?(l.focus||''):(c.focus||''),
+      tasks:wbTodayUnion(c.tasks,l.tasks),
+      waiting:wbTodayUnion(c.waiting,l.waiting)
+    };
+  });
+  return JSON.stringify(out);
+}
+function wbTodayUnion(a,b){
+  a=(Array.isArray(a)?a:[]).slice(); b=(Array.isArray(b)?b:[]);
+  const idx={}; a.forEach((x,i)=>{ if(x&&x.id!==undefined) idx[String(x.id)]=i; });
+  b.forEach(y=>{
+    if(!y||y.id===undefined) return;
+    const i=idx[String(y.id)];
+    if(i===undefined){ a.push(y); return; }
+    const x=a[i];
+    if((y.done&&!x.done)||((y.done===x.done)&&String(y.text||'').length>String(x.text||'').length)){
+      a[i]=Object.assign({},x,y,{done:!!(x.done||y.done)});
+    } else {
+      a[i]=Object.assign({},y,x,{done:!!(x.done||y.done)});
+    }
+  });
+  return a;
+}
 function wbMergeDaily(localStr,cloudStr){
   let L=null,C=null;
   try{ L=JSON.parse(localStr||'null'); }catch(e){ return localStr; }
@@ -1041,6 +1109,7 @@ async function wbMergeAll(cloudObj, dir){
   Object.keys(local).forEach(k=>{
     const lv=local[k], cv=out[k], bv=shadow[k];
     if(k==='DAILY_STATUS'){ out[k]=wbMergeDaily(lv,cv); return; }
+    if(k==='TODAY_PLAN'){ out[k]=wbMergeToday(lv, cv); return; }   /* 今日安排：按日期/id 并集合并 */
     /* 美食数据：绝不允许「拉取」把本机较新的条目整键覆盖掉（9 月打卡反复丢失的根因）。
        改为按 id/日期 并集合并——两侧都有的取较新一份，只有一侧有的保留，绝不删除本机条目。 */
     if(k==='food_checkin'){ out[k]=wbMergeCheckin(lv, cv); return; }
@@ -1073,6 +1142,94 @@ function wbRequestSave(){
   if(wbSync && wbSync.connected){ wbSchedulePush(true); wbToast('已保存本地，正在同步云端…'); }
   else { wbToast('已存本地（云同步未连接，未上传）'); }
 }
+
+/* ===== 顶栏全局搜索：搜页面名 + 各模块数据内容，点击直达 ===== */
+const WB_SEARCH_KEYS=[
+  {k:'TODAY_PLAN',     mod:'today',  sub:'today',   name:'今日安排'},
+  {k:'weekly_plan',    mod:'week',   sub:'plan',    name:'周计划'},
+  {k:'DAILY_STATUS',   mod:'inner',  sub:'now',     name:'每日状态记录'},
+  {k:'stock_journal',  mod:'stock',  sub:'journal', name:'股票状态记录'},
+  {k:'food_menu',      mod:'daily',  sub:'food',    name:'美食菜谱'},
+  {k:'food_userdishes',mod:'daily',  sub:'food',    name:'我的菜品'},
+  {k:'riri_myRecipes', mod:'daily',  sub:'food',    name:'我的菜谱'},
+  {k:'food_taste',     mod:'daily',  sub:'food',    name:'口味偏好'},
+  {k:'cinema_records', mod:'cinema', sub:'player',  name:'放映室'}
+];
+let wbSearchTimer=null;
+function wbHl(text,q){
+  const i=text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return text;
+  return text.slice(0,i)+'<mark>'+text.slice(i,i+q.length)+'</mark>'+text.slice(i+q.length);
+}
+function wbCleanFrag(s){
+  return s.replace(/\\u[0-9a-fA-F]{4}/g,'').replace(/\\["\\/]/g,'"')
+          .replace(/[{}"\[\],]/g,' ')
+          .replace(/\b(id|ts|done|created|cat|est|time|date|note|name|records|tags|stags|focus|tasks|waiting|total|weekKey|weekStart|weekEnd|summary|items|text|count|updatedAt)\s*:/g,' ')
+          .replace(/\b(true|false|null)\b/g,' ')
+          .replace(/\s+/g,' ').trim();
+}
+function wbSearchJump(mod,sub){
+  document.getElementById('wbResults').classList.remove('show');
+  if(MODULES[mod]){ selectModule(mod); if(sub && sub!==MODULES[mod].sub[0].id) selectSub(mod, sub); }
+}
+function wbSearchRun(raw){
+  clearTimeout(wbSearchTimer);
+  wbSearchTimer=setTimeout(()=>{ wbSearchRender(raw); },160);
+}
+function wbSearchRender(raw){
+  const q=(raw||'').trim();
+  const box=document.getElementById('wbResults');
+  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+  const ql=q.toLowerCase();
+  let html='';
+  /* A. 页面导航 */
+  const pages=[];
+  Object.keys(MODULES).forEach(key=>{
+    const m=MODULES[key];
+    if((m.title||'').toLowerCase().indexOf(ql)>=0) pages.push({mod:key,sub:m.sub[0].id,t:m.title,g:m.title});
+    m.sub.forEach(s=>{ if((s.name||'').toLowerCase().indexOf(ql)>=0) pages.push({mod:key,sub:s.id,t:s.name,g:m.title}); });
+  });
+  if(pages.length){
+    html+='<div class="wbr-group">页面</div>';
+    pages.slice(0,6).forEach(p=>{
+      html+='<div class="wbr-item" onclick="wbSearchJump(\''+p.mod+'\',\''+p.sub+'\')"><span class="rmod">'+p.g+'</span><span class="rtxt">'+wbHl(p.t,q)+'</span></div>';
+    });
+  }
+  /* B. 数据内容 */
+  const hits=[];
+  WB_SEARCH_KEYS.forEach(cfg=>{
+    let v=null; try{ v=localStorage.getItem(cfg.k); }catch(e){}
+    if(!v) return;
+    const low=v.toLowerCase();
+    let pos=0,count=0;
+    while(count<3){
+      pos=low.indexOf(ql,pos); if(pos<0) break;
+      const start=Math.max(0,pos-26), end=Math.min(v.length,pos+q.length+44);
+      const frag=wbCleanFrag(v.slice(start,end));
+      if(frag) hits.push({cfg:cfg,frag:frag});
+      pos+=q.length; count++;
+    }
+  });
+  if(hits.length){
+    html+='<div class="wbr-group">记录内容</div>';
+    hits.slice(0,10).forEach(h=>{
+      const esc=h.frag.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html+='<div class="wbr-item" onclick="wbSearchJump(\''+h.cfg.mod+'\',\''+h.cfg.sub+'\')"><span class="rmod">'+h.cfg.name+'</span><span class="rtxt">'+wbHl(esc,q)+'</span></div>';
+    });
+  }
+  if(!html) html='<div class="wbr-empty">没找到「'+q.replace(/</g,'&lt;')+'」相关的内容</div>';
+  box.innerHTML=html;
+  box.classList.add('show');
+}
+document.getElementById('wbSearchInput').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ e.target.value=''; document.getElementById('wbResults').classList.remove('show'); e.target.blur(); }
+  if(e.key==='Enter'){ clearTimeout(wbSearchTimer); wbSearchRender(e.target.value); }
+});
+document.addEventListener('click',e=>{
+  const s=document.getElementById('wbSearch');
+  if(s && !s.contains(e.target)) document.getElementById('wbResults').classList.remove('show');
+});
+/* ===== 全局搜索结束 ===== */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='wb-saved'){
   try{ localStorage.setItem(WB_K_LAST_LOCAL_SAVE, new Date().toISOString()); }catch(e2){}
   const base=e.data.msg||'已保存';
