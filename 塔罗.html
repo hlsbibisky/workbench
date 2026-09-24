@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>塔罗占卜</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --radius:16px; --shadow:0 2px 8px rgba(58,54,49,.06),0 16px 40px rgba(58,54,49,.04);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    /* 当前卡组配色，由 JS 切换 */
+    --deck-a:#b8860b; --deck-b:#8a6d3b; --deck-c:#f3e6c8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--font);
+    line-height:1.7;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--mark);}
+  .page-wrap{max-width:1180px;margin:0 auto;padding:26px 28px 100px;}
+
+  /* 顶栏 */
+  .top-bar{display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:16px;border-bottom:2px solid var(--line);margin-bottom:24px;gap:12px;flex-wrap:wrap;}
+  .top-title{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:5px;}
+  .top-sub{font-size:13px;color:var(--sub);margin-left:10px;}
+  .top-right{display:flex;align-items:center;gap:10px;}
+  .mini-btn{font-size:13px;padding:7px 14px;border:1.5px solid var(--line);border-radius:20px;
+    background:#fff;color:var(--sub);cursor:pointer;font-family:inherit;transition:.2s;}
+  .mini-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--mark);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 26px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .card-title{font-size:16px;font-weight:600;color:var(--accent);margin-bottom:6px;
+    display:flex;align-items:center;gap:8px;}
+  .card-note{font-size:12.5px;color:var(--sub);margin-bottom:14px;}
+
+  /* ===== 卡组选择 ===== */
+  .deck-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .deck-card{border:2px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;
+    background:#fff;transition:.25s;text-align:center;}
+  .deck-card:hover{border-color:var(--accent);transform:translateY(-3px);
+    box-shadow:0 6px 18px rgba(184,113,78,.12);}
+  .deck-card.on{border-color:var(--accent);background:linear-gradient(160deg,var(--mark),#fdf6ef);}
+  .deck-shot{width:74px;height:112px;object-fit:cover;border-radius:7px;margin:0 auto 8px;display:block;
+    box-shadow:0 3px 9px rgba(58,54,49,.16);background:var(--mark);}
+  .deck-name{font-size:15px;font-weight:600;}
+  .deck-sub{font-size:11.5px;color:var(--sub);margin-top:2px;line-height:1.5;}
+  .deck-desc{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.55;text-align:left;}
+
+  /* ===== 牌阵选择 ===== */
+  .spread-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .spread-card{border:2px solid var(--line);border-radius:13px;padding:13px 15px;cursor:pointer;
+    background:#fff;transition:.22s;}
+  .spread-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .spread-card.on{border-color:var(--accent);background:linear-gradient(160deg,var(--mark),#fdf6ef);}
+  .spread-head{display:flex;align-items:baseline;gap:8px;}
+  .spread-name{font-size:15px;font-weight:600;}
+  .spread-n{font-size:12px;color:#fff;background:var(--accent);border-radius:10px;padding:1px 8px;}
+  .spread-slots{font-size:11.5px;color:var(--sub);margin-top:4px;}
+  .spread-use{font-size:11.5px;color:var(--accent2);margin-top:5px;}
+
+  .q-input{width:100%;min-height:74px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:inherit;font-size:15px;color:var(--ink);resize:vertical;background:#fff;line-height:1.7;}
+  .q-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(184,113,78,.1);}
+  .q-input::placeholder{color:var(--sub);}
+  .opt-row{display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap;}
+  .switch{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);cursor:pointer;}
+  .switch input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+
+  .btn-primary{padding:13px 44px;border:none;border-radius:12px;background:var(--accent);color:#fff;
+    font-size:16px;font-weight:600;letter-spacing:3px;cursor:pointer;font-family:inherit;transition:.2s;}
+  .btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px);box-shadow:0 6px 20px rgba(184,113,78,.25);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  .btn-ghost{padding:13px 30px;border:1.5px solid var(--line);border-radius:12px;background:#fff;
+    color:var(--sub);font-size:15px;cursor:pointer;font-family:inherit;transition:.2s;}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-row{text-align:center;margin-top:18px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+  /* ===== 洗牌 / 抽牌区 ===== */
+  .stage-box{display:none;}
+  .stage-box.on{display:block;}
+  .shuffle-area{text-align:center;padding:26px 0 20px;}
+  .shuffle-stack{position:relative;height:190px;margin:0 auto 14px;width:150px;}
+  .sh-card{position:absolute;width:104px;height:158px;border-radius:9px;left:23px;top:16px;
+    box-shadow:0 4px 14px rgba(58,54,49,.2);}
+  .sh-card.shuffling{animation:shuf .55s ease-in-out infinite;}
+  @keyframes shuf{
+    0%{transform:translate(0,0) rotate(0deg);}
+    25%{transform:translate(-26px,-8px) rotate(-7deg);}
+    50%{transform:translate(6px,6px) rotate(4deg);}
+    75%{transform:translate(26px,-6px) rotate(7deg);}
+    100%{transform:translate(0,0) rotate(0deg);}
+  }
+  .hint{font-size:15px;color:var(--sub);text-align:center;}
+  .hint b{color:var(--accent);font-size:17px;}
+
+  .pick-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:9px;margin-top:14px;}
+  .tcard{aspect-ratio:2/3;perspective:900px;cursor:pointer;position:relative;}
+  .tc-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+    transition:transform .55s cubic-bezier(.4,.15,.2,1);}
+  .tcard.flip .tc-inner{transform:rotateY(180deg);}
+  .tc-face,.tc-back{position:absolute;inset:0;border-radius:6px;overflow:hidden;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    box-shadow:0 2px 7px rgba(58,54,49,.18);}
+  .tc-face{transform:rotateY(180deg);background:#fff;}
+  .tc-face img{width:100%;height:100%;object-fit:cover;display:block;}
+  .tcard.picked{cursor:default;opacity:.34;filter:grayscale(.35);}
+  .tcard:hover:not(.picked) .tc-inner{transform:translateY(-6px) rotateY(0);}
+  .tcard.flip:hover .tc-inner{transform:rotateY(180deg);}
+
+  /* 卡背：CSS 绘制，随卡组换色 */
+  .tc-back{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.13) 0 6px, transparent 6px 12px),
+      radial-gradient(circle at 50% 50%, var(--deck-a) 0 38%, var(--deck-b) 100%);
+    border:3px solid var(--deck-c);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tc-back::after{
+    content:'';width:56%;height:34%;border:1.5px solid var(--deck-c);border-radius:50%;
+    box-shadow:0 0 0 3px rgba(255,255,255,.14);
+  }
+
+  /* ===== 结果区 ===== */
+  .result-head{text-align:center;margin-bottom:8px;}
+  .result-q{font-size:16px;color:var(--ink);font-weight:600;margin-bottom:4px;word-break:break-all;}
+  .result-meta{font-size:12.5px;color:var(--sub);}
+  .slots{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin:18px 0 6px;}
+  .slot{width:150px;text-align:center;}
+  .slot .tcard{width:150px;height:225px;margin:0 auto 8px;cursor:default;}
+  .slot .tcard .tc-face img{object-fit:contain;background:#fff;}
+  .slot-name{font-size:13px;color:var(--accent);font-weight:600;}
+  .slot-card{font-size:14px;font-weight:600;margin-top:1px;}
+  .slot-rev{font-size:11.5px;color:var(--sub);}
+  .slot-key{font-size:11.5px;color:var(--sub);line-height:1.55;margin-top:3px;}
+
+  /* 凯尔特十字：5列4行 */
+  .celtic{display:grid;grid-template-columns:repeat(5,150px);grid-template-rows:repeat(4,320px);
+    gap:8px;justify-content:center;}
+  .celtic .slot{width:150px;}
+  .celtic .c1{grid-column:2;grid-row:2;}
+  .celtic .c2{grid-column:2;grid-row:2;transform:rotate(90deg);z-index:3;}
+  .celtic .c3{grid-column:2;grid-row:1;}
+  .celtic .c4{grid-column:1;grid-row:2;}
+  .celtic .c5{grid-column:3;grid-row:2;}
+  .celtic .c6{grid-column:2;grid-row:3;}
+  .celtic .c7{grid-column:5;grid-row:4;}
+  .celtic .c8{grid-column:5;grid-row:3;}
+  .celtic .c9{grid-column:5;grid-row:2;}
+  .celtic .c10{grid-column:5;grid-row:1;}
+  .celtic .c2 .slot-label{transform:rotate(-90deg);}
+
+  /* 解读 */
+  .ai-box{margin-top:18px;padding:18px 20px;border-radius:14px;background:#fffdf7;
+    border:1px solid var(--line);min-height:80px;font-size:14.5px;line-height:1.85;white-space:pre-wrap;}
+  .ai-state{font-size:13px;color:var(--sub);text-align:center;margin-top:8px;}
+  .ai-sec{margin-bottom:14px;}
+  .ai-sec-h{font-weight:600;color:var(--accent);margin-bottom:3px;}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+    border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* 历史 */
+  .hist-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-item:hover .hist-q{color:var(--accent);}
+  .hist-thumbs{display:flex;gap:4px;flex-shrink:0;}
+  .hist-thumbs img{width:30px;height:45px;object-fit:cover;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.14);}
+  .hist-q{font-size:14px;font-weight:600;line-height:1.5;}
+  .hist-meta{font-size:12px;color:var(--sub);margin-top:2px;}
+  .hist-del{margin-left:auto;font-size:12px;color:var(--sub);cursor:pointer;padding:2px 8px;border-radius:8px;}
+  .hist-del:hover{background:var(--mark);color:#c0392b;}
+  .empty{text-align:center;color:var(--sub);font-size:13.5px;padding:22px 0;}
+
+  /* 设置折叠 */
+  .set-line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px;}
+  .set-line input{border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;font-family:inherit;
+    font-size:13px;background:#fff;color:var(--ink);}
+  .set-line input:focus{outline:none;border-color:var(--accent);}
+
+  @media (max-width:900px){
+    .page-wrap{padding:18px 14px 80px;}
+    .deck-grid{grid-template-columns:repeat(2,1fr);}
+    .spread-grid{grid-template-columns:repeat(2,1fr);}
+    .pick-grid{grid-template-columns:repeat(5,1fr);gap:7px;}
+    .top-title{font-size:21px;letter-spacing:3px;}
+    .slot{width:112px;} .slot .tcard{width:112px;height:168px;}
+    .celtic{grid-template-columns:repeat(5,112px);grid-template-rows:repeat(4,250px);}
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="top-bar">
+    <div>
+      <span class="top-title">塔罗占卜</span>
+      <span class="top-sub">选一副牌 · 问一件事 · 亲手翻开</span>
+    </div>
+    <div class="top-right">
+      <button class="mini-btn" id="btnAiSet">⚙ 接口设置</button>
+      <button class="mini-btn" id="btnHist">📜 历史</button>
+    </div>
+  </div>
+
+  <!-- 1 选牌组 -->
+  <div class="card">
+    <div class="card-title">🃏 挑一副牌</div>
+    <div class="card-note">三套都是公有领域古牌真图（1909 伟特 / 约1450 维斯康提 / 约1650 维耶维尔）。换牌只换画面，牌意不变。</div>
+    <div class="deck-grid" id="deckGrid"></div>
+  </div>
+
+  <!-- 2 提问 + 牌阵 -->
+  <div class="card">
+    <div class="card-title">❓ 你想问什么</div>
+    <textarea class="q-input" id="qInput" placeholder="把问题写具体一点，牌会答得更准。比如：「我和他接下来三个月会走向哪里？」「这份工作该不该接？」&#10;留空的话，就当问「今天想告诉我的事」。" maxlength="200"></textarea>
+    <div class="opt-row">
+      <label class="switch"><input type="checkbox" id="revChk" checked> 允许逆位（倒置的牌，约三成概率）</label>
+      <label class="switch"><input type="checkbox" id="aiAutoChk" checked> 翻完自动请 AI 解读</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✦ 选个牌阵</div>
+    <div class="card-note">牌阵决定抽几张、每张代表什么。拿不准就用「圣三角」。</div>
+    <div class="spread-grid" id="spreadGrid"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnStart">洗牌开始</button>
+    </div>
+  </div>
+
+  <!-- 3 洗牌 / 抽牌 -->
+  <div class="card stage-box" id="stagePick">
+    <div class="shuffle-area" id="shuffleArea">
+      <div class="shuffle-stack" id="shuffleStack"></div>
+      <div class="hint" id="shuffleHint">洗牌中…</div>
+    </div>
+    <div id="pickWrap" style="display:none;">
+      <div class="hint">牌已摊开 —— <b id="pickCount">0 / 3</b>　凭直觉点下去，点够就自动翻开</div>
+      <div class="pick-grid" id="pickGrid"></div>
+      <div class="btn-row"><button class="btn-ghost" id="btnReset">重来一次</button></div>
+    </div>
+  </div>
+
+  <!-- 4 结果 -->
+  <div class="card stage-box" id="stageResult">
+    <div class="result-head">
+      <div class="result-q" id="resQ"></div>
+      <div class="result-meta" id="resMeta"></div>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnRead">🔮 解读</button>
+      <button class="btn-ghost" id="btnAgain">再抽一次</button>
+    </div>
+    <div class="ai-state" id="aiState"></div>
+    <div class="ai-box" id="aiBox" style="display:none;"></div>
+  </div>
+
+  <!-- 5 历史 -->
+  <div class="card stage-box" id="stageHist">
+    <div class="card-title">📜 占卜记录</div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- 接口设置 -->
+  <div class="card stage-box" id="stageSet">
+    <div class="card-title">⚙ 接口设置</div>
+    <div class="card-note">默认读工作台 🤖 AI 面板里填的那份（文本模型）。这里改只影响本页。</div>
+    <div class="set-line">
+      <input id="tBase" placeholder="接口地址" style="width:230px">
+      <input id="tModel" placeholder="模型" style="width:150px">
+      <input id="tKey" placeholder="密钥 sk-…" style="width:260px" type="password">
+      <button class="btn-ghost" style="padding:8px 20px" id="btnSaveSet">保存</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================
+   牌库：78 张。大牌 22 张 + 小牌 4 花色 × 14 张
+   [id, 中文名, 正位关键词, 逆位关键词]
+   ========================================================== */
+const MAJOR = [
+  ['00','愚者','新的开始 · 冒险 · 信任当下','鲁莽 · 准备不足 · 逃避现实'],
+  ['01','魔术师','创造 · 资源整合 · 说到做到','耍花招 · 欺骗 · 能力没发挥'],
+  ['02','女祭司','直觉 · 静观 · 听内在声音','忽视直觉 · 藏着秘密 · 迷糊'],
+  ['03','皇后','丰盛 · 滋养 · 创造与美','依赖 · 过度保护 · 停滞'],
+  ['04','皇帝','秩序 · 掌控 · 建立结构','专断 · 僵化 · 控制欲'],
+  ['05','教皇','传承 · 学习 · 寻求指引','教条 · 盲从 · 流于形式'],
+  ['06','恋人','结合 · 选择 · 价值观一致','摇摆不定 · 选错 · 分离'],
+  ['07','战车','前进 · 意志 · 掌控方向','失控 · 方向不明 · 硬来'],
+  ['08','力量','温柔的力量 · 耐心 · 驯服本能','自我怀疑 · 急躁 · 用蛮力'],
+  ['09','隐者','独处 · 内省 · 寻找真相','孤立 · 逃避 · 钻牛角尖'],
+  ['10','命运之轮','转机 · 循环 · 时机到来','停滞 · 运气差 · 抗拒变化'],
+  ['11','正义','公平 · 权衡 · 因果','偏颇 · 逃避责任 · 不公'],
+  ['12','吊人','暂停 · 换位思考 · 甘愿等待','无谓牺牲 · 拖着不动'],
+  ['13','死神','结束与重生 · 彻底放下','抗拒改变 · 死抓不放'],
+  ['14','节制','调和 · 中道 · 慢慢来','失衡 · 过度 · 急躁'],
+  ['15','恶魔','执念 · 束缚 · 被欲望牵着走','挣脱 · 看清瘾头'],
+  ['16','塔','崩塌 · 真相揭露 · 骤变','延后的崩塌 · 勉强维持'],
+  ['17','星星','希望 · 疗愈 · 重新点亮','失望 · 失去信心'],
+  ['18','月亮','迷雾 · 潜意识 · 不安','看清真相 · 走出迷雾'],
+  ['19','太阳','明朗 · 喜悦 · 被看见','暂时的阴云 · 过度乐观'],
+  ['20','审判','召唤 · 觉醒 · 重新审视','自我批判 · 拒绝召唤'],
+  ['21','世界','完成 · 圆满 · 整合','未竟 · 延迟的收尾'],
+];
+
+const SUITS = {
+  w:{name:'权杖', el:'火 · 行动与热情'},
+  c:{name:'圣杯', el:'水 · 情感与关系'},
+  s:{name:'宝剑', el:'风 · 思维与沟通'},
+  p:{name:'星币', el:'土 · 现实与物质'},
+};
+const RANKS = ['','首牌','二','三','四','五','六','七','八','九','十','侍从','骑士','王后','国王'];
+const MINOR = {
+  w:[['灵感迸发 · 新机会 · 行动的开端','动力不足 · 错失时机'],
+     ['规划 · 抉择 · 掌握全局','犹豫不决 · 计划落空'],
+     ['拓展 · 远见 · 等待收获','延迟 · 目光短浅'],
+     ['庆祝 · 安稳 · 归属感','根基不稳 · 喜事推迟'],
+     ['竞争 · 摩擦 · 意见不合','内耗平息 · 回避冲突'],
+     ['胜利 · 被认可 · 荣耀','自满 · 认可落空'],
+     ['坚守 · 据理力争 · 守住阵地','力不从心 · 退让'],
+     ['迅速 · 进展加快 · 消息传来','拖延 · 混乱失序'],
+     ['戒备 · 韧劲 · 最后关头','过度防备 · 身心俱疲'],
+     ['重担 · 责任超载 · 硬撑','卸下重担 · 学会分派'],
+     ['热情 · 探索 · 好消息','三分钟热度 · 坏消息'],
+     ['冲劲 · 出发 · 勇敢行动','鲁莽 · 半途而废'],
+     ['自信 · 魅力 · 温暖主导','嫉妒 · 专横'],
+     ['领袖 · 远见 · 果断','独断 · 虚张声势']],
+  c:[['情感流动 · 新恋情 · 心的敞开','情感枯竭 · 封闭自己'],
+     ['结合 · 共鸣 · 平等关系','失衡 · 误会'],
+     ['欢聚 · 友情 · 值得庆祝','疏离 · 过度社交'],
+     ['倦怠 · 不满足 · 错过眼前','重新投入 · 走出低潮'],
+     ['失落 · 遗憾 · 盯着失去的','释怀 · 看见剩下的'],
+     ['回忆 · 童年 · 旧识重逢','困在过去 · 怀旧成瘾'],
+     ['幻想 · 选择太多 · 分心','看清现实 · 下定决心'],
+     ['离开 · 放下 · 寻找更深的','徘徊 · 不甘心离开'],
+     ['满足 · 心愿达成 · 享受当下','空虚 · 表面满足'],
+     ['圆满 · 家和 · 归属感','貌合神离 · 家里摩擦'],
+     ['敏感 · 直觉 · 告白','幼稚 · 情绪化'],
+     ['浪漫 · 追求 · 真诚示好','不切实际 · 善变'],
+     ['共情 · 温柔 · 包容','情绪淹没 · 过度牺牲'],
+     ['情感成熟 · 体贴 · 稳重','压抑 · 操控情绪']],
+  s:[['清晰 · 洞察 · 突破','判断失准 · 言语伤人'],
+     ['僵持 · 回避 · 闭眼不选','打破僵局 · 做出决定'],
+     ['心碎 · 刺痛 · 真相伤人','疗愈 · 走出伤痛'],
+     ['休息 · 疗养 · 按下暂停','被迫起身 · 休息不够'],
+     ['争胜 · 伤人 · 赢了却输了','和解 · 放下胜负'],
+     ['过渡 · 离开 · 渐入平静','拖泥带水 · 放不下'],
+     ['策略 · 隐瞒 · 绕道而行','被识破 · 自欺'],
+     ['自困 · 受限 · 看不见出口','觉察束缚 · 解开绳索'],
+     ['焦虑 · 失眠 · 忧惧','走出梦魇 · 寻求帮助'],
+     ['终结 · 谷底 · 彻底结束','触底反弹 · 慢慢复原'],
+     ['好奇 · 警觉 · 探听消息','多疑 · 口无遮拦'],
+     ['激进 · 直言 · 快速推进','莽撞 · 伤人'],
+     ['理智 · 清晰 · 公允','刻薄 · 冷漠疏离'],
+     ['权威 · 逻辑 · 决断','专横 · 冷酷']],
+  p:[['机会 · 资源 · 务实的开端','错失机会 · 贪小失大'],
+     ['平衡 · 周转 · 两头兼顾','失衡 · 手忙脚乱'],
+     ['协作 · 专业 · 被认可','配合不良 · 敷衍'],
+     ['守财 · 稳妥 · 抓紧不放','松动 · 过度吝惜'],
+     ['匮乏 · 困顿 · 被排除在外','走出困境 · 接受帮助'],
+     ['给予 · 接受 · 互助','施舍不均 · 另有所图'],
+     ['耐心 · 评估 · 长线投入','急于求成 · 白费力气'],
+     ['精进 · 专注 · 打磨技艺','机械重复 · 敷衍了事'],
+     ['自立 · 丰盛 · 享受成果','空虚 · 过度依赖'],
+     ['富足 · 传承 · 长久安稳','家产纷争 · 只重外在'],
+     ['学习 · 踏实 · 新机会','眼高手低 · 拖延'],
+     ['稳健 · 按部就班 · 可靠','固执 · 停滞不前'],
+     ['务实 · 照顾 · 安稳富足','过度操劳 · 物质焦虑'],
+     ['富足 · 掌控 · 事业有成','贪执 · 僵化']],
+};
+
+/* 全牌表：id -> {name, up, rev, isMajor, suit} */
+const CARDS = {};
+MAJOR.forEach(m=>{ CARDS[m[0]]={id:m[0], name:m[1], up:m[2], rev:m[3], major:true}; });
+Object.keys(MINOR).forEach(sk=>{
+  MINOR[sk].forEach((m,i)=>{
+    const r=i+1, id=sk+String(r).padStart(2,'0');
+    CARDS[id]={id:id, name:SUITS[sk].name+RANKS[r], up:m[0], rev:m[1], major:false, suit:sk};
+  });
+});
+const ALL_IDS = Object.keys(CARDS);
+
+/* ==========================================================
+   卡组：公有领域真图
+   ========================================================== */
+const DECKS = [
+  {id:'rw', name:'伟特经典', sub:'Rider-Waite · 1909',
+   desc:'最通用的一套，画面把故事画得很明白，新手也看得懂。',
+   a:'#c9962f', b:'#7d5a22', c:'#f6e7bd'},
+  {id:'visconti', name:'维斯康提', sub:'Visconti-Sforza · 约1450 米兰',
+   desc:'文艺复兴金箔手绘，存世 73 张，缺的那几张会自动用伟特补上。',
+   a:'#9a86b8', b:'#4f3f6d', c:'#eadcff'},
+  {id:'vieville', name:'维耶维尔', sub:'Viéville · 约1650 巴黎',
+   desc:'法式古牌，画风拙朴神秘，人物眼神有点怪，很适合问潜意识的事。',
+   a:'#5f7f6a', b:'#2f4a3c', c:'#dce8dc'},
+];
+
+const SPREADS = [
+  {id:'one', n:1, name:'今日一牌', slots:['指引'], use:'就想知道今天该怎么过、抓个重点'},
+  {id:'tri', n:3, name:'圣三角', slots:['过去','现在','未来'], use:'最常用，看一件事的来龙去脉'},
+  {id:'mind', n:3, name:'身心灵', slots:['身体','心智','灵性'], use:'不看事情看自己，检查当下状态'},
+  {id:'two', n:5, name:'二择一', slots:['你的现状','选A · 过程','选B · 过程','选A · 结果','选B · 结果'], use:'站在路口，两个选项摆一起比'},
+  {id:'flow', n:5, name:'时间之流', slots:['根源','近过去','现在','近未来','远未来'], use:'看一件事长期怎么往前走'},
+  {id:'celtic', n:10, name:'凯尔特十字', slots:['现况','阻碍/助力','根源','过去','目标','近未来','你的态度','外在环境','希望与恐惧','结果'], use:'重要且复杂的事，全方位剖开'},
+];
+
+/* ==========================================================
+   状态
+   ========================================================== */
+let curDeck = localStorage.getItem('tarotDeck') || 'rw';
+let curSpread = localStorage.getItem('tarotSpread') || 'tri';
+let shuffled = [];      // 摊开的 78 张顺序
+let picked = [];        // {id, rev}
+let lastResult = null;  // 当前结果对象
+let reading = false;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const deckOf = d => DECKS.find(x=>x.id===d) || DECKS[0];
+const imgSrc = (id, deck) => 'tarot/' + deck + '/' + id + '.jpg';
+const spreadOf = s => SPREADS.find(x=>x.id===s) || SPREADS[1];
+
+/* ---------- 卡组卡片 ---------- */
+function renderDecks(){
+  $('deckGrid').innerHTML = DECKS.map(d=>
+    '<div class="deck-card'+(d.id===curDeck?' on':'')+'" data-deck="'+d.id+'">'
+    + '<img class="deck-shot" src="'+imgSrc('00',d.id)+'" alt="" onerror="this.src=\''+imgSrc('00','rw')+'\'">'
+    + '<div class="deck-name">'+d.name+'</div>'
+    + '<div class="deck-sub">'+d.sub+'</div>'
+    + '<div class="deck-desc">'+d.desc+'</div>'
+    + '</div>').join('');
+  [...document.querySelectorAll('.deck-card')].forEach(el=>{
+    el.onclick = ()=>{
+      curDeck = el.dataset.deck;
+      localStorage.setItem('tarotDeck', curDeck);
+      applyDeckTheme(); renderDecks();
+      if(shuffled.length) renderPick();      // 已摊开则换图
+      if(lastResult) renderResult(lastResult);
+    };
+  });
+}
+function applyDeckTheme(){
+  const d = deckOf(curDeck);
+  document.documentElement.style.setProperty('--deck-a', d.a);
+  document.documentElement.style.setProperty('--deck-b', d.b);
+  document.documentElement.style.setProperty('--deck-c', d.c);
+}
+
+/* ---------- 牌阵卡片 ---------- */
+function renderSpreads(){
+  $('spreadGrid').innerHTML = SPREADS.map(s=>
+    '<div class="spread-card'+(s.id===curSpread?' on':'')+'" data-sp="'+s.id+'">'
+    + '<div class="spread-head"><span class="spread-name">'+s.name+'</span>'
+    + '<span class="spread-n">'+s.n+' 张</span></div>'
+    + '<div class="spread-slots">'+s.slots.join(' · ')+'</div>'
+    + '<div class="spread-use">适合：'+s.use+'</div>'
+    + '</div>').join('');
+  [...document.querySelectorAll('.spread-card')].forEach(el=>{
+    el.onclick = ()=>{ curSpread = el.dataset.sp; localStorage.setItem('tarotSpread', curSpread); renderSpreads(); };
+  });
+}
+
+/* ---------- 洗牌 ---------- */
+function shuffleArr(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function startShuffle(){
+  const sp = spreadOf(curSpread);
+  picked = []; lastResult = null;
+  $('stageResult').classList.remove('on');
+  $('stagePick').classList.add('on');
+  $('shuffleArea').style.display='block';
+  $('pickWrap').style.display='none';
+  $('aiBox').style.display='none'; $('aiState').textContent='';
+  $('shuffleHint').textContent='洗牌中…';
+
+  // 洗牌动画：几张卡背错动
+  const d = deckOf(curDeck);
+  $('shuffleStack').innerHTML = Array.from({length:6}).map((_,i)=>
+    '<div class="sh-card sh-card-i shuffling" style="'
+    + 'background:repeating-linear-gradient(45deg, rgba(255,255,255,.13) 0 6px, transparent 6px 12px),'
+    + 'radial-gradient(circle at 50% 50%, '+d.a+' 0 38%, '+d.b+' 100%);'
+    + 'border:3px solid '+d.c+';animation-delay:'+(i*0.07)+'s;'
+    + 'transform:rotate('+(i-3)*2+'deg) translateX('+(i-3)*6+'px);"></div>').join('');
+
+  setTimeout(()=>{
+    // 抽牌：洗好的整副牌
+    shuffled = shuffleArr(ALL_IDS.slice());
+    $('shuffleArea').style.display='none';
+    $('pickWrap').style.display='block';
+    $('pickCount').textContent = '0 / ' + sp.n;
+    renderPick();
+  }, 1150);
+}
+function renderPick(){
+  $('pickGrid').innerHTML = shuffled.map((id,i)=>
+    '<div class="tcard'+(picked.some(p=>p.id===id)?' picked flip':'')+'" data-id="'+id+'" data-i="'+i+'">'
+    + '<div class="tc-inner">'
+    +   '<div class="tc-back"></div>'
+    +   '<div class="tc-face"><img src="'+imgSrc(id,curDeck)+'" alt="" loading="lazy" '
+    +     'onerror="this.src=\''+imgSrc(id,'rw')+'\'"></div>'
+    + '</div></div>').join('');
+  [...document.querySelectorAll('#pickGrid .tcard')].forEach(el=>{
+    el.onclick = ()=> pickCard(el);
+  });
+}
+function pickCard(el){
+  const sp = spreadOf(curSpread);
+  if(picked.length >= sp.n || el.classList.contains('picked')) return;
+  const id = el.dataset.id;
+  const rev = $('revChk').checked && Math.random() < 0.32;
+  picked.push({id:id, rev:rev});
+  el.classList.add('picked','flip');
+  $('pickCount').textContent = picked.length + ' / ' + sp.n;
+  // 结果区同步补一张（还没进结果阶段也先把数据存着）
+  if(picked.length === sp.n){
+    setTimeout(()=>{ showResult(); }, 620);
+  }
+}
+
+/* ---------- 结果 ---------- */
+function showResult(){
+  const sp = spreadOf(curSpread);
+  const q = $('qInput').value.trim();
+  lastResult = {
+    id: 't'+Date.now(),
+    ts: Date.now(),
+    deck: curDeck,
+    spread: curSpread,
+    question: q || '今天想告诉我的事',
+    cards: picked.slice(),
+  };
+  $('stagePick').classList.remove('on');
+  $('stageResult').classList.add('on');
+  renderResult(lastResult);
+  saveHist(lastResult);
+  if($('aiAutoChk').checked) setTimeout(askAI, 900);
+}
+function cardHtml(id, rev, deck){
+  const c = CARDS[id];
+  return '<img src="'+imgSrc(id,deck)+'" alt="" onerror="this.src=\''+imgSrc(id,'rw')+'\'"'
+       + (rev? ' style="transform:rotate(180deg)"':'' ) + '>';
+}
+function renderResult(r){
+  const sp = spreadOf(r.spread);
+  $('resQ').textContent = r.question;
+  $('resMeta').textContent = deckOf(r.deck).name + ' · ' + sp.name + ' · '
+    + new Date(r.ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const isCeltic = sp.id === 'celtic';
+  const box = $('slots');
+  box.className = isCeltic ? 'celtic' : 'slots';
+  box.innerHTML = r.cards.map((p,i)=>{
+    const c = CARDS[p.id];
+    const key = p.rev ? c.rev : c.up;
+    const inner = '<div class="tcard flip"><div class="tc-inner">'
+      + '<div class="tc-back"></div>'
+      + '<div class="tc-face">' + cardHtml(p.id, p.rev, r.deck) + '</div>'
+      + '</div></div>'
+      + '<div class="slot-name">' + esc(sp.slots[i]) + '</div>'
+      + '<div class="slot-card">' + esc(c.name) + '</div>'
+      + '<div class="slot-rev">' + (p.rev?'逆位':'正位') + '</div>'
+      + '<div class="slot-key">' + esc(key) + '</div>';
+    return '<div class="slot ' + (isCeltic?('c'+(i+1)):'') + '">' + inner + '</div>';
+  }).join('');
+  // 逐张翻开
+  const cards = [...box.querySelectorAll('.tcard')];
+  cards.forEach(el=>el.classList.remove('flip'));
+  cards.forEach((el,i)=>setTimeout(()=>el.classList.add('flip'), 180 + i*230));
+}
+
+/* ---------- 解读 ---------- */
+function buildPrompt(r){
+  const sp = spreadOf(r.spread);
+  let s = '你是一位温和、清醒的塔罗解读人。请为下面这次占卜给出解读。\n\n';
+  s += '【问题】' + r.question + '\n';
+  s += '【牌阵】' + sp.name + '（' + sp.n + '张）\n\n';
+  s += '【抽到的牌】\n';
+  r.cards.forEach((p,i)=>{
+    const c = CARDS[p.id];
+    s += (i+1) + '. 位置「' + sp.slots[i] + '」：' + c.name
+      + '（' + (p.rev?'逆位':'正位') + '）　含义倾向：' + (p.rev?c.rev:c.up) + '\n';
+  });
+  s += '\n请按下面要求写：\n';
+  s += '1）先用一两句话给出整体结论，直接回应这个问题。\n';
+  s += '2）再按牌阵位置逐张说明，每张一两句话，要贴着问题讲，不要复述牌意词典。\n';
+  s += '3）最后给一条具体、能马上做的建议。\n';
+  s += '语气：温柔、平等、不说教、不恐吓、不宿命论，不要说"注定""必然"。不要用 Markdown 标题符号和星号。全文 600 字以内。\n';
+  return s;
+}
+function fallbackReading(r){
+  const sp = spreadOf(r.spread);
+  let s = '（没填密钥，这里先用牌意本身拼一个底稿。填上密钥就有完整解读。）\n\n';
+  r.cards.forEach((p,i)=>{
+    const c = CARDS[p.id];
+    s += '【' + sp.slots[i] + '】' + c.name + '（' + (p.rev?'逆位':'正位') + '）\n'
+      + '　' + (p.rev?c.rev:c.up) + '\n\n';
+  });
+  const majors = r.cards.filter(p=>CARDS[p.id].major).length;
+  s += '整体：' + (majors >= Math.ceil(r.cards.length/2)
+      ? '大牌占了多半，这件事的分量比想象的重，不是小打小闹，值得认真对待。'
+      : '小牌居多，局面多半还在你手里，是可以慢慢调的。');
+  return s;
+}
+async function askAI(){
+  if(!lastResult || reading) return;
+  const key = ($('tKey').value.trim()) || (localStorage.getItem('ywApiKey')||'');
+  const box = $('aiBox'), st = $('aiState');
+  box.style.display='block';
+  if(!key){
+    box.textContent = fallbackReading(lastResult);
+    st.innerHTML = '<span style="color:#8a837a">未配置密钥，显示的是牌意底稿。点右上角「⚙ 接口设置」填上就有 AI 解读。</span>';
+    return;
+  }
+  let base = ($('tBase').value.trim()) || (localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
+  const model = ($('tModel').value.trim()) || (localStorage.getItem('ywApiModel')||'deepseek-flash');
+  base = base.replace(/\/+$/,'');
+  reading = true; $('btnRead').disabled = true;
+  st.innerHTML = '<span class="spin"></span>正在解读…';
+  box.textContent = '';
+  try{
+    const ctrl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(()=>ctrl.abort(), 120000) : null;
+    const r = await fetch(base + '/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body: JSON.stringify({model:model, temperature:0.7, max_tokens:1200,
+        messages:[{role:'user', content: buildPrompt(lastResult)}]}),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if(timer) clearTimeout(timer);
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw ((j&&j.error&&j.error.message) || ('HTTP '+r.status));
+    const txt = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    if(!txt) throw '回复为空';
+    box.textContent = txt;
+    st.innerHTML = '<span style="color:#3f9d6b">解读完成</span>';
+    histWriteAI(lastResult.id, txt);
+  }catch(e){
+    let m = (e && e.name === 'AbortError') ? '等太久放弃了' : String((e&&e.message)||e);
+    if(m.indexOf('Failed to fetch') >= 0) m = '连不上接口 —— 检查网络或接口地址';
+    st.innerHTML = '<span style="color:#c0392b">' + esc(m) + '</span>';
+    box.textContent = fallbackReading(lastResult);
+  }finally{
+    reading = false; $('btnRead').disabled = false;
+  }
+}
+
+/* ---------- 历史 ---------- */
+const HK = 'tarot_history';
+function loadHist(){ try{ return JSON.parse(localStorage.getItem(HK)||'[]'); }catch(e){ return []; } }
+function saveHist(r){
+  let h = loadHist();
+  h = h.filter(x=>x.id !== r.id);
+  h.unshift(r);
+  if(h.length > 40) h = h.slice(0,40);
+  try{ localStorage.setItem(HK, JSON.stringify(h)); }catch(e){}
+  renderHist();
+}
+function histWriteAI(id, txt){
+  const h = loadHist();
+  const it = h.find(x=>x.id===id);
+  if(it){ it.ai = txt; try{ localStorage.setItem(HK, JSON.stringify(h)); }catch(e){} }
+}
+function renderHist(){
+  const h = loadHist();
+  const el = $('histList');
+  if(!h.length){ el.innerHTML = '<div class="empty">还没有记录。抽一次就会有。</div>'; return; }
+  el.innerHTML = h.map(r=>{
+    const sp = spreadOf(r.spread);
+    return '<div class="hist-item" data-id="'+r.id+'">'
+      + '<div class="hist-thumbs">' + r.cards.slice(0,6).map(p=>
+          '<img src="'+imgSrc(p.id, r.deck)+'" onerror="this.src=\''+imgSrc(p.id,'rw')+'\'">').join('') + '</div>'
+      + '<div style="min-width:0;flex:1">'
+      +   '<div class="hist-q">'+esc(r.question)+'</div>'
+      +   '<div class="hist-meta">'+deckOf(r.deck).name+' · '+sp.name+' · '
+      +     new Date(r.ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'</div>'
+      + '</div>'
+      + '<div class="hist-del" data-del="'+r.id+'">删除</div>'
+      + '</div>';
+  }).join('');
+  [...el.querySelectorAll('.hist-item')].forEach(item=>{
+    item.onclick = (ev)=>{
+      if(ev.target.dataset.del){ ev.stopPropagation(); delHist(ev.target.dataset.del); return; }
+      const r = loadHist().find(x=>x.id===item.dataset.id);
+      if(!r) return;
+      curDeck = r.deck; localStorage.setItem('tarotDeck', curDeck); applyDeckTheme(); renderDecks();
+      lastResult = r;
+      $('qInput').value = (r.question==='今天想告诉我的事'?'':r.question);
+      $('stageResult').classList.add('on');
+      $('stagePick').classList.remove('on');
+      renderResult(r);
+      const box=$('aiBox'), stt=$('aiState');
+      if(r.ai){ box.style.display='block'; box.textContent=r.ai; stt.textContent=''; }
+      else { box.style.display='none'; stt.textContent=''; }
+      $('stageResult').scrollIntoView({behavior:'smooth', block:'start'});
+    };
+  });
+}
+function delHist(id){
+  let h = loadHist().filter(x=>x.id!==id);
+  try{ localStorage.setItem(HK, JSON.stringify(h)); }catch(e){}
+  renderHist();
+}
+
+/* ---------- 事件绑定 ---------- */
+$('btnStart').onclick = startShuffle;
+$('btnReset').onclick = ()=>{ shuffled=[]; picked=[]; $('stagePick').classList.remove('on'); };
+$('btnAgain').onclick = startShuffle;
+$('btnRead').onclick = askAI;
+$('btnHist').onclick = ()=>{ $('stageHist').classList.toggle('on'); if($('stageHist').classList.contains('on')) $('stageHist').scrollIntoView({behavior:'smooth',block:'start'}); };
+$('btnAiSet').onclick = ()=>{
+  $('stageSet').classList.toggle('on');
+  if($('stageSet').classList.contains('on')){
+    $('tBase').value = localStorage.getItem('ywApiBase') || 'https://api.deepseek.com';
+    $('tModel').value = localStorage.getItem('ywApiModel') || 'deepseek-flash';
+    $('tKey').value = localStorage.getItem('ywApiKey') || '';
+    $('stageSet').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+};
+$('btnSaveSet').onclick = ()=>{
+  localStorage.setItem('ywApiBase', $('tBase').value.trim() || 'https://api.deepseek.com');
+  localStorage.setItem('ywApiModel', $('tModel').value.trim() || 'deepseek-flash');
+  localStorage.setItem('ywApiKey', $('tKey').value.trim());
+  $('stageSet').classList.remove('on');
+  alert('已保存（全站共用这一份）。');
+};
+
+/* ---------- 初始化 ---------- */
+applyDeckTheme();
+renderDecks();
+renderSpreads();
+renderHist();
+</script>
+</body>
+</html>
