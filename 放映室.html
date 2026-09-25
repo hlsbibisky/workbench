@@ -266,7 +266,7 @@
           </span>
           <input type="range" class="bri" id="bri" min="0.5" max="1.6" step="0.05" value="1" oninput="setBri(this.value)" title="画面亮度">
         </div>
-        <select class="speed" id="speed" onchange="setSpeed(this.value)">
+        <select class="speed" id="arSel" onchange="setAspect(this.value)" title="画面比例"><option value="auto">画面</option><option value="16/9">16:9</option><option value="4/3">4:3</option><option value="fill">撑满</option><option value="cover">裁切</option></select><select class="speed" id="speed" onchange="setSpeed(this.value)">
           <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
           <option value="1" selected>1x</option><option value="1.25">1.25x</option>
           <option value="1.5">1.5x</option><option value="2">2x</option>
@@ -944,6 +944,21 @@ function onPlayState(){
 }
 function onScreenClick(e){ if(e.target.closest('.dropzone')) return; togglePlay(); }
 function setSpeed(v){ video.playbackRate=parseFloat(v); }
+function setAspect(v){
+  try{
+    const force=(v==='16/9'||v==='4/3');
+    video.style.aspectRatio=force?v:'';
+    if(force){ video.style.width='100%'; video.style.height='auto'; video.style.maxHeight='100%'; }
+    else{ video.style.width='100%'; video.style.height='100%'; video.style.maxHeight=''; }
+    video.style.objectFit = v==='fill'?'fill' : v==='cover'?'cover' : 'contain';
+    try{ localStorage.setItem('cinema_ar', v); }catch(e){}
+    sysTip(v==='auto' ? '画面比例：原始（自动适配，不失真）。'
+         : v==='fill' ? '画面比例：撑满（拉伸填满，可能失真）。'
+         : v==='cover' ? '画面比例：裁切（填满但裁掉边缘）。'
+         : '画面比例：强制 '+v+'（片源比例不对时用）。');
+  }catch(e){}
+}
+try{ (function(){ const av=localStorage.getItem('cinema_ar'); if(av && av!=='auto'){ const s=document.getElementById('arSel'); if(s) s.value=av; setAspect(av); } })(); }catch(e){}
 function skip(s){
   if(!isFinite(video.duration)) return;
   video.currentTime=Math.max(0,Math.min(video.duration, video.currentTime+s));
@@ -1146,8 +1161,8 @@ function pushDanmaku(text){
   const d=document.createElement('div');
   d.className='dk';
   d.textContent=text;
-  d.style.top=[10,26,42,58][dkLane++%4]+'%';
-  d.style.animationDuration=Math.max(16,Math.min(28,12+String(text).length*0.3))+'s';
+  d.style.top=[4,18,32,46][dkLane++%4]+'%';
+  d.style.animationDuration=Math.max(10,Math.min(15,8+String(text).length*0.15))+'s';
   d.addEventListener('animationend',()=>d.remove());
   layer.appendChild(d);
   while(layer.children.length>10) layer.firstChild.remove();
