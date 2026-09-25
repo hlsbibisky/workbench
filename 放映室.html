@@ -88,6 +88,19 @@
   .chat-head{height:38px;flex:0 0 auto;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#fff;}
   .chat-head .l{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent);}
   .chat-head .r{font-size:11px;color:var(--sub);}
+  .cbtn2{font-size:11px;padding:2px 9px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--sub);cursor:pointer;flex:none;}
+  .cbtn2:hover{color:var(--fg);border-color:var(--accent);}
+  .cbtn2:disabled{opacity:.35;cursor:default;}
+  .cbtn2:disabled:hover{color:var(--sub);border-color:var(--line);}
+  .sys-tip{display:none;align-items:flex-start;gap:6px;font-size:11px;line-height:1.5;color:var(--sub);background:#f6f2ea;border:1px dashed var(--line);border-radius:8px;padding:5px 9px;margin:6px 10px 0;flex:0 0 auto;}
+  .sys-tip.show{display:flex;}
+  .sys-tip .stx{flex:1;min-width:0;}
+  .sys-tip .sx{flex:none;cursor:pointer;opacity:.55;padding:0 2px;font-size:12px;}
+  .sys-tip .sx:hover{opacity:1;}
+  /* 全屏弹幕：白字轻描边、整体 40% 透明度，只在全屏时出现 */
+  #danmaku{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:.4;z-index:5;display:none;}
+  #danmaku .dk{position:absolute;left:100%;white-space:nowrap;font-size:16px;font-weight:600;color:#fff;text-shadow:0 0 4px rgba(0,0,0,.85),0 1px 2px rgba(0,0,0,.75);will-change:transform;animation:dkmove linear forwards;}
+  @keyframes dkmove{from{transform:translateX(0);}to{transform:translateX(calc(-100vw - 100%));}}
   .ai-body{flex:1;overflow:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;background:#fdfbf7;}
   .ai-msg{max-width:94%;padding:8px 11px;border-radius:11px;font-size:13px;line-height:1.55;animation:pop .2s ease;}
   .ai-msg.ai{align-self:flex-start;background:#f5efe6;border-top-left-radius:3px;color:var(--ink);}
@@ -221,6 +234,7 @@
   <main class="col main">
     <div class="player-wrap" id="playerWrap">
       <div class="screen" id="screen" onclick="onScreenClick(event)" ondblclick="toggleFull()">
+        <div id="danmaku"></div>
         <video id="video" controlsList="nodownload"
           ontimeupdate="onTimeUpdate()" onloadedmetadata="onLoaded()"
           onplay="onPlayState()" onpause="onPlayState()" onended="onEnded()"></video>
@@ -272,17 +286,22 @@
     <div class="bottom-tabs">
       <div class="tooltabs">
         <button class="ttab active" onclick="switchTab('chat')" data-tab="chat">💬 对话<span class="unread" id="chatUnread"></span></button>
-        <button class="ttab" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
         <button class="ttab" onclick="switchTab('ai')" data-tab="ai">AI生成</button>
         <button class="ttab" onclick="switchTab('records')" data-tab="records">历史记录</button>
+        <button class="ttab" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
       </div>
 
       <div class="tpane show" id="pane-chat">
         <div class="chat-wrap">
           <div class="chat-head">
             <span class="l">🎭 AI 陪伴</span>
-            <span class="r" id="aiStatus">等待开始</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span class="r" id="aiStatus">等待开始</span>
+              <button class="cbtn2" id="undoClearBtn" onclick="undoClear()" title="把刚清掉的内容找回来" disabled>↩ 撤销</button>
+              <button class="cbtn2" onclick="clearChat()" title="一键清空对话框（可撤销）">清屏</button>
+            </span>
           </div>
+          <div class="sys-tip" id="sysTip"><span class="stx" id="sysTipTxt"></span><span class="sx" onclick="hideSysTip()" title="关掉">✕</span></div>
           <div class="ai-body" id="aiBody">
             <div class="ai-msg ai">
               <div class="when">系统</div>
@@ -378,7 +397,7 @@
     <p style="font-size:13px;color:var(--sub);line-height:1.7;margin:0 0 12px;">
       1. 点击右上角「选择影片」或直接把影片拖进画面，支持 mp4 / mkv / webm / avi 等格式。<br><br>
       2. 播放器控制条：播放/暂停、快退 10 秒、快进 10 秒、进度条、音量、画面亮度、倍速、关灯（只留画面亮）、全屏。点画面可暂停，双击画面进全屏。<br><br>
-      3. 右侧标签：<b>💬 对话</b>（AI 和你聊天，麦克风与输入框在这里）、时间轴、AI生成、<b>历史记录</b>。<br><br>
+      3. 右侧标签：<b>💬 对话</b>（AI 和你聊天，麦克风与输入框在这里；顶部有「清屏 / ↩ 撤销」）、AI生成、<b>历史记录</b>、时间轴。<br><br>
       4. 「AI生成」页最上面是「上传字幕 / 上传截图」两个按钮：字幕(.srt/.vtt)最准，AI 会按片长分段把整部电影评论一次写好；没字幕也可粘贴剧情文本。填好 API Key（右上角「AI配置」）后一键生成。<br><br>
       5. 播放时，到点的 AI 评论会像聊天消息一样出现在「对话」页；你也可以在那里打字或点 🎤 说话，AI 会结合当前播放位置真实回复。<br><br>
       6. <b>「历史记录」每部影片一条档</b>：字幕、AI 评论、播放进度都自动存下来。刷新、关掉浏览器、下次再打开，点卡片上的「继续观看」重选一次文件，评论和字幕就全回来了 —— <b>不用重新生成，也就不会再花钱</b>。点卡片本身还能直接看这部片的全部评论。<br><br>
@@ -454,6 +473,7 @@ let state={
   file:null, url:null, currentId:null, recordId:null,
   meta:{title:'',info:'',plot:''},
   notes:[], shown:new Set(), visionTimer:null,
+  chatLog:[],             /* 聊天流持久化：{who,text,when}，随影片档存（最近 300 条） */
   editingId:null, recPoster:null,
   subtitle:[], subtitleRaw:'',
   pendingId:null,        /* 从历史记录点「继续观看」时记下 id，选到文件后自动把档挂上 */
@@ -506,6 +526,8 @@ function loadMovie(id){
   const t=m.title||(m.meta&&m.meta.title)||'';
   state.meta={title:t,info:'',plot:m.plot||(m.meta&&m.meta.plot)||''};
   state.notes=Array.isArray(m.notes)?m.notes:[];
+  state.chatLog=Array.isArray(m.chat)?m.chat:[];          /* 聊天流随档恢复 */
+  state.shown=new Set(Array.isArray(m.shownIds)?m.shownIds:[]);  /* 已弹过的评论不再重弹 */
   state.recPoster=m.poster||null;
   state.subtitleRaw=m.subtitleRaw||'';
   state.subtitle=state.subtitleRaw?parseSubtitleText(state.subtitleRaw):[];
@@ -526,6 +548,8 @@ function saveMovie(extra){
     title:(state.meta&&state.meta.title)||old.title||'',
     plot:(state.meta&&state.meta.plot)||old.plot||'',
     notes:state.notes||[],
+    chat:(state.chatLog||[]).slice(-300),       /* 聊天流随档保存，下次打开原样接上 */
+    shownIds:Array.from(state.shown||[]),       /* 已弹过的评论标记，恢复后不重弹 */
     subtitleRaw:state.subtitleRaw||'',
     subCount:(state.subtitle||[]).length,
     updated:Date.now()
@@ -726,18 +750,18 @@ function restoreToPlayer(id){
   state.currentId=id;
   loadMovie(id);
   if(!state.meta.title) state.meta.title=m.title||'';
-  state.shown.clear();
   $('movTitle').textContent=state.meta.title||'';
+  renderChatLog();          /* 聊天流随档恢复，接着上次聊 */
   renderNotes(); updateSubInfo(); renderHistory(); switchTab('chat');
   const tail=state.notes.length ? '，播放到对应时间会自动出现。' : '。到「AI生成」页生成一次，以后就能一直用。';
-  aiSay('系统',`已调出《${state.meta.title||'这部片'}》的存档：AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条${tail}`);
+  sysTip(`已调出《${state.meta.title||'这部片'}》的存档：AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条${tail}`);
 }
 /* 从历史记录点「继续观看」：先记下 id，选到文件后自动挂上（文件名变了也能认） */
 function resumeMovie(id){
   const m=lsGet(movieKey(id))||{};
   state.pendingId=id;
   switchTab('chat');
-  aiSay('系统',`请选择《${m.title||'这部片'}》的影片文件（点右上角「选择影片」，或把文件拖进画面）。选好后评论和字幕会自动挂上，不用重新生成。`);
+  sysTip(`请选择《${m.title||'这部片'}》的影片文件（点右上角「选择影片」，或把文件拖进画面）。选好后评论和字幕会自动挂上，不用重新生成。`);
   try{ $('fileInp').value=''; $('fileInp').click(); }catch(e){}
 }
 
@@ -865,15 +889,15 @@ function loadFile(file){
     state.currentId=id;
     loadMovie(id);
     if(!state.meta.title) state.meta.title=title;
-    state.shown.clear();
     $('movTitle').textContent=state.meta.title;
     clearAi();
+    renderChatLog();          /* 聊天流接着上次；播放位置在 onLoaded 里自动跳回 */
     if(state.notes.length || state.subtitle.length){
       msg=`已恢复《${state.meta.title}》的存档：AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条。播放到对应时间会自动出现，不用重新生成。`;
     }else{
       msg=`已加载影片：${state.meta.title}`;
     }
-    aiSay('系统',msg);
+    sysTip(msg);
   }else if(pend && lsGet(movieKey(pend))){
     /* 用户是从历史记录里点进来的，但文件名/大小变了 —— 把存档挂过来 */
     state.currentId=id;
@@ -883,20 +907,21 @@ function loadFile(file){
     saveMovie({date:todayStr()});                   /* 先写新键，成功后再清旧键，避免丢数据 */
     if(oldProg) lsSet(progKey(id),oldProg);
     lsDel(movieKey(pend)); lsDel(progKey(pend));
-    state.shown.clear();
     $('movTitle').textContent=state.meta.title;
     clearAi();
-    aiSay('系统',`已把历史记录挂到这部影片上（AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条）。播放即可，不用重新生成。`);
+    renderChatLog();          /* 聊天流跟着旧档一起挂过来 */
+    sysTip(`已把历史记录挂到这部影片上（AI 评论 ${state.notes.length} 条、字幕 ${state.subtitle.length} 条）。播放即可，不用重新生成。`);
   }else{
     state.currentId=id;
     state.meta={title,info:'',plot:''};
     state.notes=[]; state.subtitle=[]; state.subtitleRaw='';
     state.recPoster=null;
-    state.shown.clear();
+    state.chatLog=[]; state.shown=new Set();
     $('movTitle').textContent=title;
     clearAi();
+    renderChatLog();
     saveMovie({date:todayStr(),duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0});
-    aiSay('系统',`已加载影片：${title}。上传字幕生成评论后会自动存进「历史记录」，下次点一下就能调出，不用重复花钱生成。`);
+    sysTip(`已加载影片：${title}。上传字幕生成评论后会自动存进「历史记录」，下次点一下就能调出，不用重复花钱生成。`);
   }
   renderNotes(); updateSubInfo(); renderHistory();
   saveMovie({duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0,date:todayStr()});
@@ -946,6 +971,8 @@ function toggleFull(){
 }
 document.addEventListener('fullscreenchange',()=>{
   $('fullBtn').classList.toggle('on',!!document.fullscreenElement);
+  const layer=$('danmaku');
+  if(layer) layer.style.display=document.fullscreenElement?'block':'none';
 });
 /* 鼠标不动 3 秒淡出控制条 */
 let idleTimer=null;
@@ -965,7 +992,7 @@ function checkAudio(){
   const dec=video.webkitAudioDecodedByteCount;
   if(typeof dec==='number' && dec===0){
     audioWarned=true;
-    aiSay('系统','⚠ 这段影片画面在播，但音频一帧都没解出来，说明它的音轨浏览器解不了（mkv 里常见的 DTS、TrueHD 音轨就是这样，属于浏览器解码器的限制）。建议把它转成 MP4（H.264 视频 + AAC 音频）再放，视频不用重编，转换很快。');
+    sysTip('⚠ 这段影片画面在播，但音频一帧都没解出来，说明它的音轨浏览器解不了（mkv 里常见的 DTS、TrueHD 音轨就是这样，属于浏览器解码器的限制）。建议把它转成 MP4（H.264 视频 + AAC 音频）再放，视频不用重编，转换很快。');
   }
 }
 function onLoaded(){
@@ -973,6 +1000,20 @@ function onLoaded(){
   audioWarned=false;
   saveMovie({duration:(isFinite(video.duration)&&video.duration>0)?video.duration:0,date:todayStr()});
   renderSubMatch();          /* 影片时长出来了，匹配检测才有得比 */
+  maybeResumeProgress();     /* 时长已知才能可靠地跳回上次进度 */
+}
+/* 自动回到上次播放位置（存档里有 pos 才跳；快看完的不跳） */
+function maybeResumeProgress(){
+  try{
+    const p=lsGet(progKey(state.currentId));
+    if(!p || typeof p.pos!=='number') return;
+    if(!isFinite(video.duration) || video.duration<=0) return;
+    if(p.pos<=5 || p.pos>=video.duration-2) return;   /* 从头看的 / 快看完的不打扰 */
+    if(Math.abs(video.currentTime-p.pos)<=2) return;  /* 已经在那附近就不动 */
+    video.currentTime=p.pos;
+    saveProgress(true);
+    sysTip(`已回到上次进度 ${fmt(p.pos)}（${p.pct!=null?p.pct+'%':''}）。想重头看就把进度条拖到最左边。`);
+  }catch(e){}
 }
 function onTimeUpdate(){
   const cur=video.currentTime, dur=video.duration||1;
@@ -998,6 +1039,8 @@ function checkNotes(cur){
     if(Math.abs(cur-n.time)<=0.5){
       state.shown.add(n.id);
       aiSay((n.type==='ai'?'AI':'我'), n.text, fmt(n.time));
+      pushDanmaku(n.text);
+      scheduleChatSave();          /* shown 变了也要落盘，恢复后不重弹 */
     }
   });
 }
@@ -1026,15 +1069,88 @@ function bumpUnread(who){
   if(el){ el.textContent=(unread>9?'9+':String(unread)); el.classList.add('on'); }
 }
 function clearAi(){ $('aiBody').innerHTML=''; }
-function aiSay(who, text, when){
+/* 系统提示：只在聊天区顶部显示一条淡色小字条（15 秒后自动收起，也可点 ✕ 立刻关），不进对话流 */
+let sysTipTimer=null;
+function sysTip(text){
+  const el=$('sysTip'); if(!el) return;
+  $('sysTipTxt').textContent=text;
+  el.classList.add('show');
+  clearTimeout(sysTipTimer);
+  sysTipTimer=setTimeout(hideSysTip,15000);
+}
+function hideSysTip(){ const el=$('sysTip'); if(el) el.classList.remove('show'); }
+function appendMsg(who, text, when){
   const body=$('aiBody');
   const div=document.createElement('div');
   div.className='ai-msg '+(who==='我'?'user':'ai');
   div.innerHTML=(when?`<div class="when">${esc(who)} · ${when}</div>`:`<div class="when">${esc(who)}</div>`)+esc(text);
   body.appendChild(div);
+  return div;
+}
+/* 把存档里的聊天流原样画回对话框（选片 / 载入存档后调用） */
+function renderChatLog(){
+  const body=$('aiBody');
+  body.innerHTML='';
+  if(!(state.chatLog||[]).length){
+    body.innerHTML='<div class="ai-msg ai"><div class="when">系统</div>打开影片后，AI 会在这里陪你聊天。它不会挡住画面。</div>';
+  }else{
+    (state.chatLog||[]).forEach(m=>appendMsg(m.who,m.text,m.when));
+  }
   body.scrollTop=body.scrollHeight;
+}
+/* 聊天流有变化 → 防抖写回影片档 */
+let chatSaveTimer=null;
+function scheduleChatSave(){
+  clearTimeout(chatSaveTimer);
+  chatSaveTimer=setTimeout(()=>{ try{ saveMovie(); }catch(e){} },800);
+}
+function aiSay(who, text, when){
+  appendMsg(who, text, when);
+  const body=$('aiBody');
+  body.scrollTop=body.scrollHeight;
+  if(who==='我'||who==='AI'){
+    state.chatLog.push({who:who,text:text,when:when||''});
+    if(state.chatLog.length>300) state.chatLog.splice(0,state.chatLog.length-300);
+    scheduleChatSave();
+  }
   $('aiStatus').textContent=who==='AI'?'AI 刚刚发言':'等待开始';
   bumpUnread(who);
+}
+let lastCleared=null;
+/* 清屏：清掉对话框和聊天流记录（存档同步清空，刷新也不会回来）；最近一次可撤销 */
+function clearChat(){
+  const body=$('aiBody');
+  if(!body.children.length && !(state.chatLog||[]).length) return;
+  lastCleared={html:body.innerHTML, chat:(state.chatLog||[]).slice()};
+  state.chatLog=[];
+  body.innerHTML='';
+  $('undoClearBtn').disabled=false;
+  try{ saveMovie(); }catch(e){}
+  sysTip('已清屏。误删了就点上面的「↩ 撤销」找回。');
+}
+function undoClear(){
+  if(!lastCleared) return;
+  state.chatLog=lastCleared.chat.slice();
+  $('aiBody').innerHTML=lastCleared.html;
+  lastCleared=null;
+  $('undoClearBtn').disabled=true;
+  const body=$('aiBody');
+  body.scrollTop=body.scrollHeight;
+  try{ saveMovie(); }catch(e){}
+}
+/* 全屏弹幕：评论到点从右往左飘过（40% 透明度在 #danmaku 样式上统一控制）；非全屏走右侧对话框 */
+let dkLane=0;
+function pushDanmaku(text){
+  if(!document.fullscreenElement) return;
+  const layer=$('danmaku'); if(!layer) return;
+  const d=document.createElement('div');
+  d.className='dk';
+  d.textContent=text;
+  d.style.top=[10,26,42,58][dkLane++%4]+'%';
+  d.style.animationDuration=Math.max(8,Math.min(14,6+String(text).length*0.15))+'s';
+  d.addEventListener('animationend',()=>d.remove());
+  layer.appendChild(d);
+  while(layer.children.length>10) layer.firstChild.remove();
 }
 function sendChat(){
   const inp=$('chatInp'), txt=inp.value.trim(); if(!txt) return;
@@ -1060,7 +1176,7 @@ async function chatWithAI(userText){
   const nearNotes=nearbyNotes(video.currentTime);
   if(nearNotes) ctx+=`；刚刚出现过的 AI 评论：${nearNotes}`;
   try{
-    const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
+    const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。回复要短：一般一到三句话，尽量不超过 60 字，除非用户明确要求展开、解释或多说一些。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
     const res=await fetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
@@ -1393,14 +1509,14 @@ ${plot}`;
     const mx=Math.max.apply(null,collected.map(n=>n.time));
     const st=loadStyle();
     const stTxt={short:'精简',normal:'正常',long:'话痨'}[st.len]+' · '+{friend:'朋友吐槽',serious:'认真聊',sharp:'毒舌刻薄'}[st.tone]+' · '+{sparse:'克制',normal:'适中',dense:'密集'}[st.dens];
-    aiSay('系统',`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，本片现有 ${state.notes.filter(n=>n.type==='ai').length} 条。这次用的风格：${stTxt}。觉得话多话少、语气不对，去「AI生成」页调「评论风格」再重新生成就行。播放到对应时间，它们会像聊天消息一样出现在这里。`);
+    sysTip(`已生成 ${collected.length} 条 AI 评论，覆盖 ${fmt(mn)}–${fmt(mx)}${durTxt?('（全片 '+durTxt+'）'):''}，本片现有 ${state.notes.filter(n=>n.type==='ai').length} 条。这次用的风格：${stTxt}。觉得话多话少、语气不对，去「AI生成」页调「评论风格」再重新生成就行。播放到对应时间，它们会像聊天消息一样出现在这里。`);
     if(patched.length){
-      aiSay('系统',`说明：${patched.slice(0,4).join('、')}${patched.length>4?' 等':''} 这 ${patched.length} 段在严格筛选后一条评论都没有，为了不让你看太久没人说话，按宽松标准（氛围、节奏这类轻的感受）补了几条。`);
+      sysTip(`说明：${patched.slice(0,4).join('、')}${patched.length>4?' 等':''} 这 ${patched.length} 段在严格筛选后一条评论都没有，为了不让你看太久没人说话，按宽松标准（氛围、节奏这类轻的感受）补了几条。`);
     }
     if(diag.length){
-      aiSay('系统',`说明：有 ${diag.length} 段没有字幕（${diag.slice(0,4).join('、')}${diag.length>4?' 等':''}），这几段是依据剧情资料补的，会比有字幕的段落粗略一些，也不会引用具体台词。`);
+      sysTip(`说明：有 ${diag.length} 段没有字幕（${diag.slice(0,4).join('、')}${diag.length>4?' 等':''}），这几段是依据剧情资料补的，会比有字幕的段落粗略一些，也不会引用具体台词。`);
     }
-    aiSay('系统', saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
+    sysTip( saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
   }catch(e){
     const msg=String((e&&e.message)||e);
     /* 网络类错误和「填错密钥」看起来很像，不分开说会白折腾半天 */
@@ -1547,7 +1663,7 @@ function onSubtitle(file){
     } else {
       saved = saveMovie({subCount:cues.length}) ? '，已存档（刷新不会丢）' : '，但存档失败了';
     }
-    aiSay('系统',`字幕已解析：${cues.length} 条${saved}。先看上面的「匹配检测」对不对得上，再点「✨ 生成时间轴评论」。`);
+    sysTip(`字幕已解析：${cues.length} 条${saved}。先看上面的「匹配检测」对不对得上，再点「✨ 生成时间轴评论」。`);
     renderHistory();
     renderSubMatch();
   };
@@ -1675,15 +1791,15 @@ function initSpeech(){
     else if(interim){ inp.value=interim; }
   };
   recognizer.onerror = (e)=>{
-    if(e.error==='not-allowed') aiSay('系统','麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风。');
-    else if(e.error!=='no-speech') aiSay('系统','语音识别出错：'+e.error);
+    if(e.error==='not-allowed') sysTip('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风。');
+    else if(e.error!=='no-speech') sysTip('语音识别出错：'+e.error);
   };
 }
 function toggleMic(){
   if(!recognizer){ initSpeech(); }
-  if(!recognizer){ aiSay('系统','当前浏览器不支持语音识别，请用 Edge / Chrome 打开。'); return; }
+  if(!recognizer){ sysTip('当前浏览器不支持语音识别，请用 Edge / Chrome 打开。'); return; }
   if(isRec){ recognizer.stop(); }
-  else { try{ recognizer.start(); }catch(e){ aiSay('系统','无法启动麦克风：'+e.message); } }
+  else { try{ recognizer.start(); }catch(e){ sysTip('无法启动麦克风：'+e.message); } }
 }
 
 /* ================= 启动 ================= */
