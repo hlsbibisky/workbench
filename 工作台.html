@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20260924d';
+const WB_THIS_VER='20260925a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -696,6 +696,17 @@ let wbReady=false, wbPendingPush=false, wbLastPushSig='';
 let wbSbOk=false, wbGhOk=false, wbGhErr='', wbSbErr='';   /* 双通道状态（必须在读取前声明，否则 wbPush/wbUpdateSyncUI 直接 ReferenceError） */
 let wbVerified=false;                          /* 本会话是否已完成一次真实通道验证（未完成前 UI 显示「验证中」而非「不可达」） */
 const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver','wb_merge_shadow'];
+/* 私密键（2026-09-25）：密钥/令牌绝不上云，也不被云端回灌。
+   事故链：wbCollect 收集全部键 → 云端曾存入空的 ywApiKey（密钥未填时保存过一次）
+   → 合并层对「云端空、本机有」误保留云端空值 → 拉取整键落地 → 手机刚填的 Key 几秒内被抹掉。
+   修复双管齐下：① 密钥类彻底退出同步（每台设备各填一次，也更安全）；
+   ② wbMergeAll 的「保留本机」分支补上真正的赋值（见该函数内注释）。 */
+function wbIsPrivate(k){
+  if(!k) return false;
+  if(k==='wb_gh_token') return true;
+  if(k.indexOf('ywApiKey')===0 || k.indexOf('ywVlKey')===0) return true;
+  return false;
+}
 /* 污染键：源于旧写法 localStorage.setItem=fn。localStorage 是 Storage 对象，带 WebIDL
    named property setter；在严格实现的浏览器（iOS Safari/WebKit）里该赋值不会覆盖方法，
    而是写入一条名为 setItem 的条目（值为函数字符串）。它会污染云端并回灌所有设备，
@@ -793,7 +804,7 @@ async function wbCollectExpanded(){
   const o={};
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(WB_SKIP.indexOf(k)<0){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
+    if(WB_SKIP.indexOf(k)<0 && !wbIsPrivate(k)){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
   }
   /* 2026-09-17 同步急救：food_* 不再把 idb:// 引用展开成 base64 上云（WB_SYNC_IMAGES=false）。
      事故根因：打卡图 base64 随包同步使包体涨到 2.01MB（food_checkin 一项 1.88MB），
@@ -822,7 +833,7 @@ async function wbApply(o){
   if(!o) return;
   let changed=false, quotaHit=false;
   for(const k of Object.keys(o)){
-    if(WB_SKIP.indexOf(k)<0 && !wbIsJunk(k,o[k])){
+    if(WB_SKIP.indexOf(k)<0 && !wbIsPrivate(k) && !wbIsJunk(k,o[k])){
       let v=o[k];
       /* food_* 含 base64 大图：先存 IndexedDB，本地只留 idb:// 引用，避免 5MB 配额超限 */
       if(k.indexOf('food_')===0 && typeof v==='string' && v.indexOf('data:image')>=0){
@@ -1028,9 +1039,11 @@ function wbMergeCinemaProg(localStr,cloudStr){
   if(!C||typeof C!=='object') return localStr;
   return JSON.stringify(((C.at||0)>(L.at||0))?C:L);
 }
-/* ===== 今日安排合并（2026-09-24）=====
-   TODAY_PLAN 结构 {days:{日期:{focus,tasks[],waiting[]}}}。
-   按日期键合并，同一天的任务/待确认按 id 并集（完成态优先、字段互补），绝不整键覆盖。 */
+/* ===== 今日安排合并（2026-09-24；2026-09-25 加删除墓碑）=====
+   TODAY_PLAN 结构 {days:{日期:{focus,tasks[],waiting[],dels[]}}}。
+   按日期键合并，同一天的任务/待确认按 id 并集（完成态优先、字段互补），绝不整键覆盖。
+   ★ dels 是删除墓碑：删除/转正过的条目 id 记在里面，合并时凡在墓碑里的一律剔除——
+     否则纯并集合并「只会加不会减」，用户删掉的条目会从云端旧快照里复活（已实测复现）。 */
 function wbMergeToday(localStr,cloudStr){
   let L=null,C=null;
   try{ L=JSON.parse(localStr||'null'); }catch(e){}
@@ -1042,19 +1055,29 @@ function wbMergeToday(localStr,cloudStr){
     const l=L.days[k];
     if(!out.days[k]){ out.days[k]=l; return; }
     const c=out.days[k];
+    /* 墓碑并集：双侧 dels 合一（同 id 保留较新 ts），再据此过滤双侧条目 */
+    const dm={};
+    (Array.isArray(l.dels)?l.dels:[]).concat(Array.isArray(c.dels)?c.dels:[]).forEach(x=>{
+      if(x&&x.id!==undefined){ const s=String(x.id), t=x.ts||0; if(dm[s]===undefined||t>dm[s]) dm[s]=t; }
+    });
+    const dels=Object.keys(dm).map(s=>({id:s,ts:dm[s]}));
     out.days[k]={
       focus:(String(l.focus||'').length>=String(c.focus||'').length)?(l.focus||''):(c.focus||''),
-      tasks:wbTodayUnion(c.tasks,l.tasks),
-      waiting:wbTodayUnion(c.waiting,l.waiting)
+      tasks:wbTodayUnion(c.tasks,l.tasks,dels),
+      waiting:wbTodayUnion(c.waiting,l.waiting,dels),
+      dels:dels
     };
   });
   return JSON.stringify(out);
 }
-function wbTodayUnion(a,b){
-  a=(Array.isArray(a)?a:[]).slice(); b=(Array.isArray(b)?b:[]);
+function wbTodayUnion(a,b,dels){
+  const dead={}; (Array.isArray(dels)?dels:[]).forEach(x=>{ if(x&&x.id!==undefined) dead[String(x.id)]=1; });
+  a=(Array.isArray(a)?a:[]).filter(x=>!(x&&x.id!==undefined&&dead[String(x.id)]));
+  b=(Array.isArray(b)?b:[]);
   const idx={}; a.forEach((x,i)=>{ if(x&&x.id!==undefined) idx[String(x.id)]=i; });
   b.forEach(y=>{
     if(!y||y.id===undefined) return;
+    if(dead[String(y.id)]) return;
     const i=idx[String(y.id)];
     if(i===undefined){ a.push(y); return; }
     const x=a[i];
@@ -1147,11 +1170,11 @@ async function wbMergeAll(cloudObj, dir){
     }
     if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(lv,cv,bv,dir); return; }   /* 数组：三向合并（按方向定优先级） */
     if(wbIsObj(lv)&&wbIsObj(cv)){ out[k]=wbMergeObj(lv,cv,dir); return; }        /* 对象：按键合并（按方向定优先级） */
-    if(wbIsEmptyVal(lv)&&!wbIsEmptyVal(cv)) return;                          /* 本机空、云端有 → 保留云端 */
-    if(wbIsEmptyVal(cv)&&!wbIsEmptyVal(lv)) return;                          /* 云端空、本机有 → 保留本机 */
+    if(wbIsEmptyVal(lv)&&!wbIsEmptyVal(cv)) return;                          /* 本机空、云端有 → 保留云端（out 初值即云端值，直接 return 即可） */
+    if(wbIsEmptyVal(cv)&&!wbIsEmptyVal(lv)){ out[k]=lv; return; }            /* 云端空、本机有 → 必须显式赋值保留本机（2026-09-25 修复：out 初值是云端快照拷贝，原来只 return 会把云端空值留在 out 里，拉取落地把本机刚填的数据抹掉 —— 手机 API Key 反复被清空的根因） */
     out[k] = (dir==='pull') ? (wbIsEmptyVal(cv)?lv:cv) : lv;
   });
-  Object.keys(out).forEach(k=>{ if(wbIsJunk(k,out[k])) delete out[k]; });    /* 清掉污染键 */
+  Object.keys(out).forEach(k=>{ if(wbIsJunk(k,out[k]) || wbIsPrivate(k)) delete out[k]; });    /* 清掉污染键与私密键（密钥不进合并结果，避免旧空值随包推送/落地） */
   return out;
 }
 function wbSig(o){ let n=0,s=0; Object.keys(o||{}).forEach(k=>{ n++; s+=(o[k]||'').length; }); return n+':'+s; }
@@ -1766,7 +1789,7 @@ function wbFingerprint(){
     let n=0,s=0;
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i); if(!k) continue;
-      if(WB_SKIP.indexOf(k)>=0) continue;
+      if(WB_SKIP.indexOf(k)>=0 || wbIsPrivate(k)) continue;
       if(k===WB_K_SHADOW||k===WB_K_LAST_SYNC||k===WB_K_CLOUD_VER||k==='wb_cloud_ver') continue;
       s+=(localStorage.getItem(k)||'').length; n++;
     }
