@@ -423,13 +423,33 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const deckOf = d => DECKS.find(x=>x.id===d) || DECKS[0];
 const imgSrc = (id, deck) => 'tarot/' + deck + '/' + id + '.jpg';
+/* 图片加载失败自动重试（2026-09-27）：
+   手机网络对 github.io 的图片请求常被抖动掐断，一次失败就放弃会永久空白。
+   策略：第1~2次原地址加随机参数重拉（同时绕开可能被污染的缓存副本）；
+   第3次换 rw 经典牌堆兜底；仍失败就停手，避免死循环。 */
+function tarotImgErr(img){
+  const t = +(img.dataset.rt || 0);
+  const orig = img.dataset.orig || (img.getAttribute('src')||'').split('?')[0];
+  img.dataset.orig = orig;
+  if(t < 2){
+    img.dataset.rt = t + 1;
+    img.src = orig + '?r=' + Date.now() + '_' + t;
+  }else if(t === 2){
+    img.dataset.rt = 3;
+    const fb = orig.replace(/^tarot\/[^/]+\//, 'tarot/rw/');
+    if(fb !== orig){ img.src = fb + '?r=' + Date.now(); }
+    else{ img.onerror = null; }
+  }else{
+    img.onerror = null;
+  }
+}
 const spreadOf = s => SPREADS.find(x=>x.id===s) || SPREADS[1];
 
 /* ---------- 卡组卡片 ---------- */
 function renderDecks(){
   $('deckGrid').innerHTML = DECKS.map(d=>
     '<div class="deck-card'+(d.id===curDeck?' on':'')+'" data-deck="'+d.id+'">'
-    + '<img class="deck-shot" src="'+imgSrc('00',d.id)+'" alt="" onerror="this.src=\''+imgSrc('00','rw')+'\'">'
+    + '<img class="deck-shot" src="'+imgSrc('00',d.id)+'" alt="" onerror="tarotImgErr(this)">'
     + '<div class="deck-name">'+d.name+'</div>'
     + '<div class="deck-sub">'+d.sub+'</div>'
     + '<div class="deck-desc">'+d.desc+'</div>'
@@ -504,7 +524,7 @@ function renderPick(){
     + '<div class="tc-inner">'
     +   '<div class="tc-back"></div>'
     +   '<div class="tc-face"><img src="'+imgSrc(id,curDeck)+'" alt="" loading="lazy" '
-    +     'onerror="this.src=\''+imgSrc(id,'rw')+'\'"></div>'
+    +     'onerror="tarotImgErr(this)"></div>'
     + '</div></div>').join('');
   [...document.querySelectorAll('#pickGrid .tcard')].forEach(el=>{
     el.onclick = ()=> pickCard(el);
@@ -544,7 +564,7 @@ function showResult(){
 }
 function cardHtml(id, rev, deck){
   const c = CARDS[id];
-  return '<img src="'+imgSrc(id,deck)+'" alt="" onerror="this.src=\''+imgSrc(id,'rw')+'\'"'
+  return '<img src="'+imgSrc(id,deck)+'" alt="" onerror="tarotImgErr(this)"'
        + (rev? ' style="transform:rotate(180deg)"':'' ) + '>';
 }
 function renderResult(r){
@@ -684,7 +704,7 @@ function renderHist(){
     const sp = spreadOf(r.spread);
     return '<div class="hist-item" data-id="'+r.id+'">'
       + '<div class="hist-thumbs">' + r.cards.slice(0,6).map(p=>
-          '<img src="'+imgSrc(p.id, r.deck)+'" onerror="this.src=\''+imgSrc(p.id,'rw')+'\'">').join('') + '</div>'
+          '<img src="'+imgSrc(p.id, r.deck)+'" onerror="tarotImgErr(this)">').join('') + '</div>'
       + '<div style="min-width:0;flex:1">'
       +   '<div class="hist-q">'+esc(r.question)+'</div>'
       +   '<div class="hist-meta">'+deckOf(r.deck).name+' · '+sp.name+' · '
