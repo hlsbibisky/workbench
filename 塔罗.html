@@ -629,15 +629,24 @@ async function askAI(){
     const r = await fetch(base + '/chat/completions', {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body: JSON.stringify({model:model, temperature:0.7, max_tokens:1200,
+      /* 不设 max_tokens：deepseek-flash 是带思考的模型，输出额度若被思考耗尽，
+         服务器会正常返回 200 但正文为空（表现为「回复为空」）。起卦页未设此参数一直正常。 */
+      body: JSON.stringify({model:model, temperature:0.7,
         messages:[{role:'user', content: buildPrompt(lastResult)}]}),
       signal: ctrl ? ctrl.signal : undefined
     });
     if(timer) clearTimeout(timer);
     const j = await r.json().catch(()=>({}));
     if(!r.ok) throw ((j&&j.error&&j.error.message) || ('HTTP '+r.status));
-    const txt = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-    if(!txt) throw '回复为空';
+    const ch = j && j.choices && j.choices[0];
+    const txt = ch && ch.message && ch.message.content;
+    if(!txt){
+      /* 报错要说真话：把服务器给的真实原因亮出来，不再笼统说「回复为空」 */
+      if(j && j.error && j.error.message) throw j.error.message;
+      if(ch && ch.message && ch.message.reasoning_content)
+        throw '模型把输出都花在思考上、正文没生成（finish_reason=' + (ch.finish_reason||'未知') + '），再点一次「AI解读」重试';
+      throw '回复为空（finish_reason=' + ((ch && ch.finish_reason) || '未知') + '）';
+    }
     box.textContent = txt;
     st.innerHTML = '<span style="color:#3f9d6b">解读完成</span>';
     histWriteAI(lastResult.id, txt);
