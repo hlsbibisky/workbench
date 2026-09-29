@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>拍照</title>
+<link rel="icon" type="image/png" href="拍照_头像.png">
+<link rel="apple-touch-icon" href="拍照_头像.png">
 <style>
   :root{ --bg:#f7f4ee; --accent:#b8714e; --ink:#3a3230; }
   *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -60,6 +62,14 @@
   #shutter:active::after{ inset:12px; }
   #chipList{ display:flex; gap:8px; flex:1; flex-wrap:wrap; }
   #chips{ display:flex; gap:8px; padding:12px 14px 8px; align-items:center; }
+  #av{ width:30px; height:30px; border-radius:50%; border:1px solid #e4dccf; margin-right:2px; object-fit:cover; flex:none; }
+  #live{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
+  #live.mir{ transform:scaleX(-1); }
+  #faceBtn{ position:absolute; top:10px; right:10px; z-index:6; width:40px; height:40px; border-radius:50%; border:1.5px solid rgba(255,255,255,.55); background:rgba(20,18,16,.45); color:#fff; font-size:18px; display:none; }
+  #startOv{ position:absolute; inset:0; z-index:4; display:none; align-items:center; justify-content:center; }
+  #startOv button{ border:1.5px solid #d8cfc4; background:#fff; color:var(--ink); border-radius:999px; padding:13px 30px; font-size:16px; font-weight:600; }
+  .mseg{ border:1.5px solid #d8cfc4; background:#fff; border-radius:999px; padding:6px 13px; font-size:13px; color:var(--ink); }
+  .mseg.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
   #setBtn{ border:1.5px solid #d8cfc4; background:#fff; border-radius:50%; width:34px; height:34px; font-size:16px; line-height:1; color:var(--ink); }
   #setMask{
     position:fixed; inset:0; background:rgba(20,18,16,.45); z-index:20;
@@ -87,8 +97,11 @@
 </style>
 </head>
 <body>
-<div id="chips"><div id="chipList"></div><button id="setBtn" aria-label="设置">⚙</button></div>
+<div id="chips"><img id="av" src="拍照_头像.png" alt=""><div id="chipList"></div><button id="setBtn" aria-label="设置">⚙</button></div>
 <div id="stage">
+  <video id="live" playsinline muted autoplay></video>
+  <div id="startOv"><button id="startBtn">📷 开始取景</button></div>
+  <button id="faceBtn" aria-label="切换前后摄像头">⇄</button>
   <div id="emptyHint">按下快门<br>拍出来就带滤镜</div>
   <img id="preview" alt="">
   <div id="busy"><div class="spin"></div><div id="busyTxt">处理中…</div></div>
@@ -96,6 +109,7 @@
 </div>
 <button id="cmpBtn">按住看原图</button>
 <button id="mirrorBtn">⇋ 镜像</button>
+<button id="reLive" style="display:none; margin:8px auto 0; border:none; background:none; color:var(--accent); font-size:13px; font-weight:600;">↺ 返回取景</button>
 <div id="bar">
   <button class="sideBtn" id="albumBtn">相册</button>
   <button id="shutter" aria-label="拍照"></button>
@@ -107,10 +121,17 @@
   <div id="setPanel">
     <h3>设置</h3>
     <div class="setRow">
+      <span>取景方式</span>
+      <span>
+        <button class="mseg" data-m="live" id="mLive">网页取景</button>
+        <button class="mseg" data-m="sys" id="mSys">系统相机</button>
+      </span>
+    </div>
+    <div class="setRow">
       <span>拍完自动镜像<small>自拍所见即所得（前置镜头照片默认翻正）</small></span>
       <label class="switch"><input type="checkbox" id="mirrorChk"><span class="slider"></span></label>
     </div>
-    <div class="setNote">闪光灯由手机系统相机控制，网页无法代管：在系统相机里关一次闪光灯，之后拍出的照片就是关闪光灯状态。</div>
+    <div class="setNote">网页取景：画面直接在页面里，没有闪光灯、所见即所得，⇄ 可切前后摄像头，清晰度为视频档。系统相机：调用手机相机，画质最高，闪光灯由系统相机控制（在系统相机关一次即可记住）。</div>
   </div>
 </div>
 <input type="file" id="camIn" accept="image/*" capture="user" hidden>
@@ -134,14 +155,107 @@ const chipList=$('chipList'), preview=$('preview'), emptyHint=$('emptyHint'),
       busy=$('busy'), busyTxt=$('busyTxt'), toast=$('toast'),
       camIn=$('camIn'), albIn=$('albIn'), saveBtn=$('saveBtn'),
       cmpBtn=$('cmpBtn'), stage=$('stage'),
-      setBtn=$('setBtn'), setMask=$('setMask'), mirrorChk=$('mirrorChk'), mirrorBtn=$('mirrorBtn');
+      setBtn=$('setBtn'), setMask=$('setMask'), mirrorChk=$('mirrorChk'), mirrorBtn=$('mirrorBtn'),
+      liveVideo=$('live'), faceBtn=$('faceBtn'), startOv=$('startOv'), startBtn=$('startBtn'),
+      reLive=$('reLive'), mLive=$('mLive'), mSys=$('mSys');
 
 /* ============ 镜像设置（默认开：自拍所见即所得） ============ */
 function mirrorOn(){ return localStorage.getItem('cam_mirror') !== '0'; }
 mirrorChk.checked = mirrorOn();
-mirrorChk.onchange = () => localStorage.setItem('cam_mirror', mirrorChk.checked ? '1' : '0');
+mirrorChk.onchange = () => { localStorage.setItem('cam_mirror', mirrorChk.checked ? '1' : '0'); applyMirrorUI(); };
 setBtn.onclick = () => setMask.style.display = 'flex';
 setMask.onclick = e => { if(e.target === setMask) setMask.style.display = 'none'; };
+
+/* ============ 取景方式：网页取景(默认) / 系统相机 ============ */
+let camMode = localStorage.getItem('cam_mode') || 'live';
+function updateModeUI(){
+  mLive.classList.toggle('on', camMode==='live');
+  mSys.classList.toggle('on', camMode==='sys');
+}
+function setMode(m){
+  if(camMode===m) return;
+  camMode=m; localStorage.setItem('cam_mode',m); updateModeUI();
+  if(m==='live'){ startOv.style.display='flex'; startLive(); }
+  else { stopLive(); startOv.style.display='none'; }
+}
+mLive.onclick=()=>setMode('live');
+mSys.onclick=()=>setMode('sys');
+
+/* ---- 网页取景：getUserMedia 实时取景，无闪光灯、前后可切 ---- */
+let liveStream=null, liveFacing='user', liveOn=false, liveStarting=false;
+async function startLive(){
+  if(liveOn||liveStarting) return;
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toastMsg('此环境不支持网页取景，已切回系统相机');
+    camMode='sys'; localStorage.setItem('cam_mode','sys'); updateModeUI(); startOv.style.display='none';
+    return;
+  }
+  liveStarting=true;
+  try{
+    liveStream=await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{ facingMode:liveFacing, width:{ideal:1920}, height:{ideal:1080} }
+    });
+    liveVideo.srcObject=liveStream;
+    await liveVideo.play();
+    liveOn=true;
+    showLiveView();
+    applyMirrorUI();
+  }catch(e){
+    liveOn=false;
+    if(camMode==='live') startOv.style.display='flex';
+    toastMsg('打开摄像头失败：'+(e&&e.name==='NotAllowedError' ? '未授权摄像头，请在浏览器设置里允许' : '无法访问摄像头'));
+  }
+  liveStarting=false;
+}
+function stopLive(){
+  if(liveStream){ liveStream.getTracks().forEach(t=>t.stop()); liveStream=null; }
+  liveOn=false; liveVideo.srcObject=null; liveVideo.style.display='none'; faceBtn.style.display='none';
+  if(camMode==='live' && !lastProcessed) startOv.style.display='flex';
+}
+function showLiveView(){
+  liveVideo.style.display='block';
+  faceBtn.style.display='block';
+  startOv.style.display='none';
+  emptyHint.style.display='none';
+  if(!lastProcessed) preview.style.display='none';
+  reLive.style.display='none';
+}
+function applyMirrorUI(){
+  liveVideo.classList.toggle('mir', liveFacing==='user' && mirrorOn());
+}
+faceBtn.onclick=async ()=>{
+  liveFacing = liveFacing==='user' ? 'environment' : 'user';
+  if(liveStream){ liveStream.getTracks().forEach(t=>t.stop()); liveStream=null; liveOn=false; }
+  await startLive();
+};
+startBtn.onclick=startLive;
+reLive.onclick=async ()=>{
+  if(camMode!=='live') return;
+  if(liveOn) showLiveView();
+  else { startOv.style.display='none'; await startLive(); }
+};
+/* 页面切后台时释放摄像头，回来点「开始取景」即可恢复 */
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && liveOn) stopLive(); });
+
+/* ---- 网页取景截帧 → 走滤镜管线 ---- */
+function grabLiveFrame(){
+  const v=liveVideo;
+  if(!v.videoWidth || !v.videoHeight) return null;
+  const c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  return c;
+}
+async function captureLive(){
+  const c=grabLiveFrame();
+  if(!c){ toastMsg('取景还没准备好，稍等一下再按'); return; }
+  busyShow(FILTERS[curFilter].name==='原片' ? '整理中…' : '渲染滤镜…');
+  await sleep(20);
+  try{
+    const img=await loadImageFromUrl(c.toDataURL('image/jpeg',0.95));
+    await runPipeline(img,false);
+  }catch(e){ busyHide(); toastMsg('出了点问题：'+(e&&e.message||e)); }
+}
 
 /* ============ 滤镜切换 chips ============ */
 function renderChips(){
@@ -159,7 +273,12 @@ function renderChips(){
 }
 
 /* ============ 拍照 / 相册 ============ */
-$('shutter').onclick=()=>camIn.click();
+$('shutter').onclick=()=>{
+  if(camMode==='live'){
+    if(!liveOn){ startOv.style.display='none'; startLive(); return; }
+    captureLive();
+  } else camIn.click();
+};
 $('albumBtn').onclick=()=>albIn.click();
 camIn.onchange=()=>{ if(camIn.files[0]) handleFile(camIn.files[0]); camIn.value=''; };
 albIn.onchange=()=>{ if(albIn.files[0]) handleFile(albIn.files[0]); albIn.value=''; };
@@ -194,6 +313,7 @@ async function runPipeline(img, silent){
   lastProcessed = await canvasToUrl(outCanvas, 0.95);
   preview.src = lastProcessed;
   preview.style.display='block'; emptyHint.style.display='none';
+  if(camMode==='live'){ liveVideo.style.display='none'; faceBtn.style.display='none'; reLive.style.display='block'; }
   saveBtn.disabled=false; cmpBtn.style.display='block'; mirrorBtn.style.display='block';
   busyHide();
   toastMsg(FILTERS[curFilter].name+' · '+outCanvas.width+'×'+outCanvas.height+' · '+Math.round(performance.now()-t0)+'ms');
@@ -453,6 +573,8 @@ function busyShow(t){ busyTxt.textContent=t||'处理中…'; busy.style.display=
 function busyHide(){ busy.style.display='none'; }
 
 renderChips();
+updateModeUI();
+if(camMode==='live') startOv.style.display='flex';
 </script>
 </body>
 </html>
