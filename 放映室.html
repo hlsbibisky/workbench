@@ -41,6 +41,10 @@
   .screen video{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
   .dropzone{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.65);font-size:13px;gap:8px;pointer-events:none;}
   .dropzone b{font-size:15px;font-weight:500;}
+  .profile-card{border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:9px;font-size:12px;line-height:1.7;background:var(--bg);color:var(--fg);}
+  .profile-card .p-head{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+  .profile-card .p-line{color:var(--sub);}
+  .profile-card .p-line b{color:var(--fg);}
   .screen.has-video .dropzone{display:none;}
 
   .controls{width:100%;height:48px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:0 12px;display:flex;align-items:center;gap:7px;flex-wrap:nowrap;transition:opacity .25s;}
@@ -362,6 +366,7 @@
           </div>
           <div id="styleHint" style="font-size:11px;color:var(--sub);margin-top:7px;line-height:1.6;"></div>
         </div>
+        <div id="profileCard" class="profile-card" style="display:none;"></div>
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
@@ -475,6 +480,7 @@ let state={
   notes:[], shown:new Set(), visionTimer:null,
   chatLog:[],             /* 聊天流持久化：{who,text,when}，随影片档存（最近 300 条） */
   editingId:null, recPoster:null,
+  profile:null,           /* 影片档案：AI 认片结果 {title,year,director,cast,plot,themes,recognized,userFilled}，评论/陪聊都带着 */
   subtitle:[], subtitleRaw:'',
   pendingId:null,        /* 从历史记录点「继续观看」时记下 id，选到文件后自动把档挂上 */
   lastProgSave:0
@@ -528,6 +534,7 @@ function loadMovie(id){
   state.notes=Array.isArray(m.notes)?m.notes:[];
   state.chatLog=Array.isArray(m.chat)?m.chat:[];          /* 聊天流随档恢复 */
   state.shown=new Set(Array.isArray(m.shownIds)?m.shownIds:[]);  /* 已弹过的评论不再重弹 */
+  state.profile=m.profile||null;                  /* 影片档案随档恢复，不用重新认片 */
   state.recPoster=m.poster||null;
   state.subtitleRaw=m.subtitleRaw||'';
   state.subtitle=state.subtitleRaw?parseSubtitleText(state.subtitleRaw):[];
@@ -550,6 +557,7 @@ function saveMovie(extra){
     notes:state.notes||[],
     chat:(state.chatLog||[]).slice(-300),       /* 聊天流随档保存，下次打开原样接上 */
     shownIds:Array.from(state.shown||[]),       /* 已弹过的评论标记，恢复后不重弹 */
+    profile:state.profile||null,
     subtitleRaw:state.subtitleRaw||'',
     subCount:(state.subtitle||[]).length,
     updated:Date.now()
@@ -1173,6 +1181,102 @@ function sendChat(){
   inp.value='';
   chatWithAI(txt);
 }
+/* ===== 影片档案：AI 认片（生成评论前先弄清「这是哪部片、谁是谁」） ===== */
+function profileText(){
+  const p=state.profile; if(!p) return '';
+  const cast=(p.cast&&p.cast.length)?p.cast.map(c=>c.name+(c.who?('（'+c.who+'）'):'')).join('、'):'';
+  const parts=[];
+  if(p.title) parts.push('片名《'+p.title+'》');
+  if(p.year) parts.push(p.year+'年');
+  if(p.director) parts.push('导演 '+p.director);
+  if(cast) parts.push('主要人物：'+cast);
+  if(p.plot) parts.push('剧情梗概：'+p.plot);
+  if(p.themes) parts.push('主题/看点：'+p.themes);
+  return parts.join('；');
+}
+async function ensureProfile(cfg){
+  /* 已有档案（AI 认出过 / 用户填过）就直接用，不重复花钱 */
+  if(state.profile && (state.profile.recognized || state.profile.userFilled)) return true;
+  const fn=state.meta.title||'';
+  const subHead=(state.subtitle&&state.subtitle.length)
+    ? state.subtitle.slice(0,60).map(c=>'['+fmt(c.start)+'] '+c.text).join('\n').slice(0,2500) : '';
+  const plotEl=$('plotText');
+  const plot=(plotEl&&plotEl.value.trim().slice(0,1500))||'';
+  const askTxt='下面是一部电影的文件名「'+(fn||'（无）')+'」'+(subHead?'和它开头的对白字幕':'')+(plot?'以及用户粘贴的剧情资料':'')+'。'
++'\n请你根据自己了解的资料，判断这是哪部影片，并整理一份「观影档案」，帮我搞清楚片中谁是谁。'
++'\n只输出合法 JSON，不要 markdown 代码块，格式：'
++'\n{"recognized":true,"title":"片名","year":"年份","director":"导演","cast":[{"name":"人物名","who":"身份和关系一句话"}],"plot":"剧情梗概120字以内，只写前半段会看到的部分，不要剧透结局","themes":"题材类型一句话"}'
++'\n要求：'
++'\n- cast 给 3~6 个主要人物，who 写清这个人物是谁、和其他人的关系（例如「男主角，银行家」）。'
++'\n- plot 只写开局到中段的走向，绝不要剧透结局。'
++'\n- 如果实在认不出是哪部片，输出 {"recognized":false}，不要猜。'
++(subHead?('\n\n开头字幕：\n'+subHead):'')
++(plot?('\n\n剧情资料：'+plot):'');
+  try{
+    const res=await fetch(cfg.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+      body:JSON.stringify({model:cfg.model,messages:[{role:'user',content:askTxt}],temperature:0.2})});
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    let txt=((data.choices||[{}])[0].message||{}).content||'';
+    txt=String(txt).trim().replace(/^```(json)?/,'').replace(/```$/,'').trim();
+    const m=txt.match(/\{[\s\S]*\}/); if(m) txt=m[0];
+    const p=JSON.parse(txt);
+    if(p && p.recognized && p.title){
+      state.profile={recognized:true,userFilled:false,title:String(p.title||''),year:String(p.year||''),director:String(p.director||''),
+        cast:Array.isArray(p.cast)?p.cast.slice(0,8).map(c=>({name:String(c.name||''),who:String(c.who||'')})):[],
+        plot:String(p.plot||''),themes:String(p.themes||''),updated:Date.now()};
+      saveMovie(); renderProfile();
+      sysTip('AI 认出这部片了：《'+state.profile.title+'》'+(state.profile.year?('（'+state.profile.year+'）'):'')+'。主要人物和剧情梗概已存进「影片档案」（AI生成页可查看修改），之后的评论和陪聊都会带着这份档案，人物对得上号了。');
+      return true;
+    }
+  }catch(e){ /* 认片失败不阻断生成，下面问用户 */ }
+  /* 认不出：问用户要片名，可跳过 */
+  const t=prompt('AI 没认出这部片。你知道片名吗？（留空直接确定=跳过，AI 会只靠字幕解读）\n文件名：'+fn);
+  if(t && t.trim()){
+    state.profile={recognized:false,userFilled:true,title:t.trim(),year:'',director:'',cast:[],plot:'',themes:'',updated:Date.now()};
+    saveMovie(); renderProfile();
+    sysTip('已把片名《'+t.trim()+'》记进影片档案，评论和陪聊会带上它。想补人物和剧情，去「AI生成」页点「编辑」。');
+  }else{
+    sysTip('这部片 AI 没认出来，也没填片名——评论会只按字幕内容写，人物关系可能对不上。之后随时可以在「AI生成」页点「编辑」补片名。');
+  }
+  return true;
+}
+function renderProfile(){
+  const box=$('profileCard'); if(!box) return;
+  const p=state.profile;
+  if(!p){ box.style.display='none'; box.innerHTML=''; return; }
+  const cast=(p.cast&&p.cast.length)?p.cast.map(c=>'· <b>'+esc(c.name)+'</b>'+((c.who)?('——'+esc(c.who)):'')).join('<br>'):'';
+  box.style.display='block';
+  box.innerHTML='<div class="p-head"><b>🎬 影片档案'+(p.title?('：《'+esc(p.title)+'》'):'')+'</b>'
+    +'<span style="margin-left:auto;display:flex;gap:6px;">'
+    +'<button class="cbtn2" onclick="editProfile()" title="改片名、人物、剧情">编辑</button>'
+    +'<button class="cbtn2" onclick="reIdentify()" title="让 AI 重新认一次片">重新识别</button>'
+    +'</span></div>'
+    +((p.year||p.director)?('<div class="p-line">'+[p.year,p.director].filter(Boolean).map(esc).join(' · ')+'</div>'):'')
+    +(cast?('<div class="p-line">'+cast+'</div>'):'')
+    +(p.plot?('<div class="p-line">'+esc(p.plot)+'</div>'):'')
+    +(p.themes?('<div class="p-line">主题：'+esc(p.themes)+'</div>'):'');
+}
+function editProfile(){
+  const p=state.profile||{title:'',year:'',director:'',cast:[],plot:'',themes:''};
+  const castTxt=(p.cast||[]).map(c=>c.name+':'+c.who).join('\n');
+  const t=prompt('片名：',p.title||''); if(t===null) return;
+  const y=prompt('年份（可空）：',p.year||''); if(y===null) return;
+  const d=prompt('导演（可空）：',p.director||''); if(d===null) return;
+  const c=prompt('主要人物，一行一个，格式「人物名:身份」，可空：',castTxt); if(c===null) return;
+  const pl=prompt('剧情梗概（可空，别剧透结局）：',p.plot||''); if(pl===null) return;
+  state.profile=Object.assign({},p,{title:t.trim(),year:y.trim(),director:d.trim(),
+    cast:c.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf(':');return (i>0)?{name:l.slice(0,i).trim(),who:l.slice(i+1).trim()}:{name:l,who:''};}),
+    plot:pl.trim(),userFilled:true,updated:Date.now()});
+  saveMovie(); renderProfile();
+  sysTip('影片档案已更新，之后的评论和陪聊都会用新档案。');
+}
+async function reIdentify(){
+  const cfg=loadCfg(); if(!cfg.key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
+  state.profile=null; renderProfile();
+  sysTip('正在让 AI 重新认片…');
+  await ensureProfile(cfg);
+}
 /* 真实调用 AI 聊天（含「问这一幕」隐藏上下文） */
 async function chatWithAI(userText){
   const cfg=loadCfg();
@@ -1185,6 +1289,7 @@ async function chatWithAI(userText){
   }
   // 隐藏上下文：当前影片 + 播放位置 + 附近字幕 + 附近的 AI 评论（仅之前内容）
   let ctx=`当前影片：${state.meta.title||'未命名'}`;
+  const prof=profileText(); if(prof) ctx+=`；影片档案：${prof}`;
   if(isFinite(video.duration)&&video.duration>0) ctx+=`；当前播放位置：${fmt(video.currentTime)} / ${fmt(video.duration)}`;
   const near=nearbySubtitle(video.currentTime);
   if(near) ctx+=`；当前附近字幕（之前内容）：${near}`;
@@ -1362,6 +1467,10 @@ async function genAiNotes(){
   /* 生成期间上锁：① 禁止云同步回流的 wb-reload 把页面重载（否则跑到一半全丢）
                     ② 暂停写盘通知，避免每写一次就触发一轮同步包推送 */
   window.__genBusy=true; window.__syncSilent=true;
+  /* 先认片：搞清这是哪部片、谁是谁，评论才对得上人（已有档案就直接用，不重复花钱） */
+  btn.textContent='认片中…';
+  await ensureProfile(cfg);
+  const profTxt=profileText();
   const dur=(isFinite(video.duration)&&video.duration>0)?video.duration:0;
   const durTxt=dur?fmt(dur):'';
   const collected=[];
@@ -1386,7 +1495,7 @@ async function genAiNotes(){
         let prompt;
         if(cues.length){
           const body=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
-          prompt=`你是一位陪用户看电影的 AI 朋友。下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）的对白字幕，方括号里的时间就是电影的真实时间。
+          prompt=`你是一位陪用户看电影的 AI 朋友。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）的对白字幕，方括号里的时间就是电影的真实时间。
 请为这一段写「观影时间轴评论」。
 
 【最重要的一条：宁缺毋滥】
@@ -1409,7 +1518,7 @@ ${D}
 ${body}`;
         } else {
           diag.push(`${fmt(s)}–${fmt(e)}`);
-          prompt=`你是一位陪用户看电影的 AI 朋友。现在要为一部电影的 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）写「观影时间轴评论」，但这一段没有对白字幕可供参考。
+          prompt=`你是一位陪用户看电影的 AI 朋友。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}现在要为一部电影的 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）写「观影时间轴评论」，但这一段没有对白字幕可供参考。
 请基于下面给出的剧情资料，推测这一段大致会是什么氛围、什么进展，再决定要不要发言。
 
 【最重要的一条：宁缺毋滥】
@@ -1453,7 +1562,7 @@ ${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜
           const gMin=Math.max(1,Math.round((ge-gs)/60));
           const need=Math.max(1,Math.min(4,Math.round(gMin/20)));
           const body=cues.length?('这一段的字幕：\n'+cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n')):'（这一段没有字幕）';
-          const prompt=`你是一位陪用户看电影的 AI 朋友。电影的 ${fmt(gs)}–${fmt(ge)} 这一段（约 ${gMin} 分钟）在严格筛选后一条评论都没有，但用户不希望看这么久没人陪着说话。
+          const prompt=`你是一位陪用户看电影的 AI 朋友。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}电影的 ${fmt(gs)}–${fmt(ge)} 这一段（约 ${gMin} 分钟）在严格筛选后一条评论都没有，但用户不希望看这么久没人陪着说话。
 请放宽标准，从氛围、节奏、镜头、配乐、表演、人物状态、场景调度这些角度，挑 ${need}~${need+1} 条说一说——可以只是一句很轻的感受，不必非得是关键情节。
 要求：
 1. 输出必须是合法 JSON 数组，不要 markdown 代码块，不要任何解释文字。
@@ -1479,7 +1588,7 @@ ${body}`;
     } else {
       /* 完全没字幕：只有剧情文本，条数按「每 4 分钟 1 条」随片长走，不设硬性下限（短视频会自然变少） */
       btn.textContent='生成中…';
-      const prompt=`你是一位陪用户看电影的 AI 朋友，会在用户观看时发消息陪他聊。
+      const prompt=`你是一位陪用户看电影的 AI 朋友，会在用户观看时发消息陪他聊。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}
 下面是一部电影的剧情资料${durTxt?('，影片总时长约 '+durTxt):''}。请生成「观影时间轴评论」。
 
 【最重要的一条：宁缺毋滥】
