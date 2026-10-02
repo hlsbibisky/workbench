@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>关系训练 · 工作台</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --noted:#3f9d6b; --warn:#d9822b; --bad:#c0392b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--mark);}
+
+  .top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,253,249,.75);position:sticky;top:0;z-index:9;}
+  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand b{font-size:16px;font-weight:700;letter-spacing:3px;color:var(--accent);}
+  .brand small{font-size:10.5px;color:var(--sub);letter-spacing:1px;}
+  .navpills{display:flex;gap:6px;}
+  .pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 13px;font-size:12.5px;color:var(--sub);cursor:pointer;font-family:inherit;transition:.14s;}
+  .pill:hover{border-color:var(--accent);color:var(--accent);}
+  .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+
+  .wrap{max-width:760px;margin:0 auto;padding:14px 14px 40px;}
+  @media (max-width:600px){ .wrap{padding:10px 10px 40px;} .brand small{display:none;} }
+
+  /* ---------- 卡片区 ---------- */
+  .deck{position:relative;min-height:300px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .arrow{flex:0 0 auto;width:42px;height:64px;border:none;background:transparent;color:var(--ink);font-size:26px;font-weight:700;cursor:pointer;border-radius:10px;transition:.15s;font-family:inherit;}
+  .arrow:hover{color:var(--accent);background:var(--mark);}
+  .arrow:disabled{opacity:.15;cursor:default;}
+  .cardstack{flex:1;min-width:0;position:relative;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 14px;transition:transform .18s, opacity .18s;touch-action:pan-y;}
+  .qcard.swiping{transition:none;}
+  .qhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
+  .chip{font-size:11px;color:var(--sub);border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .chip.dir{color:var(--accent);border-color:#e5cdbd;background:#faf1ea;}
+  .chip.lv{color:#9c6f1f;background:#fbf5e8;border-color:#eddfc0;}
+  .chip.nth{color:var(--accent2);border-color:#cfe0d9;background:#eff5f2;}
+  .scene{font-size:14.5px;line-height:1.85;}
+  .scene .fact{color:var(--ink);}
+  .scene .say{display:block;margin-top:8px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;font-size:14.5px;}
+  .scene .who{color:var(--accent);font-weight:600;}
+  .scene .face{display:block;margin-top:6px;font-size:12px;color:var(--sub);}
+  .scene .stx{display:block;margin-top:8px;font-size:12px;color:var(--sub);}
+  .cardacts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .hintline{font-size:11px;color:var(--sub);text-align:center;margin-top:8px;}
+
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:.14s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .btn.primary:hover{background:#a05f3d;color:#fff;}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--sub);}
+  .btn.ghost:hover{color:var(--bad);border-color:transparent;background:#fbeee9;}
+  .btn.mini{padding:4px 10px;font-size:12px;border-radius:8px;}
+  .btn.block{width:100%;}
+
+  /* ---------- 流程 ---------- */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;}
+  .ptitle{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin:0 0 10px;}
+  .ptitle .soft{color:var(--sub);font-weight:400;font-size:11px;letter-spacing:0;}
+  .recap{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:13.5px;line-height:1.75;margin-bottom:12px;}
+  .recap .say{background:#fff;border-left:3px solid var(--accent);padding:6px 10px;border-radius:0 8px 8px 0;display:block;margin-top:4px;}
+  .frow{margin-bottom:12px;}
+  .flabel{font-size:12.5px;color:var(--ink);font-weight:600;margin-bottom:5px;display:flex;justify-content:space-between;align-items:baseline;}
+  .flabel small{color:var(--sub);font-weight:400;font-size:11px;}
+  .chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;}
+  .tchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 11px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.12s;}
+  .tchip:hover{border-color:var(--accent);}
+  .tchip.on{background:var(--mark);border-color:var(--accent);color:var(--accent);font-weight:600;}
+  textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-size:13.5px;padding:9px 11px;resize:vertical;}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent);}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+
+  .trans{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:13.5px;line-height:1.8;margin-bottom:12px;max-height:44vh;overflow:auto;}
+  .mrow{margin:6px 0;}
+  .mrow .tag{font-size:11px;color:var(--sub);margin-right:6px;}
+  .mrow.you .bubble{background:#eef3ef;border-left:3px solid var(--accent2);}
+  .mrow.other .bubble{background:#fff;border-left:3px solid var(--accent);}
+  .mrow.na .bubble{background:#f6f1e8;border-left:3px solid #d9cdb8;color:var(--sub);}
+  .bubble{display:inline-block;padding:6px 10px;border-radius:0 8px 8px 0;}
+
+  .checkrow{display:flex;align-items:flex-start;gap:8px;padding:6px 2px;font-size:13px;cursor:pointer;border-radius:8px;}
+  .checkrow:hover{background:var(--bg);}
+  .checkrow input{margin-top:4px;accent-color:var(--accent);flex:0 0 auto;}
+  .revbox{background:#fbf7ef;border:1px solid #eee1cc;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7a6a52;line-height:1.8;margin-top:10px;}
+  .revbox b{color:var(--accent);}
+
+  /* ---------- 记录 / 设置 ---------- */
+  .sec{margin-bottom:18px;}
+  .sechead{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;}
+  .sechead small{color:var(--sub);font-weight:400;letter-spacing:0;}
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12px;}
+  .stat b{display:block;font-size:13px;color:var(--ink);margin-bottom:2px;}
+  .stat .c{color:var(--sub);}
+  .stat.muted{opacity:.55;}
+  .recitem{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;cursor:pointer;}
+  .recitem:hover{border-color:var(--accent);}
+  .recitem .head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .recitem .head b{font-size:12.5px;color:var(--ink);}
+  .recitem .head span{color:var(--sub);font-size:11px;white-space:nowrap;}
+  .recitem .body{color:var(--sub);margin-top:4px;display:none;}
+  .recitem.open .body{display:block;}
+  .recitem .body .ln{margin:3px 0;}
+  .recitem .body .ln i{color:var(--accent);font-style:normal;margin-right:6px;font-size:11px;}
+  .empty{color:var(--sub);font-size:12.5px;text-align:center;padding:24px 0;}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:12.5px;padding:8px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:99;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand"><b>关系训练</b><small>被触发 · 看见 · 分辨 · 回应</small></div>
+  <div class="navpills">
+    <button class="pill on" id="navT" onclick="switchView('train')">训练</button>
+    <button class="pill" id="navL" onclick="switchView('log')">记录</button>
+    <button class="pill" id="navS" onclick="switchView('set')">设置</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ 训练视图 ============ -->
+  <div id="view-train">
+    <!-- 卡牌 -->
+    <div id="deckBox" class="deck">
+      <button class="arrow" id="prevBtn" title="上一题" onclick="skipCard(-1)">&#8592;</button>
+      <div class="cardstack" id="cardstack"></div>
+      <button class="arrow" id="nextBtn" title="划走 / 下一题" onclick="skipCard(1)">&#8594;</button>
+    </div>
+
+    <!-- 反应四格 -->
+    <div id="stepReact" style="display:none" class="panel">
+      <p class="ptitle">① 这一瞬间，你有什么反应？ <span class="soft">不用挑「对的」，想到什么写什么，都可以空着</span></p>
+      <div class="recap" id="recap1"></div>
+      <div class="frow"><div class="flabel">身体 <small>哪里紧了、热了、堵了</small></div>
+        <div class="chiprow" id="chBody"></div><textarea id="inBody" rows="2" placeholder="（可自由补充）"></textarea></div>
+      <div class="frow"><div class="flabel">第一情绪 <small>哪怕只是一点点</small></div>
+        <div class="chiprow" id="chEmo"></div><textarea id="inEmo" rows="2" placeholder="（可自由补充）"></textarea></div>
+      <div class="frow"><div class="flabel">第一念头 <small>脑子里闪过的那句话</small></div>
+        <textarea id="inThought" rows="2" placeholder="比如：他凭什么 / 我是不是想多了 / 怎么又是我……"></textarea></div>
+      <div class="frow"><div class="flabel">第一冲动 <small>想做什么，不一定要做</small></div>
+        <div class="chiprow" id="chImp"></div><textarea id="inImp" rows="2" placeholder="（可自由补充）"></textarea></div>
+      <div class="acts">
+        <button class="btn primary" onclick="toRespond()">记下了，继续 &#8594;</button>
+        <button class="btn ghost" onclick="endScene(true)">先不了，回到卡牌</button>
+      </div>
+    </div>
+
+    <!-- 回应 -->
+    <div id="stepResp" style="display:none" class="panel">
+      <p class="ptitle">② 你想怎么回应？ <span class="soft">说什么都可以，也可以什么都不说</span></p>
+      <div class="trans" id="trans1"></div>
+      <div class="chiprow" id="openers"></div>
+      <textarea id="inResp" rows="3" placeholder="你想说的话……（也可以留空，选「不回应」）"></textarea>
+      <div class="acts">
+        <button class="btn primary" onclick="speak()">说出口</button>
+        <button class="btn" onclick="speakSilent()">不回应，就站在这里</button>
+        <button class="btn" onclick="leaveScene()">转身离开这个场景</button>
+      </div>
+    </div>
+
+    <!-- 对话中 -->
+    <div id="stepTalk" style="display:none" class="panel">
+      <p class="ptitle">③ 场景继续 <span class="soft">对方接话了。你可以再回应，也可以停在这里</span></p>
+      <div class="trans" id="trans2"></div>
+      <textarea id="inResp2" rows="3" placeholder="你想说的话……"></textarea>
+      <div class="acts">
+        <button class="btn primary" onclick="speak()">再回应</button>
+        <button class="btn" onclick="speakSilent()">沉默，不接</button>
+        <button class="btn" onclick="leaveScene()">离开场景，去看复盘</button>
+      </div>
+    </div>
+
+    <!-- 复盘 -->
+    <div id="stepRev" style="display:none" class="panel">
+      <p class="ptitle">④ 复盘 <span class="soft">不是打分，只是回头看看</span></p>
+      <div class="trans" id="trans3"></div>
+      <div id="toneReveal" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <p class="ptitle" style="font-size:12.5px;">回头看看（能选几条选几条，都不选也行）</p>
+      <div id="checkList"></div>
+      <textarea id="inNote" rows="2" placeholder="还想对自己说点什么……（可空）"></textarea>
+      <div class="revbox" id="revHint"></div>
+      <div class="acts">
+        <button class="btn" onclick="regenSame()">&#10227; 同一情境，换一版</button>
+        <button class="btn primary" onclick="finishReview()">完成 &#8594; 下一题</button>
+        <button class="btn ghost" id="muteBtn" onclick="muteThis()">这类练够了，不再出现</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 记录视图 ============ -->
+  <div id="view-log" style="display:none">
+    <div class="sec">
+      <div class="sechead">各方向练习情况 <small id="sumLine"></small></div>
+      <div class="statgrid" id="statGrid"></div>
+    </div>
+    <div class="sec">
+      <div class="sechead">最近的记录 <small>点开看完整过程</small></div>
+      <div id="recList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 设置视图 ============ -->
+  <div id="view-set" style="display:none">
+    <div class="sec">
+      <div class="sechead">训练方向开关 <small>关掉的方向不再出现（做熟练了就关掉）</small></div>
+      <div id="dirToggles"></div>
+    </div>
+    <div class="sec">
+      <div class="sechead">难度范围 <small>1 轻微不适 → 5 强烈情绪 / 权力冲突</small></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px;">
+        <span>从</span><input type="number" id="lvMin" min="1" max="5" style="width:56px;">
+        <span>到</span><input type="number" id="lvMax" min="1" max="5" style="width:56px;">
+        <button class="btn mini" onclick="saveLv()">应用</button>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sechead">数据 <small>文本数据自动跟随工作台云同步</small></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="exportData()">导出记录 (JSON)</button>
+        <button class="btn ghost" onclick="wipeData()">清空全部记录</button>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sechead">怎么用</div>
+      <div class="revbox">
+        <b>这不是测试，没有对错。</b>每张卡是一个真实情境的不同版本——同一件事，语气、关系、环境、你的状态都会变。<br>
+        先记录<b>被触发的那一瞬间</b>（身体 / 情绪 / 念头 / 冲动），再决定要不要回应；对方会接话，场景会继续。<br>
+        结束后复盘：哪些是事实，哪些是你加上的解释；你是在表达自己，还是想改变对方。<br>
+        遇到练透了的类型，点「这类练够了」，它就不再出现。进度自动保存、自动云同步。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   关系训练 · 现实人际情境模拟训练场
+   数据键 reltrain_v1（纯文本，跟随工作台云同步）
+===================================================================== */
+
+/* ---------------- 方向 ---------------- */
+const DIRS = {
+  label :{n:'被评价 · 贴标签'},
+  love  :{n:'以爱为名 · 打压式关心'},
+  joke  :{n:'玩笑包装的冒犯'},
+  bound :{n:'边界与空间'},
+  req   :{n:'请求与语气'},
+  deny  :{n:'否定感受 · 煤气灯'},
+  amb   :{n:'事实与推测'},
+  replay:{n:'事后反刍'},
+  valid :{n:'想被认可的循环'},
+  power :{n:'权力关系'}
+};
+const TONE_NAME = {
+  polite:'礼貌客气', cold:'冷淡', impat:'不耐烦', cmd:'命令式', teach:'教育口吻',
+  sarc:'讽刺调侃', rude:'明显无礼', rush:'着急但无恶意', sincere:'真诚并道歉',
+  unaware:'没意识到', again:'重复第二次', backfire:'反咬你敏感', crowd:'拉大家站队',
+  mock:'当众调侃', plain:'平淡无表情', none:'—'
+};
+/* 对方通用接话（模板没写 re 时的兜底，按回合取） */
+const FALLBACK = {
+  polite:['啊……不好意思，我不是那个意思，你别多想。','那你别放在心上哈。'],
+  cold:['嗯。','随便你吧。'],
+  impat:['行了行了，说两句就不耐烦了。','跟你真是说不了话。'],
+  cmd:['我说怎样就怎样。','行，那你自己看着办。'],
+  teach:['你看，说两句就不爱听了。年轻人就是听不进意见。','我这是过来人的经验，你以后就懂了。'],
+  sarc:['哟，还真往心里去了？逗你玩呢。','行行行，我说不过你。'],
+  rude:['我用得着跟你解释？','至于吗，真是。'],
+  rush:['哎呀不是针对你，我赶时间，话说急了，抱歉啊。','谢啦，回头请你喝奶茶。'],
+  sincere:['真的抱歉，刚才话没说好，我不是想让你不舒服。','谢谢你肯说出来，我注意。'],
+  unaware:['咦？我做什么了吗？','哦……这样啊，我没注意到，下次我留意。'],
+  again:['又怎么了？','这话我说几遍了，别揪着不放。'],
+  backfire:['你最近是不是压力太大了？你以前不这样的。','你怎么变得这么计较，一点小事。'],
+  crowd:['大家都没觉得有什么，就你想法多。','好好好，就我错了，行了吧。'],
+  mock:['哈哈，他还真当真了。','开个玩笑嘛，这么严肃干什么。'],
+  plain:['（对方看了你一眼，没说话。）','（对方转身走了。）']
+};
+
+/* =====================================================================
+   题库：45 个情境母题 × 每题 3~6 个语气版本 × 关系/环境/状态随机轴
+   字段：id dir[] lv(1-5) amb(信息不完整) who fact rel[] ctx[] st[] vs[] ref[]
+   vs: {t 语气, say 台词, face 表情, re[对方后续两句]}
+===================================================================== */
+const BANK = [
+
+/* ========== 被评价 · 贴标签 ========== */
+{id:'l01', dir:['label'], lv:2,
+ who:'同事', fact:'方案里一个日期写错了，你当天就改了。散会时{W}走过来，笑着说——',
+ rel:['合作过几次的同事','关系一般的同事','资历比你老的同事'],
+ ctx:['会议室，人还没走干净','工位旁边，午休时间'],
+ st:['状态不错','刚忙了一上午，有点累'],
+ vs:[
+  {t:'polite', say:'「那个日期写错啦？下次细心一点哈，不是什么大事。」', face:'微笑，语气轻',
+   re:['「哎我就是随口一说，你别介意。」','「你看你看，还认真上了。」']},
+  {t:'teach', say:'「这种低级错误以后少犯，你太较真的时候反而容易漏东西，我像你这么大的时候也这样。」', face:'语重心长，拍拍你桌子',
+   re:['「我说这些还不是为你好。」','「你看你，虚心一点嘛。」']},
+  {t:'sarc', say:'「哟，这么严谨的一个人，也有今天啊。」', face:'笑，周围人也能听见',
+   re:['「开个玩笑，至于嘛。」','「你这就没意思了，一点幽默感没有。」']},
+  {t:'crowd', say:'「就一个日期而已，大家谁会注意这种细节啊，也就你较真。」', face:'环视周围，像在找人认同',
+   re:['「你看，大家都笑了吧，没人在意。」','「行行行，你对。」']},
+  {t:'backfire', say:'「你最近是不是太紧绷了？一个日期而已，你反应这么大。」', face:'皱眉打量你',
+   re:['「我提醒你你还生气？」','「你这状态得调整调整。」']}
+ ],
+ ref:['「太较真」是他对你的定义，还是对这件事的描述？','细一点有错吗——你并不需要靠「不较真」来合群。']},
+
+{id:'l02', dir:['label','deny'], lv:3,
+ who:'朋友', fact:'刚才那句话让你不太舒服，你说出口了。{W}看着你，说——',
+ rel:['认识多年的朋友','还行的朋友','刚熟起来的朋友'],
+ ctx:['一起吃饭，桌上就你们俩','微信语音里','散步的时候'],
+ st:['状态不错','今天本来有点低落'],
+ vs:[
+  {t:'backfire', say:'「你太敏感了，我真没那个意思。」', face:'有点无奈地笑',
+   re:['「跟你说话真累，什么都得小心。」','「行，以后我什么都注意行了吧。」']},
+  {t:'crowd', say:'「别人说这话我都懒得理，你怎么就这么在意？」', face:'皱眉',
+   re:['「你看看你，又来了。」','「行，敏感怪。」']},
+  {t:'sincere', say:'「……哦，是吗。我刚才真没意识到。对不起，那我以后注意。」', face:'愣了一下，然后认真',
+   re:['「真不好意思，谢谢你告诉我。」','「刚才那话你听着不舒服，是我没分寸。」']},
+  {t:'teach', say:'「你这性格出去要吃亏的。太敏感，别人随便一句话你都装心里。」', face:'语重心长',
+   re:['「我这么说是不想看你吃亏。」','「你脸色怎么这么难看，说你两句还不行。」']},
+  {t:'sarc', say:'「玻璃心又碎了？」', face:'笑',
+   re:['「开不起玩笑啊你。」','「好好好，我的错，我道歉。」']}
+ ],
+ ref:['他说「没那个意思」——你可以不知道他的意思，但你知道你的感受是真的。','「你太敏感了」这句话把话题从「他做了什么」换成了「你有什么问题」，注意这个换轨。']},
+
+{id:'l03', dir:['label'], lv:2,
+ who:'家人', fact:'你说了自己最近的一个打算，还没讲完，{W}打断你——',
+ rel:['妈妈/爸爸','长辈亲戚','哥哥/姐姐'],
+ ctx:['家里饭桌上','电话里'],
+ st:['有点期待地想分享','已经很累了，不想争执'],
+ vs:[
+  {t:'teach', say:'「你别想了，你想太多了，这事不是你这么弄的。听我的。」', face:'摆手，没让你说完',
+   re:['「我走过的桥比你走过的路多。」','「怎么，长大了翅膀硬了？」']},
+  {t:'backfire', say:'「你就是想太多。你这孩子从小就爱钻牛角尖。」', face:'叹气',
+   re:['「我还能害你？」','「说你两句就不乐意了？」']},
+  {t:'plain', say:'「哦。」然后转头去说别的了。', face:'没抬头',
+   re:['（对方在忙自己的事。）','「行了行了知道了。」']},
+  {t:'polite', say:'「嗯，你这个想法……说实话我不太看得懂，不过你自己想清楚了就行。」', face:'认真的，虽然持保留态度',
+   re:['「我没说不行啊，就是提一句。」','「那你规划好了跟我说说？」']}
+ ],
+ ref:['「你想太多了」——注意：他否定的是你的思考过程本身。','你的打算需要谁批准，才算数？']},
+
+{id:'l04', dir:['label','joke'], lv:3,
+ who:'朋友', fact:'聚会上一件你提过的旧糗事被{W}当众讲了出来，大家笑了。你也笑了一下，但心里不太舒服。',
+ rel:['老朋友','普通朋友','朋友带来的朋友'],
+ ctx:['饭局，人不少','KTV 包间','群里语音聚会'],
+ st:['今天心情还行','本来就有点社交疲惫'],
+ vs:[
+  {t:'mock', say:'「你看你看，他自己都不好意思了哈哈哈。」', face:'兴致很高，还在往下讲细节',
+   re:['「哎呀这点事记这么久干嘛。」','「你怎么这么扫兴。」']},
+  {t:'again', say:'每次聚会都讲这段，这是第三次了。', face:'熟练地开始，像是保留节目',
+   re:['「哈哈经典节目又来了。」','「你怎么每次都这样，讲个新的行不行——哦不对，你也没有。」']},
+  {t:'unaware', say:'「这件特好玩我必须讲给大家听！」', face:'完全没有恶意，讲得很起劲',
+   re:['「啊？你不舒服啊？我不知道啊……」','「那我以后不讲了行吧。」']},
+  {t:'backfire', say:'「哎呀开个玩笑而已，你这人怎么开不起玩笑。」', face:'收了笑，有点不高兴',
+   re:['「本来就没恶意，你敏感了。」','「行，以后聚会不叫你了，真没劲。」']}
+ ],
+ ref:['玩笑的前提是两个人都觉得好笑。只有一方难受的，不是玩笑。','你可以允许它好笑，也允许自己不舒服——这两件事不矛盾。']},
+
+{id:'l05', dir:['label'], lv:3,
+ who:'熟人', fact:'你从别人那里听到，{W}跟别人说你——「其实人挺好的，就是不太好相处」。',
+ rel:['同事','朋友','亲戚'],
+ ctx:['别人转告你的','你自己无意听到的'],
+ st:['状态平静','最近本来就在反思自己是不是哪里不好'],
+ vs:[
+  {t:'plain', say:'你还没当面听到这句话。它现在只是别人嘴里转述的一句话。', face:'—',
+   re:['（假设你去问了，他可能说：「我说过吗？可能是玩笑吧。」）','（也可能说：「我说的啊，怎么了？」）']},
+  {t:'backfire', say:'当面提起时他说：「我没说你不好相处，我说的是……哎呀你听谁瞎传的。你这样多想，也难怪别人说你难相处。」', face:'先否认，再补一刀',
+   re:['「你看，你现在这个反应，就是我说的意思。」','「行，我不说了，错了我道歉。」']}
+ ],
+ ref:['「人挺好，就是难相处」——前半句是给糖，后半句才是他想说的。','别人的评价是别人嘴里的你。它需要你签字才能生效。']},
+
+{id:'l06', dir:['label','power'], lv:4,
+ who:'长辈', fact:'家庭聚会上，{W}当着一桌子人问——',
+ rel:['大伯/姑姑','父母的同事','爷爷奶奶辈'],
+ ctx:['过年饭桌','婚宴酒席'],
+ st:['本来就想低调吃饭','今天状态不错'],
+ vs:[
+  {t:'rude', say:'「一个月赚多少啊？对象呢？你这个年纪别人孩子都打酱油了。读书读那么多有什么用。」', face:'理直气壮，像查户口',
+   re:['「问一下怎么了，还不能问啦？」','「这孩子，说不得。」']},
+  {t:'teach', say:'「我跟你讲，你这个年纪就是要……你要听话，我们吃的盐比你吃的饭多。」', face:'端着杯子，开始上课',
+   re:['「你怎么这么不听劝。」','「好心当成驴肝肺。」']},
+  {t:'polite', say:'「最近工作忙不忙？要照顾好自己啊。」', face:'笑呵呵的，问完就去夹菜了',
+   re:['「那就好那就好，来多吃点。」','「年轻人身体要紧。」']}
+ ],
+ ref:['饭桌不是审讯室。你可以回答，可以反问，可以只笑笑，也可以什么都不答。','「为我们好」的关心和不尊重，可以同时发生。']},
+
+{id:'l07', dir:['label','deny'], lv:3,
+ who:'对方', fact:'你提出一个不同的看法。{W}看了你一眼，说——',
+ rel:['同事','朋友','群里认识的熟人'],
+ ctx:['几个人在讨论','两人聊天'],
+ st:['认真想了才说的','随口提了一句'],
+ vs:[
+  {t:'crowd', say:'「大家都没觉得有什么问题，就你……」', face:'摊手，看向周围',
+   re:['「你说是不是，大家都同意就你有意见。」','「算了算了，跟你没法聊。」']},
+  {t:'teach', say:'「你还年轻，你不懂。等你到我这个年纪就明白了。」', face:'摆手',
+   re:['「我吃过的亏你没见过。」','「行了，不跟你争。」']},
+  {t:'sarc', say:'「哇，你懂得真多。」', face:'拖长了音',
+   re:['「别介意，我夸你呢。」','「哎呀逗你的，急什么。」']},
+  {t:'plain', say:'「嗯。」然后继续说自己的，像你没说过。', face:'没表情',
+   re:['（他说他的，你的话像落进了水里。）','（过了一会儿他问：「你怎么不说话了？」）']}
+ ],
+ ref:['被绕过、被无视、被打发——三种都不舒服，但方式不同。哪一种最触发你？','「就你」这两个字的杀伤力在哪里：它让你在人群里变成例外。']},
+
+{id:'l08', dir:['label'], lv:2,
+ who:'对方', fact:'你分享了最近做成的一件事，正说到兴头上。{W}来了句——',
+ rel:['家人','朋友','同事'],
+ ctx:['饭桌上','微信聊天','电话里'],
+ st:['真的很开心，想分享','平淡，就是随口一提'],
+ vs:[
+  {t:'cold', say:'「这点成绩就飘了？」', face:'眼皮都没抬',
+   re:['「我说实话而已，为你好。」','「这就不高兴了？说不得？」']},
+  {t:'sarc', say:'「哟，可以啊你。太阳打西边出来了。」', face:'笑着，但不像夸',
+   re:['「逗你呢，开心嘛。」','「你怎么这么经不起逗。」']},
+  {t:'unaware', say:'「那还行吧。不过我认识一个人比这个厉害多了……」然后开始讲别人。', face:'认真',
+   re:['（他讲完了别人的故事。）','「咦，你怎么不说了？」']},
+  {t:'sincere', say:'「真的假的？那挺厉害的啊！怎么做到的？」', face:'眼睛亮了',
+   re:['「跟你讲讲细节呗？」','「下次做成什么再跟我炫耀啊。」']}
+ ],
+ ref:['同一件喜事，四种接法。哪种让你最想以后再也不分享？','你的开心不需要先通过对方的审核。']},
+
+{id:'l09', dir:['label'], lv:3,
+ who:'对方', fact:'你说了句「我说话不喜欢绕弯子」，{W}立刻接——',
+ rel:['刚认识的熟人','同事','亲戚'],
+ ctx:['第一次一起吃饭','工作对接时'],
+ st:['想好好相处','已经有点戒备'],
+ vs:[
+  {t:'polite', say:'「我这人说话直，你别往心里去啊。」然后说了一句其实挺难听的话。', face:'笑眯眯的',
+   re:['「你看，提前跟你打招呼了啊。」','「哎呀真是的，直性子，你别计较。」']},
+  {t:'backfire', say:'「我说话直你别介意——你这人接受不了真话，难怪……」', face:'笃定',
+   re:['「我这是为你好才直说。」','「算了，好人心当驴肝肺。」']}
+ ],
+ ref:['「说话直」是预告，不是豁免权。','提前打了招呼的伤害，依然是伤害。']},
+
+/* ========== 以爱为名 · 打压式关心 ========== */
+{id:'v01', dir:['love'], lv:4,
+ who:'家人', fact:'你发现{W}瞒着你，用你的钱做了一个投资决定，亏了。现在TA对你说——',
+ rel:['妈妈/爸爸','关系很近的亲戚'],
+ ctx:['家里，刚发现这件事','电话里吵完之后'],
+ st:['气到发抖','很失望，反而很平静','又气又说不出来'],
+ vs:[
+  {t:'teach', say:'「我想让你过得更好一点，我这样做还不是为了你？亏了也是为你好才投的。」', face:'委屈，觉得自己被冤枉',
+   re:['「白眼狼，我为你付出了多少。」','「行，是我自作多情。」']},
+  {t:'backfire', say:'「要不是你平时什么都不管，我能替你做主吗？是你先什么都不上心的。」', face:'声音大起来',
+   re:['「你什么态度？」','「我辛辛苦苦还不是为了这个家。」']},
+  {t:'sincere', say:'「……我知道错了。钱的事我想办法补上。以后你的钱，你做主。」', face:'沉默了一会儿，低声说',
+   re:['「你骂我也应该。」','「对不起，真的。」']}
+ ],
+ ref:['「为你好」不能倒推「所以伤害成立」。','出发点是爱，过程没经过你，结果你承担——三件事分开看。']},
+
+{id:'v02', dir:['love'], lv:4,
+ who:'家人', fact:'考试/比赛结果出来，没拿到最好的名次。{W}对你说——',
+ rel:['妈妈/爸爸','长辈'],
+ ctx:['家里','车上，回家路上'],
+ st:['自己已经很失望了','其实还行，没太在意'],
+ vs:[
+  {t:'teach', say:'「虽然你表现得不太好，但我还是选择原谅你。下次要拿个更好的名次，别让我失望。」', face:'像在宣布一个宽容的决定',
+   re:['「记住了没有？说话。」','「就这态度？我是为你好。」']},
+  {t:'backfire', say:'「你怎么连这点事都做不好？我为你付出这么多，你对得起谁？」', face:'声音越来越高',
+   re:['「我说你两句怎么了。」','「你还有理了？」']},
+  {t:'polite', say:'「尽力了就行。走，回去给你做好吃的。」', face:'拍拍你',
+   re:['「名次不重要，人要紧。」','「下次想冲再冲，我不催你。」']}
+ ],
+ ref:['「原谅」需要一个前提：对方做错了什么。没做到目标不是「错」。','谁给了TA当裁判的资格？']},
+
+{id:'v03', dir:['love'], lv:3,
+ who:'家人', fact:'你回家住了几天。从进门开始，{W}就没停过——',
+ rel:['妈妈/爸爸','同住的家人'],
+ ctx:['你回家住的第二天','你刚进门半小时'],
+ st:['本来想好好待几天','已经很累了只想休息'],
+ vs:[
+  {t:'teach', say:'「冰的不要喝！外卖不要点！猫也不要养！你这样身体要垮的！」——喝冰的不行，点外卖不行，养猫不行，坐地上也不行。', face:'一边说一边替你收拾东西',
+   re:['「我不管你谁管你。」','「好好好，你大了，我说不了了。」']},
+  {t:'unaware', say:'「你屋子怎么这么乱？就知道吃零食。哎你几点睡的？熬夜最伤身体了你知道吗。」', face:'跟着你从一个房间到另一个房间',
+   re:['「问你话呢，怎么不回答？」','「我这不是关心你吗。」']},
+  {t:'plain', say:'你被从早数落到晚。没有人问你一句「最近过得怎么样」。', face:'—',
+   re:['（第二天，一切照旧。）','（临走时TA说：「怎么刚回来就走，也不多陪陪我。」）']}
+ ],
+ ref:['被关心的感觉和被管制的窒息感，可以来自同一个人。','你可以说「谢谢关心」，同时说「这个不用管」。']},
+
+{id:'v04', dir:['love'], lv:3,
+ who:'家人', fact:'有人问{W}「你孩子有什么优点」，TA想了半天，说——',
+ rel:['妈妈/爸爸'],
+ ctx:['当着你的面','饭桌上亲戚问的'],
+ st:['假装没在听','其实一直在等'],
+ vs:[
+  {t:'cold', say:'「优点？……抗压能力强吧。」顿了顿，又反问：「这算优点吗？」', face:'想了很久',
+   re:['「反正从小到大就那样。」','「你要是非要我说一个，那没有。」']},
+  {t:'plain', say:'TA没接这个话题，转而说起了别人家孩子的成绩。', face:'—',
+   re:['（话题过去了，像什么都没发生。）','（回家的路上你一直在想这件事。）']},
+  {t:'sincere', say:'「优点啊……很多。认真、心细、有主意，就是不太会表达。」说完看了你一眼，笑了。', face:'没有犹豫',
+   re:['「怎么突然夸我，怪不好意思的。」','「这些不都随我嘛。」']}
+ ],
+ ref:['你一直等的那个「被看见」，其实是想从TA那里拿到。如果拿不到，你还认不认自己身上这些优点？']},
+
+{id:'v05', dir:['love','deny'], lv:4,
+ who:'对方', fact:'你想退出一段让你很累的关系/合作。{W}对你说——',
+ rel:['家人','多年朋友','导师/上司'],
+ ctx:['私下的长谈','微信长消息'],
+ st:['已经想了很久，很确定','其实心里也有点虚'],
+ vs:[
+  {t:'teach', say:'「没有人会像我这样对你了。别人都是看你笑话的，只有我是真心的。」', face:'痛心疾首',
+   re:['「你现在不懂，以后会后悔的。」','「行，你走，别怪我没提醒你。」']},
+  {t:'backfire', say:'「你能有今天，都是我给你的。没有我，你什么都不是。」', face:'盯着你',
+   re:['「你走了就别想回来。」','「忘恩负义。」']},
+  {t:'crowd', say:'「你那些朋友，哪个是真心的？就我。」', face:'凑近了说',
+   re:['「他们说你坏话你信不信？」','「到时候没人管你。」']}
+ ],
+ ref:['「离开我你什么都不是」——这句话的唯一功能，是让你不敢走。','对方说得再真，你的累也是真的、你也有权退出。']},
+
+{id:'v06', dir:['love','deny'], lv:4,
+ who:'对方', fact:'你提起一件过去的事，那件事至今让你难受。{W}打断你——',
+ rel:['家人','老朋友','伴侣'],
+ ctx:['家里晚上','微信上，深夜'],
+ st:['鼓了很久的勇气才开口','说到一半就后悔了'],
+ vs:[
+  {t:'again', say:'「你怎么总记仇啊？都过去了还翻出来干嘛。」', face:'不耐烦地摆手',
+   re:['「你烦不烦，没完没了。」','「再提这事就别谈了。」']},
+  {t:'backfire', say:'「是你先让我这么做的。要不是你当时那样，我会那样吗？」', face:'理直气壮',
+   re:['「你还委屈上了？」','「行了行了，算我的错。」']},
+  {t:'sarc', say:'「又来了。您的小本本上还记着多少条啊？」', face:'笑',
+   re:['「开个玩笑。至于吗。」','「你真没意思。」']},
+  {t:'sincere', say:'「……对不起。我当时确实做得不对。」停了一下，「你想说的话，我听。」', face:'没有打断你第二次',
+   re:['「谢谢你愿意跟我说这些。」','「以后这种事，你随时可以提。」']}
+ ],
+ ref:['TA打断的不是旧事，是你终于开口的那次尝试。','「过去了」对谁过去？对疼的人来说，它一直在。']},
+
+{id:'v07', dir:['love','deny'], lv:5,
+ who:'对方', fact:'你确定你记得那件事的经过。但{W}斩钉截铁地说——',
+ rel:['家人','同事','伴侣'],
+ ctx:['争执当中','事后对质时'],
+ st:['很确定自己没记错','开始有点动摇了'],
+ vs:[
+  {t:'rude', say:'「我根本没说过这话，你记错了。你别造谣。」', face:'毫无迟疑',
+   re:['「你就是这种人，总冤枉人。」','「跟你真没意思。」']},
+  {t:'teach', say:'「你想多了。我明明是那样说的，是你自己理解有问题。」', face:'语重心长',
+   re:['「你总是这样，曲解别人的意思。」','「跟你说话真累。」']},
+  {t:'backfire', say:'「对对对，都是我的错，行了吧？你满意了吧？」', face:'翻白眼',
+   re:['「你就是要赢，赢了吧？」','「跟你没法过。」']}
+ ],
+ ref:['TA否定的是事实，还是你的记忆本身？','当有人反复否定你的记忆，先别急着怀疑自己——找证据，或者找人核实。你的感觉值得被自己信任。']},
+
+/* ========== 玩笑包装的冒犯 ========== */
+{id:'j01', dir:['joke'], lv:3,
+ who:'同事', fact:'你换了发型/穿着，一进办公室，{W}声音很大地说——',
+ rel:['平时爱起哄的同事','还算熟的同事'],
+ ctx:['早上一进办公室，好几个人在','午休时间'],
+ st:['本来对新发型挺满意','今天状态一般'],
+ vs:[
+  {t:'mock', say:'「哈哈哈哈你这什么造型啊，扮鬼呢？大家快看！」', face:'笑得前仰后合，招呼别人看',
+   re:['「哈哈急了急了。」','「开个玩笑，这么小气。」']},
+  {t:'unaware', say:'「咦，你今天不太一样啊，我看看……嗯，还行吧！」', face:'好奇地凑近看',
+   re:['「我是说挺特别的嘛。」','「哦……你不喜欢别人这么看啊，抱歉抱歉。」']},
+  {t:'polite', say:'「新发型？挺精神的。」', face:'自然地点头',
+   re:['「挺适合你的。」','「就说嘛，换个心情。」']}
+ ],
+ ref:['大家笑，不代表你该笑。','你可以等几秒再回应——几秒钟能帮你分辨「这是恶意还是无聊」。']},
+
+{id:'j02', dir:['joke','deny'], lv:4,
+ who:'对方', fact:'群里有人发了一张你的照片配了嘲笑的文字，@了你。消息下面跟了一串「哈哈哈」。',
+ rel:['同事群里的活跃分子','同学群里的熟人'],
+ ctx:['几十人的群','刚发出去一分钟，已经开始有人跟'],
+ st:['正在忙别的，点开群就看到','今天心情本来就不好'],
+ vs:[
+  {t:'mock', say:'（你回了一句「不好笑」。）「哟，认真了？开不起玩笑啊。」', face:'又发了三个表情包',
+   re:['（群里安静了几秒，然后有人说：「别当真嘛。」）','（有人说：「哈哈哈哈他真生气了。」）']},
+  {t:'unaware', say:'（你回了「不好笑」。）「啊？这个不好笑吗？我感觉挺搞笑的啊……」', face:'发了个挠头表情',
+   re:['「那我不发了行吧，至于这样吗。」','「你这人真是，一句玩笑话。」']},
+  {t:'sincere', say:'（你回了「不好笑」。）「……抱歉，我没意识到你不舒服。我删了。」', face:'撤回了那张图',
+   re:['「以后不拿你开这种玩笑了。」','「真不好意思。」']}
+ ],
+ ref:['在几十个人面前，你的「不好笑」三个字需要多大勇气？说了就是说了。','其他人的「哈哈哈」不构成「你反应过度」的证据。']},
+
+/* ========== 边界与空间 ========== */
+{id:'b01', dir:['bound','amb'], lv:1, amb:true,
+ who:'一个人', fact:'地铁/走廊里，一个人从你身边很近地擦过去，看了你一眼。',
+ rel:['陌生人','看着眼熟但叫不出名字的人'],
+ ctx:['早高峰的地铁','写字楼走廊','夜晚的街边'],
+ st:['精神不错','又累又困','心情本来很好'],
+ vs:[
+  {t:'plain', say:'（没有下文。他走过去了，你继续走你的。）', face:'—',
+   re:['（什么都没有发生。这件事在你脑子里转了十分钟。）','（他可能只是在看地铁到站屏，正好扫过你。）']},
+  {t:'plain', say:'（他超了你，在前面停下来了，背对着你。）', face:'—',
+   re:['（你放慢脚步，等他走远。）','（到分岔路口，他往另一边走了。）']}
+ ],
+ ref:['事实：一个人走得近、看了一眼。就这些。','你心里补上的部分——「他挑衅我」「他看不起我」——是事实，还是你的解释？','两种解释都无法证实也无法证伪。你愿意让哪种解释住进脑子里？']},
+
+{id:'b02', dir:['bound'], lv:2,
+ who:'室友/家人', fact:'你房间的门没锁。{W}推门进来了，没敲门，顺手翻了一下你桌上的东西。',
+ rel:['室友','家人','同住的亲戚'],
+ ctx:['你在午睡/戴耳机没听见','你正好坐在桌前'],
+ st:['被吓了一跳','很平静但不太舒服'],
+ vs:[
+  {t:'unaware', say:'「找你有点事……咦，你这买的什么？」', face:'已经拿起来看了',
+   re:['「哦哦，你东西我还不能看啦？」','「行了行了，我放回去。」']},
+  {t:'rude', say:'「门都没锁，进来还要敲门啊？这屋子又不是你一个人的。」', face:'头都没抬',
+   re:['「矫情什么。」','「行行行，以后先敲，满意了吧。」']},
+  {t:'polite', say:'（敲门声。）「在吗？我进来啦。」等了两秒才推门。', face:'探进半个头',
+   re:['「打扰你啦？我就拿个东西。」','「走的时候帮你把门带上？」']}
+ ],
+ ref:['你可以说：请敲门。这不是矫情，是你的门。','「这么小气」——空间和物品的小气，恰恰是分寸感的另一种说法。']},
+
+{id:'b03', dir:['bound'], lv:3,
+ who:'亲戚', fact:'家庭聚会上，{W}直接拿过你的手机：「来，给我看看你最近朋友圈/相册。」',
+ rel:['姑姑/舅舅','父母的朋友','不太熟的亲戚'],
+ ctx:['一屋子人都在','只有你们俩在客厅'],
+ st:['不想给但当众不好拒绝','已经烦了一整天'],
+ vs:[
+  {t:'cmd', say:'「给我看看嘛，怕什么，又不会看坏。」已经伸手过来拿了。', face:'理所当然',
+   re:['「哎呀小气死了，一家人看看怎么了。」','「行行行，不看了。」']},
+  {t:'unaware', say:'「你这手机最新款的啊？给我瞧瞧——」顺手就滑开了相册。', face:'好奇',
+   re:['「哎呀就看一眼。」','「咦你怎么这么紧张。」']}
+ ],
+ ref:['手机里是私事。交不交出去，应该是你的决定。','当众拒绝需要一句就够了：「不好意思，这个我不给人看。」说完天没塌。']},
+
+{id:'b04', dir:['bound','req'], lv:2,
+ who:'同事', fact:'你的东西（充电器/文具/椅子）总被{W}拿去用，不打招呼，用完也不还原。今天你回来又发现被拿了。',
+ rel:['邻座同事','其他部门的同事'],
+ ctx:['你刚开完会回来','一早就发现了'],
+ st:['已经忍了几次','第一次就很介意'],
+ vs:[
+  {t:'unaware', say:'「哦，我拿去用了，放那儿了。」（没还的意思）', face:'继续忙自己的',
+   re:['「哦哦。」','「咦，你还有什么东西要用吗？」']},
+  {t:'cmd', say:'「顺便帮你也拿了一份，你那放办公室占地方。」', face:'觉得在帮你',
+   re:['「你这人，好心当成驴肝肺。」','「至于吗，又不值钱。」']},
+  {t:'sincere', say:'「抱歉抱歉，我下次先问你一声。这就还你。」', face:'马上起身去拿',
+   re:['「刚才急着用，忘了说了。」','「你桌上贴个条吧，免得我又犯。」']}
+ ],
+ ref:['小东西，大边界。今天忍的每件小事都在教对方「可以继续」。','一句「下次先问我」不伤害任何人。']},
+
+{id:'b05', dir:['bound','req'], lv:3,
+ who:'同事', fact:'快下班了，{W}走到你工位前——',
+ rel:['同组同事','别的组的熟人'],
+ ctx:['你手头有自己的活','你正准备走'],
+ st:['今天很累','状态还行'],
+ vs:[
+  {t:'polite', say:'「不好意思，知道你也忙……有个表能不能帮我看看？不急的话明天也行。」', face:'有点不好意思',
+   re:['「太好了，谢谢！明天中午前给我就行。」','「真不好意思，麻烦你了。」']},
+  {t:'cmd', say:'「这个表你弄一下，明天要。」说完就走了。', face:'没等你回答',
+   re:['（微信补了一句：「尽快啊。」）','「这不是顺便的事吗，磨蹭什么。」']},
+  {t:'sarc', say:'「哟，又准点走啊。年轻人要多吃点苦——帮我弄个表呗。」', face:'笑',
+   re:['「开玩笑的，不过表还是要帮我弄一下哈。」','「你这人，玩笑都听不出来。」']},
+  {t:'rush', say:'「哎帮我看个表！急死我了——不好不好，我五点要交，就说你四点前有空吗！」', face:'满头汗，语速极快',
+   re:['「谢谢谢谢谢谢！」','「哎呀我就知道你人好，改天请你喝咖啡！」']}
+ ],
+ ref:['同一件事（帮看个表），语气不同，你的感受完全不同。留意：你拒绝的是请求本身，还是语气？','如果你拒绝了——是因为不想帮，还是因为TA的态度让你不想帮？这两个都成立。']},
+
+{id:'b06', dir:['bound','joke'], lv:4,
+ who:'对方', fact:'你说了「这个别动/别碰我东西」。{W}看了你一眼，说——',
+ rel:['同事','朋友','室友'],
+ ctx:['办公室','家里'],
+ st:['语气已经很平静了','说实话有点火'],
+ vs:[
+  {t:'backfire', say:'「你这么小气啊？」', face:'笑里带刺',
+   re:['「碰一下怎么了，又不掉块肉。」','「你这人真没劲。」']},
+  {t:'polite', say:'「哦，好，那我不动了。抱歉啊，我不知道你介意这个。」', face:'收手',
+   re:['「下次我注意。」','「你早点说嘛，我又不是故意的。」']}
+ ],
+ ref:['你保护边界的动作很轻，但对方的反应把它放大成了「你人有问题」。','守住一句话的边界，比事后生三天闷气便宜得多。']},
+
+/* ========== 请求与语气 ========== */
+{id:'r01', dir:['req'], lv:2,
+ who:'陌生人', fact:'公共场合（地铁/影院/图书馆），{W}需要你挪一下或帮个小忙。',
+ rel:['陌生人','看着挺急的人'],
+ ctx:['早高峰','散场人流里'],
+ st:['正常','很累，只想安静待着'],
+ vs:[
+  {t:'polite', say:'「不好意思，麻烦您让一下，谢谢谢谢。」', face:'点头致意',
+   re:['「谢谢啊！」','「给您添麻烦了。」']},
+  {t:'cmd', say:'「哎，让让。」（下巴示意）', face:'不耐烦',
+   re:['（他挤过去了。）','「磨蹭什么呢。」']},
+  {t:'rude', say:'（直接用手背碰了碰你的胳膊，示意你让开，一句话没有。）', face:'看着别处',
+   re:['（走了，从头到尾没看你。）','「看什么看。」']},
+  {t:'rush', say:'「不好意思不好意思！我车要开了——让一下可以吗！谢谢！」', face:'跑得满头汗',
+   re:['「谢谢您了！！」','（已经跑远了，回头挥了下手。）']}
+ ],
+ ref:['四种让路，四种心情。你允许自己因为「语气」而多不爽一点吗？','无礼的人不值得你反思自己；礼貌的人值得你多让一步。你分得清就行。']},
+
+{id:'r02', dir:['req','power'], lv:4,
+ who:'领导', fact:'快下班，{W}把你叫过去——',
+ rel:['直属领导','隔级领导'],
+ ctx:['办公室，门关着','工位旁，当着同事'],
+ st:['今天本来有安排','已经连续加班一周'],
+ vs:[
+  {t:'polite', say:'「有个急事，我知道这个点找你不合适。你手上那摊我先给你调开，这个忙你能帮就帮，实在不行我再想别的办法。」', face:'带着歉意',
+   re:['「辛苦了，明天你晚点到。」','「有困难随时跟我说。」']},
+  {t:'cmd', say:'「今晚加个班，把这个弄完。没什么好说的，大家都在弄。」', face:'已经在看下一个文件',
+   re:['「别人怎么没意见？」','「年轻人不要计较这么多。」']},
+  {t:'teach', say:'「我是给你机会。这个做了，对你成长有好处。你要感谢这个平台。」', face:'语重心长',
+   re:['「我看你还年轻，多干点不吃亏。」','「别不识好歹。」']}
+ ],
+ ref:['「机会」和「摊派」，用同一张嘴说出来。你分得清哪个是哪个吗？','就算拒绝有代价，你也有权先问一句：「代价具体是什么？」']},
+
+{id:'r03', dir:['req','amb'], lv:2,
+ who:'对方', fact:'你帮了{W}一个不小的忙。忙完，TA——',
+ rel:['同事','朋友','亲戚'],
+ ctx:['刚忙完，两人都一身汗','微信上'],
+ st:['有点期待一句谢谢','无所谓，帮就帮了'],
+ vs:[
+  {t:'plain', say:'（TA转身就去忙别的了，从头到尾没有一句话。）', face:'—',
+   re:['（过了三天，TA又来找你帮忙。）','「哎上次那事，你帮我再弄一次呗。」']},
+  {t:'backfire', say:'「这弄得不怎么样啊，早知道我自己弄了。」', face:'挑剔地看着成果',
+   re:['「不过还是谢了啊。」','「下回仔细点。」']},
+  {t:'sincere', say:'「太谢谢你了！真是帮大忙了。这顿我请，你别跟我抢。」', face:'很郑重',
+   re:['「下次有事随时叫我啊。」','「真的，谢谢你。」']}
+ ],
+ ref:['没被感谢的帮忙，下次你还会帮吗？答案没有对错，但值得看见。','你的付出不需要用TA的感谢来定值。']},
+
+/* ========== 否定感受 · 煤气灯 ========== */
+{id:'d01', dir:['deny'], lv:3,
+ who:'对方', fact:'你说：「这件事让我挺不舒服的。」{W}——',
+ rel:['朋友','同事','家人'],
+ ctx:['单独聊天','几个人在场'],
+ st:['鼓起勇气才说的','脱口而出'],
+ vs:[
+  {t:'cold', say:'「这点事至于吗？」', face:'不以为然',
+   re:['「你的不舒服我不背锅。」','「真矫情。」']},
+  {t:'crowd', say:'「大家都没觉得有问题，就你不舒服？那是不是你的问题？」', face:'环顾四周',
+   re:['「对啊，少数服从多数。」','「想开点吧。」']},
+  {t:'polite', say:'「嗯，我知道你不舒服。不过我也不是故意的，我们都有点情绪，先吃饭吧。」', face:'拍了拍你',
+   re:['「说开了就好。」','「下次有意见直接说，别憋着。」']},
+  {t:'sincere', say:'「是我让你不舒服了？那你具体说说，我想知道我哪里没做好。」', face:'认真看着你',
+   re:['「哦……原来是这样，我确实欠考虑。」','「谢谢你告诉我，不然我永远不知道。」']}
+ ],
+ ref:['「至于吗」——至于。你的感受不需要经过量化审批。','多数人不舒服，不等于你的不舒服无效。']},
+
+{id:'d02', dir:['deny','power'], lv:4,
+ who:'领导', fact:'会上，你的方案被{W}当众否定，而且TA转述错了你的方案内容。',
+ rel:['直属领导','大老板'],
+ ctx:['例会，十几个人在场','视频会议，全员在线'],
+ st:['想当场解释','已经见惯了，有点麻'],
+ vs:[
+  {t:'cmd', say:'「这个方案不行。」（然后开始批评一个你说的时候根本没提的观点）', face:'没听完就打断',
+   re:['「解释就是掩饰。」','「你先听我说完。」']},
+  {t:'polite', say:'「这个方案我有些疑问——不过我先确认下，你刚才是说……这样吗？」', face:'认真核对了你的原话',
+   re:['「哦，那是我理解偏了。你继续说。」','「这一版比上一版进步很多。」']}
+ ],
+ ref:['被冤枉 + 没机会说话，双重难受。你可以事后一对一澄清——这不算怂，是策略。','会上没说出口的话，写下来。文字不冻结。']},
+
+/* ========== 事实与推测 ========== */
+{id:'a01', dir:['amb'], lv:2, amb:true,
+ who:'朋友', fact:'你给{W}发了条消息，挺重要的事。到现在，消息下面只显示「已读」。两小时了。',
+ rel:['好朋友','普通朋友','最近有点微妙的朋友'],
+ ctx:['工作日的下午','周末'],
+ st:['不太在意','越来越烦躁','开始在心里过TA最近的种种'],
+ vs:[
+  {t:'plain', say:'（没有任何新消息。）', face:'—',
+   re:['（你脑子里TA不回的三种理由，哪一个是证据支持的？）','（也可能TA在开会、在开车、在带娃、在睡觉。你都不知道。）']}
+ ],
+ ref:['事实：消息已读，两小时没回。','推测：TA不在乎你 / TA在故意晾你 / TA生气了——这些是解释，不是事实。','「已读不回」有很多种原因，你目前一个都无法排除。']},
+
+{id:'a02', dir:['amb'], lv:2, amb:true,
+ who:'同事', fact:'早上你进办公室，跟{W}打招呼。TA没像平时那样回应，只是点了下头，就低头继续打字了。',
+ rel:['平时关系不错的同事','一般同事'],
+ ctx:['周一早上','你俩昨天有过一点小分歧'],
+ st:['没放在心上','一上午都在想这件事'],
+ vs:[
+  {t:'plain', say:'（上午过去了，没有别的事情发生。）', face:'—',
+   re:['（你开始回想：是不是昨天那句话说错了？）','（TA也可能只是胃疼、失眠、被领导骂了。你的屏幕上没有TA的内心。）']}
+ ],
+ ref:['事实：点头，没说话。','你已经补了几层解释？第一层是什么？第五层是什么？','如果TA只是没睡醒——你这一上午的消耗，花在了哪？']},
+
+{id:'a03', dir:['amb'], lv:3, amb:true,
+ who:'朋友', fact:'周末聚会合照发出来了。八个人的合影，七个都看得清清楚楚。{W}发的九宫格里，没有那张有你正脸的。',
+ rel:['组织聚会的朋友','不太熟的朋友'],
+ ctx:['大家都在群里夸照片','照片发出半小时'],
+ st:['一笑而过','心里咯噔了一下','开始怀疑自己上次是不是说错话了'],
+ vs:[
+  {t:'plain', say:'（没有任何解释。照片就在那里。）', face:'—',
+   re:['（可能手滑，可能构图，可能发了九张放不下第十张。也可能……你补的每一种可能，都只是可能。）','（你想直接问TA吗？）']}
+ ],
+ ref:['事实：九宫格里没有你的正脸。','你推测的版本已经跑到第几层了？','一张照片能承载的解释是无限的——这正是它杀伤力大、信息量小的原因。']},
+
+{id:'a04', dir:['amb','valid'], lv:3, amb:true,
+ who:'领导', fact:'项目群里，{W}点名表扬了组里每一个人。挨个念了名字，说了具体的事。名单里没有你。你的活也在这个项目里。',
+ rel:['直属领导','项目负责人'],
+ ctx:['晚上十点，群里','工作日下午'],
+ st:['胸口堵','开始翻自己是不是哪里做错了','冷笑：无所谓'],
+ vs:[
+  {t:'plain', say:'（群里有人跟着说「辛苦了」。你盯着屏幕。）', face:'—',
+   re:['（你手里确实有TA没看到的产出——还是TA其实看到了但不认可？你不知道。）','（明天，你可以拿着结果去找TA聊一次。也可以不聊。但你至少可以分清：没被点名，不等于你做得不好。）']}
+ ],
+ ref:['事实：表扬名单里没有你。','推测：TA针对我 / TA忘了 / 我做得不够好——哪个有证据？','「没被看见」的疼是真的。但疼可以推动你去沟通，而不是先在深夜里审判自己。']},
+
+/* ========== 事后反刍 ========== */
+{id:'p01', dir:['replay','joke'], lv:3,
+ who:'对方', fact:'白天，{W}当着几个人说了句刺你的话。你当场僵住了，只尴尬地笑了一下。现在是晚上，你躺在床上，那句话在脑子里第 N 次播放。',
+ rel:['同事','亲戚','熟人'],
+ ctx:['凌晨，睡不着','刚洗完澡坐在床边'],
+ st:['越想越气','又气又恨自己没用','气TA，也气当时的自己'],
+ vs:[
+  {t:'plain', say:'（脑子里，你补写了很多版反击，一版比一版漂亮。可都是想象。）', face:'—',
+   re:['（你现在可以做的：把它写下来——不是发出去，是写给自己的武器库。）','（当场僵住不是怂，是身体的自保。大脑在威胁里选了冻结，这在几万年前救过命。）']},
+  {t:'plain', say:'（你想到一句特别好的回应，越来越睡不着。）', face:'—',
+   re:['（要不要现在在备忘录里写下来？写完这件事就算「归档」了。）','（你的大脑还没收到「这件事处理完了」的信号，所以它一直循环播放。给它一个收尾动作。）']}
+ ],
+ ref:['事后反刍不是记仇，是大脑在等一个「已处理」的回执。','给这件事一个收尾：写下来、跟人说一遍、或者明确决定「不回应」——三种都是收尾。']},
+
+{id:'p02', dir:['replay'], lv:2,
+ who:'对方', fact:'上周的一次对话里，你被噎了一句，当时什么都没说出来。现在{W}又约你周末见面。',
+ rel:['亲戚','朋友','同事'],
+ ctx:['手机上，TA刚发来消息','你在想去不去'],
+ st:['想去但又怕','不太想去'],
+ vs:[
+  {t:'plain', say:'（消息还亮在屏幕上，等你回复。）', face:'—',
+   re:['（如果再遇到类似的话，你的第一句可以说什么？准备一句就够了，不用准备十句。）','（「你为什么这么问？」——一句反问，就能把你从被动位置拉回来。）']}
+ ],
+ ref:['你可以去，也可以不去。带着一句准备好的话去，或者一句都不带。','低风险的小练习（拒绝插队、退掉不合身的商品）攒多了，大的场合就不慌了。']},
+
+/* ========== 想被认可的循环 ========== */
+{id:'w01', dir:['valid','deny'], lv:4,
+ who:'对方', fact:'你已经解释三遍了，TA还是理解错你的意思。现在你深吸一口气，准备解释第四遍。',
+ rel:['家人','同事','朋友'],
+ ctx:['聊天窗里，一大段一大段的文字','面对面，声音已经有点紧'],
+ st:['胸口发闷，不解释完难受','其实已经累了，但停不下来'],
+ vs:[
+  {t:'plain', say:'（你打了很长一段，删了，又打。）', face:'—',
+   re:['（问自己一句：如果TA永远不能理解，你还打算解释到第几遍？）','（你想要的到底是「TA听懂」，还是「TA承认你是对的」？这是两件事。）']},
+  {t:'backfire', say:'「行了行了，我知道你想说什么，你就是非要争个对错。」', face:'不耐烦',
+   re:['「跟你说话真费劲。」','「随你怎么想吧。」']}
+ ],
+ ref:['想被理解是正常的。但「必须被这个人理解」是一个会无限消耗的坑。','解释两遍就够了。第三遍开始，多半不是在沟通，是在讨一个认罪书。']},
+
+{id:'w02', dir:['valid'], lv:3,
+ who:'对方', fact:'你做对了一件事，{W}当时没发现。你现在很想让TA知道，想了想，开口——',
+ rel:['领导','父母','伴侣'],
+ ctx:['单独相处时','微信上'],
+ st:['有点不好意思开口','憋了两天了，必须说'],
+ vs:[
+  {t:'plain', say:'（你说了。TA「嗯」了一声，说「挺好的」，然后低头继续刷手机。）', face:'—',
+   re:['（你想要的那个「被看见」，差了点什么。差在哪？）','（如果TA永远给不了这种看见，谁还能给你？你自己能吗？）']},
+  {t:'sincere', say:'（你说了。TA抬起头：「真的？说说，怎么做到的？」听完说：「不错，这事你处理得好。」）', face:'认真听完',
+   re:['「以后这种事多跟我聊聊。」','「你也提醒我了，我平时关注你们太少了。」']}
+ ],
+ ref:['被看见很珍贵，但它不能是你唯一的氧气来源。','今天，你可以做一次「自我确认」：这件事里，你自己最认可自己的是哪一步？写下来。']},
+
+{id:'w03', dir:['valid','label'], lv:4,
+ who:'对方', fact:'你分享了一件得意的事。{W}淡淡地——',
+ rel:['家人','朋友','同事'],
+ ctx:['吃饭时','群里'],
+ st:['本来很开心','其实预感到会这样，还是说了'],
+ vs:[
+  {t:'cold', say:'「这有什么好说的。」', face:'夹菜/划手机',
+   re:['「我打击你是为你好，怕你飘。」','「你从小就这样，一点事就显摆。」']},
+  {t:'sarc', say:'「行啊你。也不知道谁给你的自信。」', face:'笑',
+   re:['「逗你呢。不过这确实不算什么大事。」','「你这人，夸不得。」']},
+  {t:'sincere', say:'「挺好的啊！你什么时候变得这么厉害了？」', face:'放下筷子，真的在看你说',
+   re:['「细节呢？展开讲讲。」','「早该请客了啊。」']}
+ ],
+ ref:['分享欲被浇灭几次之后，人会学会沉默。你可以选择不再分享——也可以选择不把评价权交给TA。','你的得意不需要TA盖章。但被泼冷水的难受，也是真的，不用否认。']},
+
+/* ========== 权力关系 ========== */
+{id:'q01', dir:['power','deny'], lv:5,
+ who:'领导', fact:'你被叫进办公室。{W}说你最近「状态有问题」，说有人反映你「态度不行」。你没有得到任何具体的事例。',
+ rel:['直属领导','部门领导'],
+ ctx:['办公室，门关着','单独视频通话'],
+ st:['脑子嗡的一声','强作镇定'],
+ vs:[
+  {t:'cmd', say:'「你自己心里清楚。我就说到这，你自己体会。走吧。」', face:'低头看文件',
+   re:['「行了，出去吧，我还有会。」','（你被请出了办公室。门关上的声音很轻，但你听得很清楚。）']},
+  {t:'teach', say:'「年轻人，我这是敲打你。别人我还懒得说呢。」', face:'靠在椅背上',
+   re:['「不要有情绪，有情绪就是不服管。」','「行了行了，去工作吧。」']},
+  {t:'polite', say:'「具体是谁反映的我不方便说，但不止一个人。你先自己想想。有什么想解释的，你想好了随时来找我。」', face:'还算平静',
+   re:['「嗯，我相信你能想明白。」','「去忙吧。」']}
+ ],
+ ref:['「有人反映」是一个不需要举证的指控。你没有义务先自证。','走出办公室后，把经过写下来：日期、原话、你在场说的每一句。这不是记仇，是留证据。']},
+
+{id:'q02', dir:['power','label'], lv:4,
+ who:'客户/上级', fact:'会议上，你按流程说明了风险。{W}当众——',
+ rel:['客户方负责人','更高层的领导'],
+ ctx:['项目会，双方都在','线上会议'],
+ st:['心跳快了','表面镇定'],
+ vs:[
+  {t:'rude', say:'「我不想听这些。我只要结果。你们是专业的还是吃干饭的？」', face:'打断你，敲桌子',
+   re:['「让你说结论，谁让你解释了？」','「换个人来跟我讲。」']},
+  {t:'teach', say:'「你们年轻人啊，就是怕担责任。这个风险不算什么事，大胆干。」', face:'挥手',
+   re:['「出了事我担着——哦不，你担着。」','「行了，下一个话题。」']}
+ ],
+ ref:['被当众羞辱时，你的沉默可以是策略，你的离开可以是底线。都算回应。','风险提示说过了，记录在案了。剩下的不是你的错。']},
+
+{id:'q03', dir:['power','love'], lv:4,
+ who:'长辈', fact:'{W}替你做了一个重大决定——没问你，直接通知你。比如：已经替你报了名/辞了你不想辞的东西/安排了你的行程。',
+ rel:['父母','长辈亲戚'],
+ ctx:['饭桌上，当着别人宣布','电话里，已尘埃落定'],
+ st:['血往头上涌','一片安静，说不出话'],
+ vs:[
+  {t:'cmd', say:'「我都是安排好的，你就不用操心了。听我的没错。」', face:'胸有成竹',
+   re:['「你怎么这么不懂事？我为你好。」','「这事就这么定了。」']},
+  {t:'backfire', say:'「我要是不提前安排，你能想到？你什么时候靠谱过？」', face:'摇头',
+   re:['「行了行了，别不识好歹。」','「等你感谢我吧。」']}
+ ],
+ ref:['成年人的重大决定，主语应该是自己。','生米已成熟饭——但你可以不点头。不点头不等于撕破脸，它只是不签字。']},
+
+/* ========== 补充：日常高频 ========== */
+{id:'x01', dir:['label','joke'], lv:2,
+ who:'对方', fact:'你在群里说了个正经观点。有人回——',
+ rel:['群友','同事','同学'],
+ ctx:['几十人的群','三人群聊'],
+ st:['认真打的字','随手一提'],
+ vs:[
+  {t:'sarc', say:'「你这话说的，跟专家似的哈哈哈」', face:'发了个狗头',
+   re:['「急了急了。」','「认真你就输了。」']},
+  {t:'plain', say:'（没人接话。你的消息孤零零地挂在中间，上下都是别人的表情包。）', face:'—',
+   re:['（十分钟后话题已经走远了。）','（你打的那段话，像没发出去过。）']},
+  {t:'polite', say:'「你这个角度有意思，展开说说？」', face:'认真回复',
+   re:['「哦原来是这样，受教了。」','「你这个提法我记一下。」']}
+ ],
+ ref:['被阴阳和被无视，哪种更难受？','群里没人接话不等于你说错了。但那种「消失感」是真的。']},
+];
+
+/* ---------------- 存取 ---------------- */
+const KEY='reltrain_v1';
+let DB=null;
+function load(){ try{ DB=JSON.parse(localStorage.getItem(KEY))||null; }catch(e){ DB=null; }
+  if(!DB) DB={v:1,records:[],muted:{},skips:{},seen:{},lastTones:[],recent:[],lvMin:1,lvMax:5};
+  if(!DB.records)DB.records=[]; if(!DB.muted)DB.muted={}; if(!DB.skips)DB.skips={};
+  if(!DB.seen)DB.seen={}; if(!DB.lastTones)DB.lastTones=[]; if(!DB.recent)DB.recent=[];
+  return DB;
+}
+function save(){
+  if(DB.records.length>400) DB.records=DB.records.slice(-400);
+  try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){ toast('存储失败，本机空间可能不足'); }
+  try{ parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){}
+}
+
+/* ---------------- 抽题生成 ---------------- */
+let CUR=null;           // 当前情境实例
+let PHASE='deck';       // deck / react / resp / talk / rev
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+function drawInstance(forceTpl){
+  const pool = BANK.filter(t=>{
+    if(forceTpl && t.id===forceTpl) return true;
+    if(t.dir.some(d=>DB.muted[d])) return false;
+    if(t.lv<DB.lvMin || t.lv>DB.lvMax) return false;
+    if(DB.recent.indexOf(t.id)>=0) return false;
+    return true;
+  });
+  const src = forceTpl ? BANK.find(t=>t.id===forceTpl) : (pool.length?pick(pool):pick(BANK.filter(t=>!t.dir.some(d=>DB.muted[d])))||pick(BANK));
+  if(!src) return null;
+  // 语气版本：避开最近用过的语气
+  let vs = src.vs.slice();
+  const fresh = vs.filter(v=>DB.lastTones.indexOf(v.t)<0);
+  const v = pick(fresh.length?fresh:vs);
+  DB.lastTones.push(v.t); DB.lastTones=DB.lastTones.slice(-3);
+  DB.seen[src.id]=(DB.seen[src.id]||0)+1;
+  DB.recent.push(src.id); DB.recent=DB.recent.slice(-6);
+  save();
+  return {tpl:src, v:v, rel:src.rel?pick(src.rel):null, ctx:src.ctx?pick(src.ctx):null, st:src.st?pick(src.st):null,
+          react:{body:[],emo:[],thought:'',impulse:[]}, resp:[], other:[], rounds:0, ended:false};
+}
+
+function fillFact(t){
+  return t.fact.replace(/\{W\}/g, t.who);
+}
+function sceneHTML(inst, compact){
+  const t=inst.tpl, v=inst.v;
+  let chips='';
+  if(!compact){
+    if(inst.rel) chips+='<span class="chip">关系：'+inst.rel+'</span>';
+    if(inst.ctx) chips+='<span class="chip">环境：'+inst.ctx+'</span>';
+    if(inst.st) chips+='<span class="chip">你当时：'+inst.st+'</span>';
+  }
+  const nth = DB.seen[t.id]||1;
+  let head = '<div class="qhead">'
+    + t.dir.map(d=>'<span class="chip dir">'+DIRS[d].n+'</span>').join('')
+    + '<span class="chip lv">难度 '+t.lv+'</span>'
+    + (nth>1?'<span class="chip nth">第 '+nth+' 次遇到</span>':'')
+    + chips + '</div>';
+  let body='<div class="scene"><span class="fact">'+esc(fillFact(t)).replace(t.who,'<span class="who">'+t.who+'</span>')+'</span>';
+  if(v && v.say) body+='<span class="say">'+esc(v.say)+'</span>';
+  if(v && v.face && v.face!=='—') body+='<span class="face">（表情/语气：'+esc(v.face)+'）</span>';
+  body+='</div>';
+  return head+body;
+}
+
+/* ---------------- 卡牌视图 ---------------- */
+function renderDeck(){
+  PHASE='deck';
+  show('deckBox');
+  const inst=drawInstance();
+  if(!inst){ $('cardstack').innerHTML='<div class="empty">题库空了（可能全部被静音）。去「设置」重新打开方向。</div>'; return; }
+  CUR=inst;
+  const nth=DB.seen[inst.tpl.id]||1;
+  $('cardstack').innerHTML =
+    '<div class="qcard" id="qcard">'+ sceneHTML(inst)
+    + '<div class="cardacts">'
+    + '<button class="btn primary" onclick="startTrain()">走进这个情境 &#8594;</button>'
+    + '<button class="btn" onclick="regenSame()">&#10227; 换一版</button>'
+    + '<button class="btn ghost" onclick="skipCard(1)">划走</button>'
+    + '</div>'
+    + (nth>1?'<div class="hintline">同一个情境你已经来过 '+(nth-1)+' 次。看看这次有什么不同。</div>':'')
+    + '</div>';
+  bindSwipe();
+}
+
+function skipCard(dir){
+  if(PHASE!=='deck'){ endScene(true); return; }
+  const el=$('qcard');
+  if(el && dir!==0){ el.style.transform='translateX('+(dir*-120)+'px)'; el.style.opacity='0'; }
+  if(CUR){ DB.skips[CUR.tpl.id]=(DB.skips[CUR.tpl.id]||0)+1; }
+  setTimeout(renderDeck, dir!==0?180:0);
+}
+
+function regenSame(){
+  const id=CUR?CUR.tpl.id:null;
+  if(PHASE==='deck'){ DB.seen[id]=(DB.seen[id]||1)-1; }   // 换一版不重复计数
+  renderDeck();
+}
+
+/* 滑动 */
+function bindSwipe(){
+  const el=$('qcard'); if(!el) return;
+  let sx=0, dx=0, on=false;
+  el.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; on=true; el.classList.add('swiping'); },{passive:true});
+  el.addEventListener('touchmove',e=>{ if(!on)return; dx=e.touches[0].clientX-sx; el.style.transform='translateX('+dx*0.9+'px)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/300)); },{passive:true});
+  el.addEventListener('touchend',()=>{ if(!on)return; on=false; el.classList.remove('swiping');
+    if(dx<-70){ el.style.transform='translateX(-130%)'; el.style.opacity='0'; setTimeout(()=>skipCard(1),150); }
+    else if(dx>70){ setTimeout(()=>skipCard(-1),150); }
+    else { el.style.transform=''; el.style.opacity=''; }
+    dx=0; });
+}
+
+/* ---------------- 训练流程 ---------------- */
+function startTrain(){
+  PHASE='react';
+  hide('deckBox');
+  $('recap1').innerHTML='<b>情境：</b>'+esc(fillFact(CUR.tpl)) + (CUR.v&&CUR.v.say?('<span class="say">'+esc(CUR.v.say)+'</span>'):'')
+    + (CUR.v&&CUR.v.face&&CUR.v.face!=='—'?('<div style="font-size:11.5px;color:var(--sub);margin-top:4px;">（'+esc(CUR.v.face)+'）</div>'):'');
+  buildChips('chBody', CHIPS_BODY, 'body');
+  buildChips('chEmo', CHIPS_EMO, 'emo');
+  buildChips('chImp', CHIPS_IMP, 'impulse');
+  ['inBody','inEmo','inThought','inImp'].forEach(id=>{$(id).value='';});
+  if(CUR.tpl.amb){ $('inThought').placeholder='比如：TA是不是看不起我 / 我是不是哪里得罪TA了……（试着把「看到的」和「猜的」分开）'; }
+  show('stepReact');
+  saveReactDraft();
+}
+function saveReactDraft(){
+  const get=(id)=>$(id)?$(id).value.trim():'';
+  CUR.react.body=get('inBody'); CUR.react.emo=get('inEmo');
+  CUR.react.thought=get('inThought'); CUR.react.impulse=get('inImp');
+}
+const CHIPS_BODY=['胸口发紧','喉咙堵','肩膀耸起来','手心出汗','胃里一沉','脸发热','呼吸变浅','没特别感觉'];
+const CHIPS_EMO=['烦躁','愤怒','委屈','羞','慌','闷','厌恶','不甘','心虚','没情绪'];
+const CHIPS_IMP=['怼回去','解释清楚','直接离开','忍住不说','讲道理','冷处理','反问TA','想哭'];
+function buildChips(elId, arr, field){
+  const el=$(elId); el.innerHTML='';
+  arr.forEach(x=>{
+    const b=document.createElement('button'); b.className='tchip'; b.textContent=x; b.type='button';
+    b.onclick=()=>{ b.classList.toggle('on'); };
+    el.appendChild(b);
+  });
+  el._field=field;
+}
+function collectChips(elId){
+  const el=$(elId); const out=[];
+  el.querySelectorAll('.tchip.on').forEach(b=>out.push(b.textContent));
+  return out;
+}
+
+function toRespond(){
+  saveReactDraft();
+  CUR.react.bodyChips=collectChips('chBody'); CUR.react.emoChips=collectChips('chEmo'); CUR.react.impChips=collectChips('chImp');
+  PHASE='resp';
+  hide('stepReact');
+  $('trans1').innerHTML=transHTML(false);
+  $('inResp').value='';
+  buildOpeners();
+  show('stepResp');
+}
+const OPENERS=['你为什么这么说？','你这句话是什么意思？我没听懂。','我不太喜欢这个说法。','嗯，我知道了。','（不说话，看着TA）','这件事我想一下再说。'];
+function buildOpeners(){
+  const el=$('openers'); el.innerHTML='';
+  OPENERS.forEach(x=>{ const b=document.createElement('button'); b.className='tchip'; b.textContent=x; b.type='button';
+    b.onclick=()=>{ const t=$('inResp'); t.value = t.value? t.value+' '+x : x; t.focus(); }; el.appendChild(b); });
+}
+
+function transHTML(withReactions){
+  let h='<div class="mrow na"><span class="tag">情境</span><span class="bubble">'+esc(fillFact(CUR.tpl))+'</span></div>';
+  if(CUR.v&&CUR.v.say) h+='<div class="mrow other"><span class="tag">'+esc(CUR.tpl.who)+'</span><span class="bubble">'+esc(CUR.v.say)+'</span></div>';
+  if(withReactions){
+    const r=CUR.react;
+    const bits=[];
+    if(r.body||r.bodyChips&&r.bodyChips.length) bits.push('身体：'+[].concat(r.bodyChips||[], r.body?[r.body]:[]).join('、'));
+    if(r.emo||r.emoChips&&r.emoChips.length) bits.push('情绪：'+[].concat(r.emoChips||[], r.emo?[r.emo]:[]).join('、'));
+    if(r.thought) bits.push('念头：'+r.thought);
+    if(r.impulse||r.impChips&&r.impChips.length) bits.push('冲动：'+[].concat(r.impChips||[], r.impulse?[r.impulse]:[]).join('、'));
+    if(bits.length) h+='<div class="mrow you"><span class="tag">你的瞬间</span><span class="bubble">'+esc(bits.join(' ｜ '))+'</span></div>';
+  }
+  CUR.resp.forEach((r,i)=>{
+    h+='<div class="mrow '+(r.said?'you':'na')+'"><span class="tag">你</span><span class="bubble">'+esc(r.said?(r.text+'（说出口）'):(r.left?'（转身离开了场景）':'（沉默，没有回应）'))+'</span></div>';
+    if(r.other) h+='<div class="mrow other"><span class="tag">'+esc(CUR.tpl.who)+'</span><span class="bubble">'+esc(r.other)+'</span></div>';
+  });
+  return h;
+}
+
+function speak(silent, left){
+  const txt = silent||left ? '' : (PHASE==='resp'?$('inResp').value.trim():$('inResp2').value.trim());
+  if(!silent && !left && !txt){ toast('想说什么就写下来；什么都不说就用「不回应」'); return; }
+  const rec={said:!silent&&!left, text:txt, silent:!!silent, left:!!left, other:null};
+  CUR.resp.push(rec);
+  CUR.rounds++;
+  // 对方接话
+  if(!left && CUR.rounds<=3){
+    const fb=FALLBACK[CUR.v.t]||['……','……'];
+    const custom=(CUR.v.re&&CUR.v.re[CUR.rounds-1])||fb[(CUR.rounds-1)%fb.length];
+    rec.other = CUR.v.t==='plain'? null : custom;
+  }
+  if(left || CUR.rounds>=3 || !rec.other){ toReview(); return; }
+  PHASE='talk';
+  hide('stepResp'); hide('stepReact');
+  $('trans2').innerHTML=transHTML(true);
+  $('inResp2').value='';
+  show('stepTalk');
+}
+function speakSilent(){ speak(true,false); }
+function leaveScene(){ speak(false,true); }
+
+function endScene(back){
+  if(back){ PHASE='deck'; ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id)); show('deckBox'); return; }
+}
+
+/* ---------------- 复盘 ---------------- */
+const CHECKS=[
+  '这里混进了我的推测——我分得清哪些是看到的、哪些是我猜的',
+  '我在表达自己，而不是试图改变对方',
+  '我在保护边界，而不是想赢',
+  '我有一点压抑自己',
+  '我把这件小事扩大成了对TA这个人的整体判断',
+  '我特别想让TA承认我是对的',
+  '过程里我的情绪有变化（变强或减弱）',
+  '我知道自己下一步真正想做什么'
+];
+function toReview(){
+  PHASE='rev';
+  ['stepReact','stepResp','stepTalk'].forEach(id=>hide(id));
+  $('trans3').innerHTML=transHTML(true);
+  $('toneReveal').innerHTML = CUR.v&&CUR.v.t&&CUR.v.t!=='plain'
+    ? ('这一版的对方语气是：<b style="color:var(--accent)">'+TONE_NAME[CUR.v.t]+'</b>。同一情境还有别的版本，下次遇到可能完全不同。')
+    : '这一题没有台词——因为触发你的不是一句话，是信息不全的场景本身。';
+  const cl=$('checkList'); cl.innerHTML='';
+  CHECKS.forEach((c,i)=>{
+    const lab=document.createElement('label'); lab.className='checkrow';
+    lab.innerHTML='<input type="checkbox" id="ck'+i+'"><span>'+c+'</span>';
+    cl.appendChild(lab);
+  });
+  $('inNote').value='';
+  $('revHint').innerHTML = revRefHTML();
+  show('stepRev');
+  // 存记录
+  DB.records.push(snapshot());
+  save();
+}
+function revRefHTML(){
+  const t=CUR.tpl;
+  const lines=(t.ref||[]).map(x=>'· '+x).join('<br>');
+  const isAmb=t.amb? '<br><b>事实 vs 推测：</b>回看「你的瞬间」——身体和情绪是事实，念头几乎都是解释。解释不是罪，但要认得出它是你加的。':'';
+  return lines? ('<b>观察镜（不是标准答案，只是角度）</b><br>'+lines+isAmb) : isAmb;
+}
+function snapshot(){
+  const r=CUR.react, now=new Date();
+  return {id:Date.now()+''+Math.floor(Math.random()*1000), ts:now.getTime(), date:now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate(),
+    tid:CUR.tpl.id, who:CUR.tpl.who, dirs:CUR.tpl.dir, lv:CUR.tpl.lv, amb:!!CUR.tpl.amb,
+    tone:CUR.v?CUR.v.t:'none', rel:CUR.rel, ctx:CUR.ctx, st:CUR.st,
+    scene:fillFact(CUR.tpl), say:CUR.v?CUR.v.say:'',
+    body:[].concat(CUR.react.bodyChips||[], r.body?[r.body]:[]).join('、'),
+    emo:[].concat(CUR.react.emoChips||[], r.emo?[r.emo]:[]).join('、'),
+    thought:r.thought||'', imp:[].concat(CUR.react.impChips||[], r.impulse?[r.impulse]:[]).join('、'),
+    resp:CUR.resp.map(x=>({said:x.said, text:x.text, silent:!!x.silent, left:!!x.left, other:x.other})),
+    note:'', checks:[], skipped:false};
+}
+function finishReview(){
+  const note=$('inNote').value.trim(); const checks=[];
+  CHECKS.forEach((c,i)=>{ const ck=$('ck'+i); if(ck&&ck.checked) checks.push(c); });
+  const rec=DB.records[DB.records.length-1];
+  if(rec && rec.tid===CUR.tpl.id){ rec.note=note; rec.checks=checks; save(); }
+  ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id));
+  show('deckBox');
+  renderDeck();
+}
+function muteThis(){
+  const t=CUR.tpl;
+  const names=t.dir.map(d=>DIRS[d].n).join('、');
+  const go=confirm('把方向【'+names+'】全部设为「不再出现」？\n\n（设置里随时可以重新打开）');
+  if(!go) return;
+  t.dir.forEach(d=>DB.muted[d]=true);
+  save();
+  toast('已静音：'+names);
+  ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id));
+  show('deckBox'); renderDeck();
+}
+
+/* ---------------- 记录视图 ---------------- */
+function renderLog(){
+  const rs=DB.records.slice().reverse();
+  $('sumLine').textContent='共 '+rs.length+' 次练习 · 跳过 '+(DB.skips?Object.values(DB.skips).reduce((a,b)=>a+b,0):0)+' 次';
+  // 方向统计
+  let sh='';
+  Object.keys(DIRS).forEach(d=>{
+    const n=DB.records.filter(r=>r.dirs.indexOf(d)>=0).length;
+    const muted=!!DB.muted[d];
+    sh+='<div class="stat'+(muted?' muted':'')+'"><b>'+DIRS[d].n+'</b><span class="c">'+(muted?'已静音 · ':'')+n+' 次练习</span></div>';
+  });
+  $('statGrid').innerHTML=sh||'<div class="empty">还没有记录</div>';
+  // 最近记录
+  let lh='';
+  rs.slice(0,30).forEach(r=>{
+    const emo = r.emo? r.emo : '（没记情绪）';
+    lh+='<div class="recitem" onclick="this.classList.toggle(\'open\')">'
+      +'<div class="head"><b>'+esc(r.date)+' · '+r.dirs.map(d=>DIRS[d]?DIRS[d].n:d).join('/')+'</b><span>'+TONE_NAME[r.tone]+'</span></div>'
+      +'<div style="color:var(--sub);font-size:11.5px;margin-top:2px;">情绪：'+esc(emo)+'</div>'
+      +'<div class="body">'
+      +'<div class="ln"><i>情境</i>'+esc(r.scene)+(r.say?(' —— '+esc(r.say)):'')+'</div>'
+      +(r.body?'<div class="ln"><i>身体</i>'+esc(r.body)+'</div>':'')
+      +(r.emo?'<div class="ln"><i>情绪</i>'+esc(r.emo)+'</div>':'')
+      +(r.thought?'<div class="ln"><i>念头</i>'+esc(r.thought)+'</div>':'')
+      +(r.imp?'<div class="ln"><i>冲动</i>'+esc(r.imp)+'</div>':'')
+      + r.resp.map(x=>'<div class="ln"><i>'+(x.said?'你说了':(x.left?'你离开':'你沉默'))+'</i>'+esc(x.text||'')+(x.other?('<br><i>'+esc('对方')+'</i>'+esc(x.other)):'')+'</div>').join('')
+      +(r.checks&&r.checks.length?('<div class="ln"><i>复盘</i>'+r.checks.map(esc).join('；')+'</div>'):'')
+      +(r.note?'<div class="ln"><i>想说</i>'+esc(r.note)+'</div>':'')
+      +'</div></div>';
+  });
+  $('recList').innerHTML= lh||'<div class="empty">还没有记录。去「训练」开始第一次。</div>';
+}
+
+/* ---------------- 设置视图 ---------------- */
+function renderSet(){
+  let h='';
+  Object.keys(DIRS).forEach(d=>{
+    const on=!DB.muted[d];
+    h+='<div class="checkrow"><input type="checkbox" '+(on?'checked':'')+' onchange="toggleDir(\''+d+'\',this.checked)"><span>'+DIRS[d].n+'</span></div>';
+  });
+  $('dirToggles').innerHTML=h;
+  $('lvMin').value=DB.lvMin; $('lvMax').value=DB.lvMax;
+}
+function toggleDir(d,on){ if(on) delete DB.muted[d]; else DB.muted[d]=true; save(); }
+function saveLv(){
+  let a=parseInt($('lvMin').value)||1, b=parseInt($('lvMax').value)||5;
+  if(a>b){const t=a;a=b;b=t;} a=Math.max(1,a); b=Math.min(5,b);
+  DB.lvMin=a; DB.lvMax=b; save(); toast('难度范围：'+a+' ~ '+b);
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='关系训练记录_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  toast('已导出');
+}
+function wipeData(){
+  const go=confirm('确定清空全部练习记录吗？（情境卡不会丢，只是记录归零）');
+  if(!go) return;
+  const go2=confirm('再次确认：记录清空后无法恢复。');
+  if(!go2) return;
+  DB.records=[]; DB.seen={}; DB.skips={}; save(); toast('已清空'); renderLog();
+}
+
+/* ---------------- 基础 ---------------- */
+function $(id){ return document.getElementById(id); }
+function show(id){ $(id).style.display=''; }
+function hide(id){ $(id).style.display='none'; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function switchView(v){
+  ['train','log','set'].forEach(x=>hide('view-'+x));
+  show('view-'+v);
+  ['T','L','S'].forEach(x=>$('nav'+x).classList.remove('on'));
+  $('nav'+(v==='train'?'T':v==='log'?'L':'S')).classList.add('on');
+  if(v==='log') renderLog();
+  if(v==='set') renderSet();
+  if(v==='train' && PHASE==='deck') renderDeck();
+}
+let toastTimer=null;
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+/* 云同步回流时：训练中不重载，结束后再刷 */
+function wbSafeReload(){ return PHASE==='deck' || !CUR; }
+window.addEventListener('message',e=>{ if(e.data&&e.data.type==='wb-reload'){ if(wbSafeReload()) location.reload(); } });
+
+load();
+renderDeck();
+</script>
+</body>
+</html>
