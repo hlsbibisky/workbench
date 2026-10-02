@@ -27,15 +27,56 @@
   .pill:hover{border-color:var(--accent);color:var(--accent);}
   .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
 
-  .wrap{max-width:760px;margin:0 auto;padding:14px 14px 40px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:14px 18px 40px;}
+  @media (max-width:1100px){ .wrap{max-width:100%;} }
   @media (max-width:600px){ .wrap{padding:10px 10px 40px;} .brand small{display:none;} }
 
+  /* ---------- 首页 ---------- */
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:14px;}
+  .hero h1{margin:0 0 4px;font-size:20px;letter-spacing:2px;color:var(--accent);font-weight:700;}
+  .hero p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.7;}
+  .statbig{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-bottom:14px;}
+  .sbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;box-shadow:var(--shadow);}
+  .sbox b{display:block;font-size:23px;color:var(--accent);font-weight:700;line-height:1.3;}
+  .sbox span{font-size:11px;color:var(--sub);}
+  .bigstart{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:8px;}
+  .startbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:.14s;box-shadow:var(--shadow);}
+  .startbtn:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .startbtn b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:3px;}
+  .startbtn small{color:var(--sub);font-size:11.5px;line-height:1.6;}
+  .startbtn.hl{background:var(--accent);border-color:var(--accent);}
+  .startbtn.hl b{color:#fff;}
+  .startbtn.hl small{color:rgba(255,255,255,.85);}
+  .segbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .seg{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.14s;}
+  .seg:hover{border-color:var(--accent);color:var(--accent);}
+  .seg.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .dircards{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:10px;}
+  .dcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;cursor:pointer;transition:.14s;box-shadow:var(--shadow);}
+  .dcard:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .dcard.off{opacity:.5;}
+  .dcard .dn{font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .dcard .dn em{font-style:normal;font-size:11px;color:var(--sub);font-weight:400;}
+  .dcard .dm{font-size:11.5px;color:var(--sub);margin:3px 0 7px;line-height:1.5;}
+  .bar{height:5px;background:#eee6d8;border-radius:3px;overflow:hidden;}
+  .bar span{display:block;height:100%;background:var(--accent);}
+
+  /* ---------- 训练区：宽屏两栏 ---------- */
+  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:12px;align-items:start;}
+  @media (max-width:900px){ .two{grid-template-columns:minmax(0,1fr);} }
+  .decktop{display:flex;justify-content:center;gap:8px;margin:10px 0 2px;flex-wrap:wrap;}
+  .reactgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;}
+  .rbox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:9px 11px;}
+  .rbox .rl{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px;}
+  .rbox .role{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:5px;}
+  .rbox .chiprow{margin-bottom:0;}
+  .rbox textarea{margin-top:6px;font-size:12.5px;}
+  .brief{background:#f6f1e8;border:1px solid #ede0c8;border-radius:9px;padding:7px 11px;font-size:12px;color:#7a6a52;line-height:1.7;margin-bottom:8px;}
+  .brief b{color:var(--accent);margin-right:6px;}
+
   /* ---------- 卡片区 ---------- */
-  .deck{position:relative;min-height:300px;display:flex;align-items:center;justify-content:center;gap:6px;}
-  .arrow{flex:0 0 auto;width:42px;height:64px;border:none;background:transparent;color:var(--ink);font-size:26px;font-weight:700;cursor:pointer;border-radius:10px;transition:.15s;font-family:inherit;}
-  .arrow:hover{color:var(--accent);background:var(--mark);}
-  .arrow:disabled{opacity:.15;cursor:default;}
-  .cardstack{flex:1;min-width:0;position:relative;}
+  .cardzone{min-height:auto;}
+  .cardstack{position:relative;width:100%;}
   .qcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 14px;transition:transform .18s, opacity .18s;touch-action:pan-y;}
   .qcard.swiping{transition:none;}
   .qhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
@@ -43,7 +84,7 @@
   .chip.dir{color:var(--accent);border-color:#e5cdbd;background:#faf1ea;}
   .chip.lv{color:#9c6f1f;background:#fbf5e8;border-color:#eddfc0;}
   .chip.nth{color:var(--accent2);border-color:#cfe0d9;background:#eff5f2;}
-  .scene{font-size:14.5px;line-height:1.85;}
+  .scene{font-size:17px;line-height:2.05;}
   .scene .fact{color:var(--ink);}
   .scene .say{display:block;margin-top:8px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;font-size:14.5px;}
   .scene .who{color:var(--accent);font-weight:600;}
@@ -121,7 +162,8 @@
 <div class="top">
   <div class="brand"><b>关系训练</b><small>被触发 · 看见 · 分辨 · 回应</small></div>
   <div class="navpills">
-    <button class="pill on" id="navT" onclick="switchView('train')">训练</button>
+    <button class="pill on" id="navH" onclick="switchView('home')">首页</button>
+    <button class="pill" id="navT" onclick="switchView('train')">训练</button>
     <button class="pill" id="navL" onclick="switchView('log')">记录</button>
     <button class="pill" id="navS" onclick="switchView('set')">设置</button>
   </div>
@@ -129,71 +171,110 @@
 
 <div class="wrap">
 
+  <!-- ============ 首页视图 ============ -->
+  <div id="view-home">
+    <div class="hero">
+      <h1>关系训练 · 情境反应模拟场</h1>
+      <p>不是测试，没有对错。同一件事换一种语气、换一个环境、换一下你的状态，再来一次——练的是「更快看见自己」。</p>
+    </div>
+
+    <div class="statbig" id="homeStats"></div>
+
+    <div class="sechead">挑一个入口 <small id="curFilterTxt"></small></div>
+    <div class="bigstart">
+      <button class="startbtn hl" onclick="startMode('random')">
+        <b>&#127922; 随机抽一题</b><small>从当前筛选里随机来一张，最常用</small></button>
+      <button class="startbtn" onclick="startMode('seq')">
+        <b>&#10142; 按顺序练</b><small>从第一题走到最后一题，适合系统过一遍</small></button>
+      <button class="startbtn" onclick="startMode('new')">
+        <b>&#10024; 只练没做过的</b><small>跳过练过的情境，补空缺</small></button>
+      <button class="startbtn" onclick="startMode('redo')">
+        <b>&#10227; 重练同一情境</b><small>挑一个情境，换个语气版本再来</small></button>
+    </div>
+
+    <div class="sechead" style="margin-top:16px;">难度 <small>1 轻微不适 → 5 强烈情绪 / 权力冲突</small></div>
+    <div class="segbar" id="lvSeg"></div>
+
+    <div class="sechead" style="margin-top:16px;">训练方向 <small>点一下就按这个方向练；「练够了」可让它不再出现</small></div>
+    <div class="dircards" id="homeDirs"></div>
+
+    <div class="sechead" style="margin-top:18px;">最近 <small>点开看完整过程</small></div>
+    <div id="homeRecent"></div>
+  </div>
+
   <!-- ============ 训练视图 ============ -->
-  <div id="view-train">
-    <!-- 卡牌 -->
-    <div id="deckBox" class="deck">
-      <button class="arrow" id="prevBtn" title="上一题" onclick="skipCard(-1)">&#8592;</button>
+  <div id="view-train" style="display:none">
+    <!-- 情境卡（全宽） -->
+    <div id="cardzone" class="cardzone">
       <div class="cardstack" id="cardstack"></div>
-      <button class="arrow" id="nextBtn" title="划走 / 下一题" onclick="skipCard(1)">&#8594;</button>
     </div>
 
-    <!-- 反应四格 -->
-    <div id="stepReact" style="display:none" class="panel">
-      <p class="ptitle">① 这一瞬间，你有什么反应？ <span class="soft">不用挑「对的」，想到什么写什么，都可以空着</span></p>
-      <div class="recap" id="recap1"></div>
-      <div class="frow"><div class="flabel">身体 <small>哪里紧了、热了、堵了</small></div>
-        <div class="chiprow" id="chBody"></div><textarea id="inBody" rows="2" placeholder="（可自由补充）"></textarea></div>
-      <div class="frow"><div class="flabel">第一情绪 <small>哪怕只是一点点</small></div>
-        <div class="chiprow" id="chEmo"></div><textarea id="inEmo" rows="2" placeholder="（可自由补充）"></textarea></div>
-      <div class="frow"><div class="flabel">第一念头 <small>脑子里闪过的那句话</small></div>
-        <textarea id="inThought" rows="2" placeholder="比如：他凭什么 / 我是不是想多了 / 怎么又是我……"></textarea></div>
-      <div class="frow"><div class="flabel">第一冲动 <small>想做什么，不一定要做</small></div>
-        <div class="chiprow" id="chImp"></div><textarea id="inImp" rows="2" placeholder="（可自由补充）"></textarea></div>
-      <div class="acts">
-        <button class="btn primary" onclick="toRespond()">记下了，继续 &#8594;</button>
-        <button class="btn ghost" onclick="endScene(true)">先不了，回到卡牌</button>
+    <div class="decktop">
+      <button class="btn mini" id="foldBtn" onclick="togglePractice()">&#9650; 收起下方练习区</button>
+    </div>
+
+    <!-- 下方练习区：默认展开，可收起 -->
+    <div id="practiceWrap">
+      <div class="two">
+
+        <!-- 左：瞬间反应 -->
+        <div class="panel" id="stepReact">
+          <p class="ptitle">① 这一瞬间，你有什么反应？ <span class="soft">不用挑「对的」，想到什么写什么，都可以空着</span></p>
+          <div class="reactgrid">
+            <div class="rbox"><div class="rl">身体</div><div class="chiprow" id="chBody"></div><textarea id="inBody" rows="2" placeholder="（补充）"></textarea></div>
+            <div class="rbox"><div class="role">情绪</div><div class="chiprow" id="chEmo"></div><textarea id="inEmo" rows="2" placeholder="（补充）"></textarea></div>
+            <div class="rbox"><div class="rl">念头</div><textarea id="inThought" rows="3" placeholder="脑子里闪过的那句话…"></textarea></div>
+            <div class="rbox"><div class="role">冲动</div><div class="chiprow" id="chImp"></div><textarea id="inImp" rows="2" placeholder="（补充）"></textarea></div>
+          </div>
+          <div class="acts">
+            <button class="btn primary" onclick="toRespond()">记下了 &#8594; 去回应</button>
+          </div>
+        </div>
+
+        <!-- 右：回应 + 对话 -->
+        <div>
+          <div class="panel" id="stepResp">
+            <p class="ptitle">② 你想怎么回应？ <span class="soft">说什么都行，也可以什么都不说</span></p>
+            <div id="reactBrief"></div>
+            <div class="chiprow" id="openers"></div>
+            <textarea id="inResp" rows="3" placeholder="你想说的话……（也可以留空，选「不回应」）"></textarea>
+            <div class="acts">
+              <button class="btn primary" onclick="speak()">说出口</button>
+              <button class="btn" onclick="speakSilent()">不回应</button>
+              <button class="btn" onclick="leaveScene()">转身离开</button>
+            </div>
+          </div>
+          <div class="panel" id="stepTalk" style="display:none;margin-top:12px;">
+            <p class="ptitle">③ 场景继续 <span class="soft">对方接话了，你可以再回应，也可以停在这</span></p>
+            <div class="trans" id="trans2"></div>
+            <textarea id="inResp2" rows="3" placeholder="你想说的话……"></textarea>
+            <div class="acts">
+              <button class="btn primary" onclick="speak()">再回应</button>
+              <button class="btn" onclick="speakSilent()">沉默，不接</button>
+              <button class="btn" onclick="leaveScene()">离开场景，去复盘</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- 回应 -->
-    <div id="stepResp" style="display:none" class="panel">
-      <p class="ptitle">② 你想怎么回应？ <span class="soft">说什么都可以，也可以什么都不说</span></p>
-      <div class="trans" id="trans1"></div>
-      <div class="chiprow" id="openers"></div>
-      <textarea id="inResp" rows="3" placeholder="你想说的话……（也可以留空，选「不回应」）"></textarea>
-      <div class="acts">
-        <button class="btn primary" onclick="speak()">说出口</button>
-        <button class="btn" onclick="speakSilent()">不回应，就站在这里</button>
-        <button class="btn" onclick="leaveScene()">转身离开这个场景</button>
+      <div class="panel" id="stepRev" style="display:none;margin-top:14px;">
+        <p class="ptitle">④ 复盘 <span class="soft">不是打分，只是回头看看</span></p>
+        <div class="trans" id="trans3"></div>
+        <div id="toneReveal" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+        <p class="ptitle" style="font-size:12.5px;">回头看看（能选几条选几条，都不选也行）</p>
+        <div id="checkList"></div>
+        <textarea id="inNote" rows="2" placeholder="还想对自己说点什么……（可空）"></textarea>
+        <div class="revbox" id="revHint"></div>
+        <div class="acts">
+          <button class="btn" onclick="regenSame()">&#10227; 同一情境，换一版</button>
+          <button class="btn primary" onclick="finishReview()">完成 &#8594; 下一题</button>
+          <button class="btn ghost" id="muteBtn" onclick="muteThis()">这类练够了，不再出现</button>
+        </div>
       </div>
-    </div>
 
-    <!-- 对话中 -->
-    <div id="stepTalk" style="display:none" class="panel">
-      <p class="ptitle">③ 场景继续 <span class="soft">对方接话了。你可以再回应，也可以停在这里</span></p>
-      <div class="trans" id="trans2"></div>
-      <textarea id="inResp2" rows="3" placeholder="你想说的话……"></textarea>
-      <div class="acts">
-        <button class="btn primary" onclick="speak()">再回应</button>
-        <button class="btn" onclick="speakSilent()">沉默，不接</button>
-        <button class="btn" onclick="leaveScene()">离开场景，去看复盘</button>
-      </div>
-    </div>
-
-    <!-- 复盘 -->
-    <div id="stepRev" style="display:none" class="panel">
-      <p class="ptitle">④ 复盘 <span class="soft">不是打分，只是回头看看</span></p>
-      <div class="trans" id="trans3"></div>
-      <div id="toneReveal" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
-      <p class="ptitle" style="font-size:12.5px;">回头看看（能选几条选几条，都不选也行）</p>
-      <div id="checkList"></div>
-      <textarea id="inNote" rows="2" placeholder="还想对自己说点什么……（可空）"></textarea>
-      <div class="revbox" id="revHint"></div>
-      <div class="acts">
-        <button class="btn" onclick="regenSame()">&#10227; 同一情境，换一版</button>
-        <button class="btn primary" onclick="finishReview()">完成 &#8594; 下一题</button>
-        <button class="btn ghost" id="muteBtn" onclick="muteThis()">这类练够了，不再出现</button>
+      <div class="acts" style="justify-content:center;margin-top:12px;">
+        <button class="btn ghost" onclick="switchView('home')">&#8592; 返回首页</button>
+        <button class="btn ghost" onclick="skipCard(1)">划走这张 &#8594;</button>
       </div>
     </div>
   </div>
@@ -936,20 +1017,33 @@ function save(){
   try{ parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){}
 }
 
-/* ---------------- 抽题生成 ---------------- */
+/* ---------------- 抽题生成 + 筛选模式 ---------------- */
 let CUR=null;           // 当前情境实例
-let PHASE='deck';       // deck / react / resp / talk / rev
+let PHASE='react';      // react / resp / talk / rev
+let MODE='random';      // random 随机 / seq 顺序 / new 只练没做过的 / redo 重练同一情境
+let FILTER=null;        // 方向 id 或 null
+let seqIdx=0;
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 
-function drawInstance(forceTpl){
-  const pool = BANK.filter(t=>{
-    if(forceTpl && t.id===forceTpl) return true;
+/* 当前可见题库：受方向筛选 + 静音 + 难度范围三重约束 */
+function activeBank(){
+  return BANK.filter(t=>{
+    if(FILTER && t.dir.indexOf(FILTER)<0) return false;
     if(t.dir.some(d=>DB.muted[d])) return false;
     if(t.lv<DB.lvMin || t.lv>DB.lvMax) return false;
-    if(DB.recent.indexOf(t.id)>=0) return false;
     return true;
   });
-  const src = forceTpl ? BANK.find(t=>t.id===forceTpl) : (pool.length?pick(pool):pick(BANK.filter(t=>!t.dir.some(d=>DB.muted[d])))||pick(BANK));
+}
+
+function drawInstance(forceTpl){
+  const all=activeBank();
+  if(!all.length) return null;
+  let src=null;
+  if(forceTpl){ src = all.find(t=>t.id===forceTpl) || BANK.find(t=>t.id===forceTpl); }
+  else if(MODE==='seq'){ src = all[seqIdx % all.length]; seqIdx++; }
+  else if(MODE==='new'){ const fresh=all.filter(t=>!(DB.seen[t.id]>0)); src=pick(fresh.length?fresh:all); }
+  else if(MODE==='redo'){ const done=all.filter(t=>DB.seen[t.id]>0); src=pick(done.length?done:all); }
+  else { const pool=all.filter(t=>DB.recent.indexOf(t.id)<0); src=pick(pool.length?pool:all); }
   if(!src) return null;
   // 语气版本：避开最近用过的语气
   let vs = src.vs.slice();
@@ -988,11 +1082,11 @@ function sceneHTML(inst, compact){
 }
 
 /* ---------------- 卡牌视图 ---------------- */
-function renderDeck(){
-  PHASE='deck';
-  show('deckBox');
-  const inst=drawInstance();
-  if(!inst){ $('cardstack').innerHTML='<div class="empty">题库空了（可能全部被静音）。去「设置」重新打开方向。</div>'; return; }
+function renderDeck(keepTpl){
+  const inst=drawInstance(keepTpl);
+  if(!inst){ $('cardstack').innerHTML='<div class="panel"><div class="empty">这个范围里没有可用的情境了（可能全部被静音，或难度筛选太窄）。'
+    +'去「首页」放宽筛选，或到「设置」重新打开方向。</div></div>';
+    $('practiceWrap').style.display='none'; return; }
   CUR=inst;
   const nth=DB.seen[inst.tpl.id]||1;
   $('cardstack').innerHTML =
@@ -1002,23 +1096,44 @@ function renderDeck(){
     + '<button class="btn" onclick="regenSame()">&#10227; 换一版</button>'
     + '<button class="btn ghost" onclick="skipCard(1)">划走</button>'
     + '</div>'
-    + (nth>1?'<div class="hintline">同一个情境你已经来过 '+(nth-1)+' 次。看看这次有什么不同。</div>':'')
+    + (nth>1?'<div class="hintline">同一个情境你已经来过 '+(nth-1)+' 次。看看这次有什么不同。</div>':'<div class="hintline">下面就是练习区，可以直接开始写；不想看就收起。</div>')
     + '</div>';
   bindSwipe();
+  resetPractice();
 }
 
+/* 练习区：默认展开；每张新卡都重置成初始状态 */
+function resetPractice(){
+  ['inBody','inEmo','inThought','inImp','inResp','inResp2','inNote'].forEach(id=>{ if($(id)) $(id).value=''; });
+  buildChips('chBody', CHIPS_BODY);
+  buildChips('chEmo', CHIPS_EMO);
+  buildChips('chImp', CHIPS_IMP);
+  buildOpeners();
+  hide('stepTalk'); hide('stepRev');
+  show('stepReact'); show('stepResp');
+  if($('reactBrief')) $('reactBrief').innerHTML='';
+  PHASE='react';
+  setPractice(!DB.practiceFolded);
+}
+function setPractice(open){
+  const w=$('practiceWrap'); if(!w) return;
+  w.style.display = open? '' : 'none';
+  const b=$('foldBtn'); if(b) b.innerHTML = open? '&#9650; 收起下方练习区' : '&#9660; 展开练习区';
+}
+function togglePractice(){ DB.practiceFolded=!DB.practiceFolded; save(); setPractice(!DB.practiceFolded); }
+
 function skipCard(dir){
-  if(PHASE!=='deck'){ endScene(true); return; }
   const el=$('qcard');
   if(el && dir!==0){ el.style.transform='translateX('+(dir*-120)+'px)'; el.style.opacity='0'; }
-  if(CUR){ DB.skips[CUR.tpl.id]=(DB.skips[CUR.tpl.id]||0)+1; }
-  setTimeout(renderDeck, dir!==0?180:0);
+  if(CUR){ DB.skips[CUR.tpl.id]=(DB.skips[CUR.tpl.id]||0)+1; save(); }
+  setTimeout(function(){ renderDeck(); }, dir!==0?180:0);
 }
 
 function regenSame(){
+  // 换一版：回到同一个母题，换语气/关系/环境/状态
   const id=CUR?CUR.tpl.id:null;
-  if(PHASE==='deck'){ DB.seen[id]=(DB.seen[id]||1)-1; }   // 换一版不重复计数
-  renderDeck();
+  if(id){ DB.seen[id]=(DB.seen[id]||1)-1; }   // 换一版不重复计数
+  renderDeck(id);
 }
 
 /* 滑动 */
@@ -1036,17 +1151,15 @@ function bindSwipe(){
 
 /* ---------------- 训练流程 ---------------- */
 function startTrain(){
+  // 练习区本来就是展开的，这里只做「定位 + 提示」，不再藏来藏去
+  if(DB.practiceFolded){ DB.practiceFolded=false; save(); }
+  setPractice(true);
   PHASE='react';
-  hide('deckBox');
-  $('recap1').innerHTML='<b>情境：</b>'+esc(fillFact(CUR.tpl)) + (CUR.v&&CUR.v.say?('<span class="say">'+esc(CUR.v.say)+'</span>'):'')
-    + (CUR.v&&CUR.v.face&&CUR.v.face!=='—'?('<div style="font-size:11.5px;color:var(--sub);margin-top:4px;">（'+esc(CUR.v.face)+'）</div>'):'');
-  buildChips('chBody', CHIPS_BODY, 'body');
-  buildChips('chEmo', CHIPS_EMO, 'emo');
-  buildChips('chImp', CHIPS_IMP, 'impulse');
-  ['inBody','inEmo','inThought','inImp'].forEach(id=>{$(id).value='';});
-  if(CUR.tpl.amb){ $('inThought').placeholder='比如：TA是不是看不起我 / 我是不是哪里得罪TA了……（试着把「看到的」和「猜的」分开）'; }
-  show('stepReact');
-  saveReactDraft();
+  if(CUR.tpl.amb){ $('inThought').placeholder='比如：TA是不是看不起我 / 我是不是哪里得罪TA了……（先把「看到的」和「猜的」分开）'; }
+  else { $('inThought').placeholder='脑子里闪过的那句话…'; }
+  try{ const p=$('inBody'); if(p) p.focus({preventScroll:true}); }catch(e){}
+  try{ $('stepReact').scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+  toast('先写下被触发的那一瞬间，不用挑「对的」');
 }
 function saveReactDraft(){
   const get=(id)=>$(id)?$(id).value.trim():'';
@@ -1056,14 +1169,13 @@ function saveReactDraft(){
 const CHIPS_BODY=['胸口发紧','喉咙堵','肩膀耸起来','手心出汗','胃里一沉','脸发热','呼吸变浅','没特别感觉'];
 const CHIPS_EMO=['烦躁','愤怒','委屈','羞','慌','闷','厌恶','不甘','心虚','没情绪'];
 const CHIPS_IMP=['怼回去','解释清楚','直接离开','忍住不说','讲道理','冷处理','反问TA','想哭'];
-function buildChips(elId, arr, field){
+function buildChips(elId, arr){
   const el=$(elId); el.innerHTML='';
   arr.forEach(x=>{
     const b=document.createElement('button'); b.className='tchip'; b.textContent=x; b.type='button';
     b.onclick=()=>{ b.classList.toggle('on'); };
     el.appendChild(b);
   });
-  el._field=field;
 }
 function collectChips(elId){
   const el=$(elId); const out=[];
@@ -1075,11 +1187,20 @@ function toRespond(){
   saveReactDraft();
   CUR.react.bodyChips=collectChips('chBody'); CUR.react.emoChips=collectChips('chEmo'); CUR.react.impChips=collectChips('chImp');
   PHASE='resp';
-  hide('stepReact');
-  $('trans1').innerHTML=transHTML(false);
-  $('inResp').value='';
-  buildOpeners();
-  show('stepResp');
+  // 把「你的瞬间」压成一行放在回应框上方，做对照用
+  const bits=[];
+  const join=(a,b)=>[].concat(a||[], b?[b]:[]).filter(Boolean).join('、');
+  const bTxt=join(CUR.react.bodyChips, CUR.react.body);
+  const eTxt=join(CUR.react.emoChips, CUR.react.emo);
+  const iTxt=join(CUR.react.impChips, CUR.react.impulse);
+  if(bTxt) bits.push('身体 '+bTxt);
+  if(eTxt) bits.push('情绪 '+eTxt);
+  if(CUR.react.thought) bits.push('念头 '+CUR.react.thought);
+  if(iTxt) bits.push('冲动 '+iTxt);
+  const br=$('reactBrief');
+  if(br) br.innerHTML = bits.length? ('<div class="brief"><b>你的瞬间</b>'+esc(bits.join(' ｜ '))+'</div>') : '';
+  try{ const p=$('inResp'); if(p) p.focus({preventScroll:true}); }catch(e){}
+  toast('想怎么说都行；什么都不说，也是一种回应');
 }
 const OPENERS=['你为什么这么说？','你这句话是什么意思？我没听懂。','我不太喜欢这个说法。','嗯，我知道了。','（不说话，看着TA）','这件事我想一下再说。'];
 function buildOpeners(){
@@ -1108,7 +1229,8 @@ function transHTML(withReactions){
 }
 
 function speak(silent, left){
-  const txt = silent||left ? '' : (PHASE==='resp'?$('inResp').value.trim():$('inResp2').value.trim());
+  const src = $(PHASE==='talk'?'inResp2':'inResp');
+  const txt = silent||left ? '' : (src?src.value.trim():'');
   if(!silent && !left && !txt){ toast('想说什么就写下来；什么都不说就用「不回应」'); return; }
   const rec={said:!silent&&!left, text:txt, silent:!!silent, left:!!left, other:null};
   CUR.resp.push(rec);
@@ -1121,17 +1243,13 @@ function speak(silent, left){
   }
   if(left || CUR.rounds>=3 || !rec.other){ toReview(); return; }
   PHASE='talk';
-  hide('stepResp'); hide('stepReact');
   $('trans2').innerHTML=transHTML(true);
   $('inResp2').value='';
   show('stepTalk');
+  try{ $('stepTalk').scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
 }
 function speakSilent(){ speak(true,false); }
 function leaveScene(){ speak(false,true); }
-
-function endScene(back){
-  if(back){ PHASE='deck'; ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id)); show('deckBox'); return; }
-}
 
 /* ---------------- 复盘 ---------------- */
 const CHECKS=[
@@ -1146,7 +1264,8 @@ const CHECKS=[
 ];
 function toReview(){
   PHASE='rev';
-  ['stepReact','stepResp','stepTalk'].forEach(id=>hide(id));
+  ['stepReact','stepResp','stepTalk'].forEach(id=>hide(id));   // 复盘区已含完整过程回放
+  try{ $('practiceWrap').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
   $('trans3').innerHTML=transHTML(true);
   $('toneReveal').innerHTML = CUR.v&&CUR.v.t&&CUR.v.t!=='plain'
     ? ('这一版的对方语气是：<b style="color:var(--accent)">'+TONE_NAME[CUR.v.t]+'</b>。同一情境还有别的版本，下次遇到可能完全不同。')
@@ -1187,8 +1306,7 @@ function finishReview(){
   CHECKS.forEach((c,i)=>{ const ck=$('ck'+i); if(ck&&ck.checked) checks.push(c); });
   const rec=DB.records[DB.records.length-1];
   if(rec && rec.tid===CUR.tpl.id){ rec.note=note; rec.checks=checks; save(); }
-  ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id));
-  show('deckBox');
+  toast('记下了。这不是打分，是帮你下次更快看见自己');
   renderDeck();
 }
 function muteThis(){
@@ -1199,8 +1317,7 @@ function muteThis(){
   t.dir.forEach(d=>DB.muted[d]=true);
   save();
   toast('已静音：'+names);
-  ['stepReact','stepResp','stepTalk','stepRev'].forEach(id=>hide(id));
-  show('deckBox'); renderDeck();
+  renderDeck();
 }
 
 /* ---------------- 记录视图 ---------------- */
@@ -1266,31 +1383,103 @@ function wipeData(){
   DB.records=[]; DB.seen={}; DB.skips={}; save(); toast('已清空'); renderLog();
 }
 
+/* ---------------- 首页 ---------------- */
+function startMode(m){
+  MODE=m; seqIdx=0;
+  if(m==='new'){ toast('只抽你还没练过的情境'); }
+  else if(m==='seq'){ toast('按顺序来：从第 1 题往后走'); }
+  else if(m==='redo'){ toast('挑你练过的情境，换一版再来'); }
+  else { toast('随机抽一张，开始'); }
+  switchView('train');
+  renderDeck();
+}
+function pickFilter(d){
+  FILTER = (FILTER===d)? null : d;
+  renderHome();
+  const txt = FILTER? DIRS[FILTER].n : '全部方向';
+  toast(FILTER? ('已选定方向：'+txt+'，按上面的入口开始') : '不限方向了');
+}
+function setLv(a,b){
+  DB.lvMin=a; DB.lvMax=b; save(); renderHome();
+  toast('难度范围：'+a+' ~ '+b);
+}
+function renderHome(){
+  // 顶部统计
+  const skipN = DB.skips? Object.values(DB.skips).reduce((a,b)=>a+b,0) : 0;
+  const metN  = Object.keys(DB.seen).filter(id=>DB.seen[id]>0 && BANK.some(t=>t.id===id)).length;
+  const visible = activeBank().length;
+  $('homeStats').innerHTML =
+    [ [DB.records.length,'累计练习'],
+      [metN+' / '+BANK.length,'遇过的情境'],
+      [visible,'当前可练'],
+      [skipN,'累计划走'],
+      [Object.keys(DB.muted).filter(k=>DB.muted[k]).length,'已静音方向']
+    ].map(x=>'<div class="sbox"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('');
+  $('curFilterTxt').textContent = '当前：' + (FILTER? DIRS[FILTER].n : '全部方向')
+    + ' · 难度 ' + DB.lvMin + '~' + DB.lvMax + ' · 共 ' + visible + ' 个情境可用';
+
+  // 难度档
+  const segs=[['全部',1,5],['轻微 1-2',1,2],['中等 3',3,3],['强烈 4-5',4,5]];
+  $('lvSeg').innerHTML = segs.map(s=>{
+    const on = (DB.lvMin===s[1] && DB.lvMax===s[2]);
+    return '<button class="seg'+(on?' on':'')+'" onclick="setLv('+s[1]+','+s[2]+')">'+s[0]+'</button>';
+  }).join('');
+
+  // 方向卡
+  let h='<div class="dcard'+(FILTER===null?'':' off')+'" onclick="if(FILTER)pickFilter(FILTER)">'
+      + '<div class="dn">全部方向 <em>'+BANK.length+' 个母题</em></div>'
+      + '<div class="dm">不挑，什么来什么——最贴近现实的练法</div></div>';
+  Object.keys(DIRS).forEach(d=>{
+    const ts = BANK.filter(t=>t.dir.indexOf(d)>=0);
+    const doneTs = ts.filter(t=>DB.seen[t.id]>0).length;
+    const pct = ts.length? Math.round(doneTs/ts.length*100) : 0;
+    const n = DB.records.filter(r=>r.dirs.indexOf(d)>=0).length;
+    const muted = !!DB.muted[d];
+    h+='<div class="dcard'+(muted?' off':'')+(FILTER===d?'':'')+'" onclick="pickFilter(\''+d+'\')">'
+      +'<div class="dn">'+DIRS[d].n+' <em>'+ts.length+' 题</em></div>'
+      +'<div class="dm">练过 '+n+' 次 ·  '+doneTs+'/'+ts.length+' 个情境已遇到'+(muted?' · 已静音':'')+'</div>'
+      +'<div class="bar"><span style="width:'+pct+'%"></span></div>'
+      +'</div>';
+  });
+  $('homeDirs').innerHTML=h;
+
+  // 最近
+  const rs=DB.records.slice().reverse().slice(0,4);
+  $('homeRecent').innerHTML = rs.length? rs.map(r=>
+      '<div class="recitem"><div class="head"><b>'+esc(r.date)+' · '+r.dirs.map(d=>DIRS[d]?DIRS[d].n:d).join('/')+'</b>'
+      +'<span>'+TONE_NAME[r.tone]+'</span></div>'
+      +'<div style="color:var(--sub);font-size:11.5px;margin-top:2px;">'+(r.emo?('情绪：'+esc(r.emo)):'（没记情绪）')+'</div></div>').join('')
+    : '<div class="empty">还没有记录。挑一个入口开始吧。</div>';
+}
+
 /* ---------------- 基础 ---------------- */
 function $(id){ return document.getElementById(id); }
-function show(id){ $(id).style.display=''; }
-function hide(id){ $(id).style.display='none'; }
+function show(id){ const e=$(id); if(e) e.style.display=''; }
+function hide(id){ const e=$(id); if(e) e.style.display='none'; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function switchView(v){
-  ['train','log','set'].forEach(x=>hide('view-'+x));
+  ['home','train','log','set'].forEach(x=>hide('view-'+x));
   show('view-'+v);
-  ['T','L','S'].forEach(x=>$('nav'+x).classList.remove('on'));
-  $('nav'+(v==='train'?'T':v==='log'?'L':'S')).classList.add('on');
+  ['H','T','L','S'].forEach(x=>$('nav'+x).classList.remove('on'));
+  $('nav'+(v==='home'?'H':v==='train'?'T':v==='log'?'L':'S')).classList.add('on');
   if(v==='log') renderLog();
   if(v==='set') renderSet();
-  if(v==='train' && PHASE==='deck') renderDeck();
+  if(v==='home') renderHome();
+  if(v==='train' && !CUR) renderDeck();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 let toastTimer=null;
 function toast(msg){
   const el=$('toast'); el.textContent=msg; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
 }
-/* 云同步回流时：训练中不重载，结束后再刷 */
-function wbSafeReload(){ return PHASE==='deck' || !CUR; }
+/* 云同步回流时：练习进行中不重载，回到首页/空闲时才刷 */
+function wbSafeReload(){ return !CUR || (PHASE==='react' && !(CUR.resp&&CUR.resp.length)); }
 window.addEventListener('message',e=>{ if(e.data&&e.data.type==='wb-reload'){ if(wbSafeReload()) location.reload(); } });
 
 load();
-renderDeck();
+renderHome();
+renderDeck();      // 训练视图先备好一张卡，切过去就能直接开练
 </script>
 </body>
 </html>
