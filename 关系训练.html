@@ -2,326 +2,359 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>关系训练 · 工作台</title>
 <style>
   :root{
-    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
-    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
-    --noted:#3f9d6b; --warn:#d9822b; --bad:#c0392b;
-    --radius:14px;
-    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --paper:#f7f4ee; --paper2:#f1ede5; --surface:#fffdf9;
+    --ink:#3a3631; --ink2:#5c564e; --muted:#8a837a;
+    --line:#e7e0d4; --line2:#d9d0c2;
+    --accent:#b8714e; --accent-soft:#f6e9e0;
+    --teal:#5b8c7b; --teal-soft:#e8f1ec;
+    --amber:#c08a2e; --amber-soft:#f9f0d9;
+    --plum:#7d6a7e;
+    --shadow:0 1px 3px rgba(58,54,49,.05), 0 12px 32px rgba(58,54,49,.06);
+    --shadow-sm:0 1px 2px rgba(58,54,49,.06);
+    --radius:16px; --radius-sm:10px;
     --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;height:100%;}
-  body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
-  ::selection{background:var(--mark);}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.65;-webkit-font-smoothing:antialiased;}
+  button,textarea,input{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+  ::selection{background:var(--accent-soft);}
 
-  .top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,253,249,.75);position:sticky;top:0;z-index:9;}
-  .brand{display:flex;align-items:baseline;gap:8px;}
-  .brand b{font-size:16px;font-weight:700;letter-spacing:3px;color:var(--accent);}
-  .brand small{font-size:10.5px;color:var(--sub);letter-spacing:1px;}
-  .navpills{display:flex;gap:6px;}
-  .pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 13px;font-size:12.5px;color:var(--sub);cursor:pointer;font-family:inherit;transition:.14s;}
-  .pill:hover{border-color:var(--accent);color:var(--accent);}
-  .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  /* ============ 骨架：左导航 + 右主区 ============ */
+  .shell{display:grid;grid-template-columns:246px minmax(0,1fr);min-height:100vh;}
+  .side{position:sticky;top:0;height:100vh;background:var(--paper2);border-right:1px solid var(--line);
+        padding:24px 16px 18px;display:flex;flex-direction:column;gap:18px;overflow:auto;}
+  .brandmark{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.16em;font-weight:700;color:var(--accent);}
+  .brandmark i{display:inline-block;width:9px;height:9px;background:var(--accent);border-radius:50% 50% 50% 2px;transform:rotate(-45deg);}
+  .side h1{margin:12px 0 6px;font-size:21px;font-weight:700;letter-spacing:.02em;}
+  .side .sub{margin:0;font-size:12px;color:var(--muted);line-height:1.7;}
+  .nav{display:grid;gap:5px;}
+  .nav button{border:0;background:transparent;color:var(--muted);padding:11px 13px;text-align:left;border-radius:11px;
+             display:flex;align-items:center;gap:10px;font-weight:600;font-size:13.5px;transition:.14s;}
+  .nav button:hover{background:#e9e3da;color:var(--ink);}
+  .nav button.on{background:#e5ded4;color:var(--ink);}
+  .nav .num{margin-left:auto;min-width:23px;padding:2px 7px;border-radius:99px;background:#dcd5ca;color:#6b6357;text-align:center;font-size:11px;}
+  .sidenote{margin-top:auto;border:1px solid var(--line2);background:rgba(255,255,255,.5);border-radius:var(--radius);padding:13px;}
+  .sidenote strong{display:block;font-size:12px;margin-bottom:6px;}
+  .sidenote p{margin:0 0 8px;font-size:11.5px;color:var(--muted);line-height:1.75;}
+  .dotline{font-size:11px;color:var(--accent);letter-spacing:.04em;}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:14px 18px 40px;}
-  @media (max-width:1100px){ .wrap{max-width:100%;} }
-  @media (max-width:600px){ .wrap{padding:10px 10px 40px;} .brand small{display:none;} }
+  .main{min-width:0;padding:20px 26px 44px;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
+  .eyebrow{font-size:10.5px;letter-spacing:.18em;color:var(--muted);font-weight:700;}
+  .topbar h2{margin:5px 0 0;font-size:22px;font-weight:700;letter-spacing:.02em;}
+  .topacts{display:flex;align-items:center;gap:8px;}
+  .status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);}
+  .status span{width:7px;height:7px;border-radius:50%;background:var(--teal);}
+  .ibtn{border:1px solid var(--line2);background:var(--surface);width:34px;height:34px;border-radius:10px;font-size:16px;
+        color:var(--ink2);display:grid;place-items:center;transition:.14s;}
+  .ibtn:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* ---------- 首页 ---------- */
-  .hero{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:14px;}
-  .hero h1{margin:0 0 4px;font-size:20px;letter-spacing:2px;color:var(--accent);font-weight:700;}
-  .hero p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.7;}
-  .statbig{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-bottom:14px;}
-  .sbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;box-shadow:var(--shadow);}
-  .sbox b{display:block;font-size:23px;color:var(--accent);font-weight:700;line-height:1.3;}
-  .sbox span{font-size:11px;color:var(--sub);}
-  .bigstart{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:8px;}
-  .startbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:.14s;box-shadow:var(--shadow);}
-  .startbtn:hover{border-color:var(--accent);transform:translateY(-2px);}
-  .startbtn b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:3px;}
-  .startbtn small{color:var(--sub);font-size:11.5px;line-height:1.6;}
-  .startbtn.hl{background:var(--accent);border-color:var(--accent);}
-  .startbtn.hl b{color:#fff;}
-  .startbtn.hl small{color:rgba(255,255,255,.85);}
-  .segbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
-  .seg{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.14s;}
-  .seg:hover{border-color:var(--accent);color:var(--accent);}
-  .seg.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
-  .dircards{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:10px;}
-  .dcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;cursor:pointer;transition:.14s;box-shadow:var(--shadow);}
-  .dcard:hover{border-color:var(--accent);transform:translateY(-2px);}
-  .dcard.off{opacity:.5;}
-  .dcard .dn{font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;}
-  .dcard .dn em{font-style:normal;font-size:11px;color:var(--sub);font-weight:400;}
-  .dcard .dm{font-size:11.5px;color:var(--sub);margin:3px 0 7px;line-height:1.5;}
-  .bar{height:5px;background:#eee6d8;border-radius:3px;overflow:hidden;}
-  .bar span{display:block;height:100%;background:var(--accent);}
-
-  /* ---------- 训练区：宽屏两栏 ---------- */
-  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:12px;align-items:start;}
-  @media (max-width:900px){ .two{grid-template-columns:minmax(0,1fr);} }
-  .decktop{display:flex;justify-content:center;gap:8px;margin:10px 0 2px;flex-wrap:wrap;}
-  .reactgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;}
-  .rbox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:9px 11px;}
-  .rbox .rl{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:5px;}
-  .rbox .role{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:5px;}
-  .rbox .chiprow{margin-bottom:0;}
-  .rbox textarea{margin-top:6px;font-size:12.5px;}
-  .brief{background:#f6f1e8;border:1px solid #ede0c8;border-radius:9px;padding:7px 11px;font-size:12px;color:#7a6a52;line-height:1.7;margin-bottom:8px;}
-  .brief b{color:var(--accent);margin-right:6px;}
-
-  /* ---------- 卡片区 ---------- */
-  .cardzone{min-height:auto;}
-  .cardstack{position:relative;width:100%;}
-  .qcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 14px;transition:transform .18s, opacity .18s;touch-action:pan-y;}
-  .qcard.swiping{transition:none;}
-  .qhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
-  .chip{font-size:11px;color:var(--sub);border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:2px 9px;white-space:nowrap;}
-  .chip.dir{color:var(--accent);border-color:#e5cdbd;background:#faf1ea;}
-  .chip.lv{color:#9c6f1f;background:#fbf5e8;border-color:#eddfc0;}
-  .chip.nth{color:var(--accent2);border-color:#cfe0d9;background:#eff5f2;}
-  .scene{font-size:17px;line-height:2.05;}
-  .scene .fact{color:var(--ink);}
-  .scene .say{display:block;margin-top:8px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;font-size:14.5px;}
-  .scene .who{color:var(--accent);font-weight:600;}
-  .scene .face{display:block;margin-top:6px;font-size:12px;color:var(--sub);}
-  .scene .stx{display:block;margin-top:8px;font-size:12px;color:var(--sub);}
-  .cardacts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
-  .hintline{font-size:11px;color:var(--sub);text-align:center;margin-top:8px;}
-
-  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:.14s;}
+  /* ============ 通用元件 ============ */
+  .btn{border:1px solid var(--line2);background:var(--surface);border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;transition:.14s;}
   .btn:hover{border-color:var(--accent);color:var(--accent);}
-  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
-  .btn.primary:hover{background:#a05f3d;color:#fff;}
-  .btn.ghost{background:transparent;border-color:transparent;color:var(--sub);}
-  .btn.ghost:hover{color:var(--bad);border-color:transparent;background:#fbeee9;}
-  .btn.mini{padding:4px 10px;font-size:12px;border-radius:8px;}
-  .btn.block{width:100%;}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{background:#a4603c;border-color:#a4603c;color:#fff;}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--muted);}
+  .btn.ghost:hover{color:var(--bad,#b8503c);background:#fbeee9;}
+  .btn.sm{padding:6px 13px;font-size:12.5px;}
+  .btn:disabled{opacity:.55;cursor:default;}
 
-  /* ---------- 流程 ---------- */
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;}
-  .ptitle{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin:0 0 10px;}
-  .ptitle .soft{color:var(--sub);font-weight:400;font-size:11px;letter-spacing:0;}
-  .recap{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:13.5px;line-height:1.75;margin-bottom:12px;}
-  .recap .say{background:#fff;border-left:3px solid var(--accent);padding:6px 10px;border-radius:0 8px 8px 0;display:block;margin-top:4px;}
-  .frow{margin-bottom:12px;}
-  .flabel{font-size:12.5px;color:var(--ink);font-weight:600;margin-bottom:5px;display:flex;justify-content:space-between;align-items:baseline;}
-  .flabel small{color:var(--sub);font-weight:400;font-size:11px;}
-  .chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;}
-  .tchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 11px;cursor:pointer;font-family:inherit;color:var(--sub);transition:.12s;}
-  .tchip:hover{border-color:var(--accent);}
-  .tchip.on{background:var(--mark);border-color:var(--accent);color:var(--accent);font-weight:600;}
-  textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;font-size:13.5px;padding:9px 11px;resize:vertical;}
-  textarea:focus,input:focus{outline:none;border-color:var(--accent);}
-  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);}
+  .panel h4{margin:0 0 9px;font-size:12.5px;font-weight:700;color:var(--ink);}
+  .panel .body{padding:14px 15px;}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 0 10px;flex-wrap:wrap;}
+  .sec-head h3{margin:0;font-size:16px;font-weight:700;}
+  .sec-head p{margin:3px 0 0;font-size:12px;color:var(--muted);}
+  .stage-label{font-size:11px;letter-spacing:.14em;color:var(--accent);font-weight:700;white-space:nowrap;}
 
-  .trans{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px;font-size:13.5px;line-height:1.8;margin-bottom:12px;max-height:44vh;overflow:auto;}
-  .mrow{margin:6px 0;}
-  .mrow .tag{font-size:11px;color:var(--sub);margin-right:6px;}
-  .mrow.you .bubble{background:#eef3ef;border-left:3px solid var(--accent2);}
-  .mrow.other .bubble{background:#fff;border-left:3px solid var(--accent);}
-  .mrow.na .bubble{background:#f6f1e8;border-left:3px solid #d9cdb8;color:var(--sub);}
-  .bubble{display:inline-block;padding:6px 10px;border-radius:0 8px 8px 0;}
+  .dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:18px;align-items:start;}
+  .stack{display:grid;gap:14px;position:sticky;top:20px;}
 
-  .checkrow{display:flex;align-items:flex-start;gap:8px;padding:6px 2px;font-size:13px;cursor:pointer;border-radius:8px;}
-  .checkrow:hover{background:var(--bg);}
-  .checkrow input{margin-top:4px;accent-color:var(--accent);flex:0 0 auto;}
-  .revbox{background:#fbf7ef;border:1px solid #eee1cc;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7a6a52;line-height:1.8;margin-top:10px;}
-  .revbox b{color:var(--accent);}
+  /* hero */
+  .hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;}
+  .hero h3{margin:8px 0 8px;font-size:19px;line-height:1.6;font-weight:700;}
+  .hero p{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.8;max-width:62ch;}
+  .hero-acts{display:flex;gap:8px;flex-wrap:wrap;}
 
-  /* ---------- 记录 / 设置 ---------- */
-  .sec{margin-bottom:18px;}
-  .sechead{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;}
-  .sechead small{color:var(--sub);font-weight:400;letter-spacing:0;}
-  .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12px;}
-  .stat b{display:block;font-size:13px;color:var(--ink);margin-bottom:2px;}
-  .stat .c{color:var(--sub);}
-  .stat.muted{opacity:.55;}
-  .recitem{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;cursor:pointer;}
-  .recitem:hover{border-color:var(--accent);}
-  .recitem .head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
-  .recitem .head b{font-size:12.5px;color:var(--ink);}
-  .recitem .head span{color:var(--sub);font-size:11px;white-space:nowrap;}
-  .recitem .body{color:var(--sub);margin-top:4px;display:none;}
-  .recitem.open .body{display:block;}
-  .recitem .body .ln{margin:3px 0;}
-  .recitem .body .ln i{color:var(--accent);font-style:normal;margin-right:6px;font-size:11px;}
-  .empty{color:var(--sub);font-size:12.5px;text-align:center;padding:24px 0;}
+  /* 指标 */
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .metric{background:var(--surface);padding:12px 13px;}
+  .metric .lb{font-size:11px;color:var(--muted);}
+  .metric .vl{font-size:22px;font-weight:700;color:var(--accent);line-height:1.35;font-variant-numeric:tabular-nums;}
+  .metric .hn{font-size:10.5px;color:var(--muted);}
 
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:12.5px;padding:8px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:99;}
+  .lens{display:grid;gap:7px;}
+  .lens div{display:flex;gap:8px;font-size:12px;color:var(--ink2);line-height:1.6;}
+  .lens i{width:5px;height:5px;border-radius:50%;background:var(--accent);flex:0 0 auto;margin-top:7px;}
+
+  .bar{height:6px;background:#ece5d8;border-radius:4px;overflow:hidden;}
+  .bar span{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .4s;}
+  .bar.teal span{background:var(--teal);}
+  .bar.amber span{background:var(--amber);}
+  .bar-lb{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px;}
+
+  /* ============ 情境卡 ============ */
+  .session{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  .sess-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  .sess-top .sid{font-size:10.5px;letter-spacing:.16em;color:var(--muted);font-weight:700;}
+  .sess-top h3{margin:5px 0 0;font-size:17px;font-weight:700;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;}
+  .chip{font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--line2);color:var(--muted);background:var(--paper);white-space:nowrap;}
+  .chip.a{color:var(--accent);border-color:#e6cfbe;background:var(--accent-soft);}
+  .chip.t{color:var(--teal);border-color:#cfe0d8;background:var(--teal-soft);}
+  .chip.m{color:var(--amber);border-color:#ecdcbe;background:var(--amber-soft);}
+
+  .scene{padding:18px;font-size:16.5px;line-height:2;background:linear-gradient(180deg,#fdfbf7,#faf6ef);}
+  .scene .who{color:var(--accent);font-weight:700;}
+  .scene .say{display:block;margin-top:10px;padding:12px 14px;background:var(--surface);border-left:3px solid var(--accent);
+              border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:16.5px;line-height:1.9;}
+  .scene .face{display:block;margin-top:7px;font-size:12px;color:var(--muted);}
+  .scene-note{margin:12px 0 0;padding-top:11px;border-top:1px dashed var(--line2);font-size:11.5px;color:var(--muted);}
+
+  /* 事实 / 未知 */
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line);}
+  .factbox{background:var(--surface);padding:13px 16px;}
+  .factbox strong{display:block;font-size:11.5px;margin-bottom:6px;color:var(--teal);}
+  .factbox.unknown strong{color:var(--plum);}
+  .factbox p{margin:0;font-size:12.5px;line-height:1.85;color:var(--ink2);}
+  .factbox p+p{margin-top:4px;}
+
+  /* 步骤 */
+  .step{padding:16px 18px;border-top:1px solid var(--line);}
+  .step-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:11px;}
+  .step-h b{font-size:13.5px;font-weight:700;}
+  .step-h .n{font-size:10.5px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .step-h span{font-size:11.5px;color:var(--muted);}
+
+  .tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+  .tag{border:1px solid var(--line2);background:var(--surface);border-radius:99px;padding:6px 13px;font-size:12.5px;color:var(--ink2);transition:.12s;}
+  .tag:hover{border-color:var(--accent);color:var(--accent);}
+  .tag.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .tag.t.on{background:var(--teal);border-color:var(--teal);}
+  .tag.m.on{background:var(--amber);border-color:var(--amber);}
+
+  textarea{width:100%;border:1px solid var(--line2);border-radius:var(--radius-sm);background:#fff;padding:10px 12px;
+           font-size:13.5px;line-height:1.8;resize:vertical;}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .step-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .micro{font-size:11.5px;color:var(--muted);}
+
+  .cont{padding:15px 18px;border-top:1px solid var(--line);background:#fbf8f3;}
+  .cont .spk{font-size:10.5px;letter-spacing:.14em;color:var(--teal);font-weight:700;margin-bottom:7px;}
+  .cont p{margin:0 0 10px;font-size:15px;line-height:1.95;}
+
+  .refl{padding:16px 18px;border-top:1px solid var(--line);background:var(--teal-soft);}
+  .refl h4{margin:0 0 11px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+  .tri{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+  .tri > div{background:rgba(255,255,255,.66);border:1px solid rgba(91,140,123,.2);border-radius:var(--radius-sm);padding:10px 12px;}
+  .tri strong{display:block;font-size:11px;color:var(--teal);margin-bottom:5px;}
+  .tri p{margin:0;font-size:12.5px;line-height:1.75;color:var(--ink2);}
+
+  /* ============ 轨迹 ============ */
+  .axis{display:grid;gap:12px;}
+  .axis-row{display:flex;align-items:center;gap:12px;}
+  .axis-row > div{flex:1;min-width:0;}
+  .axis-row label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:var(--ink2);}
+  .axis-row b{font-size:11px;color:var(--muted);font-weight:700;}
+  .hist{display:grid;gap:8px;}
+  .hitem{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);
+         border-radius:var(--radius-sm);padding:11px 14px;cursor:pointer;transition:.14s;}
+  .hitem:hover{border-color:var(--accent);}
+  .hitem strong{font-size:13px;font-weight:600;display:block;}
+  .hitem small{font-size:11px;color:var(--muted);}
+  .hitem .sc{font-size:11.5px;color:var(--accent);white-space:nowrap;font-weight:700;}
+  .hitem .det{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line2);font-size:12px;color:var(--ink2);line-height:1.85;}
+  .hitem.open .det{display:block;}
+  .hitem .det i{color:var(--accent);font-style:normal;margin-right:6px;}
+  .empty{padding:26px 10px;text-align:center;color:var(--muted);font-size:12.5px;}
+  .callout{margin-top:18px;padding:13px 15px;border:1px solid var(--line2);border-radius:var(--radius);background:rgba(255,255,255,.5);
+           font-size:11.5px;color:var(--muted);line-height:1.85;}
+
+  /* ============ 题库地图 ============ */
+  .bankgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px;}
+  .bcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 15px;box-shadow:var(--shadow-sm);}
+  .bcard.off{opacity:.55;}
+  .bcard .bh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;}
+  .bcard h4{margin:0;font-size:14px;font-weight:700;}
+  .bcard p{margin:0 0 10px;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .bcard .acts{display:flex;gap:6px;flex-wrap:wrap;}
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+  .filters .lb{font-size:11.5px;color:var(--muted);margin-right:2px;}
+  .seg{border:1px solid var(--line2);background:var(--surface);border-radius:99px;padding:6px 13px;font-size:12.5px;color:var(--muted);transition:.14s;}
+  .seg:hover{border-color:var(--accent);color:var(--accent);}
+  .seg.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .srcline{font-size:11.5px;color:var(--muted);line-height:1.9;padding:14px 16px;border:1px solid var(--line2);border-radius:var(--radius);background:rgba(255,255,255,.5);}
+  .srcline b{color:var(--ink2);}
+  .srcline a{color:var(--accent);}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);background:var(--ink);color:#fff;
+         font-size:12.5px;padding:9px 18px;border-radius:99px;opacity:0;transition:.24s;pointer-events:none;z-index:99;max-width:88vw;text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ============ 响应式 ============ */
+  @media (max-width:1180px){
+    .dashgrid{grid-template-columns:minmax(0,1fr);}
+    .stack{position:static;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));display:grid;}
+  }
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;}
+    .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px 14px 12px;gap:12px;}
+    .side h1{font-size:17px;margin:8px 0 4px;}
+    .nav{grid-template-columns:repeat(3,1fr);gap:6px;}
+    .nav button{justify-content:center;padding:9px 6px;font-size:12.5px;}
+    .nav .num{display:none;}
+    .sidenote{display:none;}
+    .main{padding:14px 12px 40px;}
+    .topbar h2{font-size:19px;}
+    .facts{grid-template-columns:1fr;}
+  }
+  @media (max-width:600px){
+    .scene{font-size:15px;padding:14px;}
+    .scene .say{font-size:15px;}
+    .step{padding:14px;}
+    .stage{width:100%;}
+  }
 </style>
 </head>
 <body>
 
-<div class="top">
-  <div class="brand"><b>关系训练</b><small>被触发 · 看见 · 分辨 · 回应</small></div>
-  <div class="navpills">
-    <button class="pill on" id="navH" onclick="switchView('home')">首页</button>
-    <button class="pill" id="navT" onclick="switchView('train')">训练</button>
-    <button class="pill" id="navL" onclick="switchView('log')">记录</button>
-    <button class="pill" id="navS" onclick="switchView('set')">设置</button>
-  </div>
-</div>
-
-<div class="wrap">
-
-  <!-- ============ 首页视图 ============ -->
-  <div id="view-home">
-    <div class="hero">
-      <h1>关系训练 · 情境反应模拟场</h1>
-      <p>不是测试，没有对错。同一件事换一种语气、换一个环境、换一下你的状态，再来一次——练的是「更快看见自己」。</p>
+<div class="shell">
+  <!-- ============ 左导航 ============ -->
+  <aside class="side">
+    <div>
+      <div class="brandmark"><i></i> REHEARSE</div>
+      <h1>关系反应训练器</h1>
+      <p class="sub">不是为了消灭情绪，而是让你在情绪发生时，仍然拥有选择。</p>
     </div>
-
-    <div class="statbig" id="homeStats"></div>
-
-    <div class="sechead">挑一个入口 <small id="curFilterTxt"></small></div>
-    <div class="bigstart">
-      <button class="startbtn hl" onclick="startMode('random')">
-        <b>&#127922; 随机抽一题</b><small>从当前筛选里随机来一张，最常用</small></button>
-      <button class="startbtn" onclick="startMode('seq')">
-        <b>&#10142; 按顺序练</b><small>从第一题走到最后一题，适合系统过一遍</small></button>
-      <button class="startbtn" onclick="startMode('new')">
-        <b>&#10024; 只练没做过的</b><small>跳过练过的情境，补空缺</small></button>
-      <button class="startbtn" onclick="startMode('redo')">
-        <b>&#10227; 重练同一情境</b><small>挑一个情境，换个语气版本再来</small></button>
+    <nav class="nav">
+      <button data-v="practice" class="on"><span>◉</span> 今日练习 <span class="num" id="nPractice">01</span></button>
+      <button data-v="tracker"><span>◌</span> 我的轨迹 <span class="num" id="nHistory">0</span></button>
+      <button data-v="bank"><span>⌁</span> 题库地图</button>
+    </nav>
+    <div class="sidenote">
+      <strong>今天的练习姿势</strong>
+      <p>先允许第一反应出现。训练从“看见”开始，不从“表现得正确”开始。</p>
+      <div class="dotline">事实 · 情绪 · 解释 · 选择</div>
     </div>
+  </aside>
 
-    <div class="sechead" style="margin-top:16px;">难度 <small>1 轻微不适 → 5 强烈情绪 / 权力冲突</small></div>
-    <div class="segbar" id="lvSeg"></div>
+  <!-- ============ 右主区 ============ -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Personal rehearsal lab</div>
+        <h2 id="pageTitle">先看见，再回应。</h2>
+      </div>
+      <div class="topacts">
+        <div class="status"><span></span> 本地记录已保存</div>
+        <button class="ibtn" id="btnNew" title="生成新情境">＋</button>
+        <button class="ibtn" id="btnSame" title="同一事件换个版本">&#10227;</button>
+        <button class="ibtn" id="btnReset" title="清除本地记录">&#8635;</button>
+      </div>
+    </header>
 
-    <div class="sechead" style="margin-top:16px;">训练方向 <small>点一下就按这个方向练；「练够了」可让它不再出现</small></div>
-    <div class="dircards" id="homeDirs"></div>
-
-    <div class="sechead" style="margin-top:18px;">最近 <small>点开看完整过程</small></div>
-    <div id="homeRecent"></div>
-  </div>
-
-  <!-- ============ 训练视图 ============ -->
-  <div id="view-train" style="display:none">
-    <!-- 情境卡（全宽） -->
-    <div id="cardzone" class="cardzone">
-      <div class="cardstack" id="cardstack"></div>
-    </div>
-
-    <div class="decktop">
-      <button class="btn mini" id="foldBtn" onclick="togglePractice()">&#9650; 收起下方练习区</button>
-    </div>
-
-    <!-- 下方练习区：默认展开，可收起 -->
-    <div id="practiceWrap">
-      <div class="two">
-
-        <!-- 左：瞬间反应 -->
-        <div class="panel" id="stepReact">
-          <p class="ptitle">① 这一瞬间，你有什么反应？ <span class="soft">不用挑「对的」，想到什么写什么，都可以空着</span></p>
-          <div class="reactgrid">
-            <div class="rbox"><div class="rl">身体</div><div class="chiprow" id="chBody"></div><textarea id="inBody" rows="2" placeholder="（补充）"></textarea></div>
-            <div class="rbox"><div class="role">情绪</div><div class="chiprow" id="chEmo"></div><textarea id="inEmo" rows="2" placeholder="（补充）"></textarea></div>
-            <div class="rbox"><div class="rl">念头</div><textarea id="inThought" rows="3" placeholder="脑子里闪过的那句话…"></textarea></div>
-            <div class="rbox"><div class="role">冲动</div><div class="chiprow" id="chImp"></div><textarea id="inImp" rows="2" placeholder="（补充）"></textarea></div>
-          </div>
-          <div class="acts">
-            <button class="btn primary" onclick="toRespond()">记下了 &#8594; 去回应</button>
-          </div>
-        </div>
-
-        <!-- 右：回应 + 对话 -->
+    <!-- ---------- 今日练习 ---------- -->
+    <section class="view" id="v-practice">
+      <div class="dashgrid">
         <div>
-          <div class="panel" id="stepResp">
-            <p class="ptitle">② 你想怎么回应？ <span class="soft">说什么都行，也可以什么都不说</span></p>
-            <div id="reactBrief"></div>
-            <div class="chiprow" id="openers"></div>
-            <textarea id="inResp" rows="3" placeholder="你想说的话……（也可以留空，选「不回应」）"></textarea>
-            <div class="acts">
-              <button class="btn primary" onclick="speak()">说出口</button>
-              <button class="btn" onclick="speakSilent()">不回应</button>
-              <button class="btn" onclick="leaveScene()">转身离开</button>
+          <div class="hero">
+            <div class="eyebrow">A small practice, repeated often</div>
+            <h3 id="heroTitle">今天不练习“应该怎样”，<br>只练习“我正在发生什么”。</h3>
+            <p id="heroDesc">同一件事，换一种语气、换一个环境、换一种关系距离，就是一个完全不同的版本。每次都重新组合，不提前告诉你会是哪一种。</p>
+            <div class="hero-acts">
+              <button class="btn primary" id="btnStart">开始这一轮</button>
+              <button class="btn" id="btnSameHero">同一事件，换个版本</button>
+              <button class="btn ghost" id="btnSkip">划走这张 &#8594;</button>
             </div>
           </div>
-          <div class="panel" id="stepTalk" style="display:none;margin-top:12px;">
-            <p class="ptitle">③ 场景继续 <span class="soft">对方接话了，你可以再回应，也可以停在这</span></p>
-            <div class="trans" id="trans2"></div>
-            <textarea id="inResp2" rows="3" placeholder="你想说的话……"></textarea>
-            <div class="acts">
-              <button class="btn primary" onclick="speak()">再回应</button>
-              <button class="btn" onclick="speakSilent()">沉默，不接</button>
-              <button class="btn" onclick="leaveScene()">离开场景，去复盘</button>
-            </div>
+
+          <div class="sec-head">
+            <div><h3>正在进行的情境</h3><p>请先写下第一反应，不用解释得漂亮。</p></div>
+            <span class="stage-label" id="stageLabel">STAGE 01 / 04</span>
           </div>
+          <div id="card"></div>
+        </div>
+
+        <!-- 右侧指标栏 -->
+        <div class="stack">
+          <div class="metrics">
+            <div class="metric"><div class="lb">已练习</div><div class="vl" id="mSessions">0</div><div class="hn">次真实演练</div></div>
+            <div class="metric"><div class="lb">复访情境</div><div class="vl" id="mRepeats">0</div><div class="hn">同一事件多版本</div></div>
+            <div class="metric"><div class="lb">看见自己</div><div class="vl" id="mAware">—</div><div class="hn">自评平均</div></div>
+            <div class="metric"><div class="lb">边界清晰</div><div class="vl" id="mBound">—</div><div class="hn">自评平均</div></div>
+          </div>
+          <div class="panel"><div class="body">
+            <h4>本轮训练镜头</h4>
+            <div class="lens">
+              <div><i></i>我的身体先发生了什么？</div>
+              <div><i></i>哪些是事实，哪些是解释？</div>
+              <div><i></i>我想保护什么，而非控制什么？</div>
+              <div><i></i>情绪还在时，我能做哪个选择？</div>
+            </div>
+          </div></div>
+          <div class="panel"><div class="body">
+            <h4>覆盖进度</h4>
+            <p style="margin:0 0 9px;font-size:11.5px;color:var(--muted);line-height:1.7;">会主动避开连续相似刺激，并补足较少练习的方向。</p>
+            <div class="bar"><span id="covBar" style="width:0%"></span></div>
+            <div class="bar-lb"><span id="covLb">0 / 10 个训练方向</span><span>持续生成</span></div>
+          </div></div>
         </div>
       </div>
+    </section>
 
-      <div class="panel" id="stepRev" style="display:none;margin-top:14px;">
-        <p class="ptitle">④ 复盘 <span class="soft">不是打分，只是回头看看</span></p>
-        <div class="trans" id="trans3"></div>
-        <div id="toneReveal" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
-        <p class="ptitle" style="font-size:12.5px;">回头看看（能选几条选几条，都不选也行）</p>
-        <div id="checkList"></div>
-        <textarea id="inNote" rows="2" placeholder="还想对自己说点什么……（可空）"></textarea>
-        <div class="revbox" id="revHint"></div>
-        <div class="acts">
-          <button class="btn" onclick="regenSame()">&#10227; 同一情境，换一版</button>
-          <button class="btn primary" onclick="finishReview()">完成 &#8594; 下一题</button>
-          <button class="btn ghost" id="muteBtn" onclick="muteThis()">这类练够了，不再出现</button>
+    <!-- ---------- 我的轨迹 ---------- -->
+    <section class="view" id="v-tracker" style="display:none">
+      <div class="panel" style="margin-bottom:16px;"><div class="body" style="padding:18px 20px;">
+        <div class="eyebrow">Your practice trail</div>
+        <h3 style="margin:8px 0 8px;font-size:18px;">进步不是越来越没感觉。</h3>
+        <p style="margin:0;font-size:12.5px;color:var(--muted);line-height:1.85;max-width:70ch;">
+          这里不把“生气变少”当成唯一指标，而是观察你是否更快看见、更能分辨、更能表达，以及能否让情绪在不被驱赶的情况下自然变化。</p>
+      </div></div>
+      <div class="sec-head"><div><h3>三个可观察的方向</h3><p>数据来自你每次复盘时的自评，不是系统给的分数。</p></div>
+        <button class="btn sm" id="btnTrackerNew">开始新练习</button></div>
+      <div class="panel" style="margin-bottom:20px;"><div class="body">
+        <div class="axis">
+          <div class="axis-row"><div>
+            <label><span>看见自己</span><span id="aAwareTx">—</span></label>
+            <div class="bar"><span id="aAware" style="width:0%"></span></div></div><b>01</b></div>
+          <div class="axis-row"><div>
+            <label><span>事实 / 解释</span><span id="aFactsTx">—</span></label>
+            <div class="bar teal"><span id="aFacts" style="width:0%"></span></div></div><b>02</b></div>
+          <div class="axis-row"><div>
+            <label><span>边界与选择</span><span id="aBoundTx">—</span></label>
+            <div class="bar amber"><span id="aBound" style="width:0%"></span></div></div><b>03</b></div>
         </div>
+      </div></div>
+      <div class="sec-head"><div><h3>最近练习</h3><p>每一次都可以成为下一次的素材。点一条看完整过程。</p></div></div>
+      <div class="hist" id="histList"></div>
+      <div class="callout">
+        <b>说明：</b>这个训练器不做心理诊断，也不替代心理治疗。素材来自公开的情绪接纳研究、模糊社会线索（事实 vs 推测）研究，以及边界与坚定表达的教学材料——使用的是行为模式与表达句式，不根据一句话给任何人贴临床标签。<br>
+        如果某个情境让你持续失控、恐惧，或涉及现实中的威胁与暴力，请把“保护安全”放在训练目标之前，寻求可信任的人或专业支持。
       </div>
+    </section>
 
-      <div class="acts" style="justify-content:center;margin-top:12px;">
-        <button class="btn ghost" onclick="switchView('home')">&#8592; 返回首页</button>
-        <button class="btn ghost" onclick="skipCard(1)">划走这张 &#8594;</button>
+    <!-- ---------- 题库地图 ---------- -->
+    <section class="view" id="v-bank" style="display:none">
+      <div class="sec-head" style="margin-top:0;"><div><div class="eyebrow">Scenario architecture</div><h3>题库地图</h3></div>
+        <button class="btn primary sm" id="btnBankNew">生成一个新版本</button></div>
+      <div class="filters" id="lvFilter"><span class="lb">难度</span></div>
+      <div class="filters" id="modeFilter"><span class="lb">抽法</span></div>
+      <div class="bankgrid" id="bankCards"></div>
+      <div class="sec-head"><div><h3>题库说明</h3></div></div>
+      <div class="srcline">
+        <b>结构：</b>42 个情境母题，每个母题带 2–5 个语气版本（礼貌 / 冷淡 / 不耐烦 / 命令 / 教育 / 讽刺 / 无礼 / 着急无恶意 / 真诚道歉 / 反咬你敏感 / 拉大家站队 / 当众调侃），叠加关系距离、环境、你的当时状态随机组合，可持续生成不重复的版本。<br>
+        <b>每个情境都拆成两栏：</b>「场景里明确发生的」与「此刻仍然不知道的」——后者不替你判断，只留给你自己分辨。<br>
+        <b>五种行动档位：</b>先不回应 / 询问发生了什么 / 表达一个边界 / 配合但保留选择 / 离开·暂停。每档对应对方不同的下一句。<br>
+        <b>不做的事：</b>不设标准答案，不评判对错，不把生气当成失败，也不鼓励用羞辱与攻击保护自己。目标只有一句：我可以有任何情绪，但逐渐拥有更多选择。
       </div>
-    </div>
-  </div>
-
-  <!-- ============ 记录视图 ============ -->
-  <div id="view-log" style="display:none">
-    <div class="sec">
-      <div class="sechead">各方向练习情况 <small id="sumLine"></small></div>
-      <div class="statgrid" id="statGrid"></div>
-    </div>
-    <div class="sec">
-      <div class="sechead">最近的记录 <small>点开看完整过程</small></div>
-      <div id="recList"></div>
-    </div>
-  </div>
-
-  <!-- ============ 设置视图 ============ -->
-  <div id="view-set" style="display:none">
-    <div class="sec">
-      <div class="sechead">训练方向开关 <small>关掉的方向不再出现（做熟练了就关掉）</small></div>
-      <div id="dirToggles"></div>
-    </div>
-    <div class="sec">
-      <div class="sechead">难度范围 <small>1 轻微不适 → 5 强烈情绪 / 权力冲突</small></div>
-      <div style="display:flex;gap:10px;align-items:center;font-size:13px;">
-        <span>从</span><input type="number" id="lvMin" min="1" max="5" style="width:56px;">
-        <span>到</span><input type="number" id="lvMax" min="1" max="5" style="width:56px;">
-        <button class="btn mini" onclick="saveLv()">应用</button>
-      </div>
-    </div>
-    <div class="sec">
-      <div class="sechead">数据 <small>文本数据自动跟随工作台云同步</small></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn" onclick="exportData()">导出记录 (JSON)</button>
-        <button class="btn ghost" onclick="wipeData()">清空全部记录</button>
-      </div>
-    </div>
-    <div class="sec">
-      <div class="sechead">怎么用</div>
-      <div class="revbox">
-        <b>这不是测试，没有对错。</b>每张卡是一个真实情境的不同版本——同一件事，语气、关系、环境、你的状态都会变。<br>
-        先记录<b>被触发的那一瞬间</b>（身体 / 情绪 / 念头 / 冲动），再决定要不要回应；对方会接话，场景会继续。<br>
-        结束后复盘：哪些是事实，哪些是你加上的解释；你是在表达自己，还是想改变对方。<br>
-        遇到练透了的类型，点「这类练够了」，它就不再出现。进度自动保存、自动云同步。
-      </div>
-    </div>
-  </div>
+    </section>
+  </main>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -329,31 +362,27 @@
 <script>
 'use strict';
 /* =====================================================================
-   关系训练 · 现实人际情境模拟训练场
-   数据键 reltrain_v1（纯文本，跟随工作台云同步）
+   关系反应训练器 · REHEARSE
+   数据键 reltrain_v1（纯文本，随工作台云同步）
 ===================================================================== */
 
 /* ---------------- 方向 ---------------- */
 const DIRS = {
-  label :{n:'被评价 · 贴标签'},
-  love  :{n:'以爱为名 · 打压式关心'},
-  joke  :{n:'玩笑包装的冒犯'},
-  bound :{n:'边界与空间'},
-  req   :{n:'请求与语气'},
-  deny  :{n:'否定感受 · 煤气灯'},
-  amb   :{n:'事实与推测'},
-  replay:{n:'事后反刍'},
-  valid :{n:'想被认可的循环'},
-  power :{n:'权力关系'}
+  label :{n:'被评价 · 贴标签',   d:'让训练回到「标签不是事实」'},
+  love  :{n:'以爱为名 · 打压式关心', d:'区分关心的说法与控制的动作'},
+  joke  :{n:'玩笑包装的冒犯',   d:'玩笑的前提是两个人都觉得好笑'},
+  bound :{n:'边界与空间',      d:'别人靠近、拿走、闯入你的范围'},
+  req   :{n:'请求与语气',      d:'把请求本身和请求方式分开'},
+  deny  :{n:'否定感受 · 煤气灯', d:'你的感受不需要经过审批'},
+  amb   :{n:'事实与推测',      d:'信息不完整时，不替对方补动机'},
+  replay:{n:'事后反刍',        d:'给大脑一个「已处理」的回执'},
+  valid :{n:'想被认可的循环',   d:'把认领自己的权力拿回来'},
+  power :{n:'权力关系',        d:'不能当场翻脸时怎么留痕'}
 };
-const TONE_NAME = {
-  polite:'礼貌客气', cold:'冷淡', impat:'不耐烦', cmd:'命令式', teach:'教育口吻',
-  sarc:'讽刺调侃', rude:'明显无礼', rush:'着急但无恶意', sincere:'真诚并道歉',
-  unaware:'没意识到', again:'重复第二次', backfire:'反咬你敏感', crowd:'拉大家站队',
-  mock:'当众调侃', plain:'平淡无表情', none:'—'
-};
-/* 对方通用接话（模板没写 re 时的兜底，按回合取） */
-const FALLBACK = {
+const TONE_NAME={polite:'礼貌客气',cold:'冷淡',impat:'不耐烦',cmd:'命令式',teach:'教育口吻',sarc:'讽刺调侃',
+  rude:'明显无礼',rush:'着急但无恶意',sincere:'真诚并道歉',unaware:'没意识到',again:'重复第二次',
+  backfire:'反咬你敏感',crowd:'拉大家站队',mock:'当众调侃',plain:'平淡无表情',none:'—'};
+const FALLBACK={
   polite:['啊……不好意思，我不是那个意思，你别多想。','那你别放在心上哈。'],
   cold:['嗯。','随便你吧。'],
   impat:['行了行了，说两句就不耐烦了。','跟你真是说不了话。'],
@@ -370,12 +399,8 @@ const FALLBACK = {
   mock:['哈哈，他还真当真了。','开个玩笑嘛，这么严肃干什么。'],
   plain:['（对方看了你一眼，没说话。）','（对方转身走了。）']
 };
+const ACTIONS=['先不回应','询问发生了什么','表达一个边界','配合但保留选择','离开 / 暂停'];
 
-/* =====================================================================
-   题库：45 个情境母题 × 每题 3~6 个语气版本 × 关系/环境/状态随机轴
-   字段：id dir[] lv(1-5) amb(信息不完整) who fact rel[] ctx[] st[] vs[] ref[]
-   vs: {t 语气, say 台词, face 表情, re[对方后续两句]}
-===================================================================== */
 const BANK = [
 
 /* ========== 被评价 · 贴标签 ========== */
@@ -395,7 +420,7 @@ const BANK = [
    re:['「你看，大家都笑了吧，没人在意。」','「行行行，你对。」']},
   {t:'backfire', say:'「你最近是不是太紧绷了？一个日期而已，你反应这么大。」', face:'皱眉打量你',
    re:['「我提醒你你还生气？」','「你这状态得调整调整。」']}
- ],
+ ], fx:{title:"一个日期",facts:["方案里的日期写错了，你当天就改了。", "散会后对方走过来，当着还没走的人说了那句话。", "对方没有说明依据。"],unknowns:["对方是想帮你，还是在评价你做事的方式？", "对方自己知不知道这句话会让人不舒服？", "如果不是你，会不会也说同样的话？"],resp:["（对方等了一下：「好吧……那下次注意。」）", "「你是提醒我，还是在说我这个人做事？」", "「日期我改了。说话的方式我也想听一下意见。」", "「明白。下次有需要你直接说，不用这么讲。」", "（你收拾东西走了。身后传来一句：「至于吗。」）"]},
  ref:['「太较真」是他对你的定义，还是对这件事的描述？','细一点有错吗——你并不需要靠「不较真」来合群。']},
 
 {id:'l02', dir:['label','deny'], lv:3,
@@ -414,7 +439,7 @@ const BANK = [
    re:['「我这么说是不想看你吃亏。」','「你脸色怎么这么难看，说你两句还不行。」']},
   {t:'sarc', say:'「玻璃心又碎了？」', face:'笑',
    re:['「开不起玩笑啊你。」','「好好好，我的错，我道歉。」']}
- ],
+ ], fx:{title:"你太敏感了",facts:["你说了那句话，对方听完直接回应了这句。", "对方没有复述你原来说了什么。", "你的不舒服是此刻真实发生的。"],unknowns:["对方是真的没意识到，还是不愿意承认？", "对方的这句反驳是习惯反应，还是临时起意？", "对方会不会在你更激烈之后改口？"],resp:["（对方松了口气：「那算了。」气氛过去了。）", "「我说的是刚才那句。你觉得它为什么会让我不舒服？」", "「我可能反应过头了，但这句话我还是不接受。」", "「行，我知道了，下次注意。」", "（你没再说话。过了两分钟，对方发来：「刚才我语气重了。」）"]},
  ref:['他说「没那个意思」——你可以不知道他的意思，但你知道你的感受是真的。','「你太敏感了」这句话把话题从「他做了什么」换成了「你有什么问题」，注意这个换轨。']},
 
 {id:'l03', dir:['label'], lv:2,
@@ -431,7 +456,7 @@ const BANK = [
    re:['（对方在忙自己的事。）','「行了行了知道了。」']},
   {t:'polite', say:'「嗯，你这个想法……说实话我不太看得懂，不过你自己想清楚了就行。」', face:'认真的，虽然持保留态度',
    re:['「我没说不行啊，就是提一句。」','「那你规划好了跟我说说？」']}
- ],
+ ], fx:{title:"你想太多了",facts:["你刚开始讲自己的打算。", "对方打断了你，没有让你说完。", "对方给出了自己的判断。"],unknowns:["对方是真的不认同，还是只是习惯自己拿主意？", "如果让你说完，对方会听吗？", "这个「你想太多」是结论，还是随口一说？"],resp:["（对方：「嗯，你继续。」但语气里明显不想再谈。）", "「你能不能先听完我再判断？」", "「这个决定我已经想清楚了，不需要再评估。」", "「行，那就先按你说的来，但我保留意见。」", "（你说：「我先走了，改天再聊。」对方愣了一下。）"]},
  ref:['「你想太多了」——注意：他否定的是你的思考过程本身。','你的打算需要谁批准，才算数？']},
 
 {id:'l04', dir:['label','joke'], lv:3,
@@ -448,7 +473,7 @@ const BANK = [
    re:['「啊？你不舒服啊？我不知道啊……」','「那我以后不讲了行吧。」']},
   {t:'backfire', say:'「哎呀开个玩笑而已，你这人怎么开不起玩笑。」', face:'收了笑，有点不高兴',
    re:['「本来就没恶意，你敏感了。」','「行，以后聚会不叫你了，真没劲。」']}
- ],
+ ], fx:{title:"第 N 次的旧糗事",facts:["这件糗事你只提过一次，对方记住了。", "对方当众讲了出来，旁边有人笑了。", "你也跟着笑了一下。"],unknowns:["对方是有意让你难堪，还是单纯觉得好玩？", "其他人笑是认同、还是只是气氛带动？", "对方知不知道你并不想笑？"],resp:["（对方收敛了：「好好好不说了。」）", "「你可能觉得好玩，但我确实不舒服。」", "「这件事以后别再拿我开玩笑了。」", "「行，那下次换个新的讲。」", "（你提高了声音：「这事我再说一次，别讲了。」全场安静。）"]},
  ref:['玩笑的前提是两个人都觉得好笑。只有一方难受的，不是玩笑。','你可以允许它好笑，也允许自己不舒服——这两件事不矛盾。']},
 
 {id:'l05', dir:['label'], lv:3,
@@ -461,7 +486,7 @@ const BANK = [
    re:['（假设你去问了，他可能说：「我说过吗？可能是玩笑吧。」）','（也可能说：「我说的啊，怎么了？」）']},
   {t:'backfire', say:'当面提起时他说：「我没说你不好相处，我说的是……哎呀你听谁瞎传的。你这样多想，也难怪别人说你难相处。」', face:'先否认，再补一刀',
    re:['「你看，你现在这个反应，就是我说的意思。」','「行，我不说了，错了我道歉。」']}
- ],
+ ], fx:{title:"别人转告你的评价",facts:["这句话是别人转告给你的。", "原话里有褒有贬，贬的部分在后面。", "你听到的时候，TA并不知道。"],unknowns:["这话是对你说的，还是对别人也这么说过？", "转告的人有没有添油加醋？", "对方自己是否意识到这话的意思？"],resp:["（你直接说了。对方：「那是开玩笑的，你还要当真？」）", "「这话是谁说的、原话是什么，我想听一下。」", "「前半句我收下，后半句我当你没说。」", "（你回了句「哦」，把这件事放下了。）", "（你问了一句「我跟谁这么熟」，然后没再追问。）"]},
  ref:['「人挺好，就是难相处」——前半句是给糖，后半句才是他想说的。','别人的评价是别人嘴里的你。它需要你签字才能生效。']},
 
 {id:'l06', dir:['label','power'], lv:4,
@@ -476,7 +501,7 @@ const BANK = [
    re:['「你怎么这么不听劝。」','「好心当成驴肝肺。」']},
   {t:'polite', say:'「最近工作忙不忙？要照顾好自己啊。」', face:'笑呵呵的，问完就去夹菜了',
    re:['「那就好那就好，来多吃点。」','「年轻人身体要紧。」']}
- ],
+ ], fx:{title:"饭桌上的查户口",facts:["对方在一桌人面前问了你收入和婚恋。", "你没有要求被问。", "周围坐着多位亲戚。"],unknowns:["对方是真的关心，还是想显摆自己的经验？", "在场的人里有多少人也在问别人同样的问题？", "如果反驳，会不会变成一场更大的拉扯？"],resp:["（对方转头跟别人聊起了别的，没人再问。）", "「这个我想聊的时候自己会聊。」", "「今天不聊这个。」", "「还行吧，够花。」", "（你放下筷子去接了个电话，回来时话题已经换了。）"]},
  ref:['饭桌不是审讯室。你可以回答，可以反问，可以只笑笑，也可以什么都不答。','「为我们好」的关心和不尊重，可以同时发生。']},
 
 {id:'l07', dir:['label','deny'], lv:3,
@@ -493,7 +518,7 @@ const BANK = [
    re:['「别介意，我夸你呢。」','「哎呀逗你的，急什么。」']},
   {t:'plain', say:'「嗯。」然后继续说自己的，像你没说过。', face:'没表情',
    re:['（他说他的，你的话像落进了水里。）','（过了一会儿他问：「你怎么不说话了？」）']}
- ],
+ ], fx:{title:"就你一个人有意见",facts:["你说了和对方不同的看法。", "对方没有回应内容本身。", "在场还有人，但没有人接话。"],unknowns:["对方是真的不认同，还是没听懂？", "「就你」这个说法是玩笑，还是在排除你？", "在场的人里有没有人其实同意你？"],resp:["（对方：「好吧，那按你的来。」）", "「我说的和你说的，好像不是一回事，能具体说说分歧在哪吗？」", "「我保留我的看法，你有你的，我们不用统一。」", "（你笑了一下：「行，听你的。」）", "（你把话头接到了别的事情上，聊天继续。）"]},
  ref:['被绕过、被无视、被打发——三种都不舒服，但方式不同。哪一种最触发你？','「就你」这两个字的杀伤力在哪里：它让你在人群里变成例外。']},
 
 {id:'l08', dir:['label'], lv:2,
@@ -510,7 +535,7 @@ const BANK = [
    re:['（他讲完了别人的故事。）','「咦，你怎么不说了？」']},
   {t:'sincere', say:'「真的假的？那挺厉害的啊！怎么做到的？」', face:'眼睛亮了',
    re:['「跟你讲讲细节呗？」','「下次做成什么再跟我炫耀啊。」']}
- ],
+ ], fx:{title:"分享到一半被接话",facts:["你刚分享了一件做成的事。", "对方的回应发生在你说完全部内容之前。", "你原本是带着期待说的。"],unknowns:["对方是没在意，还是在意但不想表现出来？", "对方是真的觉得这事一般，还是在用玩笑降低你的热度？", "如果你没继续说，话题会转到哪里？"],resp:["（对方：「那挺好啊，恭喜。」然后话题转走了。）", "「我还没说完呢，你觉得怎么样？」", "「这点成绩我自己挺满意的，不用你评价。」", "（你把后半段也讲了，对方这次听完了。）", "（你把话题岔开了，没有继续。）"]},
  ref:['同一件喜事，四种接法。哪种让你最想以后再也不分享？','你的开心不需要先通过对方的审核。']},
 
 {id:'l09', dir:['label'], lv:3,
@@ -523,7 +548,7 @@ const BANK = [
    re:['「你看，提前跟你打招呼了啊。」','「哎呀真是的，直性子，你别计较。」']},
   {t:'backfire', say:'「我说话直你别介意——你这人接受不了真话，难怪……」', face:'笃定',
    re:['「我这是为你好才直说。」','「算了，好人心当驴肝肺。」']}
- ],
+ ], fx:{title:"我说话直你别介意",facts:["对方事先声明自己说话直。", "接下来的话确实不客气。", "声明本身不构成免责。"],unknowns:["对方是真没恶意，还是提前免责好让你不能反应？", "对方能接受你用同样直接的方式回应吗？", "如果不说「别介意」，TA还会这样说吗？"],resp:["（对方：「哦，没往心里去就好。」）", "「你说了别介意，那我直说了：这句话我听着不舒服。」", "「直接说和说得难听是两件事。」", "（你笑着说「没事」，对方顺势过去了。）", "（你把水杯放下说：「那我先走了。」对方愣了一下。）"]},
  ref:['「说话直」是预告，不是豁免权。','提前打了招呼的伤害，依然是伤害。']},
 
 /* ========== 以爱为名 · 打压式关心 ========== */
@@ -539,7 +564,7 @@ const BANK = [
    re:['「你什么态度？」','「我辛辛苦苦还不是为了这个家。」']},
   {t:'sincere', say:'「……我知道错了。钱的事我想办法补上。以后你的钱，你做主。」', face:'沉默了一会儿，低声说',
    re:['「你骂我也应该。」','「对不起，真的。」']}
- ],
+ ], fx:{title:"替你做的那个决定",facts:["对方用了你的钱，做了一个你没参与的决定。", "结果不如预期。", "对方在你发现之后才告诉你。"],unknowns:["对方是否清楚这笔钱的主语是你？", "如果重来一次，对方还会替你做主吗？", "这件事里有多少是关心，有多少是控制？"],resp:["（对方：「我知道了，以后不碰你的钱。」）", "「那笔钱是我的。替我做决定这件事，我想听你解释。」", "「这是我的钱。以后动用之前先问我。」", "（你算了损失，说：「下不为例。」）", "（你没有继续这个话题，但也没有说「没关系」。）"]},
  ref:['「为你好」不能倒推「所以伤害成立」。','出发点是爱，过程没经过你，结果你承担——三件事分开看。']},
 
 {id:'v02', dir:['love'], lv:4,
@@ -554,7 +579,7 @@ const BANK = [
    re:['「我说你两句怎么了。」','「你还有理了？」']},
   {t:'polite', say:'「尽力了就行。走，回去给你做好吃的。」', face:'拍拍你',
    re:['「名次不重要，人要紧。」','「下次想冲再冲，我不催你。」']}
- ],
+ ], fx:{title:"我选择原谅你",facts:["结果没有达到对方定的目标。", "对方把这个结果说成了你的过错。", "对方用了一个需要你接受才能成立的评价。"],unknowns:["对方的标准是谁定的？", "如果换一个结果，对方会不会说同样的话？", "对方在意的到底是结果还是你的态度？"],resp:["（对方：「行行行，那你想怎么样。」）", "「目标没达到我承认。你刚才那句话，是说我不行还是说这件事？」", "「不需要原谅，也不需要评分。你可以直接说哪里不满意。」", "（你说：「下次我会做得更好。」对方脸色缓和了一点。）", "（你放下碗说：「我吃好了。」然后起身收拾。）"]},
  ref:['「原谅」需要一个前提：对方做错了什么。没做到目标不是「错」。','谁给了TA当裁判的资格？']},
 
 {id:'v03', dir:['love'], lv:3,
@@ -569,7 +594,7 @@ const BANK = [
    re:['「问你话呢，怎么不回答？」','「我这不是关心你吗。」']},
   {t:'plain', say:'你被从早数落到晚。没有人问你一句「最近过得怎么样」。', face:'—',
    re:['（第二天，一切照旧。）','（临走时TA说：「怎么刚回来就走，也不多陪陪我。」）']}
- ],
+ ], fx:{title:"从进门数落到晚",facts:["你回家住的第二天，从进门开始被数落。", "被数落的都是日常小事。", "你没有同意这种照管方式。"],unknowns:["对方是习惯性关心，还是想让你按TA的生活方式过？", "你直说「不用管」，TA会停吗？", "这些事如果换成室友，是否还会被提？"],resp:["（对方停了一会儿：「那你自己看着办。」）", "「你关心我我知道。但喝什么、养什么，我想自己定。」", "「谢谢关心，这些不用你管。」", "（你一半照做一半拒绝，对方没再追问。）", "（你说：「我下午出去一下。」对方跟着问去哪、跟谁。）"]},
  ref:['被关心的感觉和被管制的窒息感，可以来自同一个人。','你可以说「谢谢关心」，同时说「这个不用管」。']},
 
 {id:'v04', dir:['love'], lv:3,
@@ -584,7 +609,7 @@ const BANK = [
    re:['（话题过去了，像什么都没发生。）','（回家的路上你一直在想这件事。）']},
   {t:'sincere', say:'「优点啊……很多。认真、心细、有主意，就是不太会表达。」说完看了你一眼，笑了。', face:'没有犹豫',
    re:['「怎么突然夸我，怪不好意思的。」','「这些不都随我嘛。」']}
- ],
+ ], fx:{title:"被问优点时的停顿",facts:["有人当众问你有什么优点。", "对方回答得很慢。", "回答里带着一个反问，否定了自己刚说出的那一点。"],unknowns:["对方是真的没看到，还是不习惯夸你？", "如果换一个孩子问，对方会怎么答？", "那个反问是想听别人接，还是在替你定性？"],resp:["（对方：「那我就是想不出嘛。」话题过去了。）", "「你刚才停了很久。是真的没看到，还是不好意思说？」", "「我不需要你替我谦虚。」", "（你说：「抗压能力不错啊。」对方笑了，气氛松了。）", "（你没接这个话题，让它过去了。）"]},
  ref:['你一直等的那个「被看见」，其实是想从TA那里拿到。如果拿不到，你还认不认自己身上这些优点？']},
 
 {id:'v05', dir:['love','deny'], lv:4,
@@ -599,7 +624,7 @@ const BANK = [
    re:['「你走了就别想回来。」','「忘恩负义。」']},
   {t:'crowd', say:'「你那些朋友，哪个是真心的？就我。」', face:'凑近了说',
    re:['「他们说你坏话你信不信？」','「到时候没人管你。」']}
- ],
+ ], fx:{title:"没人会像我这样对你",facts:["你提出要退出一段让你很累的关系或合作。", "对方立刻用「没人像我这样对你」回应。", "对方把你的离开说成了不知好歹。"],unknowns:["对方提供过的帮助里，有多少是支持，有多少是需要你配合？", "如果你坚持走，对方会做什么？", "你累的感觉是这段关系带来的，还是最近整体状态？"],resp:["（对方软了下来：「那你想怎样，我们可以谈。」）", "「你说没人会这样。那你告诉我，我需要为你做什么？」", "「我不需要用留下来证明你对我好。」", "（你说：「谢谢你提醒我，我再想想。」但你心里已经有答案了。）", "（你把话说完了，然后安静下来，没有再解释。）"]},
  ref:['「离开我你什么都不是」——这句话的唯一功能，是让你不敢走。','对方说得再真，你的累也是真的、你也有权退出。']},
 
 {id:'v06', dir:['love','deny'], lv:4,
@@ -616,7 +641,7 @@ const BANK = [
    re:['「开个玩笑。至于吗。」','「你真没意思。」']},
   {t:'sincere', say:'「……对不起。我当时确实做得不对。」停了一下，「你想说的话，我听。」', face:'没有打断你第二次',
    re:['「谢谢你愿意跟我说这些。」','「以后这种事，你随时可以提。」']}
- ],
+ ], fx:{title:"都过去了还翻出来",facts:["你第一次提起那件事，被打断了。", "对方用「都过去了」把话题关上。", "那件事至今没有正式谈过。"],unknowns:["对方是真的忘了，还是不想负责？", "如果这次不谈，会不会有第三次机会？", "你在意的到底是什么，是那件事，还是没人认错？"],resp:["（对方沉默了一会儿：「……那你说说看。」）", "「我不需要你先同意我的感受，你只需要听完。」", "「这件事对我还没过去。我希望我们能谈一次。」", "（你换了个话题，但心里记着这件事。）", "（你说：「现在不想聊。」对方没有追问。）"]},
  ref:['TA打断的不是旧事，是你终于开口的那次尝试。','「过去了」对谁过去？对疼的人来说，它一直在。']},
 
 {id:'v07', dir:['love','deny'], lv:5,
@@ -631,7 +656,7 @@ const BANK = [
    re:['「你总是这样，曲解别人的意思。」','「跟你说话真累。」']},
   {t:'backfire', say:'「对对对，都是我的错，行了吧？你满意了吧？」', face:'翻白眼',
    re:['「你就是要赢，赢了吧？」','「跟你没法过。」']}
- ],
+ ], fx:{title:"你记错了",facts:["你确定自己记得那件事的经过。", "对方明确否认了你的记忆。", "你们手里都没有第三方证据。"],unknowns:["是真的记错了，还是对方在坚持自己的人设？", "如果各自都不退，会不会变成各说各话？", "你需要的是事实，还是被承认？"],resp:["（对方：「行行行，是你记错了。」但没再往下说。）", "「我们都不确定的话，那就先不下结论。」", "「我很确定我记得，你可以不同意，但不要说是我记错了。」", "（你保留了记录，没有继续争。）", "（你结束了这段对话，把笔记留着。）"]},
  ref:['TA否定的是事实，还是你的记忆本身？','当有人反复否定你的记忆，先别急着怀疑自己——找证据，或者找人核实。你的感觉值得被自己信任。']},
 
 /* ========== 玩笑包装的冒犯 ========== */
@@ -647,7 +672,7 @@ const BANK = [
    re:['「我是说挺特别的嘛。」','「哦……你不喜欢别人这么看啊，抱歉抱歉。」']},
   {t:'polite', say:'「新发型？挺精神的。」', face:'自然地点头',
    re:['「挺适合你的。」','「就说嘛，换个心情。」']}
- ],
+ ], fx:{title:"一进门就被评论",facts:["你一进门就被大声评论外表。", "声音大到旁边的人都听得见。", "对方没有先问过你介不介意。"],unknowns:["对方是想让你难堪，还是只是嘴快？", "如果不是你笑，场面会怎么收？", "对方下次还会这样吗？"],resp:["（对方：「开个玩笑而已。」然后被别人拉走了。）", "「你刚才是觉得我头发不好看吗？」", "「这个玩笑我接受不了，请不要再说。」", "（你说了句「行吧」，对方看别人反应就收住了。）", "（你转头跟别人聊起来，整晚没再理对方。）"]},
  ref:['大家笑，不代表你该笑。','你可以等几秒再回应——几秒钟能帮你分辨「这是恶意还是无聊」。']},
 
 {id:'j02', dir:['joke','deny'], lv:4,
@@ -662,7 +687,7 @@ const BANK = [
    re:['「那我不发了行吧，至于这样吗。」','「你这人真是，一句玩笑话。」']},
   {t:'sincere', say:'（你回了「不好笑」。）「……抱歉，我没意识到你不舒服。我删了。」', face:'撤回了那张图',
    re:['「以后不拿你开这种玩笑了。」','「真不好意思。」']}
- ],
+ ], fx:{title:"群里的那张照片",facts:["群里有人发了你的照片配嘲笑文字。", "后面跟了一串笑声。", "没有人为你说话。"],unknowns:["起哄的人里，有几个是真觉得好笑？", "群主会怎么处理？", "你退群或回怼，会被怎么看？"],resp:["（群里安静了几秒，然后有人说：「开玩笑的啦。」）", "「这张图发出来之前，问过我吗？」", "「我不好看笑。这条我要求删掉。」", "（你回了个表情，话题过去了，你没再提。）", "（你退出了这个群。之后有人私聊你道歉。）"]},
  ref:['在几十个人面前，你的「不好笑」三个字需要多大勇气？说了就是说了。','其他人的「哈哈哈」不构成「你反应过度」的证据。']},
 
 /* ========== 边界与空间 ========== */
@@ -676,7 +701,7 @@ const BANK = [
    re:['（什么都没有发生。这件事在你脑子里转了十分钟。）','（他可能只是在看地铁到站屏，正好扫过你。）']},
   {t:'plain', say:'（他超了你，在前面停下来了，背对着你。）', face:'—',
    re:['（你放慢脚步，等他走远。）','（到分岔路口，他往另一边走了。）']}
- ],
+ ], fx:{title:"很近地擦身而过",facts:["一个人从你身边很近地走过去。", "他回头看了你一眼。", "你继续走你的路。"],unknowns:["他是否注意到距离？", "那一眼是好奇、确认路线，还是别的？", "他是不是只是急着去某处？"],resp:["（什么都没有发生。你后来也没再想起。）", "我注意到自己在给这一眼配一个理由。", "（你往旁边挪了半步，继续走。）", "（你把注意力拉回自己要做的事上。）", "（你加快了脚步，离开了这个空间。）"]},
  ref:['事实：一个人走得近、看了一眼。就这些。','你心里补上的部分——「他挑衅我」「他看不起我」——是事实，还是你的解释？','两种解释都无法证实也无法证伪。你愿意让哪种解释住进脑子里？']},
 
 {id:'b02', dir:['bound'], lv:2,
@@ -691,7 +716,7 @@ const BANK = [
    re:['「矫情什么。」','「行行行，以后先敲，满意了吧。」']},
   {t:'polite', say:'（敲门声。）「在吗？我进来啦。」等了两秒才推门。', face:'探进半个头',
    re:['「打扰你啦？我就拿个东西。」','「走的时候帮你把门带上？」']}
- ],
+ ], fx:{title:"没敲门就进来",facts:["你的门没锁，对方直接推门进来。", "对方动了你桌上的东西。", "你没有同意过。"],unknowns:["对方是没听到，还是觉得不需要敲？", "如果当场说了，下次会改吗？", "对方有没有意识到这属于你的私人空间？"],resp:["（对方停住了：「我以为你没在。」然后把东西放回去了。）", "「门关上的时候能不能敲一下？」", "「我的东西别动，放回原处。」", "（你说了句「下次注意」，对方答应了。）", "（你把门关上了，对方站在外面问：「怎么了？」）"]},
  ref:['你可以说：请敲门。这不是矫情，是你的门。','「这么小气」——空间和物品的小气，恰恰是分寸感的另一种说法。']},
 
 {id:'b03', dir:['bound'], lv:3,
@@ -704,7 +729,7 @@ const BANK = [
    re:['「哎呀小气死了，一家人看看怎么了。」','「行行行，不看了。」']},
   {t:'unaware', say:'「你这手机最新款的啊？给我瞧瞧——」顺手就滑开了相册。', face:'好奇',
    re:['「哎呀就看一眼。」','「咦你怎么这么紧张。」']}
- ],
+ ], fx:{title:"伸手要你的手机",facts:["对方伸手要拿你的手机。", "是在一屋子人面前。", "你还没来得及说不。"],unknowns:["对方是好奇，还是习惯于随手拿别人的东西？", "当场拒绝会不会让场面难看？", "你的手机里有什么是你不想被看到的？"],resp:["（对方看了两眼就还回来了：「没什么好看的。」）", "「这个我不给人看。」", "「先问我，再碰。」", "（你把手机收进口袋，对方愣了一下就聊别的了。）", "（你起身去拿东西，离开了那个房间。）"]},
  ref:['手机里是私事。交不交出去，应该是你的决定。','当众拒绝需要一句就够了：「不好意思，这个我不给人看。」说完天没塌。']},
 
 {id:'b04', dir:['bound','req'], lv:2,
@@ -719,7 +744,7 @@ const BANK = [
    re:['「你这人，好心当成驴肝肺。」','「至于吗，又不值钱。」']},
   {t:'sincere', say:'「抱歉抱歉，我下次先问你一声。这就还你。」', face:'马上起身去拿',
    re:['「刚才急着用，忘了说了。」','「你桌上贴个条吧，免得我又犯。」']}
- ],
+ ], fx:{title:"第 N 次被拿走的东西",facts:["你的东西第三次被拿去用了。", "对方没有问过你，也没有还回来。", "你之前忍过两次。"],unknowns:["对方是没意识到你在意，还是觉得无所谓？", "你说出来之后，对方会还还是继续？", "你更在意东西，还是被当成好脾气？"],resp:["（对方：「哦，那我还你。」第二天东西还在桌上。）", "「下次用之前能不能先问我一句？」", "「这是我的，用完请放回来。」", "（你说了句「行吧」，但心里记着这件事。）", "（你把东西收进了抽屉，那天之后开始锁抽屉。）"]},
  ref:['小东西，大边界。今天忍的每件小事都在教对方「可以继续」。','一句「下次先问我」不伤害任何人。']},
 
 {id:'b05', dir:['bound','req'], lv:3,
@@ -736,7 +761,7 @@ const BANK = [
    re:['「开玩笑的，不过表还是要帮我弄一下哈。」','「你这人，玩笑都听不出来。」']},
   {t:'rush', say:'「哎帮我看个表！急死我了——不好不好，我五点要交，就说你四点前有空吗！」', face:'满头汗，语速极快',
    re:['「谢谢谢谢谢谢！」','「哎呀我就知道你人好，改天请你喝咖啡！」']}
- ],
+ ], fx:{title:"下班前的一个请求",facts:["下班前对方来提了一个请求。", "语气是命令式的，没有问你在不在状态。", "这件事不在你原定安排里。"],unknowns:["对方知不知道你今晚有安排？", "这是请求还是通知？", "如果你拒绝，对方会怎么记这笔账？"],resp:["（对方愣了一下：「那……你尽量。」）", "「可以帮你，但我想先确认一下优先级。」", "「我现在做不了，明天上午给你可以吗？」", "（你接了，但同时说明了交付时间和条件。）", "（你说：「我今天有事。」对方没再说话。）"]},
  ref:['同一件事（帮看个表），语气不同，你的感受完全不同。留意：你拒绝的是请求本身，还是语气？','如果你拒绝了——是因为不想帮，还是因为TA的态度让你不想帮？这两个都成立。']},
 
 {id:'b06', dir:['bound','joke'], lv:4,
@@ -749,7 +774,7 @@ const BANK = [
    re:['「碰一下怎么了，又不掉块肉。」','「你这人真没劲。」']},
   {t:'polite', say:'「哦，好，那我不动了。抱歉啊，我不知道你介意这个。」', face:'收手',
    re:['「下次我注意。」','「你早点说嘛，我又不是故意的。」']}
- ],
+ ], fx:{title:"你说了别动我东西",facts:["你说了一句「别动我东西」。", "对方用四个字回应了这句话。", "现场有其他人。"],unknowns:["对方是真的觉得你小气，还是在试探你的底线？", "旁边的人会怎么理解这件事？", "如果你不接这句，场面会怎么收？"],resp:["（对方说：「我就碰一下。」但手收回去了。）", "「我不是小气，是不想被碰。」", "「请把手拿开。」", "（你笑了笑没接，对方也没再说。）", "（你站起来走了，剩下的人自己聊了起来。）"]},
  ref:['你保护边界的动作很轻，但对方的反应把它放大成了「你人有问题」。','守住一句话的边界，比事后生三天闷气便宜得多。']},
 
 /* ========== 请求与语气 ========== */
@@ -767,7 +792,7 @@ const BANK = [
    re:['（走了，从头到尾没看你。）','「看什么看。」']},
   {t:'rush', say:'「不好意思不好意思！我车要开了——让一下可以吗！谢谢！」', face:'跑得满头汗',
    re:['「谢谢您了！！」','（已经跑远了，回头挥了下手。）']}
- ],
+ ], fx:{title:"让个路",facts:["你需要对方挪一下或让个路。", "对方给了请求。", "你当时正在自己的事情里。"],unknowns:["对方是急，还是习惯这样说话？", "如果不配合，会发生什么？", "你拒绝之后，对方会不会记住你？"],resp:["（对方走过去了，一句多余的话都没有。）", "（你让了。对方第二次经过时，这次说了谢谢。）", "（你让了，但心里记了一笔。）", "（你先问：「你赶时间吗？」对方愣了一下说赶，然后道了谢。）", "（你侧了一下身让开了。对方走了，没说话。）"]},
  ref:['四种让路，四种心情。你允许自己因为「语气」而多不爽一点吗？','无礼的人不值得你反思自己；礼貌的人值得你多让一步。你分得清就行。']},
 
 {id:'r02', dir:['req','power'], lv:4,
@@ -782,7 +807,7 @@ const BANK = [
    re:['「别人怎么没意见？」','「年轻人不要计较这么多。」']},
   {t:'teach', say:'「我是给你机会。这个做了，对你成长有好处。你要感谢这个平台。」', face:'语重心长',
    re:['「我看你还年轻，多干点不吃亏。」','「别不识好歹。」']}
- ],
+ ], fx:{title:"今晚弄一下",facts:["下班前领导把一件不在你安排里的事交给你。", "要求的时间很紧。", "对方没有问你的情况。"],unknowns:["这件事是不是只能你做？", "领导知不知道你今晚有事？", "这是机会还是摊派？"],resp:["（领导：「行，明天中午前给我。」语气缓和了一点。）", "「我可以做，但需要先确认完成标准。」", "「今晚我做不到，明早可以吗？」", "（你接了，同时说明了代价：明天下午会晚一点。）", "（你说：「今天不行。」领导没有再说什么。）"]},
  ref:['「机会」和「摊派」，用同一张嘴说出来。你分得清哪个是哪个吗？','就算拒绝有代价，你也有权先问一句：「代价具体是什么？」']},
 
 {id:'r03', dir:['req','amb'], lv:2,
@@ -797,7 +822,7 @@ const BANK = [
    re:['「不过还是谢了啊。」','「下回仔细点。」']},
   {t:'sincere', say:'「太谢谢你了！真是帮大忙了。这顿我请，你别跟我抢。」', face:'很郑重',
    re:['「下次有事随时叫我啊。」','「真的，谢谢你。」']}
- ],
+ ], fx:{title:"帮完没人说谢",facts:["你帮了一次不小的忙。", "对方全程没说一句谢。", "你也没期待，但那之后记住了。"],unknowns:["对方是真的忘了，还是觉得理所当然？", "如果你不帮，下次还会开口吗？", "你在意的是感谢，还是被平等对待？"],resp:["（对方：「哎对了，那事怎么样了？」）", "「上次那个事，谢一下。」", "「下次有事提前说，我不一定有空。」", "（你说「没事」，但没有下次了。）", "（你没有再帮第二次，也没有说为什么。）"]},
  ref:['没被感谢的帮忙，下次你还会帮吗？答案没有对错，但值得看见。','你的付出不需要用TA的感谢来定值。']},
 
 /* ========== 否定感受 · 煤气灯 ========== */
@@ -815,7 +840,7 @@ const BANK = [
    re:['「说开了就好。」','「下次有意见直接说，别憋着。」']},
   {t:'sincere', say:'「是我让你不舒服了？那你具体说说，我想知道我哪里没做好。」', face:'认真看着你',
    re:['「哦……原来是这样，我确实欠考虑。」','「谢谢你告诉我，不然我永远不知道。」']}
- ],
+ ], fx:{title:"这点事至于吗",facts:["你说了「这件事让我不舒服」。", "对方没有回应具体是哪件事。", "对方的回应绕开了你的感受本身。"],unknowns:["对方是没听懂，还是在拒绝这个话题？", "如果再说一次，对方会回应内容吗？", "你需要的是被理解，还是这件事有结果？"],resp:["（对方：「说开了就好。」）", "「我说的是那件事，不是我的情绪。你先回应哪一件？」", "「我不需要你同意我有情绪，但希望那件事能被处理。」", "（你接受了对方的好意，把这件事放下了。）", "（你说：「那先不聊了。」结束了这个话题。）"]},
  ref:['「至于吗」——至于。你的感受不需要经过量化审批。','多数人不舒服，不等于你的不舒服无效。']},
 
 {id:'d02', dir:['deny','power'], lv:4,
@@ -828,7 +853,7 @@ const BANK = [
    re:['「解释就是掩饰。」','「你先听我说完。」']},
   {t:'polite', say:'「这个方案我有些疑问——不过我先确认下，你刚才是说……这样吗？」', face:'认真核对了你的原话',
    re:['「哦，那是我理解偏了。你继续说。」','「这一版比上一版进步很多。」']}
- ],
+ ], fx:{title:"被转述错了的观点",facts:["会上你的方案被否了。", "对方转述了一个你说过但不是重点的观点。", "你没有机会当场解释。"],unknowns:["是听错了还是理解偏了？", "如果当场解释，对方会听吗？", "这件事会不会被继续当成你的问题？"],resp:["（散会后对方说：「刚才那版，我们私下再对一下。」）", "「刚才有一点被说偏了，我想补充一句。」", "「如果这个结论要落下来，我想先确认一下前提。」", "（你当场点头，会后把补充材料发给了对方。）", "（你记下了，会后单独找了对方一次。）"]},
  ref:['被冤枉 + 没机会说话，双重难受。你可以事后一对一澄清——这不算怂，是策略。','会上没说出口的话，写下来。文字不冻结。']},
 
 /* ========== 事实与推测 ========== */
@@ -840,7 +865,7 @@ const BANK = [
  vs:[
   {t:'plain', say:'（没有任何新消息。）', face:'—',
    re:['（你脑子里TA不回的三种理由，哪一个是证据支持的？）','（也可能TA在开会、在开车、在带娃、在睡觉。你都不知道。）']}
- ],
+ ], fx:{title:"已读之后的两小时",facts:["消息显示已读。", "两小时没有回复。", "期间对方在群里发过表情。"],unknowns:["为什么没回？在开会、在带娃、在开车、还是忘了？", "群里的活跃说明什么？说明不了什么？", "如果是你，你会立刻回吗？"],resp:["（我把手机放下了，去做了别的事。）", "我注意到自己已经给这件事编了第三个理由。", "（我发了另一条消息，说明了不急着回。）", "（我决定明天再问一次，今天不猜了。）", "（我把这条对话标了未读，然后关掉屏幕。）"]},
  ref:['事实：消息已读，两小时没回。','推测：TA不在乎你 / TA在故意晾你 / TA生气了——这些是解释，不是事实。','「已读不回」有很多种原因，你目前一个都无法排除。']},
 
 {id:'a02', dir:['amb'], lv:2, amb:true,
@@ -851,7 +876,7 @@ const BANK = [
  vs:[
   {t:'plain', say:'（上午过去了，没有别的事情发生。）', face:'—',
    re:['（你开始回想：是不是昨天那句话说错了？）','（TA也可能只是胃疼、失眠、被领导骂了。你的屏幕上没有TA的内心。）']}
- ],
+ ], fx:{title:"今天只有点头",facts:["早上打招呼，对方只点了下头。", "昨天你们有过一点小分歧。", "一上午没有别的事情发生。"],unknowns:["对方是记着那件事，还是单纯没睡醒？", "你在意的是这件事，还是昨天那句？", "如果今天问 TA，会得到真话吗？"],resp:["（我照常过了一天，没有再想。）", "我给这件事加的解释已经超过事实本身了。", "（我主动问了一句，对方说昨晚没睡好。）", "（我决定不在心里演这段对话了。）", "（我中午跟 TA 一起吃饭，聊别的，没提这件事。）"]},
  ref:['事实：点头，没说话。','你已经补了几层解释？第一层是什么？第五层是什么？','如果TA只是没睡醒——你这一上午的消耗，花在了哪？']},
 
 {id:'a03', dir:['amb'], lv:3, amb:true,
@@ -862,7 +887,7 @@ const BANK = [
  vs:[
   {t:'plain', say:'（没有任何解释。照片就在那里。）', face:'—',
    re:['（可能手滑，可能构图，可能发了九张放不下第十张。也可能……你补的每一种可能，都只是可能。）','（你想直接问TA吗？）']}
- ],
+ ], fx:{title:"合照里没有你",facts:["合照的九宫格里没有你的正脸。", "你只看到这一张图。", "发图的人没有做任何说明。"],unknowns:["是构图、九张放不下，还是故意的？", "如果去问，对方会承认吗？", "别人看到的是不是你以为的那个版本？"],resp:["（我什么也没说，划走了。）", "我把一张照片读出了三层的意思。", "（我私聊问了一句，对方秒回了「漏发了」。）", "（我把这张图存了下来，但没有反复看。）", "（我没有去问，但把这条关系放进了复盘名单。）"]},
  ref:['事实：九宫格里没有你的正脸。','你推测的版本已经跑到第几层了？','一张照片能承载的解释是无限的——这正是它杀伤力大、信息量小的原因。']},
 
 {id:'a04', dir:['amb','valid'], lv:3, amb:true,
@@ -873,7 +898,7 @@ const BANK = [
  vs:[
   {t:'plain', say:'（群里有人跟着说「辛苦了」。你盯着屏幕。）', face:'—',
    re:['（你手里确实有TA没看到的产出——还是TA其实看到了但不认可？你不知道。）','（明天，你可以拿着结果去找TA聊一次。也可以不聊。但你至少可以分清：没被点名，不等于你做得不好。）']}
- ],
+ ], fx:{title:"表扬名单里没有你",facts:["群里的表扬逐个念了名字。", "名单里没有你。", "你的工作在这个项目里。"],unknowns:["是没看到你的产出，还是看到了但不认可？", "领导是否知道你在等这个？", "直接去问会不会显得计较？"],resp:["（我看完群就关掉了，第二天照常上班。）", "「没被点名」不等于「做得不好」，但今天我确实难受了一会儿。", "（第二天我拿结果去找了对方，对方说：「我明天在会上说。」）", "（我把这个念头记在了记录里，没有发出去。）", "（我没有去问，但把产出整理成了一份能看见的文档。）"]},
  ref:['事实：表扬名单里没有你。','推测：TA针对我 / TA忘了 / 我做得不够好——哪个有证据？','「没被看见」的疼是真的。但疼可以推动你去沟通，而不是先在深夜里审判自己。']},
 
 /* ========== 事后反刍 ========== */
@@ -887,7 +912,7 @@ const BANK = [
    re:['（你现在可以做的：把它写下来——不是发出去，是写给自己的武器库。）','（当场僵住不是怂，是身体的自保。大脑在威胁里选了冻结，这在几万年前救过命。）']},
   {t:'plain', say:'（你想到一句特别好的回应，越来越睡不着。）', face:'—',
    re:['（要不要现在在备忘录里写下来？写完这件事就算「归档」了。）','（你的大脑还没收到「这件事处理完了」的信号，所以它一直循环播放。给它一个收尾动作。）']}
- ],
+ ], fx:{title:"深夜回放那句话",facts:["白天那句话说完了，你当场没有回应。", "你现在在深夜反复回想。", "这句话出自一个你无法当场反驳的场合。"],unknowns:["当场沉默是因为你反应不过来，还是因为不想升级？", "如果重来一次，你希望说什么？", "这件事对你来说真的结束了吗？"],resp:["（我把这句反击写进了备忘录，然后关掉手机。）", "我现在的话都是补的，不是当时真正会说的。", "（我给这件事补了一个收尾动作：明天跟那个人说一句。）", "（我决定不补。有些场合我当时的选择是合理的。）", "（我承认了：我当时没接住，我需要练的是这个。）"]},
  ref:['事后反刍不是记仇，是大脑在等一个「已处理」的回执。','给这件事一个收尾：写下来、跟人说一遍、或者明确决定「不回应」——三种都是收尾。']},
 
 {id:'p02', dir:['replay'], lv:2,
@@ -898,7 +923,7 @@ const BANK = [
  vs:[
   {t:'plain', say:'（消息还亮在屏幕上，等你回复。）', face:'—',
    re:['（如果再遇到类似的话，你的第一句可以说什么？准备一句就够了，不用准备十句。）','（「你为什么这么问？」——一句反问，就能把你从被动位置拉回来。）']}
- ],
+ ], fx:{title:"下周又要见面",facts:["上周你被噎了一句，当场没说话。", "对方又约你周末见面。", "消息现在亮在屏幕上。"],unknowns:["对方是无心的，还是故意的？", "去了会不会又是一样的场面？「去不去」这个选择本身意味着什么？", "你准备好那句话了吗？"],resp:["（我想好了第一句，见面再说。）", "我可以去，也可以不去——两个都可以。", "（我先问了一句「周末有什么事」，对方回：「没什么，就吃饭。」）", "（我决定带上准备好的那一句去。）", "（我回了「这周不太方便」，把见面推了。）"]},
  ref:['你可以去，也可以不去。带着一句准备好的话去，或者一句都不带。','低风险的小练习（拒绝插队、退掉不合身的商品）攒多了，大的场合就不慌了。']},
 
 /* ========== 想被认可的循环 ========== */
@@ -912,7 +937,7 @@ const BANK = [
    re:['（问自己一句：如果TA永远不能理解，你还打算解释到第几遍？）','（你想要的到底是「TA听懂」，还是「TA承认你是对的」？这是两件事。）']},
   {t:'backfire', say:'「行了行了，我知道你想说什么，你就是非要争个对错。」', face:'不耐烦',
    re:['「跟你说话真费劲。」','「随你怎么想吧。」']}
- ],
+ ], fx:{title:"准备解释的第四遍",facts:["你已经解释了三次。", "对方仍然按自己的理解在谈。", "你现在在准备第四遍。"],unknowns:["对方是没听懂还是不想懂？", "你需要的是被理解，还是被承认？", "如果永远得不到，这段关系会怎么样？"],resp:["（我发完了第四段，对方回了个「嗯」。）", "我想要的到底是理解，还是一个认错？", "（我把要说的话压缩成了一句。」我只需要你知道我没有错。」）", "（我放下了手机，第四遍没有发出去。）", "（我说：「这件事我不再解释了。」结束了这个循环。）"]},
  ref:['想被理解是正常的。但「必须被这个人理解」是一个会无限消耗的坑。','解释两遍就够了。第三遍开始，多半不是在沟通，是在讨一个认罪书。']},
 
 {id:'w02', dir:['valid'], lv:3,
@@ -925,7 +950,7 @@ const BANK = [
    re:['（你想要的那个「被看见」，差了点什么。差在哪？）','（如果TA永远给不了这种看见，谁还能给你？你自己能吗？）']},
   {t:'sincere', say:'（你说了。TA抬起头：「真的？说说，怎么做到的？」听完说：「不错，这事你处理得好。」）', face:'认真听完',
    re:['「以后这种事多跟我聊聊。」','「你也提醒我了，我平时关注你们太少了。」']}
- ],
+ ], fx:{title:"说完只得到一个嗯",facts:["你主动说出了这件事。", "对方的回应很淡，然后就转开了话题。", "你需要的是被看见。"],unknowns:["对方是没在意，还是没往心里去？", "如果你不说，这件事会被提起吗？", "除了这个来源，还有谁能看见你？"],resp:["（我又说了一遍，对方这次抬头看了我：「挺好的。」）", "我确认了一件事：我需要的看见，这个人给不了。", "（我自己给自己确认了一遍，写下了三件我做对的事。）", "（我把这条消息删了，决定不再用它换认同。）", "（我说了，对方听了，但我要的其实不只是这一句。）"]},
  ref:['被看见很珍贵，但它不能是你唯一的氧气来源。','今天，你可以做一次「自我确认」：这件事里，你自己最认可自己的是哪一步？写下来。']},
 
 {id:'w03', dir:['valid','label'], lv:4,
@@ -940,7 +965,7 @@ const BANK = [
    re:['「逗你呢。不过这确实不算什么大事。」','「你这人，夸不得。」']},
   {t:'sincere', say:'「挺好的啊！你什么时候变得这么厉害了？」', face:'放下筷子，真的在看你说',
    re:['「细节呢？展开讲讲。」','「早该请客了啊。」']}
- ],
+ ], fx:{title:"被一句这有什么好说的带过",facts:["你分享了一件得意的事。", "对方的回应很轻，一句就带过去了。", "你是先说出口的，所以不好收回。"],unknowns:["对方是真的不觉得这有什么，还是在用低调压你？", "如果你不说，会不会更好受？", "你的开心需不需要别人确认？"],resp:["（我说了第二遍，对方这次问：「真的假的？细节说说。」）", "（我说了句「那我先自己高兴着」，没再接这个话题。）", "「我知道你觉得这不算什么。但我想让你知道。」", "（我把这件事记在了自己的记录里，没有再发给别人。）", "（我以后可能就不太会分享这类事了，这不是谁的问题。）"]},
  ref:['分享欲被浇灭几次之后，人会学会沉默。你可以选择不再分享——也可以选择不把评价权交给TA。','你的得意不需要TA盖章。但被泼冷水的难受，也是真的，不用否认。']},
 
 /* ========== 权力关系 ========== */
@@ -956,7 +981,7 @@ const BANK = [
    re:['「不要有情绪，有情绪就是不服管。」','「行了行了，去工作吧。」']},
   {t:'polite', say:'「具体是谁反映的我不方便说，但不止一个人。你先自己想想。有什么想解释的，你想好了随时来找我。」', face:'还算平静',
    re:['「嗯，我相信你能想明白。」','「去忙吧。」']}
- ],
+ ], fx:{title:"状态有问题",facts:["你被单独叫进办公室。", "对方说了「状态有问题」「态度不行」。", "没有给出任何具体事例。"],unknowns:["「有人反映」是谁？反映的是什么？", "这是评价，还是一次试探？", "如果你当场反驳，会不会更糟？"],resp:["（我说了「具体是指哪件事，您给个例子」，对方想了想说了两条。）", "我需要具体事例才能改。抽象的批评我没法认。", "「如果有具体的事，我改。如果没有，这话我没法接。」", "（我说了「我理解」，但心里记下了日期和原话。）", "（我出了办公室，把经过写了下来，日期时间都在。）"]},
  ref:['「有人反映」是一个不需要举证的指控。你没有义务先自证。','走出办公室后，把经过写下来：日期、原话、你在场说的每一句。这不是记仇，是留证据。']},
 
 {id:'q02', dir:['power','label'], lv:4,
@@ -969,7 +994,7 @@ const BANK = [
    re:['「让你说结论，谁让你解释了？」','「换个人来跟我讲。」']},
   {t:'teach', say:'「你们年轻人啊，就是怕担责任。这个风险不算什么事，大胆干。」', face:'挥手',
    re:['「出了事我担着——哦不，你担着。」','「行了，下一个话题。」']}
- ],
+ ], fx:{title:"我只要结果",facts:["会上你按流程说明了风险。", "对方当众打断了你。", "对方只想要结果。"],unknowns:["对方听进去了吗，还是只想压住场面？", "在场的人怎么看这件事？", "留下书面记录有没有用？"],resp:["（我说了结论，对方「嗯」了一声。）", "风险我说了，决定是你们的，我记录在这里。", "「我可以继续做，但需要按我说的这个方案。」", "（我把风险发成了书面邮件，抄送了在座的人。）", "（我说：「这个风险我不背。」然后停止了当天的推进。）"]},
  ref:['被当众羞辱时，你的沉默可以是策略，你的离开可以是底线。都算回应。','风险提示说过了，记录在案了。剩下的不是你的错。']},
 
 {id:'q03', dir:['power','love'], lv:4,
@@ -982,7 +1007,7 @@ const BANK = [
    re:['「你怎么这么不懂事？我为你好。」','「这事就这么定了。」']},
   {t:'backfire', say:'「我要是不提前安排，你能想到？你什么时候靠谱过？」', face:'摇头',
    re:['「行了行了，别不识好歹。」','「等你感谢我吧。」']}
- ],
+ ], fx:{title:"已经替你安排好了",facts:["对方替你做了一个重大决定。", "这件事没有问过你。", "你是在事后才知道的。"],unknowns:["对方是关心还是控制？", "如果你说不，对方会接受吗？", "这件事已经落地了，还能不能改？"],resp:["（对方愣了一下：「那你说你想怎么办。」）", "「这件事为什么可以替我定？」", "「你可以建议，但决定得我来。」", "（你说：「我知道了。这次先这样。」但没有同意。）", "（你没有当场反对，之后自己去办了手续。）"]},
  ref:['成年人的重大决定，主语应该是自己。','生米已成熟饭——但你可以不点头。不点头不等于撕破脸，它只是不签字。']},
 
 /* ========== 补充：日常高频 ========== */
@@ -998,34 +1023,36 @@ const BANK = [
    re:['（十分钟后话题已经走远了。）','（你打的那段话，像没发出去过。）']},
   {t:'polite', say:'「你这个角度有意思，展开说说？」', face:'认真回复',
    re:['「哦原来是这样，受教了。」','「你这个提法我记一下。」']}
- ],
+ ], fx:{title:"认真回了一句被当空气",title:"认真回了一句被当空气",facts:["你在群里说了一段正经的话。", "有人用一句带刺的话回了。", "之后没有人接你的话。"],unknowns:["对方是开玩笑还是针对你？", "群里的人为什么都没接？", "如果更认真回，会不会显得计较？"],resp:["（对方说：「开个玩笑。」但没有再往下接。）", "我说的那段话，和他回的这句，好像不是一回事。", "「这句不好笑。你可以直接说你的想法。」", "（我补了一句说明，就结束了。）", "（我退出了那个话题，群里继续聊别的。）"]},
  ref:['被阴阳和被无视，哪种更难受？','群里没人接话不等于你说错了。但那种「消失感」是真的。']},
 ];
 
-/* ---------------- 存取 ---------------- */
+/* =====================================================================
+   状态与存取
+===================================================================== */
 const KEY='reltrain_v1';
 let DB=null;
-function load(){ try{ DB=JSON.parse(localStorage.getItem(KEY))||null; }catch(e){ DB=null; }
-  if(!DB) DB={v:1,records:[],muted:{},skips:{},seen:{},lastTones:[],recent:[],lvMin:1,lvMax:5};
-  if(!DB.records)DB.records=[]; if(!DB.muted)DB.muted={}; if(!DB.skips)DB.skips={};
-  if(!DB.seen)DB.seen={}; if(!DB.lastTones)DB.lastTones=[]; if(!DB.recent)DB.recent=[];
+function load(){
+  try{ DB=JSON.parse(localStorage.getItem(KEY))||null; }catch(e){ DB=null; }
+  if(!DB) DB={v:2,records:[],muted:{},skips:{},seen:{},lastTones:[],recent:[],recentVars:[],lvMin:1,lvMax:5,mode:'random'};
+  ['records','muted','skips','seen','lastTones','recent','recentVars'].forEach(k=>{ if(!DB[k]) DB[k]= (k==='records'||k==='lastTones'||k==='recent'||k==='recentVars')?[]:{}; });
+  if(DB.lvMin==null)DB.lvMin=1; if(DB.lvMax==null)DB.lvMax=5; if(!DB.mode)DB.mode='random';
   return DB;
 }
 function save(){
-  if(DB.records.length>400) DB.records=DB.records.slice(-400);
+  if(DB.records.length>500) DB.records=DB.records.slice(-500);
   try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){ toast('存储失败，本机空间可能不足'); }
   try{ parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){}
 }
 
-/* ---------------- 抽题生成 + 筛选模式 ---------------- */
-let CUR=null;           // 当前情境实例
-let PHASE='react';      // react / resp / talk / rev
-let MODE='random';      // random 随机 / seq 顺序 / new 只练没做过的 / redo 重练同一情境
-let FILTER=null;        // 方向 id 或 null
-let seqIdx=0;
+/* =====================================================================
+   抽题：母题 × 语气版本 × 关系/环境/状态
+===================================================================== */
+let S=null;            // 当前情境实例
+let STAGE=1;           // 1 第一反应 → 2 回应 → 3 场景继续 → 4 复盘
+let FILTER=null;
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 
-/* 当前可见题库：受方向筛选 + 静音 + 难度范围三重约束 */
 function activeBank(){
   return BANK.filter(t=>{
     if(FILTER && t.dir.indexOf(FILTER)<0) return false;
@@ -1034,452 +1061,330 @@ function activeBank(){
     return true;
   });
 }
+function fillFact(t){ return t.fact.replace(/\{W\}/g,t.who); }
 
-function drawInstance(forceTpl){
+function newScenario(same){
   const all=activeBank();
   if(!all.length) return null;
-  let src=null;
-  if(forceTpl){ src = all.find(t=>t.id===forceTpl) || BANK.find(t=>t.id===forceTpl); }
-  else if(MODE==='seq'){ src = all[seqIdx % all.length]; seqIdx++; }
-  else if(MODE==='new'){ const fresh=all.filter(t=>!(DB.seen[t.id]>0)); src=pick(fresh.length?fresh:all); }
-  else if(MODE==='redo'){ const done=all.filter(t=>DB.seen[t.id]>0); src=pick(done.length?done:all); }
-  else { const pool=all.filter(t=>DB.recent.indexOf(t.id)<0); src=pick(pool.length?pool:all); }
-  if(!src) return null;
-  // 语气版本：避开最近用过的语气
-  let vs = src.vs.slice();
-  const fresh = vs.filter(v=>DB.lastTones.indexOf(v.t)<0);
-  const v = pick(fresh.length?fresh:vs);
+  let tpl=null;
+  if(same && S) tpl = all.find(t=>t.id===S.tpl.id) || BANK.find(t=>t.id===S.tpl.id) || all[0];
+  else if(DB.mode==='seq'){ const i=(DB.seqIdx||0)%all.length; DB.seqIdx=(DB.seqIdx||0)+1; tpl=all[i]; }
+  else if(DB.mode==='new'){ const f=all.filter(t=>!(DB.seen[t.id]>0)); tpl=pick(f.length?f:all); }
+  else { const f=all.filter(t=>DB.recent.indexOf(t.id)<0); tpl=pick(f.length?f:all); }
+  if(!tpl) return null;
+
+  // 语气版本：避开最近三次用过的语气
+  let vs=tpl.vs.slice();
+  const fresh=vs.filter(v=>DB.lastTones.indexOf(v.t)<0);
+  const v=pick(fresh.length?fresh:vs);
+  // 关系/环境/状态：也避开最近两次，形成「连续不重复」
+  const av=key=>{ const used=DB.recentVars.slice(-2).map(x=>x[key]); const f=(tpl[key]||[]).filter(x=>used.indexOf(x)<0); return pick(f.length?f:(tpl[key]||[null])); };
+
   DB.lastTones.push(v.t); DB.lastTones=DB.lastTones.slice(-3);
-  DB.seen[src.id]=(DB.seen[src.id]||0)+1;
-  DB.recent.push(src.id); DB.recent=DB.recent.slice(-6);
+  DB.seen[tpl.id]=(DB.seen[tpl.id]||0)+1;
+  DB.recent.push(tpl.id); DB.recent=DB.recent.slice(-5);
+  const inst={ tpl:tpl, v:v, rel:av('rel'), ctx:av('ctx'), st:av('st') };
+  DB.recentVars.push({id:tpl.id,rel:inst.rel,ctx:inst.ctx,st:inst.st,tone:v.t});
+  DB.recentVars=DB.recentVars.slice(-10);
   save();
-  return {tpl:src, v:v, rel:src.rel?pick(src.rel):null, ctx:src.ctx?pick(src.ctx):null, st:src.st?pick(src.st):null,
-          react:{body:[],emo:[],thought:'',impulse:[]}, resp:[], other:[], rounds:0, ended:false};
-}
 
-function fillFact(t){
-  return t.fact.replace(/\{W\}/g, t.who);
+  S=inst; STAGE=1;
+  F={body:[],first:'',emo:'',thought:'',imp:'',act:'',say:'',act2:''};
+  return inst;
 }
-function sceneHTML(inst, compact){
-  const t=inst.tpl, v=inst.v;
-  let chips='';
-  if(!compact){
-    if(inst.rel) chips+='<span class="chip">关系：'+inst.rel+'</span>';
-    if(inst.ctx) chips+='<span class="chip">环境：'+inst.ctx+'</span>';
-    if(inst.st) chips+='<span class="chip">你当时：'+inst.st+'</span>';
-  }
-  const nth = DB.seen[t.id]||1;
-  let head = '<div class="qhead">'
-    + t.dir.map(d=>'<span class="chip dir">'+DIRS[d].n+'</span>').join('')
-    + '<span class="chip lv">难度 '+t.lv+'</span>'
-    + (nth>1?'<span class="chip nth">第 '+nth+' 次遇到</span>':'')
-    + chips + '</div>';
-  let body='<div class="scene"><span class="fact">'+esc(fillFact(t)).replace(t.who,'<span class="who">'+t.who+'</span>')+'</span>';
-  if(v && v.say) body+='<span class="say">'+esc(v.say)+'</span>';
-  if(v && v.face && v.face!=='—') body+='<span class="face">（表情/语气：'+esc(v.face)+'）</span>';
-  body+='</div>';
-  return head+body;
-}
+let F=null;           // 本轮填写内容
 
-/* ---------------- 卡牌视图 ---------------- */
-function renderDeck(keepTpl){
-  const inst=drawInstance(keepTpl);
-  if(!inst){ $('cardstack').innerHTML='<div class="panel"><div class="empty">这个范围里没有可用的情境了（可能全部被静音，或难度筛选太窄）。'
-    +'去「首页」放宽筛选，或到「设置」重新打开方向。</div></div>';
-    $('practiceWrap').style.display='none'; return; }
-  CUR=inst;
-  const nth=DB.seen[inst.tpl.id]||1;
-  $('cardstack').innerHTML =
-    '<div class="qcard" id="qcard">'+ sceneHTML(inst)
-    + '<div class="cardacts">'
-    + '<button class="btn primary" onclick="startTrain()">走进这个情境 &#8594;</button>'
-    + '<button class="btn" onclick="regenSame()">&#10227; 换一版</button>'
-    + '<button class="btn ghost" onclick="skipCard(1)">划走</button>'
-    + '</div>'
-    + (nth>1?'<div class="hintline">同一个情境你已经来过 '+(nth-1)+' 次。看看这次有什么不同。</div>':'<div class="hintline">下面就是练习区，可以直接开始写；不想看就收起。</div>')
-    + '</div>';
-  bindSwipe();
-  resetPractice();
-}
-
-/* 练习区：默认展开；每张新卡都重置成初始状态 */
-function resetPractice(){
-  ['inBody','inEmo','inThought','inImp','inResp','inResp2','inNote'].forEach(id=>{ if($(id)) $(id).value=''; });
-  buildChips('chBody', CHIPS_BODY);
-  buildChips('chEmo', CHIPS_EMO);
-  buildChips('chImp', CHIPS_IMP);
-  buildOpeners();
-  hide('stepTalk'); hide('stepRev');
-  show('stepReact'); show('stepResp');
-  if($('reactBrief')) $('reactBrief').innerHTML='';
-  PHASE='react';
-  setPractice(!DB.practiceFolded);
-}
-function setPractice(open){
-  const w=$('practiceWrap'); if(!w) return;
-  w.style.display = open? '' : 'none';
-  const b=$('foldBtn'); if(b) b.innerHTML = open? '&#9650; 收起下方练习区' : '&#9660; 展开练习区';
-}
-function togglePractice(){ DB.practiceFolded=!DB.practiceFolded; save(); setPractice(!DB.practiceFolded); }
-
-function skipCard(dir){
-  const el=$('qcard');
-  if(el && dir!==0){ el.style.transform='translateX('+(dir*-120)+'px)'; el.style.opacity='0'; }
-  if(CUR){ DB.skips[CUR.tpl.id]=(DB.skips[CUR.tpl.id]||0)+1; save(); }
-  setTimeout(function(){ renderDeck(); }, dir!==0?180:0);
-}
-
-function regenSame(){
-  // 换一版：回到同一个母题，换语气/关系/环境/状态
-  const id=CUR?CUR.tpl.id:null;
-  if(id){ DB.seen[id]=(DB.seen[id]||1)-1; }   // 换一版不重复计数
-  renderDeck(id);
-}
-
-/* 滑动 */
-function bindSwipe(){
-  const el=$('qcard'); if(!el) return;
-  let sx=0, dx=0, on=false;
-  el.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; on=true; el.classList.add('swiping'); },{passive:true});
-  el.addEventListener('touchmove',e=>{ if(!on)return; dx=e.touches[0].clientX-sx; el.style.transform='translateX('+dx*0.9+'px)'; el.style.opacity=String(Math.max(0.3,1-Math.abs(dx)/300)); },{passive:true});
-  el.addEventListener('touchend',()=>{ if(!on)return; on=false; el.classList.remove('swiping');
-    if(dx<-70){ el.style.transform='translateX(-130%)'; el.style.opacity='0'; setTimeout(()=>skipCard(1),150); }
-    else if(dx>70){ setTimeout(()=>skipCard(-1),150); }
-    else { el.style.transform=''; el.style.opacity=''; }
-    dx=0; });
-}
-
-/* ---------------- 训练流程 ---------------- */
-function startTrain(){
-  // 练习区本来就是展开的，这里只做「定位 + 提示」，不再藏来藏去
-  if(DB.practiceFolded){ DB.practiceFolded=false; save(); }
-  setPractice(true);
-  PHASE='react';
-  if(CUR.tpl.amb){ $('inThought').placeholder='比如：TA是不是看不起我 / 我是不是哪里得罪TA了……（先把「看到的」和「猜的」分开）'; }
-  else { $('inThought').placeholder='脑子里闪过的那句话…'; }
-  try{ const p=$('inBody'); if(p) p.focus({preventScroll:true}); }catch(e){}
-  try{ $('stepReact').scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-  toast('先写下被触发的那一瞬间，不用挑「对的」');
-}
-function saveReactDraft(){
-  const get=(id)=>$(id)?$(id).value.trim():'';
-  CUR.react.body=get('inBody'); CUR.react.emo=get('inEmo');
-  CUR.react.thought=get('inThought'); CUR.react.impulse=get('inImp');
-}
-const CHIPS_BODY=['胸口发紧','喉咙堵','肩膀耸起来','手心出汗','胃里一沉','脸发热','呼吸变浅','没特别感觉'];
-const CHIPS_EMO=['烦躁','愤怒','委屈','羞','慌','闷','厌恶','不甘','心虚','没情绪'];
-const CHIPS_IMP=['怼回去','解释清楚','直接离开','忍住不说','讲道理','冷处理','反问TA','想哭'];
-function buildChips(elId, arr){
-  const el=$(elId); el.innerHTML='';
-  arr.forEach(x=>{
-    const b=document.createElement('button'); b.className='tchip'; b.textContent=x; b.type='button';
-    b.onclick=()=>{ b.classList.toggle('on'); };
-    el.appendChild(b);
-  });
-}
-function collectChips(elId){
-  const el=$(elId); const out=[];
-  el.querySelectorAll('.tchip.on').forEach(b=>out.push(b.textContent));
-  return out;
-}
-
-function toRespond(){
-  saveReactDraft();
-  CUR.react.bodyChips=collectChips('chBody'); CUR.react.emoChips=collectChips('chEmo'); CUR.react.impChips=collectChips('chImp');
-  PHASE='resp';
-  // 把「你的瞬间」压成一行放在回应框上方，做对照用
-  const bits=[];
-  const join=(a,b)=>[].concat(a||[], b?[b]:[]).filter(Boolean).join('、');
-  const bTxt=join(CUR.react.bodyChips, CUR.react.body);
-  const eTxt=join(CUR.react.emoChips, CUR.react.emo);
-  const iTxt=join(CUR.react.impChips, CUR.react.impulse);
-  if(bTxt) bits.push('身体 '+bTxt);
-  if(eTxt) bits.push('情绪 '+eTxt);
-  if(CUR.react.thought) bits.push('念头 '+CUR.react.thought);
-  if(iTxt) bits.push('冲动 '+iTxt);
-  const br=$('reactBrief');
-  if(br) br.innerHTML = bits.length? ('<div class="brief"><b>你的瞬间</b>'+esc(bits.join(' ｜ '))+'</div>') : '';
-  try{ const p=$('inResp'); if(p) p.focus({preventScroll:true}); }catch(e){}
-  toast('想怎么说都行；什么都不说，也是一种回应');
-}
-const OPENERS=['你为什么这么说？','你这句话是什么意思？我没听懂。','我不太喜欢这个说法。','嗯，我知道了。','（不说话，看着TA）','这件事我想一下再说。'];
-function buildOpeners(){
-  const el=$('openers'); el.innerHTML='';
-  OPENERS.forEach(x=>{ const b=document.createElement('button'); b.className='tchip'; b.textContent=x; b.type='button';
-    b.onclick=()=>{ const t=$('inResp'); t.value = t.value? t.value+' '+x : x; t.focus(); }; el.appendChild(b); });
-}
-
-function transHTML(withReactions){
-  let h='<div class="mrow na"><span class="tag">情境</span><span class="bubble">'+esc(fillFact(CUR.tpl))+'</span></div>';
-  if(CUR.v&&CUR.v.say) h+='<div class="mrow other"><span class="tag">'+esc(CUR.tpl.who)+'</span><span class="bubble">'+esc(CUR.v.say)+'</span></div>';
-  if(withReactions){
-    const r=CUR.react;
-    const bits=[];
-    if(r.body||r.bodyChips&&r.bodyChips.length) bits.push('身体：'+[].concat(r.bodyChips||[], r.body?[r.body]:[]).join('、'));
-    if(r.emo||r.emoChips&&r.emoChips.length) bits.push('情绪：'+[].concat(r.emoChips||[], r.emo?[r.emo]:[]).join('、'));
-    if(r.thought) bits.push('念头：'+r.thought);
-    if(r.impulse||r.impChips&&r.impChips.length) bits.push('冲动：'+[].concat(r.impChips||[], r.impulse?[r.impulse]:[]).join('、'));
-    if(bits.length) h+='<div class="mrow you"><span class="tag">你的瞬间</span><span class="bubble">'+esc(bits.join(' ｜ '))+'</span></div>';
-  }
-  CUR.resp.forEach((r,i)=>{
-    h+='<div class="mrow '+(r.said?'you':'na')+'"><span class="tag">你</span><span class="bubble">'+esc(r.said?(r.text+'（说出口）'):(r.left?'（转身离开了场景）':'（沉默，没有回应）'))+'</span></div>';
-    if(r.other) h+='<div class="mrow other"><span class="tag">'+esc(CUR.tpl.who)+'</span><span class="bubble">'+esc(r.other)+'</span></div>';
-  });
-  return h;
-}
-
-function speak(silent, left){
-  const src = $(PHASE==='talk'?'inResp2':'inResp');
-  const txt = silent||left ? '' : (src?src.value.trim():'');
-  if(!silent && !left && !txt){ toast('想说什么就写下来；什么都不说就用「不回应」'); return; }
-  const rec={said:!silent&&!left, text:txt, silent:!!silent, left:!!left, other:null};
-  CUR.resp.push(rec);
-  CUR.rounds++;
-  // 对方接话
-  if(!left && CUR.rounds<=3){
-    const fb=FALLBACK[CUR.v.t]||['……','……'];
-    const custom=(CUR.v.re&&CUR.v.re[CUR.rounds-1])||fb[(CUR.rounds-1)%fb.length];
-    rec.other = CUR.v.t==='plain'? null : custom;
-  }
-  if(left || CUR.rounds>=3 || !rec.other){ toReview(); return; }
-  PHASE='talk';
-  $('trans2').innerHTML=transHTML(true);
-  $('inResp2').value='';
-  show('stepTalk');
-  try{ $('stepTalk').scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-}
-function speakSilent(){ speak(true,false); }
-function leaveScene(){ speak(false,true); }
-
-/* ---------------- 复盘 ---------------- */
-const CHECKS=[
-  '这里混进了我的推测——我分得清哪些是看到的、哪些是我猜的',
-  '我在表达自己，而不是试图改变对方',
-  '我在保护边界，而不是想赢',
-  '我有一点压抑自己',
-  '我把这件小事扩大成了对TA这个人的整体判断',
-  '我特别想让TA承认我是对的',
-  '过程里我的情绪有变化（变强或减弱）',
-  '我知道自己下一步真正想做什么'
-];
-function toReview(){
-  PHASE='rev';
-  ['stepReact','stepResp','stepTalk'].forEach(id=>hide(id));   // 复盘区已含完整过程回放
-  try{ $('practiceWrap').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
-  $('trans3').innerHTML=transHTML(true);
-  $('toneReveal').innerHTML = CUR.v&&CUR.v.t&&CUR.v.t!=='plain'
-    ? ('这一版的对方语气是：<b style="color:var(--accent)">'+TONE_NAME[CUR.v.t]+'</b>。同一情境还有别的版本，下次遇到可能完全不同。')
-    : '这一题没有台词——因为触发你的不是一句话，是信息不全的场景本身。';
-  const cl=$('checkList'); cl.innerHTML='';
-  CHECKS.forEach((c,i)=>{
-    const lab=document.createElement('label'); lab.className='checkrow';
-    lab.innerHTML='<input type="checkbox" id="ck'+i+'"><span>'+c+'</span>';
-    cl.appendChild(lab);
-  });
-  $('inNote').value='';
-  $('revHint').innerHTML = revRefHTML();
-  show('stepRev');
-  // 存记录
-  DB.records.push(snapshot());
-  save();
-}
-function revRefHTML(){
-  const t=CUR.tpl;
-  const lines=(t.ref||[]).map(x=>'· '+x).join('<br>');
-  const isAmb=t.amb? '<br><b>事实 vs 推测：</b>回看「你的瞬间」——身体和情绪是事实，念头几乎都是解释。解释不是罪，但要认得出它是你加的。':'';
-  return lines? ('<b>观察镜（不是标准答案，只是角度）</b><br>'+lines+isAmb) : isAmb;
-}
-function snapshot(){
-  const r=CUR.react, now=new Date();
-  return {id:Date.now()+''+Math.floor(Math.random()*1000), ts:now.getTime(), date:now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate(),
-    tid:CUR.tpl.id, who:CUR.tpl.who, dirs:CUR.tpl.dir, lv:CUR.tpl.lv, amb:!!CUR.tpl.amb,
-    tone:CUR.v?CUR.v.t:'none', rel:CUR.rel, ctx:CUR.ctx, st:CUR.st,
-    scene:fillFact(CUR.tpl), say:CUR.v?CUR.v.say:'',
-    body:[].concat(CUR.react.bodyChips||[], r.body?[r.body]:[]).join('、'),
-    emo:[].concat(CUR.react.emoChips||[], r.emo?[r.emo]:[]).join('、'),
-    thought:r.thought||'', imp:[].concat(CUR.react.impChips||[], r.impulse?[r.impulse]:[]).join('、'),
-    resp:CUR.resp.map(x=>({said:x.said, text:x.text, silent:!!x.silent, left:!!x.left, other:x.other})),
-    note:'', checks:[], skipped:false};
-}
-function finishReview(){
-  const note=$('inNote').value.trim(); const checks=[];
-  CHECKS.forEach((c,i)=>{ const ck=$('ck'+i); if(ck&&ck.checked) checks.push(c); });
-  const rec=DB.records[DB.records.length-1];
-  if(rec && rec.tid===CUR.tpl.id){ rec.note=note; rec.checks=checks; save(); }
-  toast('记下了。这不是打分，是帮你下次更快看见自己');
-  renderDeck();
-}
-function muteThis(){
-  const t=CUR.tpl;
-  const names=t.dir.map(d=>DIRS[d].n).join('、');
-  const go=confirm('把方向【'+names+'】全部设为「不再出现」？\n\n（设置里随时可以重新打开）');
-  if(!go) return;
-  t.dir.forEach(d=>DB.muted[d]=true);
-  save();
-  toast('已静音：'+names);
-  renderDeck();
-}
-
-/* ---------------- 记录视图 ---------------- */
-function renderLog(){
-  const rs=DB.records.slice().reverse();
-  $('sumLine').textContent='共 '+rs.length+' 次练习 · 跳过 '+(DB.skips?Object.values(DB.skips).reduce((a,b)=>a+b,0):0)+' 次';
-  // 方向统计
-  let sh='';
-  Object.keys(DIRS).forEach(d=>{
-    const n=DB.records.filter(r=>r.dirs.indexOf(d)>=0).length;
-    const muted=!!DB.muted[d];
-    sh+='<div class="stat'+(muted?' muted':'')+'"><b>'+DIRS[d].n+'</b><span class="c">'+(muted?'已静音 · ':'')+n+' 次练习</span></div>';
-  });
-  $('statGrid').innerHTML=sh||'<div class="empty">还没有记录</div>';
-  // 最近记录
-  let lh='';
-  rs.slice(0,30).forEach(r=>{
-    const emo = r.emo? r.emo : '（没记情绪）';
-    lh+='<div class="recitem" onclick="this.classList.toggle(\'open\')">'
-      +'<div class="head"><b>'+esc(r.date)+' · '+r.dirs.map(d=>DIRS[d]?DIRS[d].n:d).join('/')+'</b><span>'+TONE_NAME[r.tone]+'</span></div>'
-      +'<div style="color:var(--sub);font-size:11.5px;margin-top:2px;">情绪：'+esc(emo)+'</div>'
-      +'<div class="body">'
-      +'<div class="ln"><i>情境</i>'+esc(r.scene)+(r.say?(' —— '+esc(r.say)):'')+'</div>'
-      +(r.body?'<div class="ln"><i>身体</i>'+esc(r.body)+'</div>':'')
-      +(r.emo?'<div class="ln"><i>情绪</i>'+esc(r.emo)+'</div>':'')
-      +(r.thought?'<div class="ln"><i>念头</i>'+esc(r.thought)+'</div>':'')
-      +(r.imp?'<div class="ln"><i>冲动</i>'+esc(r.imp)+'</div>':'')
-      + r.resp.map(x=>'<div class="ln"><i>'+(x.said?'你说了':(x.left?'你离开':'你沉默'))+'</i>'+esc(x.text||'')+(x.other?('<br><i>'+esc('对方')+'</i>'+esc(x.other)):'')+'</div>').join('')
-      +(r.checks&&r.checks.length?('<div class="ln"><i>复盘</i>'+r.checks.map(esc).join('；')+'</div>'):'')
-      +(r.note?'<div class="ln"><i>想说</i>'+esc(r.note)+'</div>':'')
-      +'</div></div>';
-  });
-  $('recList').innerHTML= lh||'<div class="empty">还没有记录。去「训练」开始第一次。</div>';
-}
-
-/* ---------------- 设置视图 ---------------- */
-function renderSet(){
-  let h='';
-  Object.keys(DIRS).forEach(d=>{
-    const on=!DB.muted[d];
-    h+='<div class="checkrow"><input type="checkbox" '+(on?'checked':'')+' onchange="toggleDir(\''+d+'\',this.checked)"><span>'+DIRS[d].n+'</span></div>';
-  });
-  $('dirToggles').innerHTML=h;
-  $('lvMin').value=DB.lvMin; $('lvMax').value=DB.lvMax;
-}
-function toggleDir(d,on){ if(on) delete DB.muted[d]; else DB.muted[d]=true; save(); }
-function saveLv(){
-  let a=parseInt($('lvMin').value)||1, b=parseInt($('lvMax').value)||5;
-  if(a>b){const t=a;a=b;b=t;} a=Math.max(1,a); b=Math.min(5,b);
-  DB.lvMin=a; DB.lvMax=b; save(); toast('难度范围：'+a+' ~ '+b);
-}
-function exportData(){
-  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='关系训练记录_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
-  toast('已导出');
-}
-function wipeData(){
-  const go=confirm('确定清空全部练习记录吗？（情境卡不会丢，只是记录归零）');
-  if(!go) return;
-  const go2=confirm('再次确认：记录清空后无法恢复。');
-  if(!go2) return;
-  DB.records=[]; DB.seen={}; DB.skips={}; save(); toast('已清空'); renderLog();
-}
-
-/* ---------------- 首页 ---------------- */
-function startMode(m){
-  MODE=m; seqIdx=0;
-  if(m==='new'){ toast('只抽你还没练过的情境'); }
-  else if(m==='seq'){ toast('按顺序来：从第 1 题往后走'); }
-  else if(m==='redo'){ toast('挑你练过的情境，换一版再来'); }
-  else { toast('随机抽一张，开始'); }
-  switchView('train');
-  renderDeck();
-}
-function pickFilter(d){
-  FILTER = (FILTER===d)? null : d;
-  renderHome();
-  const txt = FILTER? DIRS[FILTER].n : '全部方向';
-  toast(FILTER? ('已选定方向：'+txt+'，按上面的入口开始') : '不限方向了');
-}
-function setLv(a,b){
-  DB.lvMin=a; DB.lvMax=b; save(); renderHome();
-  toast('难度范围：'+a+' ~ '+b);
-}
-function renderHome(){
-  // 顶部统计
-  const skipN = DB.skips? Object.values(DB.skips).reduce((a,b)=>a+b,0) : 0;
-  const metN  = Object.keys(DB.seen).filter(id=>DB.seen[id]>0 && BANK.some(t=>t.id===id)).length;
-  const visible = activeBank().length;
-  $('homeStats').innerHTML =
-    [ [DB.records.length,'累计练习'],
-      [metN+' / '+BANK.length,'遇过的情境'],
-      [visible,'当前可练'],
-      [skipN,'累计划走'],
-      [Object.keys(DB.muted).filter(k=>DB.muted[k]).length,'已静音方向']
-    ].map(x=>'<div class="sbox"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('');
-  $('curFilterTxt').textContent = '当前：' + (FILTER? DIRS[FILTER].n : '全部方向')
-    + ' · 难度 ' + DB.lvMin + '~' + DB.lvMax + ' · 共 ' + visible + ' 个情境可用';
-
-  // 难度档
-  const segs=[['全部',1,5],['轻微 1-2',1,2],['中等 3',3,3],['强烈 4-5',4,5]];
-  $('lvSeg').innerHTML = segs.map(s=>{
-    const on = (DB.lvMin===s[1] && DB.lvMax===s[2]);
-    return '<button class="seg'+(on?' on':'')+'" onclick="setLv('+s[1]+','+s[2]+')">'+s[0]+'</button>';
-  }).join('');
-
-  // 方向卡
-  let h='<div class="dcard'+(FILTER===null?'':' off')+'" onclick="if(FILTER)pickFilter(FILTER)">'
-      + '<div class="dn">全部方向 <em>'+BANK.length+' 个母题</em></div>'
-      + '<div class="dm">不挑，什么来什么——最贴近现实的练法</div></div>';
-  Object.keys(DIRS).forEach(d=>{
-    const ts = BANK.filter(t=>t.dir.indexOf(d)>=0);
-    const doneTs = ts.filter(t=>DB.seen[t.id]>0).length;
-    const pct = ts.length? Math.round(doneTs/ts.length*100) : 0;
-    const n = DB.records.filter(r=>r.dirs.indexOf(d)>=0).length;
-    const muted = !!DB.muted[d];
-    h+='<div class="dcard'+(muted?' off':'')+(FILTER===d?'':'')+'" onclick="pickFilter(\''+d+'\')">'
-      +'<div class="dn">'+DIRS[d].n+' <em>'+ts.length+' 题</em></div>'
-      +'<div class="dm">练过 '+n+' 次 ·  '+doneTs+'/'+ts.length+' 个情境已遇到'+(muted?' · 已静音':'')+'</div>'
-      +'<div class="bar"><span style="width:'+pct+'%"></span></div>'
-      +'</div>';
-  });
-  $('homeDirs').innerHTML=h;
-
-  // 最近
-  const rs=DB.records.slice().reverse().slice(0,4);
-  $('homeRecent').innerHTML = rs.length? rs.map(r=>
-      '<div class="recitem"><div class="head"><b>'+esc(r.date)+' · '+r.dirs.map(d=>DIRS[d]?DIRS[d].n:d).join('/')+'</b>'
-      +'<span>'+TONE_NAME[r.tone]+'</span></div>'
-      +'<div style="color:var(--sub);font-size:11.5px;margin-top:2px;">'+(r.emo?('情绪：'+esc(r.emo)):'（没记情绪）')+'</div></div>').join('')
-    : '<div class="empty">还没有记录。挑一个入口开始吧。</div>';
-}
-
-/* ---------------- 基础 ---------------- */
+/* =====================================================================
+   渲染：情境卡（分步）
+===================================================================== */
 function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function show(id){ const e=$(id); if(e) e.style.display=''; }
 function hide(id){ const e=$(id); if(e) e.style.display='none'; }
-function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function switchView(v){
-  ['home','train','log','set'].forEach(x=>hide('view-'+x));
-  show('view-'+v);
-  ['H','T','L','S'].forEach(x=>$('nav'+x).classList.remove('on'));
-  $('nav'+(v==='home'?'H':v==='train'?'T':v==='log'?'L':'S')).classList.add('on');
-  if(v==='log') renderLog();
-  if(v==='set') renderSet();
-  if(v==='home') renderHome();
-  if(v==='train' && !CUR) renderDeck();
+
+function renderCard(){
+  if(!S){ $('card').innerHTML='<div class="panel"><div class="empty">当前筛选下没有可用情境。去「题库地图」放宽难度，或重新打开已静音的方向。</div></div>'; return; }
+  const t=S.tpl, v=S.v, nth=DB.seen[t.id]||1;
+  $('stageLabel').textContent = 'STAGE 0'+STAGE+' / 04';
+
+  let h='<article class="session">';
+  /* 顶部 */
+  h+='<div class="sess-top"><div><div class="sid">SCENARIO / '+esc(t.id.toUpperCase())+(nth>1?' · 第 '+nth+' 次':'')+'</div>'
+    +'<h3>'+esc(tTitle(t))+'</h3></div>'
+    +'<div class="chips">'
+    + t.dir.map(d=>'<span class="chip a">'+esc(DIRS[d].n)+'</span>').join('')
+    + '<span class="chip m">难度 '+t.lv+'</span>'
+    + (t.amb?'<span class="chip t">信息不完整</span>':'')
+    + (inst_rel()?'<span class="chip">'+esc(inst_rel())+'</span>':'')
+    + (inst_ctx()?'<span class="chip">'+esc(inst_ctx())+'</span>':'')
+    + (inst_st()?'<span class="chip">'+esc(inst_st())+'</span>':'')
+    +'</div></div>';
+  /* 场景 */
+  h+='<div class="scene"><span class="who">'+esc(t.who)+'</span>在'+ (S.ctx?esc(S.ctx)+'，':'') +'对你说——'
+    + '<span class="say">'+esc(v.say||'（这一刻没有台词）')+'</span>'
+    + (v.face&&v.face!=='—'?'<span class="face">（表情 / 语气：'+esc(v.face)+'）</span>':'')
+    + '</div>';
+  /* 第一反应之前的引导 */
+  h+='<div class="scene" style="padding-top:0;">'+esc(t.fact.replace(/\{W\}/g,t.who))+'</div>';
+
+  /* 事实 / 未知：进入回应阶段后才揭晓 */
+  if(STAGE>=3){
+    h+='<div class="facts">'
+      + '<div class="factbox"><strong>场景里明确发生的</strong>'+ t.fx.facts.map(x=>'<p>'+esc(x)+'</p>').join('') +'</div>'
+      + '<div class="factbox unknown"><strong>此刻仍然不知道的</strong>'+ t.fx.unknowns.map(x=>'<p>'+esc(x)+'</p>').join('') +'</div>'
+      + '</div>';
+  }
+
+  /* 01 第一反应 */
+  h+='<div class="step"><div class="step-h"><span class="n">01</span><b>这一瞬间，你有什么反应？</b><span>先写原始反应，不用合理化。</span></div>'
+    + '<div class="tags">'+['胸口发紧 / 喉咙堵 / 手心出汗','生气 / 委屈 / 厌恶 / 慌','「他凭什么这样」','想解释 / 反击 / 离开 / 忍着']
+      .map((x,i)=>'<button class="tag'+(F.body.indexOf(i)>=0?' on':'')+'" data-b="'+i+'">'+x+'</button>').join('')+'</div>'
+    + '<textarea id="fFirst" placeholder="我注意到……">'+esc(F.first)+'</textarea>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">'
+    + '<input id="fThought" type="text" placeholder="第一念头" value="'+esc(F.thought)+'" style="border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:13px;">'
+    + '<input id="fImp" type="text" placeholder="第一冲动" value="'+esc(F.imp)+'" style="border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:13px;">'
+    + '</div>'
+    + '<div class="step-acts"><span class="micro">可以只写几个词：身体、情绪、念头、冲动。</span>'
+    + (STAGE<2? '<button class="btn primary sm" id="bSave1">记录第一反应</button>'
+              : '<button class="btn sm" id="bEdit1">改一下</button>')+'</div></div>';
+
+  /* 02 回应 */
+  if(STAGE>=2){
+    h+='<div class="step" style="background:#fcfaf6;"><div class="step-h"><span class="n">02</span><b>你想怎么回应？</b><span>不是找标准答案，只选择你愿意承担的行动。</span></div>'
+      + '<div class="tags">'+ACTIONS.map(x=>'<button class="tag t'+(F.act===x?' on':'')+'" data-a="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>'
+      + '<textarea id="fSay" placeholder="如果要说一句话，你现在会怎么说？">'+esc(F.say)+'</textarea>'
+      + '<div class="step-acts"><span class="micro">你可以生气，也可以暂时不说。行动不必等情绪消失。</span>'
+      + '<button class="btn primary sm" id="bSave2">让场景继续</button></div></div>';
+  }
+
+  /* 03 对方接话 */
+  if(STAGE>=3 && F.cont){
+    h+='<div class="cont"><div class="spk">对方的下一句</div><p>'+esc(F.cont)+'</p>'
+      + '<textarea id="fSay2" placeholder="你还可以再说一句，或者到这里为止">'+esc(F.act2)+'</textarea>'
+      + '<div class="step-acts"><span class="micro">对方的解释不一定需要你接受。你可以继续问，也可以结束。</span>'
+      + '<button class="btn primary sm" id="bSave3">我会这样回应</button></div></div>';
+  }
+
+  /* 04 复盘 */
+  if(STAGE>=4){
+    h+='<div class="refl"><h4><span>✦</span>结束前，留三十秒给自己</h4>'
+      + '<div class="tri">'
+      + '<div><strong>事实</strong><p>'+esc(t.fx.facts.join('；'))+'</p></div>'
+      + '<div><strong>我的状态</strong><p>'+esc(myState())+'</p></div>'
+      + '<div><strong>解释 / 推测</strong><p>'+esc(F.thought||'（这一步你留白了——留白也是一种观察）')+'</p></div>'
+      + '</div>'
+      + '<div class="step-h" style="margin-bottom:9px;"><span class="n">03</span><b>这次练习，你看见了什么？</b><span>可多选，不评判。</span></div>'
+      + '<div class="tags">'+REFL.map(x=>'<button class="tag'+(F.refl.indexOf(x)>=0?' on':'')+'" data-r="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>'
+      + '<textarea id="fRecap" placeholder="一句话记下：下次类似事情发生时，我想记得……">'+esc(F.recap)+'</textarea>'
+      + '<div class="step-acts"><span class="micro">没有「做得好 / 做得差」，只有更清楚的观察。</span>'
+      + '<button class="btn primary sm" id="bSave">保存这次练习</button></div></div>';
+  }
+  h+='</article>';
+  $('card').innerHTML=h;
+  bind();
+}
+const REFL=['我更快发现自己被触发','我区分出了一部分事实和解释','我表达了边界而不是攻击','我允许情绪在场并继续行动','我发现自己想让对方承认我'];
+function tTitle(t){ return t.fx.title || (t.fact.length>14? t.fact.slice(0,14)+'…' : t.fact); }
+function inst_rel(){ return S.rel; }
+function inst_ctx(){ return S.ctx; }
+function inst_st(){ return S.st; }
+function myState(){
+  const a=[]; if(F.body.indexOf(0)>=0)a.push('身体先紧了一下'); if(F.body.indexOf(1)>=0)a.push('情绪很快升高');
+  if(F.body.indexOf(2)>=0)a.push('念头几乎立刻出现'); if(F.body.indexOf(3)>=0)a.push('出现了行动冲动');
+  return a.length? a.join('；') : '（没有勾选——你可能当时很平静，也可能没留意）';
+}
+function bind(){
+  document.querySelectorAll('[data-b]').forEach(btn=>btn.onclick=()=>{
+    const i=Number(btn.dataset.b);
+    F.body = F.body.indexOf(i)>=0 ? F.body.filter(x=>x!==i) : F.body.concat([i]);
+    renderCard();
+  });
+  document.querySelectorAll('[data-a]').forEach(btn=>btn.onclick=()=>{ F.act=btn.dataset.a; renderCard(); });
+  document.querySelectorAll('[data-r]').forEach(btn=>btn.onclick=()=>{
+    const x=btn.dataset.r;
+    F.refl = F.refl.indexOf(x)>=0 ? F.refl.filter(y=>y!==x) : F.refl.concat([x]);
+    renderCard();
+  });
+  const bindTA=(id,key)=>{ const e=$(id); if(e) e.oninput=ev=>{ F[key]=ev.target.value; }; };
+  bindTA('fFirst','first'); bindTA('fThought','thought'); bindTA('fImp','imp');
+  bindTA('fSay','say'); bindTA('fSay2','act2'); bindTA('fRecap','recap');
+
+  const b1=$('bSave1'); if(b1) b1.onclick=()=>{
+    if(!F.first.trim() && !F.body.length && !F.thought.trim()) return toast('先写下一个词也可以');
+    STAGE=2; renderCard(); scrollTo2();
+  };
+  const e1=$('bEdit1'); if(e1) e1.onclick=()=>{ STAGE=1; renderCard(); };
+  const b2=$('bSave2'); if(b2) b2.onclick=()=>{
+    if(!F.act && !F.say.trim()) return toast('先选一个行动方向，或写一句话');
+    F.cont = S.tpl.fx.resp[ACTIONS.indexOf(F.act)] || S.tpl.fx.resp[0];
+    STAGE=3; renderCard(); setTimeout(()=>{ const c=document.querySelector('.cont'); if(c) c.scrollIntoView({behavior:'smooth',block:'center'}); },60);
+  };
+  const b3=$('bSave3'); if(b3) b3.onclick=()=>{ STAGE=4; renderCard(); setTimeout(()=>{ const c=document.querySelector('.refl'); if(c) c.scrollIntoView({behavior:'smooth',block:'center'}); },60); };
+  const b4=$('bSave'); if(b4) b4.onclick=saveSession;
+}
+function scrollTo2(){ setTimeout(()=>{ const el=document.querySelectorAll('.step')[1]; if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },60); }
+
+/* =====================================================================
+   指标与记录
+===================================================================== */
+function scoreOf(refl){
+  return {
+    aware: refl.indexOf('我更快发现自己被触发')>=0?4:3,
+    facts: refl.indexOf('我区分出了一部分事实和解释')>=0?4:3,
+    bound: refl.indexOf('我表达了边界而不是攻击')>=0?4:3
+  };
+}
+function saveSession(){
+  const sc=scoreOf(F.refl);
+  const now=new Date();
+  DB.records.unshift({
+    id:now.getTime()+''+Math.floor(Math.random()*999),
+    date:now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate(),
+    at:now.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    tid:S.tpl.id, dirs:S.tpl.dir, lv:S.tpl.lv, amb:!!S.tpl.amb, tone:S.v.t,
+    rel:S.rel, ctx:S.ctx, st:S.st,
+    scene:fillFact(S.tpl), say:S.v.say,
+    body:F.body.join(','), first:F.first, thought:F.thought, imp:F.imp,
+    act:F.act, said:F.say, cont:F.cont, said2:F.act2,
+    refl:F.refl, recap:F.recap, score:sc
+  });
+  DB.records=DB.records.slice(0,500);
+  save();
+  toast('这次练习已保存。可以用同一事件再练一个版本。');
+  updateMetrics(); renderHist(); renderBank();
+  const b=$('bSave'); if(b){ b.textContent='已保存'; b.disabled=true; }
+}
+function updateMetrics(){
+  const h=DB.records;
+  const avg=k=> h.length? (h.reduce((a,x)=>a+(x.score?x.score[k]:3),0)/h.length).toFixed(1) : '—';
+  $('mSessions').textContent=h.length;
+  const uniq=new Set(h.map(x=>x.tid)).size;
+  $('mRepeats').textContent=Math.max(0,h.length-uniq);
+  $('mAware').textContent=avg('aware');
+  $('mBound').textContent=avg('bound');
+  $('nHistory').textContent=h.length;
+  $('nPractice').textContent=String(Math.min(99,h.length+1)).padStart(2,'0');
+  const v={aware:avg('aware'),facts:avg('facts'),bound:avg('bound')};
+  ['aware','facts','bound'].forEach(k=>{
+    const el=$('a'+k[0].toUpperCase()+k.slice(1));
+    const tx=$('a'+k[0].toUpperCase()+k.slice(1)+'Tx');
+    if(!el) return;
+    el.style.width=(v[k]==='—'?0:Number(v[k])/5*100)+'%';
+    tx.textContent = v[k]==='—' ? '—' : v[k]+' / 5';
+  });
+  const cov=new Set(); h.forEach(x=>(x.dirs||[]).forEach(d=>cov.add(d)));
+  const all=Object.keys(DIRS).length;
+  $('covBar').style.width=Math.min(100,cov.size/all*100)+'%';
+  $('covLb').textContent=cov.size+' / '+all+' 个训练方向';
+}
+function renderHist(){
+  const el=$('histList'); if(!el) return;
+  if(!DB.records.length){ el.innerHTML='<div class="panel"><div class="empty">还没有练习记录。第一次不需要表现得好，只需要留下一个「我当时发生了什么」。</div></div>'; return; }
+  el.innerHTML=DB.records.slice(0,40).map(r=>{
+    const det=[];
+    if(r.first)det.push('<i>身体情绪</i>'+esc(r.first));
+    if(r.thought)det.push('<i>念头</i>'+esc(r.thought));
+    if(r.imp)det.push('<i>冲动</i>'+esc(r.imp));
+    if(r.act)det.push('<i>行动</i>'+esc(r.act)+(r.said?('：'+esc(r.said)):''));
+    if(r.cont)det.push('<i>对方</i>'+esc(r.cont)+(r.said2?('<br><i>你再说</i>'+esc(r.said2)):''));
+    if(r.refl&&r.refl.length)det.push('<i>看见</i>'+r.refl.map(esc).join('；'));
+    if(r.recap)det.push('<i>记下</i>'+esc(r.recap));
+    return '<div class="hitem" onclick="this.classList.toggle(\'open\')"><div><strong>'+esc(r.scene.slice(0,26))+(r.scene.length>26?'…':'')+'</strong>'
+      +'<small>'+esc(r.date)+' · '+r.dirs.map(d=>DIRS[d]?DIRS[d].n:d).join('/')+' · '+TONE_NAME[r.tone]+'</small>'
+      +'<div class="det">'+det.join('<br>')+'</div></div>'
+      +'<div class="sc">看见 '+(r.score?r.score.aware:3)+'/5</div></div>';
+  }).join('');
+}
+
+/* =====================================================================
+   题库地图
+===================================================================== */
+function renderBank(){
+  // 难度段
+  const segs=[['全部',1,5],['轻微 1-2',1,2],['中等 3',3,3],['强烈 4-5',4,5]];
+  $('lvFilter').innerHTML='<span class="lb">难度</span>'+segs.map(s=>'<button class="seg'+(DB.lvMin===s[1]&&DB.lvMax===s[2]?' on':'')+'" data-lv="'+s[1]+','+s[2]+'">'+s[0]+'</button>').join('');
+  document.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{
+    const p=b.dataset.lv.split(','); DB.lvMin=+p[0]; DB.lvMax=+p[1]; save(); renderBank();
+  });
+  // 抽法
+  const modes=[['random','随机抽一题'],['seq','按顺序练'],['new','只练没做过的'],['redo','重练同一情境']];
+  $('modeFilter').innerHTML='<span class="lb">抽法</span>'+modes.map(m=>'<button class="seg'+(DB.mode===m[0]?' on':'')+'" data-md="'+m[0]+'">'+m[1]+'</button>').join('')
+    + '<span class="lb" style="margin-left:12px;">方向筛选</span><button class="seg'+(FILTER===null?' on':'')+'" data-fl="">全部</button>';
+  document.querySelectorAll('[data-md]').forEach(b=>b.onclick=()=>{ DB.mode=b.dataset.md; save(); renderBank(); });
+  document.querySelectorAll('[data-fl]').forEach(b=>b.onclick=()=>{ FILTER=null; renderBank(); });
+
+  // 方向卡
+  let h='';
+  Object.keys(DIRS).forEach(d=>{
+    const ts=BANK.filter(t=>t.dir.indexOf(d)>=0);
+    const done=ts.filter(t=>DB.seen[t.id]>0).length;
+    const n=DB.records.filter(r=>(r.dirs||[]).indexOf(d)>=0).length;
+    const muted=!!DB.muted[d];
+    const pct=ts.length?Math.round(done/ts.length*100):0;
+    h+='<div class="bcard'+(muted?' off':'')+'"><div class="bh"><h4>'+esc(DIRS[d].n)+'</h4><span class="chip '+(muted?'':'a')+'">'+(muted?'已静音':'待练/已练')+'</span></div>'
+      +'<p>'+esc(DIRS[d].d)+'<br>题数 '+ts.length+' · 已遇 '+done+' · 练过 '+n+' 次</p>'
+      +'<div class="bar'+(d==='amb'?' teal':(d==='power'||d==='love'?' amber':''))+'"><span style="width:'+pct+'%"></span></div>'
+      +'<div class="acts" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">'
+      +'<button class="btn sm" data-dgo="'+d+'">只练这个</button>'
+      +'<button class="btn sm ghost" data-dmute="'+d+'">'+(muted?'重新打开':'练够了，静音')+'</button>'
+      +'</div></div>';
+  });
+  $('bankCards').innerHTML=h;
+  document.querySelectorAll('[data-dgo]').forEach(b=>b.onclick=()=>{
+    FILTER = (FILTER===b.dataset.dgo)? null : b.dataset.dgo;
+    DB.mode='random'; save();
+    newScenario(false); switchView('practice');
+    toast(FILTER?('已锁定方向：'+DIRS[FILTER].n):'取消方向筛选');
+  });
+  document.querySelectorAll('[data-dmute]').forEach(b=>b.onclick=()=>{
+    const d=b.dataset.dmute;
+    if(DB.muted[d]){ delete DB.muted[d]; toast('已重新打开：'+DIRS[d].n); }
+    else { DB.muted[d]=true; toast('已静音：'+DIRS[d].n+'（练熟了就不再出现）'); }
+    save(); renderBank(); updateMetrics();
+  });
+}
+
+/* =====================================================================
+   视图切换与事件
+===================================================================== */
+function switchView(n){
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===n));
+  ['practice','tracker','bank'].forEach(v=>hide('v-'+v));
+  show('v-'+n);
+  $('pageTitle').textContent = n==='practice'?'先看见，再回应。':n==='tracker'?'把变化留在轨迹里。':'题库不是答案，是镜头。';
+  if(n==='tracker'){ updateMetrics(); renderHist(); }
+  if(n==='bank') renderBank();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-let toastTimer=null;
-function toast(msg){
-  const el=$('toast'); el.textContent=msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
-}
-/* 云同步回流时：练习进行中不重载，回到首页/空闲时才刷 */
-function wbSafeReload(){ return !CUR || (PHASE==='react' && !(CUR.resp&&CUR.resp.length)); }
-window.addEventListener('message',e=>{ if(e.data&&e.data.type==='wb-reload'){ if(wbSafeReload()) location.reload(); } });
+let tTimer=null;
+function toast(m){ const el=$('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>el.classList.remove('show'),2600); }
 
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.v));
+$('btnNew').onclick=()=>{ newScenario(false); toast('已生成一组新的变量组合'); };
+$('btnSame').onclick=()=>{ newScenario(true); toast('同一事件，变量已经改变'); };
+$('btnSameHero').onclick=()=>{ newScenario(true); toast('同一事件，变量已经改变'); };
+$('btnStart').onclick=()=>{
+  if(!S){ newScenario(false); }
+  document.querySelector('.session').scrollIntoView({behavior:'smooth',block:'start'});
+  toast('先写下第一反应，不用解释得漂亮');
+};
+$('btnSkip').onclick=()=>{ if(S) DB.skips[S.tpl.id]=(DB.skips[S.tpl.id]||0)+1; newScenario(false); };
+$('btnTrackerNew').onclick=()=>{ switchView('practice'); newScenario(false); };
+$('btnBankNew').onclick=()=>{ switchView('practice'); newScenario(false); };
+$('btnReset').onclick=()=>{
+  if(confirm('只会清除本地练习记录，题库不会被删除。确定清除吗？')){
+    DB.records=[]; save(); updateMetrics(); renderHist(); renderBank(); toast('本地记录已清除');
+  }
+};
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.type==='wb-reload'){ if(STAGE<=1 || !F || (!F.first && !F.say)) location.reload(); }
+});
+
+/* ---------------- 启动 ---------------- */
 load();
-renderHome();
-renderDeck();      // 训练视图先备好一张卡，切过去就能直接开练
+if(!DB.fxTitles){ DB.fxTitles={}; }
+newScenario(false);
+updateMetrics(); renderHist(); renderBank();
 </script>
 </body>
 </html>
