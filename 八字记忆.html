@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>八字记忆</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --red:#c0392b; --green:#3f9d6b; --gold:#b8860b;
+    --radius:14px; --shadow:0 1px 3px rgba(58,54,49,.06),0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--mark);}
+  .wrap{max-width:none;padding:14px 16px 60px;}
+
+  /* 顶栏：左进度，右视图切换（页面不放与外壳重复的大标题） */
+  .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;flex-wrap:wrap;padding:10px 0 10px;background:rgba(247,244,238,.94);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);margin-bottom:14px;}
+  .bar .stat{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--sub);}
+  .bar .stat b{color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums;}
+  .views{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+    padding:6px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;transition:.14s;white-space:nowrap;}
+  .chip:hover{border-color:var(--accent);color:var(--accent);}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.mini{padding:4px 10px;font-size:11.5px;}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;box-shadow:var(--shadow);margin-bottom:14px;}
+
+  /* 练习区 */
+  .qhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .qcat{font-size:11.5px;color:#fff;background:var(--accent2);border-radius:999px;padding:3px 10px;}
+  .qstage{font-size:11.5px;color:var(--sub);}
+  .qtitle{font-size:24px;font-weight:700;line-height:1.45;margin:10px 0 4px;letter-spacing:.5px;}
+  .qsub{font-size:13px;color:var(--sub);margin-bottom:14px;}
+  .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;margin-top:6px;}
+  .opt{border:1px solid var(--line);background:#fff;border-radius:12px;padding:14px 8px;font-size:19px;
+    font-weight:600;text-align:center;cursor:pointer;transition:.14s;user-select:none;}
+  .opt:hover{border-color:var(--accent);color:var(--accent);}
+  .opt.sel{background:var(--mark);border-color:var(--accent);color:var(--accent);}
+  .opt.ok{background:#eaf5ee;border-color:var(--green);color:var(--green);}
+  .opt.no{background:#fbeeec;border-color:var(--red);color:var(--red);}
+  .opt.dim{opacity:.5;}
+  .opt.small{font-size:15px;padding:12px 6px;}
+  .acts{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:9px 16px;
+    font-size:13.5px;cursor:pointer;font-family:inherit;transition:.14s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.primary:hover{background:#a05f3d;color:#fff;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .fb{border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.75;margin-top:12px;display:none;}
+  .fb.good{background:#eaf5ee;border:1px solid #cfe7d8;color:#2c7a50;}
+  .fb.bad{background:#fbeeec;border:1px solid #f0d3cd;color:#a5382a;}
+  .fb b{font-size:15px;}
+  .fb .tip{display:block;margin-top:5px;color:var(--sub);font-size:12.5px;}
+  .fb.good .tip{color:#4a8a68;}
+  .fb.bad .tip{color:#b06a5e;}
+
+  /* 进度条 */
+  .prog{height:6px;background:#e8e0d4;border-radius:3px;overflow:hidden;min-width:90px;}
+  .prog span{display:block;height:100%;background:var(--accent);border-radius:3px;}
+
+  /* 速查总表 */
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+  .tcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
+    box-shadow:var(--shadow);}
+  .tcard h3{font-size:14px;margin:0 0 4px;color:var(--accent);letter-spacing:1px;}
+  .tcard .kou{font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.7;}
+  .rows{display:flex;flex-direction:column;gap:5px;}
+  .row{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 8px;background:#fbf8f3;
+    border-radius:8px;border:1px solid #f0e9de;}
+  .row .g{font-weight:700;letter-spacing:1px;font-size:14px;}
+  .row .r{margin-left:auto;color:var(--sub);font-size:12px;}
+  .row .tag{font-size:11px;color:var(--gold);}
+
+  /* 日程 / 统计 */
+  .plan{display:flex;flex-direction:column;gap:7px;}
+  .planrow{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+  .planrow .d{width:74px;color:var(--sub);flex:0 0 auto;}
+  .planrow .barwrap{flex:1;min-width:0;}
+  .planrow .n{width:44px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .statbox{background:#fbf8f3;border:1px solid #f0e9de;border-radius:12px;padding:12px 14px;text-align:center;}
+  .statbox b{display:block;font-size:22px;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .statbox span{font-size:11.5px;color:var(--sub);}
+  .catrow{display:flex;align-items:center;gap:10px;font-size:12.5px;margin-bottom:8px;}
+  .catrow .nm{width:88px;flex:0 0 auto;}
+  .catrow .barwrap{flex:1;min-width:0;}
+  .catrow .pc{width:56px;text-align:right;font-variant-numeric:tabular-nums;color:var(--sub);}
+
+  .empty{color:var(--sub);font-size:13px;padding:24px 0;text-align:center;}
+  .hint{font-size:12px;color:var(--sub);line-height:1.8;}
+  .kbd{display:inline-block;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+    padding:1px 6px;font-size:11px;background:#fff;color:var(--sub);}
+  @media (max-width:700px){
+    .wrap{padding:12px 10px 60px;}
+    .qtitle{font-size:20px;}
+    .opts{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));}
+    .opt{font-size:17px;padding:12px 6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="bar">
+    <div class="stat">
+      <span>今日 <b id="sToday">0</b> 题</span>
+      <span>待复习 <b id="sDue">0</b></span>
+      <span>已掌握 <b id="sMaster">0</b>/<b id="sTotal">0</b></span>
+      <span class="prog" style="width:110px"><span id="sBar" style="width:0%"></span></span>
+    </div>
+    <div class="views">
+      <button class="chip on" data-v="drill" onclick="setView('drill')">练习</button>
+      <button class="chip" data-v="table" onclick="setView('table')">速查总表</button>
+      <button class="chip" data-v="plan" onclick="setView('plan')">记忆日程</button>
+      <button class="chip" data-v="stat" onclick="setView('stat')">统计</button>
+    </div>
+  </div>
+
+  <!-- 练习 -->
+  <div id="v-drill">
+    <div class="panel">
+      <div class="cats" id="catChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div class="qhead">
+        <div>
+          <span class="qcat" id="qCat">—</span>
+          <span class="qstage" id="qStage" style="margin-left:8px"></span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span class="hint">每日新卡</span>
+          <button class="chip mini" data-n="5" onclick="setPerDay(5)">5</button>
+          <button class="chip mini" data-n="10" onclick="setPerDay(10)">10</button>
+          <button class="chip mini" data-n="20" onclick="setPerDay(20)">20</button>
+        </div>
+      </div>
+      <div class="qtitle" id="qTitle">准备开始</div>
+      <div class="qsub" id="qSub">选好要练的内容，点下面的选项作答</div>
+      <div class="opts" id="qOpts"></div>
+      <div class="fb" id="qFb"></div>
+      <div class="acts">
+        <button class="btn primary" id="btnSubmit" onclick="submitMulti()" style="display:none">提交</button>
+        <button class="btn" id="btnNext" onclick="nextQ()" style="display:none">下一题 ›</button>
+        <button class="btn" onclick="showAnswer()">看答案</button>
+        <button class="btn" onclick="nextQ(true)">换一题</button>
+      </div>
+      <div class="hint" style="margin-top:12px">
+        答对升一阶（1→2→4→7→14→30→60 天后再来），答错退回前面重来。桌面端可按
+        <span class="kbd">1</span>~<span class="kbd">6</span> 选答案、<span class="kbd">空格</span> 下一题。
+      </div>
+    </div>
+  </div>
+
+  <!-- 速查总表 -->
+  <div id="v-table" style="display:none">
+    <div class="tgrid" id="tGrid"></div>
+  </div>
+
+  <!-- 记忆日程 -->
+  <div id="v-plan" style="display:none">
+    <div class="panel">
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--accent);letter-spacing:1px">未来 14 天复习安排</h3>
+      <div class="plan" id="planList"></div>
+      <div class="hint" style="margin-top:10px">
+        阶梯：答对一次进一阶（1 天 → 2 天 → 4 天 → 7 天 → 14 天 → 30 天 → 60 天）。到 14 天这一档，基本就再也忘不掉了。
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--accent);letter-spacing:1px">今日到期 <span id="dueCount" style="color:var(--sub);font-weight:400"></span></h3>
+      <div class="rows" id="dueList"></div>
+    </div>
+  </div>
+
+  <!-- 统计 -->
+  <div id="v-stat" style="display:none">
+    <div class="panel">
+      <div class="statgrid" id="statBox"></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 12px;font-size:14px;color:var(--accent);letter-spacing:1px">各分类掌握度</h3>
+      <div id="catStat"></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--accent);letter-spacing:1px">管理</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">
+        <button class="btn" onclick="resetWeak()">只重置薄弱卡</button>
+        <button class="btn" onclick="resetAll()">清空全部进度</button>
+        <span class="hint">进度存在本机，并随工作台云同步到手机；换设备继续练。</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================= 八字关系数据 ================= */
+const TG = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const DZ = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const WX = ['木','火','土','金','水'];
+const GAN_WX = {甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水'};
+const ZHI_WX = {寅:'木',卯:'木',巳:'火',午:'火',申:'金',酉:'金',亥:'水',子:'水',辰:'土',戌:'土',丑:'土',未:'土'};
+const SX = {子:'鼠',丑:'牛',寅:'虎',卯:'兔',辰:'龙',巳:'蛇',午:'马',未:'羊',申:'猴',酉:'鸡',戌:'狗',亥:'猪'};
+const SX2Z = {}; for(const k in SX) SX2Z[SX[k]] = k;
+const SX_NAMES = Object.values(SX);
+
+/* 天干五合 */
+const TG5 = [
+  {p:['甲','己'], r:'土', tip:'甲己合化土 · 中正之合'},
+  {p:['乙','庚'], r:'金', tip:'乙庚合化金 · 仁义之合'},
+  {p:['丙','辛'], r:'水', tip:'丙辛合化水 · 威制之合'},
+  {p:['丁','壬'], r:'木', tip:'丁壬合化木 · 淫慝之合'},
+  {p:['戊','癸'], r:'火', tip:'戊癸合化火 · 无情之合'},
+];
+/* 地支六合 */
+const LH = [
+  {p:['子','丑'], r:'土', tip:'子丑合土'},
+  {p:['寅','亥'], r:'木', tip:'寅亥合木'},
+  {p:['卯','戌'], r:'火', tip:'卯戌合火'},
+  {p:['辰','酉'], r:'金', tip:'辰酉合金'},
+  {p:['巳','申'], r:'水', tip:'巳申合水'},
+  {p:['午','未'], r:'土', tip:'午未合土（日月之合）'},
+];
+/* 三合局：长生 · 帝旺 · 墓库 */
+const SH3 = [
+  {p:['申','子','辰'], r:'水', tip:'申子辰三合水局：长生申 · 帝旺子 · 墓库辰'},
+  {p:['亥','卯','未'], r:'木', tip:'亥卯未三合木局：长生亥 · 帝旺卯 · 墓库未'},
+  {p:['寅','午','戌'], r:'火', tip:'寅午戌三合火局：长生寅 · 帝旺午 · 墓库戌'},
+  {p:['巳','酉','丑'], r:'金', tip:'巳酉丑三合金局：长生巳 · 帝旺酉 · 墓库丑'},
+];
+/* 三会方 */
+const HUI3 = [
+  {p:['寅','卯','辰'], r:'木', d:'东方', tip:'寅卯辰会东方木'},
+  {p:['巳','午','未'], r:'火', d:'南方', tip:'巳午未会南方火'},
+  {p:['申','酉','戌'], r:'金', d:'西方', tip:'申酉戌会西方金'},
+  {p:['亥','子','丑'], r:'水', d:'北方', tip:'亥子丑会北方水'},
+];
+const CHONG = [['子','午'],['丑','未'],['寅','申'],['卯','酉'],['辰','戌'],['巳','亥']];
+const XING = [
+  {p:['寅','巳','申'], n:'无恩之刑', tip:'寅巳申三刑 · 无恩之刑'},
+  {p:['丑','戌','未'], n:'恃势之刑', tip:'丑戌未三刑 · 恃势之刑'},
+  {p:['子','卯'],      n:'无礼之刑', tip:'子卯相刑 · 无礼之刑'},
+  {p:['辰'], n:'自刑', tip:'辰见辰 · 自刑'},
+  {p:['午'], n:'自刑', tip:'午见午 · 自刑'},
+  {p:['酉'], n:'自刑', tip:'酉见酉 · 自刑'},
+  {p:['亥'], n:'自刑', tip:'亥见亥 · 自刑'},
+];
+const PO  = [['子','酉'],['寅','亥'],['卯','午'],['辰','丑'],['巳','申'],['未','戌']];
+const HAI = [['子','未'],['丑','午'],['寅','巳'],['卯','辰'],['申','亥'],['酉','戌']];
+/* 地支藏干：本气 / 中气 / 余气 */
+const CG = [
+  {z:'子', ben:'癸', mid:'', yu:'',   all:['癸']},
+  {z:'丑', ben:'己', mid:'癸', yu:'辛', all:['己','癸','辛']},
+  {z:'寅', ben:'甲', mid:'丙', yu:'戊', all:['甲','丙','戊']},
+  {z:'卯', ben:'乙', mid:'',   yu:'',   all:['乙']},
+  {z:'辰', ben:'戊', mid:'乙', yu:'癸', all:['戊','乙','癸']},
+  {z:'巳', ben:'丙', mid:'庚', yu:'戊', all:['丙','戊','庚']},
+  {z:'午', ben:'丁', mid:'己', yu:'',   all:['丁','己']},
+  {z:'未', ben:'己', mid:'丁', yu:'乙', all:['己','丁','乙']},
+  {z:'申', ben:'庚', mid:'壬', yu:'戊', all:['庚','壬','戊']},
+  {z:'酉', ben:'辛', mid:'',   yu:'',   all:['辛']},
+  {z:'戌', ben:'戊', mid:'辛', yu:'丁', all:['戊','辛','丁']},
+  {z:'亥', ben:'壬', mid:'甲', yu:'',   all:['壬','甲']},
+];
+const KOU = {
+  tg5:'甲己合土 · 乙庚合金 · 丙辛合水 · 丁壬合木 · 戊癸合火（每隔五位、一阴一阳两两相合）',
+  lh :'子丑合土 · 寅亥合木 · 卯戌合火 · 辰酉合金 · 巳申合水 · 午未合土',
+  sh3:'申子辰水 · 亥卯未木 · 寅午戌火 · 巳酉丑金（长生 · 帝旺 · 墓库）',
+  hui:'寅卯辰东方木 · 巳午未南方火 · 申酉戌西方金 · 亥子丑北方水',
+  chong:'子午 · 丑未 · 寅申 · 卯酉 · 辰戌 · 巳亥（隔六位相冲）',
+  xing:'寅巳申无恩之刑 · 丑戌未恃势之刑 · 子卯无礼之刑 · 辰午酉亥自刑',
+  po :'子酉 · 寅亥 · 卯午 · 辰丑 · 巳申 · 未戌',
+  hai:'子未 · 丑午 · 寅巳 · 卯辰 · 申亥 · 酉戌（害即穿）',
+  sx :'子鼠 丑牛 寅虎 卯兔 辰龙 巳蛇 午马 未羊 申猴 酉鸡 戌狗 亥猪',
+  cg :'子癸 · 丑己癸辛 · 寅甲丙戊 · 卯乙 · 辰戊乙癸 · 巳丙戊庚 · 午丁己 · 未己丁乙 · 申庚壬戊 · 酉辛 · 戌戊辛丁 · 亥壬甲',
+  cgkou:'子宫癸水在其中，丑中癸辛己土同；寅藏甲木和丙戊，卯中乙木独相逢；辰藏乙木兼戊癸，巳中庚金有丙戊；午藏丁火并己土，未中乙木加己丁；申藏庚金壬水戊，酉中辛金独丰隆；戌藏辛金及丁戊，亥中壬甲是真踪。',
+};
+
+/* ================= 知识卡构建 ================= */
+const CATS = [
+  {id:'tg5',  name:'天干五合'},
+  {id:'lh',   name:'地支六合'},
+  {id:'sh3',  name:'三合局'},
+  {id:'hui',  name:'三会方'},
+  {id:'chong',name:'六冲'},
+  {id:'xing', name:'相刑'},
+  {id:'po',   name:'六破'},
+  {id:'hai',  name:'六害(穿)'},
+  {id:'sx',   name:'生肖地支'},
+  {id:'cg',   name:'地支藏干'},
+];
+const CARDS = [];
+function buildCards(){
+  TG5.forEach((x,i)=>CARDS.push({id:'tg5-'+i, cat:'tg5', k:'pair3', d:x, label:'天干五合 '+x.p.join('')}));
+  LH.forEach((x,i)=>CARDS.push({id:'lh-'+i, cat:'lh', k:'pair3', d:x, label:'六合 '+x.p.join('')}));
+  SH3.forEach((x,i)=>CARDS.push({id:'sh3-'+i, cat:'sh3', k:'tri3', d:x, label:'三合'+x.r+'局 '+x.p.join('')}));
+  HUI3.forEach((x,i)=>CARDS.push({id:'hui-'+i, cat:'hui', k:'hui', d:x, label:'三会'+x.d+x.r}));
+  CHONG.forEach((x,i)=>CARDS.push({id:'chong-'+i, cat:'chong', k:'pair2', d:{p:x, rel:'冲'}, label:'六冲 '+x.join('')}));
+  XING.forEach((x,i)=>CARDS.push({id:'xing-'+i, cat:'xing', k:'xing', d:x, label:x.n+' '+x.p.join('')}));
+  PO.forEach((x,i)=>CARDS.push({id:'po-'+i, cat:'po', k:'pair2', d:{p:x, rel:'破'}, label:'六破 '+x.join('')}));
+  HAI.forEach((x,i)=>CARDS.push({id:'hai-'+i, cat:'hai', k:'pair2', d:{p:x, rel:'害'}, label:'六害 '+x.join('')}));
+  /* 生肖：12 地支配生肖 + 生肖六合 + 生肖六冲 */
+  DZ.forEach(z=>CARDS.push({id:'sx-'+z, cat:'sx', k:'sx', d:{z:z, x:SX[z]}, label:z+'·'+SX[z]}));
+  LH.forEach((x,i)=>CARDS.push({id:'sxh-'+i, cat:'sx', k:'sxh', d:{p:[SX[x.p[0]],SX[x.p[1]]], r:x.r}, label:'生肖六合 '+SX[x.p[0]]+SX[x.p[1]]}));
+  CHONG.forEach((x,i)=>CARDS.push({id:'sxc-'+i, cat:'sx', k:'sxc', d:{p:[SX[x[0]],SX[x[1]]]}, label:'生肖六冲 '+SX[x[0]]+SX[x[1]]}));
+  CG.forEach(x=>CARDS.push({id:'cg-'+x.z, cat:'cg', k:'cg', d:x, label:x.z+'藏'+x.all.join('')}));
+}
+buildCards();
+const CARD_BY_ID = {}; CARDS.forEach(c=>CARD_BY_ID[c.id]=c);
+
+/* ================= 状态存储 ================= */
+const KEY = 'BAZI_MEM_V1';
+const STAGES = [0,1,2,4,7,14,30,60];       /* 间隔阶梯（天） */
+const KEY2 = 'BAZI_MEM_LOG';               /* 每日学习记录 */
+let S = {cards:{}, perDay:10, cats:null, log:{}};
+function loadS(){
+  try{ const o = JSON.parse(localStorage.getItem(KEY)||'{}'); if(o && typeof o==='object') S = Object.assign(S,o); }catch(e){}
+  if(!S.cards) S.cards = {};
+  if(!S.perDay) S.perDay = 10;
+  if(!S.log) S.log = {};
+}
+function saveS(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  try{ if(window.parent && window.parent!==window) parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){}
+}
+function today(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dateAfter(n){
+  const d = new Date(); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function st(id){
+  if(!S.cards[id]) S.cards[id] = {stage:0, due:today(), lapse:0, ok:0, wrong:0};
+  return S.cards[id];
+}
+function mastered(id){ return st(id).stage >= 4; }   /* 4 档 = 14 天以上 */
+
+/* ================= 出题 ================= */
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function pickN(pool, n, excl){
+  const p = pool.filter(x=>!(excl||[]).includes(x));
+  return shuffle(p).slice(0,n);
+}
+function optSet(pool, correct, n){
+  const need = n - correct.length;
+  const rest = pickN(pool, need, correct);
+  return shuffle(correct.concat(rest));
+}
+function keyOfPair(p){ return p.slice().sort().join(''); }
+
+const QG = {
+  /* 天干五合 / 地支六合：带化气的两两组合 */
+  pair3(c){
+    const d = c.d, isTG = c.cat === 'tg5';
+    const pool = isTG ? TG : DZ;
+    const forms = [];
+    forms.push(()=>({t:'与「'+d.p[0]+'」相合的'+(isTG?'天干':'地支')+'是？',
+      opts: optSet(pool,[d.p[1]],4), ans:[d.p[1]], tip:d.tip+'　（'+(isTG?'每隔五位':'六合')+'，化'+d.r+'）'}));
+    forms.push(()=>({t:'「'+d.p.join('')+'」合化什么？',
+      opts: optSet(WX,[d.r],4), ans:[d.r], tip:d.tip}));
+    forms.push(()=>({t:'合化「'+d.r+'」的是哪一组？',
+      opts: optSet((isTG?TG5:LH).map(x=>x.p.join('')),[d.p.join('')],4), ans:[d.p.join('')], tip:d.tip}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = d, wrong = null;
+      if(!yes){
+        const others = (isTG?TG5:LH).filter(x=>keyOfPair(x.p)!==keyOfPair(d.p));
+        wrong = others[Math.floor(Math.random()*others.length)];
+      }
+      const gg = yes ? g : wrong;
+      const ask = '「'+gg.p.join('')+'」合化「'+(yes?d.r:pickN(WX,1,[d.r])[0])+'」，对吗？';
+      const isTrue = yes;
+      return {t:ask, opts:['对','不对'], ans:[isTrue?'对':'不对'], tip:d.tip, judge:true};
+    });
+    forms.push(()=>{
+      const real = (isTG?TG5:LH).map(x=>keyOfPair(x.p));
+      const realGroups = (isTG?TG5:LH).map(x=>x.p.join(''));
+      let fake = null;
+      for(let i=0;i<40 && !fake;i++){
+        const a = pool[Math.floor(Math.random()*pool.length)];
+        const b = pool[Math.floor(Math.random()*pool.length)];
+        if(a!==b && !real.includes(keyOfPair([a,b]))) fake = a+b;
+      }
+      return {t:'下列哪一组<font color="#c0392b">不是</font>'+(isTG?'天干五合':'地支六合')+'？',
+        opts: shuffle(pickN(realGroups,3,[d.p.join('')]).concat([fake])), ans:[fake], tip:d.tip};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 六冲 / 六破 / 六害：两两、无化气 */
+  pair2(c){
+    const d = c.d, p = d.p, rel = d.rel;
+    const relName = {冲:'六冲',破:'六破',害:'六害'}[rel];
+    const allGroups = {冲:CHONG, 破:PO, 害:HAI}[rel].map(x=>x.join(''));
+    const forms = [];
+    forms.push(()=>({t:'与「'+p[0]+'」相'+rel+'的是？', opts: optSet(DZ,[p[1]],4), ans:[p[1]],
+      tip:p.join('')+' 相'+rel+'　'+(rel==='冲'?'（隔六位相冲）':'')}));
+    forms.push(()=>({t:'「'+p.join('')+'」属于什么关系？',
+      opts: optSet(['六冲','六合','六破','六害','相刑'],[relName],4), ans:[relName], tip:p.join('')+' 相'+rel}));
+    if(rel === '冲'){
+      forms.push(()=>({t:'与「'+SX[p[0]]+'」相冲的生肖是？',
+        opts: optSet(SX_NAMES,[SX[p[1]]],4), ans:[SX[p[1]]],
+        tip:SX[p[0]]+SX[p[1]]+'相冲（'+p.join('')+'冲）'}));
+    }
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let shown = p.join('');
+      let truth = true;
+      if(!yes){
+        const others = {冲:CHONG, 破:PO, 害:HAI}[rel].filter(x=>keyOfPair(x)!==keyOfPair(p));
+        shown = others[Math.floor(Math.random()*others.length)].join('');
+        truth = false;
+      }
+      return {t:'「'+shown+'」是'+relName+'，对吗？', opts:['对','不对'],
+        ans:[truth?'对':'不对'], tip:p.join('')+' 才是'+relName+'中的一组', judge:true};
+    });
+    forms.push(()=>{
+      const real = allGroups;
+      let fake = null;
+      for(let i=0;i<40 && !fake;i++){
+        const a = DZ[Math.floor(Math.random()*DZ.length)];
+        const b = DZ[Math.floor(Math.random()*DZ.length)];
+        if(a!==b && !real.map(x=>keyOfPair(x.split(''))).includes(keyOfPair([a,b]))) fake = a+b;
+      }
+      return {t:'下列哪一组<font color="#c0392b">不是</font>'+relName+'？',
+        opts: shuffle(pickN(real,3,[p.join('')]).concat([fake])), ans:[fake], tip:relName+'：'+KOU[rel==='冲'?'chong':(rel==='破'?'po':'hai')]};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 三合局 */
+  tri3(c){
+    const d = c.d, p = d.p;
+    const all = SH3.map(x=>({g:x.p, r:x.r}));
+    const forms = [];
+    forms.push(()=>({t:'「'+p.join('')+'」三合什么局？',
+      opts: optSet(['水局','木局','火局','土局','金局'],[d.r+'局'],4), ans:[d.r+'局'], tip:d.tip}));
+    forms.push(()=>({t:'三合'+d.r+'局是哪三个地支？',
+      opts: optSet(DZ, p, 6), ans:p, multi:true, tip:d.tip}));
+    forms.push(()=>{
+      const miss = p[1];
+      return {t:'三合'+d.r+'局：「'+p[0]+'、__、'+p[2]+'」，缺哪个？',
+        opts: optSet(DZ,[miss],4), ans:[miss], tip:d.tip};
+    });
+    forms.push(()=>({t:'「'+p.join('')+'」三合'+d.r+'局中，哪个是帝旺？',
+      opts: shuffle(p.slice()), ans:[p[1]], tip:d.tip}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = p.join(''), r = d.r, truth = true;
+      if(!yes){ const o = all.filter(x=>x.r!==d.r)[Math.floor(Math.random()*3)]; g = o.g.join(''); truth = false; }
+      else { r = d.r; }
+      const askR = yes ? d.r : d.r;
+      return {t:'「'+g+'」三合'+askR+'局，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.tip, judge:true};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 三会方 */
+  hui(c){
+    const d = c.d, p = d.p;
+    const forms = [];
+    forms.push(()=>({t:'「'+p.join('')+'」三会什么方？',
+      opts: optSet(['东方木','南方火','西方金','北方水','中央土'],[d.d+d.r],4), ans:[d.d+d.r], tip:d.tip}));
+    forms.push(()=>({t:'会'+d.d+d.r+'的是哪三个地支？',
+      opts: optSet(DZ, p, 6), ans:p, multi:true, tip:d.tip}));
+    forms.push(()=>({t:'三会'+d.d+d.r+'：「'+p[0]+'、__、'+p[2]+'」，中间是哪个？',
+      opts: optSet(DZ,[p[1]],4), ans:[p[1]], tip:d.tip}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = p.join(''), truth = true;
+      if(!yes){ const o = HUI3.filter(x=>x.d!==d.d)[Math.floor(Math.random()*3)]; g = o.p.join(''); truth = false; }
+      return {t:'「'+g+'」会'+d.d+d.r+'，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.tip, judge:true};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 相刑 */
+  xing(c){
+    const d = c.d, p = d.p, n = d.n;
+    const forms = [];
+    if(p.length === 3){
+      forms.push(()=>({t:'与「'+p[0]+'、'+p[1]+'」构成三刑的第三个地支是？',
+        opts: optSet(DZ,[p[2]],4), ans:[p[2]], tip:d.tip}));
+      forms.push(()=>({t:'「'+p.join('')+'」是什么刑？',
+        opts: optSet(['无恩之刑','恃势之刑','无礼之刑','自刑'],[n],4), ans:[n], tip:d.tip}));
+      forms.push(()=>({t:'下列哪一组是'+n+'？',
+        opts: optSet(['寅巳申','丑戌未','子卯','辰午'], [p.join('')], 4), ans:[p.join('')], tip:d.tip}));
+    }else if(p.length === 2){
+      forms.push(()=>({t:'与「'+p[0]+'」相刑的是？', opts: optSet(DZ,[p[1]],4), ans:[p[1]], tip:d.tip}));
+      forms.push(()=>({t:'「'+p.join('')+'」是什么刑？',
+        opts: optSet(['无恩之刑','恃势之刑','无礼之刑','自刑'],[n],4), ans:[n], tip:d.tip}));
+    }else{
+      forms.push(()=>({t:'下列哪个地支是自刑？',
+        opts: optSet(DZ,[p[0]],4), ans:[p[0]], tip:'自刑四个：辰、午、酉、亥'}));
+      forms.push(()=>({t:'「'+p[0]+'」见「'+p[0]+'」是什么关系？',
+        opts: optSet(['自刑','相冲','相破','相害'],[n],4), ans:[n], tip:d.tip}));
+    }
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = p.join(''), truth = true;
+      if(!yes){ const o = XING.filter(x=>keyOfPair(x.p)!==keyOfPair(p) && x.n!==n)[0] || XING[0]; g = o.p.join(''); truth = false; }
+      return {t:'「'+g+'」是'+n+'，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.tip, judge:true};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 生肖 ↔ 地支 */
+  sx(c){
+    const d = c.d;
+    const forms = [];
+    forms.push(()=>({t:'「'+d.z+'」对应的生肖是？', opts: optSet(SX_NAMES,[d.x],4), ans:[d.x], tip:d.z+'·'+d.x}));
+    forms.push(()=>({t:'「'+d.x+'」对应的地支是？', opts: optSet(DZ,[d.z],4), ans:[d.z], tip:d.z+'·'+d.x}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let z = d.z, x = d.x, truth = true;
+      if(!yes){ const o = DZ.filter(q=>q!==d.z); z = o[Math.floor(Math.random()*o.length)]; truth = false; }
+      return {t:'「'+z+'」是「'+x+'」，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.z+'·'+d.x, judge:true};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 生肖六合 */
+  sxh(c){
+    const d = c.d;
+    const forms = [];
+    forms.push(()=>({t:'与「'+d.p[0]+'」六合的生肖是？', opts: optSet(SX_NAMES,[d.p[1]],4), ans:[d.p[1]],
+      tip:d.p.join('')+'六合，化'+d.r}));
+    forms.push(()=>({t:'「'+d.p.join('')+'」相合，化什么？', opts: optSet(WX,[d.r],4), ans:[d.r], tip:d.p.join('')+'六合化'+d.r}));
+    forms.push(()=>({t:'下列哪一对生肖是六合？',
+      opts: optSet(['鼠牛','虎猪','兔狗','龙鸡','蛇猴','马羊','鼠马','牛羊'],[d.p.join('')],4), ans:[d.p.join('')],
+      tip:d.p.join('')+'六合'}));
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 生肖六冲 */
+  sxc(c){
+    const d = c.d;
+    const forms = [];
+    forms.push(()=>({t:'与「'+d.p[0]+'」六冲的生肖是？', opts: optSet(SX_NAMES,[d.p[1]],4), ans:[d.p[1]],
+      tip:d.p.join('')+'六冲（隔六位）'}));
+    forms.push(()=>({t:'下列哪一对生肖是六冲？',
+      opts: optSet(['鼠牛','虎猪','兔狗','龙鸡','蛇猴','马羊','鼠马','牛羊'],[d.p.join('')],4), ans:[d.p.join('')],
+      tip:d.p.join('')+'六冲'}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = d.p.join(''), truth = true;
+      if(!yes){ const o = CHONG.filter(x=>keyOfPair(x)!==keyOfPair([SX2Z[d.p[0]],SX2Z[d.p[1]]]));
+        const q = o[Math.floor(Math.random()*o.length)]; g = SX[q[0]]+SX[q[1]]; truth = false; }
+      return {t:'「'+g+'」六冲，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.p.join('')+'六冲', judge:true};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+  /* 地支藏干 */
+  cg(c){
+    const d = c.d;
+    const forms = [];
+    forms.push(()=>({t:'「'+d.z+'」里藏着哪些天干？', opts: optSet(TG, d.all, 6), ans:d.all, multi:true,
+      tip:d.z+'藏 '+d.all.join('、')+'（本气'+d.ben+(d.mid?' · 中气'+d.mid:'')+(d.yu?' · 余气'+d.yu:'')+'）'}));
+    forms.push(()=>({t:'「'+d.z+'」的本气天干是？', opts: optSet(TG,[d.ben],4), ans:[d.ben],
+      tip:d.z+'藏 '+d.all.join('、')+'，本气'+d.ben}));
+    if(d.mid) forms.push(()=>({t:'「'+d.z+'」的中气天干是？', opts: optSet(TG,[d.mid],4), ans:[d.mid], tip:d.z+'藏 '+d.all.join('、')}));
+    if(d.yu)  forms.push(()=>({t:'「'+d.z+'」的余气天干是？', opts: optSet(TG,[d.yu],4), ans:[d.yu], tip:d.z+'藏 '+d.all.join('、')}));
+    forms.push(()=>{
+      const yes = Math.random()<0.5;
+      let g = d.all.join(''), truth = true;
+      if(!yes){
+        const o = CG.filter(x=>x.z!==d.z && x.all.join('')!==d.all.join(''));
+        g = o[Math.floor(Math.random()*o.length)].all.join('');
+        truth = false;
+      }
+      return {t:'「'+d.z+'」藏「'+g+'」，对吗？', opts:['对','不对'], ans:[truth?'对':'不对'], tip:d.z+'藏 '+d.all.join('、'), judge:true};
+    });
+    forms.push(()=>{
+      const g = d.ben;
+      const cands = CG.filter(x=>x.ben===g).map(x=>x.z);
+      return {t:'「'+g+'」是哪个地支的本气？', opts: optSet(DZ, [d.z], 4), ans:[d.z],
+        tip:(cands.length>1? '本气为'+g+'的地支：'+cands.join('、') : d.z+'本气'+g)};
+    });
+    return forms[Math.floor(Math.random()*forms.length)]();
+  },
+};
+
+/* ================= 练习流程 ================= */
+let cur = null;          /* 当前题 */
+let curCard = null;
+let answered = false;
+let sel = [];
+let recent = [];
+
+function activeCats(){ return S.cats && S.cats.length ? S.cats : CATS.map(c=>c.id); }
+function cardsIn(){ return CARDS.filter(c=>activeCats().includes(c.cat)); }
+function dueList(){
+  const t = today();
+  return cardsIn().filter(c=>{ const s = st(c.id); return s.due <= t && (s.ok+s.wrong) > 0; });
+}
+function newList(){
+  return cardsIn().filter(c=>{ const s = st(c.id); return (s.ok+s.wrong) === 0; });
+}
+function todayNewCount(){
+  const L = S.log[today()] || {};
+  return L.new || 0;
+}
+function pickCard(forceId){
+  if(forceId) return CARD_BY_ID[forceId] || null;
+  const due = dueList().filter(c=>!recent.includes(c.id));
+  if(due.length) return due[Math.floor(Math.random()*due.length)];
+  const d2 = dueList();
+  if(d2.length) return d2[Math.floor(Math.random()*d2.length)];
+  /* 到期卡没有了：若今日新卡还有额度，出新卡 */
+  if(todayNewCount() < S.perDay){
+    const nw = newList().filter(c=>!recent.includes(c.id));
+    if(nw.length){
+      const c = nw[Math.floor(Math.random()*nw.length)];
+      const L = S.log[today()] || {}; L.new = (L.new||0)+1; S.log[today()] = L; saveS();
+      return c;
+    }
+    const nw2 = newList();
+    if(nw2.length) return nw2[Math.floor(Math.random()*nw2.length)];
+  }
+  /* 都没有：拿最薄弱的卡复习（stage 最低、错误最多） */
+  const pool = cardsIn().filter(c=>!recent.includes(c.id));
+  const arr = pool.length ? pool : cardsIn();
+  if(!arr.length) return null;
+  arr.sort((a,b)=>{
+    const A = st(a.id), B = st(b.id);
+    return (A.stage - B.stage) || ((B.wrong||0) - (A.wrong||0));
+  });
+  return arr[0];
+}
+
+function nextQ(keepCard){
+  answered = false; sel = [];
+  const fb = document.getElementById('qFb');
+  fb.style.display = 'none'; fb.className = 'fb';
+  const c = keepCard && curCard ? curCard : pickCard();
+  curCard = c;
+  if(!c){
+    document.getElementById('qTitle').textContent = '这一类都练完了';
+    document.getElementById('qSub').textContent = '换一个分类，或去「速查总表」看看';
+    document.getElementById('qOpts').innerHTML = '';
+    document.getElementById('btnNext').style.display = 'none';
+    document.getElementById('btnSubmit').style.display = 'none';
+    cur = null; return;
+  }
+  recent.push(c.id); if(recent.length > 6) recent = recent.slice(-6);
+  const q = QG[c.k](c);
+  cur = q; cur.cardId = c.id;
+  const s = st(c.id);
+  const cat = CATS.find(x=>x.id===c.cat);
+  document.getElementById('qCat').textContent = cat ? cat.name : c.cat;
+  document.getElementById('qStage').textContent =
+    '第 ' + Math.min(s.stage+1, STAGES.length) + '/' + STAGES.length + ' 阶' +
+    (s.due > today() ? ' · 下次 ' + s.due.slice(5) : '') +
+    ' · 对 ' + s.ok + ' 错 ' + s.wrong;
+  document.getElementById('qTitle').innerHTML = q.t;
+  document.getElementById('qSub').innerHTML = q.multi ? '多选题：点选答案后按「提交」' : '点一个答案';
+  const box = document.getElementById('qOpts');
+  box.innerHTML = '';
+  q.opts.forEach((o,i)=>{
+    const d = document.createElement('div');
+    d.className = 'opt' + (q.opts.length > 4 ? ' small' : '');
+    d.innerHTML = o;
+    d.dataset.v = o;
+    d.onclick = ()=> onPick(i);
+    box.appendChild(d);
+  });
+  document.getElementById('btnNext').style.display = 'none';
+  document.getElementById('btnSubmit').style.display = q.multi ? '' : 'none';
+}
+
+function onPick(i){
+  if(answered || !cur) return;
+  if(cur.multi){
+    const nodes = document.querySelectorAll('#qOpts .opt');
+    const v = nodes[i].dataset.v;
+    const at = sel.indexOf(v);
+    if(at >= 0) sel.splice(at,1); else sel.push(v);
+    nodes.forEach((n,k)=> n.classList.toggle('sel', sel.includes(n.dataset.v)));
+    return;
+  }
+  answer([cur.opts[i]]);
+}
+
+function submitMulti(){
+  if(answered || !cur || !cur.multi) return;
+  if(!sel.length){ return; }
+  answer(sel.slice());
+}
+
+function sameSet(a,b){
+  const A = a.slice().sort().join(','), B = b.slice().sort().join(',');
+  return A === B;
+}
+
+function answer(given){
+  answered = true;
+  const ok = cur.multi ? sameSet(given, cur.ans) : (given.length === cur.ans.length && given[0] === cur.ans[0]);
+  const nodes = document.querySelectorAll('#qOpts .opt');
+  nodes.forEach(n=>{
+    const v = n.dataset.v;
+    if(cur.ans.includes(v)) n.classList.add('ok');
+    else if(given.includes(v)) n.classList.add('no');
+    else n.classList.add('dim');
+  });
+  const s = st(cur.cardId);
+  if(ok){
+    s.ok = (s.ok||0) + 1;
+    s.stage = Math.min(s.stage + 1, STAGES.length - 1);
+    s.due = dateAfter(STAGES[s.stage]);
+  }else{
+    s.wrong = (s.wrong||0) + 1;
+    s.lapse = (s.lapse||0) + 1;
+    s.stage = Math.max(0, s.stage - 2);
+    s.due = dateAfter(STAGES[s.stage]);
+  }
+  const L = S.log[today()] || {};
+  L.done = (L.done||0) + 1;
+  if(ok) L.right = (L.right||0) + 1;
+  S.log[today()] = L;
+  saveS();
+  const fb = document.getElementById('qFb');
+  fb.style.display = 'block';
+  fb.className = 'fb ' + (ok ? 'good' : 'bad');
+  const ansTxt = cur.ans.join('、');
+  fb.innerHTML = '<b>' + (ok ? '✓ 对了' : '✗ 答案：' + ansTxt) + '</b>'
+    + '<span class="tip">' + (cur.tip || '') + (ok ? '' : '　（记住这句，下次再来）') + '</span>';
+  document.getElementById('btnNext').style.display = '';
+  document.getElementById('btnSubmit').style.display = 'none';
+  renderBar();
+}
+
+function showAnswer(){
+  if(!cur) return;
+  const fb = document.getElementById('qFb');
+  fb.style.display = 'block';
+  fb.className = 'fb good';
+  fb.innerHTML = '<b>答案：' + cur.ans.join('、') + '</b><span class="tip">' + (cur.tip||'') + '</span>';
+  answered = true;
+  document.getElementById('btnNext').style.display = '';
+}
+
+/* ================= 顶部与视图 ================= */
+function renderBar(){
+  const cards = cardsIn();
+  const due = dueList().length;
+  const mast = cards.filter(c=>mastered(c.id)).length;
+  const L = S.log[today()] || {};
+  document.getElementById('sToday').textContent = L.done || 0;
+  document.getElementById('sDue').textContent = due;
+  document.getElementById('sMaster').textContent = mast;
+  document.getElementById('sTotal').textContent = cards.length;
+  const pc = cards.length ? Math.round(mast/cards.length*100) : 0;
+  document.getElementById('sBar').style.width = pc + '%';
+}
+function renderCats(){
+  const box = document.getElementById('catChips');
+  const act = activeCats();
+  let html = '<button class="chip' + (S.cats && S.cats.length ? '' : ' on') + '" onclick="allCats()">全部</button>';
+  CATS.forEach(c=>{
+    html += '<button class="chip' + (act.includes(c.id) ? ' on' : '') + '" onclick="toggleCat(\'' + c.id + '\')">' + c.name + '</button>';
+  });
+  box.innerHTML = html;
+}
+function allCats(){ S.cats = null; saveS(); renderCats(); renderBar(); nextQ(); }
+function toggleCat(id){
+  let a = activeCats().slice();
+  const at = a.indexOf(id);
+  if(at >= 0) a.splice(at,1); else a.push(id);
+  if(!a.length) a = CATS.map(c=>c.id);
+  S.cats = a; saveS(); renderCats(); renderBar(); nextQ();
+}
+function setPerDay(n){ S.perDay = n; saveS(); renderCats(); syncPerDayChips(); }
+function syncPerDayChips(){
+  document.querySelectorAll('[data-n]').forEach(b=>{
+    b.classList.toggle('on', Number(b.dataset.n) === S.perDay);
+  });
+}
+function setView(v){
+  ['drill','table','plan','stat'].forEach(k=>{
+    document.getElementById('v-'+k).style.display = (k===v ? '' : 'none');
+  });
+  document.querySelectorAll('.views .chip').forEach(b=>{
+    b.classList.toggle('on', b.dataset.v === v);
+  });
+  if(v === 'table') renderTable();
+  if(v === 'plan') renderPlan();
+  if(v === 'stat') renderStat();
+  if(v === 'drill') renderBar();
+}
+
+/* ================= 速查总表 ================= */
+function rows(list){
+  return '<div class="rows">' + list.map(r=>'<div class="row">' + r + '</div>').join('') + '</div>';
+}
+function renderTable(){
+  let h = '';
+  h += '<div class="tcard"><h3>天干五合</h3><div class="kou">' + KOU.tg5 + '</div>'
+     + rows(TG5.map(x=>'<span class="g">'+x.p.join('')+'</span><span>合化</span><span class="tag">'+x.r+'</span><span class="r">'+x.tip.split(' · ')[1]+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>地支六合</h3><div class="kou">' + KOU.lh + '</div>'
+     + rows(LH.map(x=>'<span class="g">'+x.p.join('')+'</span><span>合</span><span class="tag">'+x.r+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>三合局（长生·帝旺·墓库）</h3><div class="kou">' + KOU.sh3 + '</div>'
+     + rows(SH3.map(x=>'<span class="g">'+x.p.join('')+'</span><span class="tag">'+x.r+'局</span><span class="r">帝旺 '+x.p[1]+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>三会方</h3><div class="kou">' + KOU.hui + '</div>'
+     + rows(HUI3.map(x=>'<span class="g">'+x.p.join('')+'</span><span class="tag">'+x.d+x.r+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>六冲</h3><div class="kou">' + KOU.chong + '</div>'
+     + rows(CHONG.map(x=>'<span class="g">'+x.join('')+'</span><span>相冲</span><span class="r">'+SX[x[0]]+'·'+SX[x[1]]+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>相刑</h3><div class="kou">' + KOU.xing + '</div>'
+     + rows(XING.map(x=>'<span class="g">'+x.p.join('')+'</span><span class="tag">'+x.n+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>六破</h3><div class="kou">' + KOU.po + '</div>'
+     + rows(PO.map(x=>'<span class="g">'+x.join('')+'</span><span>相破</span>')) + '</div>';
+  h += '<div class="tcard"><h3>六害（穿）</h3><div class="kou">' + KOU.hai + '</div>'
+     + rows(HAI.map(x=>'<span class="g">'+x.join('')+'</span><span>相害</span>')) + '</div>';
+  h += '<div class="tcard"><h3>生肖 · 地支</h3><div class="kou">' + KOU.sx + '</div>'
+     + rows(DZ.map(z=>'<span class="g">'+z+'</span><span>'+SX[z]+'</span><span class="r">'+ZHI_WX[z]+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>生肖六合 / 六冲</h3><div class="kou">合：鼠牛 · 虎猪 · 兔狗 · 龙鸡 · 蛇猴 · 马羊<br>冲：鼠马 · 牛羊 · 虎猴 · 兔鸡 · 龙狗 · 蛇猪</div>'
+     + rows(LH.map(x=>'<span class="g">'+SX[x.p[0]]+SX[x.p[1]]+'</span><span class="tag">六合化'+x.r+'</span>')
+         .concat(CHONG.map(x=>'<span class="g">'+SX[x[0]]+SX[x[1]]+'</span><span class="tag">六冲</span>'))) + '</div>';
+  h += '<div class="tcard"><h3>地支藏干</h3><div class="kou">' + KOU.cgkou + '</div>'
+     + rows(CG.map(x=>'<span class="g">'+x.z+'</span><span>'+x.all.join('')+'</span>'
+        + '<span class="r">本'+x.ben+(x.mid?' 中'+x.mid:'')+(x.yu?' 余'+x.yu:'')+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>天干五行</h3><div class="kou">甲乙木 · 丙丁火 · 戊己土 · 庚辛金 · 壬癸水</div>'
+     + rows(TG.map(g=>'<span class="g">'+g+'</span><span>'+GAN_WX[g]+'</span>')) + '</div>';
+  h += '<div class="tcard"><h3>地支五行方位</h3><div class="kou">亥子北方水 · 寅卯东方木 · 巳午南方火 · 申酉西方金 · 辰戌丑未中央土</div>'
+     + rows(DZ.map(z=>'<span class="g">'+z+'</span><span>'+ZHI_WX[z]+'</span>')) + '</div>';
+  document.getElementById('tGrid').innerHTML = h;
+}
+
+/* ================= 记忆日程 ================= */
+function renderPlan(){
+  const t = today();
+  const buckets = {};
+  for(let i=0;i<14;i++) buckets[dateAfter(i)] = 0;
+  cardsIn().forEach(c=>{
+    const s = st(c.id);
+    if((s.ok+s.wrong) === 0) return;
+    let d = s.due;
+    if(d < t) d = t;                 /* 逾期的都算今天 */
+    if(d > dateAfter(13)) return;
+    if(buckets[d] !== undefined) buckets[d]++;
+  });
+  const keys = Object.keys(buckets).sort();
+  const max = Math.max(1, ...keys.map(k=>buckets[k]));
+  let h = '';
+  keys.forEach((k,i)=>{
+    const lbl = i === 0 ? '今天' : (i === 1 ? '明天' : k.slice(5) + '（' + '周' + '日一二三四五六'[new Date(k).getDay()] + '）');
+    h += '<div class="planrow"><span class="d">' + lbl + '</span>'
+       + '<span class="barwrap"><span class="prog" style="width:100%"><span style="width:'
+       + Math.round(buckets[k]/max*100) + '%;background:' + (i===0?'var(--red)':'var(--accent)') + '"></span></span></span>'
+       + '<span class="n">' + buckets[k] + '</span></div>';
+  });
+  document.getElementById('planList').innerHTML = h;
+
+  const due = dueList().sort((a,b)=> (st(a.id).stage - st(b.id).stage));
+  document.getElementById('dueCount').textContent = '（' + due.length + ' 张）';
+  document.getElementById('dueList').innerHTML = due.length
+    ? due.slice(0,30).map(c=>{
+        const s = st(c.id);
+        return '<div class="row"><span class="g">' + c.label + '</span>'
+          + '<span class="r">第' + Math.min(s.stage+1,STAGES.length) + '阶 · 错' + (s.wrong||0) + '次</span></div>';
+      }).join('')
+    : '<div class="empty">今天没有到期要复习的卡。想去练新卡的话，点上面的「练习」。</div>';
+}
+
+/* ================= 统计 ================= */
+function renderStat(){
+  const cards = cardsIn();
+  let ok = 0, wrong = 0, started = 0;
+  cards.forEach(c=>{ const s = st(c.id); ok += s.ok||0; wrong += s.wrong||0; if((s.ok+s.wrong)>0) started++; });
+  const total = ok + wrong;
+  const acc = total ? Math.round(ok/total*100) : 0;
+  /* 连续打卡 */
+  let streak = 0;
+  for(let i=0;i<400;i++){
+    const d = dateAfter(-i);
+    const L = S.log[d];
+    if(L && (L.done||0) > 0) streak++;
+    else if(i > 0) break;
+  }
+  const mast = cards.filter(c=>mastered(c.id)).length;
+  document.getElementById('statBox').innerHTML =
+      '<div class="statbox"><b>' + mast + '</b><span>已掌握 / ' + cards.length + ' 张</span></div>'
+    + '<div class="statbox"><b>' + acc + '%</b><span>总正确率</span></div>'
+    + '<div class="statbox"><b>' + total + '</b><span>累计答题</span></div>'
+    + '<div class="statbox"><b>' + streak + '</b><span>连续练习天数</span></div>'
+    + '<div class="statbox"><b>' + started + '</b><span>已开始 / 未开始 ' + (cards.length-started) + '</span></div>';
+  let h = '';
+  CATS.forEach(c=>{
+    const list = CARDS.filter(x=>x.cat === c.id);
+    const m = list.filter(x=>mastered(x.id)).length;
+    const pc = list.length ? Math.round(m/list.length*100) : 0;
+    h += '<div class="catrow"><span class="nm">' + c.name + '</span>'
+       + '<span class="barwrap"><span class="prog" style="width:100%"><span style="width:' + pc + '%"></span></span></span>'
+       + '<span class="pc">' + m + '/' + list.length + '</span></div>';
+  });
+  document.getElementById('catStat').innerHTML = h;
+}
+function resetWeak(){
+  if(!confirm('把所有「答错过」的卡退回第 1 阶重练，确定？')) return;
+  CARDS.forEach(c=>{ const s = st(c.id); if((s.wrong||0) > 0){ s.stage = 0; s.due = today(); } });
+  saveS(); renderStat(); renderBar();
+}
+function resetAll(){
+  if(!confirm('清空全部练习进度（卡片、正确率、连续天数），确定？')) return;
+  S.cards = {}; S.log = {};
+  try{ localStorage.removeItem(KEY); localStorage.removeItem(KEY2); }catch(e){}
+  saveS(); renderStat(); renderBar(); nextQ();
+}
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('v-drill').style.display === 'none') return;
+  if(e.code === 'Space'){ e.preventDefault(); if(answered) nextQ(); return; }
+  const n = parseInt(e.key, 10);
+  if(n >= 1 && n <= 6 && cur){
+    const nodes = document.querySelectorAll('#qOpts .opt');
+    if(nodes[n-1]) nodes[n-1].click();
+  }
+  if(e.key === 'Enter' && cur && cur.multi && !answered) submitMulti();
+});
+
+/* ================= 启动 ================= */
+loadS();
+renderCats();
+renderBar();
+syncPerDayChips();
+nextQ();
+</script>
+</body>
+</html>
