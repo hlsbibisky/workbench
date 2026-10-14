@@ -96,7 +96,7 @@
   .cbtn2:hover{color:var(--fg);border-color:var(--accent);}
   .cbtn2:disabled{opacity:.35;cursor:default;}
   .cbtn2:disabled:hover{color:var(--sub);border-color:var(--line);}
-  .sys-tip{display:none;align-items:flex-start;gap:6px;font-size:11px;line-height:1.5;color:var(--sub);background:#f6f2ea;border:1px dashed var(--line);border-radius:8px;padding:5px 9px;margin:6px 10px 0;flex:0 0 auto;}
+  .sys-tip{display:none;align-items:flex-start;gap:6px;font-size:11px;line-height:1.5;color:var(--sub);background:#f6f2ea;border:1px dashed var(--line);border-radius:8px;padding:6px 10px;margin:6px 10px 5px;flex:0 0 auto;}
   .sys-tip.show{display:flex;}
   .sys-tip .stx{flex:1;min-width:0;}
   .sys-tip .sx{flex:none;cursor:pointer;opacity:.55;padding:0 2px;font-size:12px;}
@@ -227,7 +227,7 @@
   <div class="brand"><b>放映室</b><small>CINEMA</small></div>
   <div class="topacts">
     <button class="btn primary" onclick="document.getElementById('fileInp').click()">📂 选择影片</button>
-    <input type="file" class="fileinp" id="fileInp" accept="video/*,.mkv,.mp4,.m4v,.mov,.avi,.webm,.ts" onchange="if(this.files[0])loadFile(this.files[0])">
+    <input type="file" class="fileinp" id="fileInp" accept="video/*,.mkv,.mp4,.m4v,.mov,.avi,.webm,.ts" onchange="if(this.files[0])onPickMovie(this.files[0])">
     <button class="btn" onclick="openAiCfg()">⚙ AI配置</button>
     <button class="btn" onclick="openHelp()">❓ 怎么用</button>
   </div>
@@ -294,6 +294,8 @@
         <button class="ttab" onclick="switchTab('records')" data-tab="records">历史记录</button>
         <button class="ttab" onclick="switchTab('notes')" data-tab="notes">时间轴</button>
       </div>
+      <!-- 系统提示条：放在标签栏外面，切到哪个标签页都看得见 -->
+      <div class="sys-tip" id="sysTip"><span class="stx" id="sysTipTxt"></span><span class="sx" onclick="hideSysTip()" title="关掉">✕</span></div>
 
       <div class="tpane show" id="pane-chat">
         <div class="chat-wrap">
@@ -305,7 +307,6 @@
               <button class="cbtn2" onclick="clearChat()" title="一键清空对话框（可撤销）">清屏</button>
             </span>
           </div>
-          <div class="sys-tip" id="sysTip"><span class="stx" id="sysTipTxt"></span><span class="sx" onclick="hideSysTip()" title="关掉">✕</span></div>
           <div class="ai-body" id="aiBody">
             <div class="ai-msg ai">
               <div class="when">系统</div>
@@ -880,6 +881,15 @@ function pickCand(i){
 }
 
 /* ================= 播放器控制 ================= */
+function onPickMovie(file){
+  if(!file) return;
+  loadFile(file);
+  /* 用户是点了「生成字幕」才被引导来选文件的：选完自动接着读字幕，不用再点一次 */
+  if(state.pendingGenSub){
+    state.pendingGenSub=false;
+    setTimeout(function(){ genSubtitle(); },400);
+  }
+}
 function loadFile(file){
   if(!file) return;
   if(state.url) URL.revokeObjectURL(state.url);
@@ -2128,31 +2138,43 @@ function onSubtitle(file){
 
 async function genSubtitle(){
   const btn=$('genSubBtn'); if(!btn) return;
+  const info=$('subInfo');                            /* 结果写在按钮正下方，不用抬头找提示条 */
+  const say=function(m){ if(info) info.textContent=m; sysTip(m); };
   const f=state.file;
-  if(!f){ sysTip('先把影片文件加进来（点上面的「选择影片」），我才能从里面读字幕'); return; }
+  if(!f){
+    /* File 对象只在「选文件那一刻」存在于浏览器里，刷新或从历史记录进来就没有了 */
+    say('要读影片里的字幕，得先用「选择影片」把文件选进来 —— 正在帮你打开文件框…');
+    const inp=$('fileInp');
+    if(inp){ state.pendingGenSub=true; inp.click(); }  /* 选完自动接上（见 fileInp 的 onchange） */
+    else say('右上角「选择影片」选一下文件，我才能从里面读字幕。');
+    return;
+  }
   const orig=btn.textContent;
   btn.textContent='⏳ 读取中 0%'; btn.style.opacity='.55'; btn.style.pointerEvents='none';
+  say('正在从影片里读字幕轨…');
   try{
     const r=await MkvSub.extractSubtitle(f,{
-      onProgress:function(p){ btn.textContent='⏳ 读取中 '+Math.round(p*100)+'%'; }
+      onProgress:function(p){
+        btn.textContent='⏳ 读取中 '+Math.round(p*100)+'%';
+        if(info) info.textContent='正在读字幕轨… '+Math.round(p*100)+'%';
+      }
     });
     btn.textContent=orig; btn.style.opacity=''; btn.style.pointerEvents='';
     if(!r.ok){
-      const msg=({'not-mkv':'这个文件不是 mkv / webm 格式，只有这类格式才可能内嵌字幕轨',
+      say(({'not-mkv':'这个文件不是 mkv / webm 格式，只有这类格式才可能内嵌字幕轨',
         'no-subtitle-track':'这部片子里没有内嵌的字幕轨，需要你手动上传字幕文件',
         'no-cue':'找到字幕轨了，但没读出内容（可能是比较少见的编码）',
-        'empty':'文件读取失败'})[r.reason]||('提取失败：'+r.reason);
-      sysTip(msg);
+        'empty':'文件读取失败'})[r.reason]||('提取失败：'+r.reason));
       return;
     }
     const base=(state.meta.title||String(f.name).replace(/\.[^.]+$/,''));
     onSubtitle(new File([r.srt], base+'.srt', {type:'text/plain'}));
     setTimeout(function(){
-      sysTip('从影片里读出 '+r.count+' 条字幕并已载入，接着点「✨ 生成时间轴评论」就行。');
+      say('从影片里读出 '+r.count+' 条字幕并已载入，接着点「✨ 生成时间轴评论」就行。');
     },200);
   }catch(e){
     btn.textContent=orig; btn.style.opacity=''; btn.style.pointerEvents='';
-    sysTip('字幕提取出错：'+((e&&e.message)||e));
+    say('字幕提取出错：'+((e&&e.message)||e));
   }
 }
 
