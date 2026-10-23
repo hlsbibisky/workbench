@@ -46,6 +46,9 @@
   .profile-card .p-line{color:var(--sub);}
   .profile-card .p-line b{color:var(--fg);}
   .screen.has-video .dropzone{display:none;}
+  #capBox{position:absolute;left:0;right:0;bottom:7%;z-index:7;display:none;pointer-events:none;text-align:center;padding:0 5%;}
+  #capBox .cap{display:inline-block;background:rgba(0,0,0,.55);color:#fff;font-size:clamp(14px,2vw,28px);line-height:1.55;padding:5px 12px;border-radius:7px;text-shadow:0 1px 3px rgba(0,0,0,.9);max-width:94%;}
+  .volnum{flex:0 0 40px;font-size:11px;color:var(--sub);text-align:right;font-variant-numeric:tabular-nums;}
 
   .controls{width:100%;height:48px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:0 12px;display:flex;align-items:center;gap:7px;flex-wrap:nowrap;transition:opacity .25s;}
   .playbtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--accent);background:var(--accent);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:12px;flex:0 0 auto;}
@@ -153,12 +156,6 @@
   .hint{font-size:10.5px;color:var(--sub);line-height:1.5;margin-top:8px;background:#f5efe6;padding:7px;border-radius:7px;}
   .hint b{color:var(--accent);}
 
-  /* 截图分析 */
-  .shot-drop{display:block;line-height:2.1;border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);font-size:12px;background:#fff;cursor:pointer;transition:.14s;}
-  .shot-drop:hover{border-color:var(--accent);color:var(--accent);background:#fffbf7;}
-  .shot-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-  .shot-thumb{width:72px;height:48px;object-fit:cover;border-radius:7px;border:1px solid var(--line);cursor:pointer;}
-  .shot-row{padding:8px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;background:#fff;}
   .shot-row .img{width:100%;border-radius:7px;margin-bottom:6px;}
   .shot-row .txt{font-size:12px;color:var(--ink);line-height:1.5;}
   .shot-row .meta{font-size:10px;color:var(--sub);margin-top:4px;}
@@ -242,6 +239,7 @@
         <video id="video" controlsList="nodownload"
           ontimeupdate="onTimeUpdate()" onloadedmetadata="onLoaded()"
           onplay="onPlayState()" onpause="onPlayState()" onended="onEnded()"></video>
+        <div id="capBox"></div>
         <div class="dropzone">
           <b>拖拽影片到这里</b>
           <span>或点击右上角「选择影片」</span>
@@ -262,7 +260,8 @@
           <button class="cbtn" id="muteBtn" onclick="toggleMute()" title="静音 / 恢复音量">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M17 9.5a4 4 0 010 5"/><path d="M19.6 7a7.5 7.5 0 010 10"/></svg>
           </button>
-          <input type="range" class="vol" id="vol" min="0" max="1" step="0.05" value="1" oninput="setVol(this.value)" title="音量">
+          <input type="range" class="vol" id="vol" min="0" max="3" step="0.05" value="1" oninput="setVol(this.value)" title="音量（可放大到 300%）">
+          <span class="volnum" id="volNum">100%</span>
         </div>
         <div class="bgroup">
           <span class="sunicon">
@@ -333,8 +332,7 @@
       <div class="tpane" id="pane-ai">
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <label class="btn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;">📝 上传字幕<input type="file" class="fileinp" accept=".srt,.vtt" onchange="onSubtitle(this.files[0])"></label>
-          <label class="btn" id="genSubBtn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;" onclick="genSubtitle()">✨ 生成字幕</label>
-          <label class="btn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;">🎬 上传截图<input type="file" id="shotInp" class="fileinp" accept="image/*" multiple onchange="onShotSelect(this.files)"></label>
+          <button class="btn" id="capBtn" style="flex:1;text-align:center;font-size:13px;padding:10px 0;cursor:pointer;margin:0;" onclick="toggleCaption()" title="播放时显示 / 隐藏字幕">💬 字幕：显示</button>
         </div>
         <div id="subInfo" style="font-size:11px;color:var(--sub);margin-bottom:8px;">有字幕就用字幕，AI 评论更准</div>
         <div id="subMatch"></div>
@@ -375,12 +373,11 @@
           <div class="hint">
           <div class="hint">
             <b>AI 是怎么「看」电影的？</b><br>
-            先上传字幕（最准）或粘贴剧情，AI 会按 15 分钟一段通读全片，<b>只在真有讨论价值的地方发评论</b>——反转、伏笔、动机说不通、话外音、两难抉择、容易看漏的细节、镜头配乐在替角色说话；平淡的过场它一句都不说。关键桥段会连着来几条。<b>不设固定条数</b>，全看片子本身有多少值得聊的。如果连续 20 分钟一个字都没有，系统会自动补一轮，不会让你干等。播放到对应时间，评论会像聊天消息一样出现在「💬 对话」页，不飘屏、不弹幕。截图上传后 AI 会看图点评。API Key 在右上角「AI配置」里填一次即可。
+            先上传字幕（最准）或粘贴剧情，AI 会按 15 分钟一段通读全片，<b>只在真有讨论价值的地方发评论</b>——反转、伏笔、动机说不通、话外音、两难抉择、容易看漏的细节、镜头配乐在替角色说话；平淡的过场它一句都不说。关键桥段会连着来几条。<b>不设固定条数</b>，全看片子本身有多少值得聊的。如果连续 20 分钟一个字都没有，系统会自动补一轮，不会让你干等。播放到对应时间，评论会像聊天消息一样出现在「💬 对话」页，不飘屏、不弹幕。上传的字幕可以在播放时显示出来，显示还是隐藏由「💬 字幕」按钮决定。API Key 在右上角「AI配置」里填一次即可。
           </div>
           </div>
         </div>
         <div class="shot-preview" id="shotPreview"></div>
-        <div id="shotList"></div>
       </div>
 
       <div class="tpane" id="pane-records">
@@ -405,10 +402,10 @@
       1. 点击右上角「选择影片」或直接把影片拖进画面，支持 mp4 / mkv / webm / avi 等格式。<br><br>
       2. 播放器控制条：播放/暂停、快退 10 秒、快进 10 秒、进度条、音量、画面亮度、倍速、关灯（只留画面亮）、全屏。点画面可暂停，双击画面进全屏。<br><br>
       3. 右侧标签：<b>💬 对话</b>（AI 和你聊天，麦克风与输入框在这里；顶部有「清屏 / ↩ 撤销」）、AI生成、<b>历史记录</b>、时间轴。<br><br>
-      4. 「AI生成」页最上面是「上传字幕 / 上传截图」两个按钮：字幕(.srt/.vtt)最准，AI 会按片长分段把整部电影评论一次写好；没字幕也可粘贴剧情文本。填好 API Key（右上角「AI配置」）后一键生成。<br><br>
+      4. 「AI生成」页最上面是「上传字幕」按钮：字幕(.srt/.vtt)最准，AI 会按片长分段把整部电影评论一次写好；没字幕也可粘贴剧情文本。填好 API Key（右上角「AI配置」）后一键生成。<br><br>
       5. 播放时，到点的 AI 评论会像聊天消息一样出现在「对话」页；你也可以在那里打字或点 🎤 说话，AI 会结合当前播放位置真实回复。<br><br>
       6. <b>「历史记录」每部影片一条档</b>：字幕、AI 评论、播放进度都自动存下来。刷新、关掉浏览器、下次再打开，点卡片上的「继续观看」重选一次文件，评论和字幕就全回来了 —— <b>不用重新生成，也就不会再花钱</b>。点卡片本身还能直接看这部片的全部评论。<br><br>
-      7. 「上传截图」让 AI 看图点评；若影片画面在走却完全没声音，多半是 mkv 里的 DTS/AC3 音轨浏览器解不了，建议转成 MP4（H.264+AAC）。
+      7. 若影片画面在走却完全没声音，多半是 mkv 里的 DTS/AC3 音轨浏览器解不了，建议转成 MP4（H.264+AAC）。
     </p>
     <div class="macts"><button class="btn primary" onclick="closeHelp()">知道了</button></div>
   </div>
@@ -480,6 +477,7 @@ let state={
   file:null, url:null, currentId:null, recordId:null,
   meta:{title:'',info:'',plot:''},
   notes:[], shown:new Set(), visionTimer:null,
+  capOn:true,                      /* 画面上是否显示字幕（由「💬 字幕」按钮控制） */
   chatLog:[],             /* 聊天流持久化：{who,text,when}，随影片档存（最近 300 条） */
   editingId:null, recPoster:null,
   profile:null,           /* 影片档案：AI 认片结果 {title,year,director,cast,plot,themes,recognized,userFilled}，评论/陪聊都带着 */
@@ -884,11 +882,6 @@ function pickCand(i){
 function onPickMovie(file){
   if(!file) return;
   loadFile(file);
-  /* 用户是点了「生成字幕」才被引导来选文件的：选完自动接着读字幕，不用再点一次 */
-  if(state.pendingGenSub){
-    state.pendingGenSub=false;
-    setTimeout(function(){ genSubtitle(); },400);
-  }
 }
 function loadFile(file){
   if(!file) return;
@@ -978,21 +971,99 @@ function setAspect(v){
   }catch(e){}
 }
 try{ (function(){ const av=localStorage.getItem('cinema_ar'); if(av && av!=='auto'){ const s=document.getElementById('arSel'); if(s) s.value=av; setAspect(av); } })(); }catch(e){}
+try{ (function(){
+  const cap=localStorage.getItem('cinema_cap');
+  setCaption(cap===null?true:(cap==='1'));           /* 默认跟着字幕一起显示 */
+  const v=parseFloat(localStorage.getItem('cinema_vol'));
+  if(!isNaN(v) && v>=0 && v<=3){ const s=document.getElementById('vol'); if(s) s.value=v; setVol(v); }
+})(); }catch(e){}
 function skip(s){
   if(!isFinite(video.duration)) return;
   video.currentTime=Math.max(0,Math.min(video.duration, video.currentTime+s));
   pokeControls();
 }
-function toggleMute(){
-  video.muted=!video.muted;
-  $('muteBtn').classList.toggle('on',video.muted);
-  $('vol').value=video.muted?0:(video.volume||1);
+/* ============ 音量增益：突破浏览器 100% 上限（最多 300%） ============
+   浏览器 <video>.volume 最大只能到 1.0。超过的部分走 Web Audio 的 GainNode：
+   video --MediaElementSource--> GainNode --> 扬声器。
+   惰性建立：只有真的调到 100% 以上才接管音频路由，平时完全不碰，避免副作用。 */
+let _ac=null,_gainNode=null,_curVol=1,_lastAudibleVol=1;
+/* ⚠ 关键：一旦 createMediaElementSource 接管了音频路由，AudioContext 没放行(running)就等于没声音。
+   所以必须确认 running 之后才接管；放不放行不了就干脆不放大，绝不能让整部片变哑。 */
+function ensureGain(){
+  if(_gainNode) return _gainNode;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return null;
+    let ac=_ac;
+    if(!ac){ ac=new AC(); _ac=ac; }
+    if(ac.state!=='running'){
+      /* 还没放行：先申请放行，成功后再接管（拖音量滑块 / 点播放都是用户手势，通常一次就成了） */
+      try{ ac.resume().then(function(){
+        if(ac.state==='running' && !_gainNode && _curVol>1.001) buildGain(ac);
+      }); }catch(e){}
+      return null;
+    }
+    return buildGain(ac);
+  }catch(e){ console.warn('音量增益不可用',e); return null; }
+}
+function buildGain(ac){
+  if(_gainNode) return _gainNode;
+  try{
+    const srcNode=ac.createMediaElementSource(video);
+    const g=ac.createGain();
+    g.gain.value=Math.min(3,Math.max(0,_curVol));
+    srcNode.connect(g);
+    g.connect(ac.destination);
+    _gainNode=g;
+    return g;
+  }catch(e){ console.warn('音量增益链路建立失败',e); return null; }
+}
+function applyGain(v){
+  const target=video.muted?0:v;
+  if(target>1.001){
+    const g=ensureGain();
+    if(!g){ if(_gainNode) _gainNode.gain.value=0; return; }   /* 接管失败：宁可不放大也不让声音消失 */
+    try{ if(_ac.state==='suspended') _ac.resume(); }catch(e){}
+    g.gain.value=Math.min(3,target);
+  }else if(_gainNode){
+    _gainNode.gain.value=(target>0?1:0);   /* 100% 以内由 video.volume 自己管；静音时增益也归 0 */
+  }
+}
+function setVolLabel(v){
+  const n=$('volNum');
+  if(!n) return;
+  n.textContent=Math.round(v*100)+'%';
+  n.style.color=v>1.001?'var(--accent)':'';
 }
 function setVol(v){
-  video.volume=Math.max(0,Math.min(1,parseFloat(v)));
-  video.muted=video.volume===0;
+  v=Math.max(0,Math.min(3,parseFloat(v)||0));
+  _curVol=v;
+  if(v>0.001) _lastAudibleVol=v;
+  video.volume=Math.min(1,v);
+  video.muted=(v===0);
+  applyGain(video.muted?0:v);
   $('muteBtn').classList.toggle('on',video.muted);
+  setVolLabel(v);
+  try{ localStorage.setItem('cinema_vol',String(v)); }catch(e){}
 }
+function toggleMute(){
+  if(video.muted || _curVol<=0.001){
+    const v=_lastAudibleVol||1;
+    if($('vol')) $('vol').value=v;
+    setVol(v);
+  }else{
+    _lastAudibleVol=_curVol;
+    if($('vol')) $('vol').value=0;
+    setVol(0);
+  }
+}
+/* 播放瞬间补一次 resume：放大链路刚建立时浏览器可能还压着没放行 */
+video.addEventListener('play',function(){
+  try{
+    if(_ac && _ac.state!=='running') _ac.resume();
+  }catch(e){}
+  if(_curVol>1.001 && !_gainNode) setTimeout(function(){ applyGain(_curVol); },0);
+});
 function setBri(v){ video.style.filter='brightness('+v+')'; }
 function toggleLights(){
   document.body.classList.toggle('lights-off');
@@ -1056,6 +1127,7 @@ function onTimeUpdate(){
   saveProgress(false);      /* 进度独立存，内部节流：最多每 30 秒写一次，不拖累同步 */
   checkNotes(cur);
   checkAudio();
+  renderCaption();
 }
 function onEnded(){ saveProgress(true); }
 function seek(e){
@@ -1677,23 +1749,26 @@ function parseSRT(txt){
     if(lines.length<2) return;
     const idx=lines.findIndex(l=>/-->/.test(l));
     if(idx<0) return;
-    const m=lines[idx].match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)/);
+    const m=lines[idx].match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)(?:[,.](\d+))?/);
     if(!m) return;
     const start=+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000;
+    /* end 用于画面上显示字幕时判断「这条该消失了」。右侧没写毫秒也能匹配，不会让老字幕丢失 */
+    const end=+m[5]*3600+ +m[6]*60+ +m[7]+ (m[8]? +m[8]/1000 : 0);
     const text=lines.slice(idx+1).join(' ').trim();
-    if(text) out.push({start, text});
+    if(text) out.push({start, end, text});
   });
   return out;
 }
 function parseVTT(txt){
   const out=[]; const lines=txt.replace(/\r/g,'').split('\n');
   for(let i=0;i<lines.length;i++){
-    const m=lines[i].match(/(\d+):(\d+):(\d+)[.](\d+)\s*-->\s*(\d+):(\d+):(\d+)/);
+    const m=lines[i].match(/(\d+):(\d+):(\d+)[.](\d+)\s*-->\s*(\d+):(\d+):(\d+)(?:[.](\d+))?/);
     if(m){
       const start=+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000;
+      const end=+m[5]*3600+ +m[6]*60+ +m[7]+ (m[8]? +m[8]/1000 : 0);
       let j=i+1, text='';
       while(j<lines.length && lines[j].trim()!==''){ text+=(text?' ':'')+lines[j].trim(); j++; }
-      if(text) out.push({start, text}); i=j;
+      if(text) out.push({start, end, text}); i=j;
     }
   }
   return out;
@@ -1781,337 +1856,54 @@ function setSubOffset(off){
 }
 function applySubOffset(delta){ setSubOffset((state.subOffset||0)+delta); }
 
-var MkvSub = (function(){
-
-  'use strict';
-
-  var ID = {
-    EBML: 0x1A45DFA3, Segment: 0x18538067, Info: 0x1549A966,
-    TimecodeScale: 0x2AD7B1, Tracks: 0x1654AE6B, TrackEntry: 0xAE,
-    TrackNumber: 0xD7, TrackType: 0x83, CodecID: 0x86,
-    Language: 0x22B59C, LanguageBCP47: 0x22B59D, Name: 0x536E,
-    Cluster: 0x1F43B675, Timestamp: 0xE7,
-    SimpleBlock: 0xA3, BlockGroup: 0xA0, Block: 0xA1
-  };
-  var TT_SUB = 0x11;   /* TrackType = subtitle */
-
-  /* ---------- EBML 基础读取 ---------- */
-  function readId(b, p) {                 /* VINT，保留 marker 位，用于元素 ID / track number */
-    if (p < 0 || p >= b.length) return null;
-    var b0 = b[p], len = 1;
-    if (b0 & 0x80) len = 1;
-    else if (b0 & 0x40) len = 2;
-    else if (b0 & 0x20) len = 3;
-    else if (b0 & 0x10) len = 4;
-    else return null;
-    if (p + len > b.length) return null;
-    var v = 0;
-    for (var i = 0; i < len; i++) v = v * 256 + b[p + i];
-    return { v: v, len: len };
+/* ============ 字幕显示：上传的字幕可以在画面上显示 / 隐藏 ============ */
+function capFind(t){
+  const a=state.subtitle;
+  if(!a || !a.length) return -1;
+  let lo=0,hi=a.length-1,r=-1;
+  while(lo<=hi){
+    const m=(lo+hi)>>1;
+    if(a[m].start<=t){ r=m; lo=m+1; } else hi=m-1;
   }
-
-  function readSize(b, p) {               /* VINT，去掉 marker 位 */
-    if (p < 0 || p >= b.length) return null;
-    var b0 = b[p], len = 1, i;
-    if (b0 & 0x80) len = 1;
-    else if (b0 & 0x40) len = 2;
-    else if (b0 & 0x20) len = 3;
-    else if (b0 & 0x10) len = 4;
-    else if (b0 & 0x08) len = 5;
-    else if (b0 & 0x04) len = 6;
-    else if (b0 & 0x02) len = 7;
-    else if (b0 & 0x01) len = 8;
-    else return null;
-    if (p + len > b.length) return null;
-    var v = 0, unknown;
-    if (len === 8) {                        /* 8 字节 size：精度超 2^53，单独判 */
-      var ff = (b0 === 0x01), k;
-      for (k = 1; k < 8; k++) if (b[p + k] !== 0xFF) { ff = false; break; }
-      for (k = 1; k < 8; k++) v = v * 256 + b[p + k];
-      unknown = ff;
-    } else {
-      for (i = 0; i < len; i++) v = v * 256 + b[p + i];
-      var mask = Math.pow(2, 7 * len) - 1;
-      v = v & mask;
-      unknown = (v === mask);               /* 全 1 = 未知长度（直播流） */
-    }
-    return { v: v, len: len, unknown: unknown };
+  return r;
+}
+function capHide(box){
+  if(!box) return;
+  if(box.style.display!=='none'){ box.style.display='none'; box.innerHTML=''; box.removeAttribute('data-k'); }
+}
+function renderCaption(){
+  const box=$('capBox');
+  if(!box) return;
+  if(!state.capOn || !state.subtitle || !state.subtitle.length){ capHide(box); return; }
+  if(!isFinite(video.currentTime)){ capHide(box); return; }
+  const t=video.currentTime;
+  const i=capFind(t);
+  if(i<0){ capHide(box); return; }
+  const c=state.subtitle[i];
+  const nx=(i+1<state.subtitle.length)?state.subtitle[i+1].start:Infinity;
+  /* 有的 cue 没存 end（位移校正后只剩 start），就用下一条的开始当结束 */
+  const end=(typeof c.end==='number' && c.end>c.start)?c.end:nx;
+  if(t>=end){ capHide(box); return; }
+  box.style.display='block';
+  if(box.getAttribute('data-k')!==String(i)){
+    box.setAttribute('data-k',String(i));
+    box.innerHTML='<span class="cap">'+esc(c.text).replace(/\n/g,'<br>')+'</span>';
   }
-
-  function readUint(b, p, n) {
-    if (n <= 0 || p + n > b.length) return 0;
-    var v = 0;
-    for (var i = 0; i < n; i++) v = v * 256 + b[p + i];
-    return v;
+}
+function setCaption(on){
+  state.capOn=!!on;
+  const b=$('capBtn');
+  if(b){
+    b.textContent=state.capOn?'💬 字幕：显示':'💬 字幕：关闭';
+    b.classList.toggle('primary',!!state.capOn);
   }
-  function readStr(b, p, n) {
-    if (n <= 0 || p + n > b.length) return '';
-    var s = '';
-    for (var i = 0; i < n; i++) s += String.fromCharCode(b[p + i]);
-    return s.replace(/\0+$/, '');
-  }
-  function dec8(u8) {
-    try { return new TextDecoder('utf-8').decode(u8); }
-    catch (e) { var s = ''; for (var i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return s; }
-  }
-
-  /* ---------- 递归遍历（只用于头部小缓冲） ---------- */
-  function walk(buf, start, end, cb, depth, ctx) {
-    ctx = ctx || {}; depth = depth || 0;
-    if (depth > 6 || ctx.abort) return;
-    var p = start, guard = 0;
-    while (p < end - 1 && guard++ < 200000) {
-      var idr = readId(buf, p); if (!idr) return;
-      var sr = readSize(buf, p + idr.len); if (!sr || sr.unknown) return;
-      var ds = p + idr.len + sr.len, de = ds + sr.v;
-      if (de > end) de = end;
-      var go = cb(idr.v, ds, sr.v, depth);
-      if (go === true) walk(buf, ds, de, cb, depth + 1, ctx);
-      if (ctx.abort) return;
-      p = de;
-    }
-  }
-
-  /* ---------- ASS 处理 ---------- */
-  function assTime(s) {
-    var m = /(\d+):(\d{2}):(\d{2})[.](\d{1,2})/.exec(String(s).trim());
-    if (!m) return 0;
-    return (+m[1]) * 3600000 + (+m[2]) * 60000 + (+m[3]) * 1000 +
-      (+m[4]) * (m[4].length === 1 ? 100 : 10);
-  }
-  function cleanAss(t) {
-    return String(t)
-      .replace(/\{[^}]*\}/g, '')
-      .replace(/\\[Nn]/g, '\n')
-      .replace(/\\h/g, ' ')
-      .replace(/\s+$/, '');
-  }
-  function parseAssDialogue(line) {
-    if (!/^\s*(Dialogue|Comment)\s*:/i.test(line)) return null;
-    var body = line.slice(line.indexOf(':') + 1);
-    var parts = body.split(',');
-    if (parts.length < 10) return null;
-    return {
-      start: assTime(parts[1]),
-      end: assTime(parts[2]),
-      text: cleanAss(parts.slice(9).join(','))
-    };
-  }
-
-  /* ---------- SRT 输出 ---------- */
-  function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function srtTime(ms) {
-    ms = Math.max(0, Math.round(ms));
-    var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000),
-      s = Math.floor(ms % 60000 / 1000), x = ms % 1000;
-    var xs = x < 10 ? '00' + x : (x < 100 ? '0' + x : '' + x);
-    return pad(h) + ':' + pad(m) + ':' + pad(s) + ',' + xs;
-  }
-  function toSrt(cues) {
-    var out = [], i;
-    for (i = 0; i < cues.length; i++) {
-      var c = cues[i], start = c.start, end = c.end;
-      if (end == null || end <= start) {
-        var nx = cues[i + 1];
-        end = nx ? Math.min(nx.start, start + 5000) : start + 5000;
-        if (end <= start) end = start + 2000;
-      }
-      var tx = String(c.text).replace(/\r/g, '').replace(/\n+$/, '').trim();
-      if (!tx) continue;
-      out.push((out.length + 1) + '\n' + srtTime(start) + ' --> ' + srtTime(end) + '\n' + tx + '\n');
-    }
-    return out.join('\n');
-  }
-
-  /* ---------- 字幕轨打分（中文优先） ---------- */
-  function scoreTrack(t) {
-    var s = 0;
-    var lg = (t.lang || '').toLowerCase(), nm = (t.name || '').toLowerCase();
-    if (/^(chi|zho|zh|cmn|zho-cn|zh-cn)/.test(lg) || lg === 'und') s += 50;
-    if (/^en(ng)?$|^eng/.test(lg)) s += 10;
-    if (/中[文字]?|简[体]?|繁[体]?|chs|cht|chi|简体|繁体/.test(nm)) s += 60;
-    if (/english|英[文字]?|eng/.test(nm)) s += 5;
-    if (/forced|强制/.test(nm)) s -= 40;
-    if (/sdh|听障|commentary|评论/.test(nm)) s -= 20;
-    return s;
-  }
-
-  /* ================= 主入口 =================
-   * file: File / Blob（有 .size 与 .slice()）
-   * opts.onProgress(pct 0~1)
-   * 返回 {ok, srt, count, track:{num,codec,lang,name}, tracks:[...], reason}
-   */
-  async function extractSubtitle(file, opts) {
-    opts = opts || {};
-    var onProgress = opts.onProgress || function () { };
-    var total = file.size || 0;
-    var fail = function (r) {
-      return { ok: false, reason: r, tracks: [], all: (typeof tracks !== 'undefined' ? tracks : []) };
-    };
-    if (total < 64) return fail('empty');
-
-    /* --- 阶段 1：解析头部，找字幕轨 --- */
-    var HEAD = Math.min(total, 16 * 1024 * 1024);
-    var headBuf = new Uint8Array(await file.slice(0, HEAD).arrayBuffer());
-    if (!(headBuf[0] === 0x1A && headBuf[1] === 0x45 && headBuf[2] === 0xDF && headBuf[3] === 0xA3)) {
-      return fail('not-mkv');
-    }
-    var timecodeScale = 1000000, tracks = [], ctx = {};
-    var segStart = 0, segSize = 0;                       /* Cluster 在 Segment 内部，阶段2 要从这里进 */
-    walk(headBuf, 0, headBuf.length, function (id, ds, sz, depth) {
-      if (id === ID.TimecodeScale) { timecodeScale = readUint(headBuf, ds, sz) || 1000000; return false; }
-      if (id === ID.Segment) { segStart = ds; segSize = sz; return true; }
-      if (id === ID.Tracks) return true;
-      if (id === ID.TrackEntry) {
-        var t = { num: 0, type: -1, codec: '', lang: '', name: '' };
-        walk(headBuf, ds, ds + sz, function (id2, ds2, sz2) {
-          if (id2 === ID.TrackNumber) t.num = readUint(headBuf, ds2, sz2);
-          else if (id2 === ID.TrackType) t.type = readUint(headBuf, ds2, sz2);
-          else if (id2 === ID.CodecID) t.codec = readStr(headBuf, ds2, sz2);
-          else if (id2 === ID.Language) t.lang = readStr(headBuf, ds2, sz2);
-          else if (id2 === ID.LanguageBCP47) t.lang = readStr(headBuf, ds2, sz2);
-          else if (id2 === ID.Name) t.name = readStr(headBuf, ds2, sz2);
-          return false;
-        }, 0, {});
-        tracks.push(t);
-        if (tracks.length >= 40) ctx.abort = true;
-        return false;
-      }
-      return false;
-    }, 0, ctx);
-
-    var subs = tracks.filter(function (t) {
-      return t.type === TT_SUB && /^S_TEXT\/(UTF8|SSA|ASS)$/i.test(t.codec);
-    });
-    if (!subs.length) return fail('no-subtitle-track');
-    subs.sort(function (a, b) { return scoreTrack(b) - scoreTrack(a); });
-    var target = subs[0];
-    var targetNum = target.num;
-    var isAss = /\/SS?AA?$|S_TEXT\/(SSA|ASS)$/i.test(target.codec);
-    var scaleMs = timecodeScale / 1e6;
-
-    /* --- 阶段 2：流式扫描，只抠目标轨 --- */
-    var CHUNK = 4 * 1024 * 1024;
-    var buf = new Uint8Array(0), bufStart = -1;
-    async function need(abs, n) {
-      if (abs < 0) return false;
-      var rel = abs - bufStart;
-      if (rel >= 0 && buf.length - rel >= n) return true;
-      if (abs >= total) return false;
-      var re = Math.min(total, abs + CHUNK);
-      buf = new Uint8Array(await file.slice(abs, re).arrayBuffer());
-      bufStart = abs;
-      return buf.length >= n;
-    }
-    var cues = [];
-    async function takeBlock(abs, size, clusterTs) {
-      if (size < 4) return;
-      if (!(await need(abs, Math.min(size, 12)))) return;
-      var rel = abs - bufStart;
-      var tn = readId(buf, rel); if (!tn) return;
-      var trackNum = tn.v & (Math.pow(2, 7 * tn.len) - 1);   /* 去掉 VINT 标记位才是真实轨道号 */
-      var q = rel + tn.len;
-      if (q + 3 > buf.length) return;
-      var relTs = (buf[q] << 8) | buf[q + 1]; if (relTs >= 0x8000) relTs -= 0x10000;
-      q += 2;
-      var flags = buf[q]; q += 1;
-      if (trackNum !== targetNum) return;             /* 不是目标轨，直接放弃 */
-      if (opts.debug) console.log('[DBG] HIT clusterTs=' + clusterTs + ' relTs=' + relTs + ' scaleMs=' + scaleMs + ' size=' + size);
-      var payloadAbs = abs + (q - rel);
-      var payloadLen = size - (q - rel);
-      if (payloadLen <= 0) return;
-      var lacing = (flags >> 1) & 0x03;
-      if (lacing === 2) {                             /* fixed-size lacing */
-        if (!(await need(payloadAbs, 1))) return;
-        var fr = buf[payloadAbs - bufStart] + 1;
-        payloadLen = Math.floor(payloadLen / fr);
-        payloadAbs += 1;
-      }
-      if (!(await need(payloadAbs, Math.min(payloadLen, 4 * 1024 * 1024)))) return;
-      var r2 = payloadAbs - bufStart;
-      var data = buf.subarray(r2, r2 + Math.min(payloadLen, buf.length - r2));
-      var text = dec8(data);
-      if (isAss) {
-        /* ASS 在 MKV 里有两种写法：
-           ① 完整行  Dialogue: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
-           ② 简化行  ReadOrder,Layer,Style,Name,MarginL,MarginR,MarginV,Effect,Text（时间取自区块） */
-        var line = String(text).split('\n')[0];
-        var d = parseAssDialogue(line);
-        if (d && d.text) {
-          cues.push({ start: d.start, end: d.end, text: d.text });
-        } else {
-          var ap = line.split(',');
-          var atx = ap.length >= 9 ? cleanAss(ap.slice(8).join(','))
-            : cleanAss(line.replace(/^\s*\d+\s*,/, ''));
-          if (atx) cues.push({ start: (clusterTs + relTs) * scaleMs, end: null, text: atx });
-        }
-      } else {
-        var tx = text.replace(/\r/g, '').replace(/\n+$/, '').trim();
-        if (tx) cues.push({ start: (clusterTs + relTs) * scaleMs, end: null, text: tx });
-      }
-    }
-
-    var p = segStart, guard = 0;
-    var scanEnd = (segStart && segSize) ? Math.min(total, segStart + segSize) : total;
-    while (p < scanEnd && guard++ < 5000000) {
-      if (!(await need(p, 12))) break;
-      var rel0 = p - bufStart;
-      var idr = readId(buf, rel0);
-      if (!idr) { p += 1; continue; }
-      var sr = readSize(buf, rel0 + idr.len);
-      if (!sr) { p += 1; continue; }
-      if (sr.unknown) break;
-      var ds = p + idr.len + sr.len, de = ds + sr.v;
-
-      if (idr.v === ID.Cluster) {
-        var clusterTs = 0, q = ds, cEnd = Math.min(de, total), g2 = 0;
-        while (q < cEnd && g2++ < 200000) {
-          if (!(await need(q, 12))) break;
-          var r2b = q - bufStart;
-          var i2 = readId(buf, r2b); if (!i2) break;
-          var s2 = readSize(buf, r2b + i2.len); if (!s2 || s2.unknown) break;
-          var d2 = q + i2.len + s2.len, e2 = d2 + s2.v;
-          if (i2.v === ID.Timestamp) {
-            clusterTs = readUint(buf, d2 - bufStart, s2.v);   /* d2 是绝对位置，buf 索引要减 bufStart */
-            if (opts.debug) console.log('[DBG] clusterTs=' + clusterTs + ' bytes=' + s2.v + ' raw=' +
-              Array.from(buf.subarray(d2 - 3, d2 + s2.v + 2)).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join(' '));
-          } else if (i2.v === ID.SimpleBlock || i2.v === ID.Block) {
-            await takeBlock(d2, s2.v, clusterTs);
-          } else if (i2.v === ID.BlockGroup) {
-            var r3 = d2, e3 = Math.min(e2, total), g3 = 0;
-            while (r3 < e3 && g3++ < 2000) {
-              if (!(await need(r3, 12))) break;
-              var r3b = r3 - bufStart;
-              var i3 = readId(buf, r3b); if (!i3) break;
-              var s3 = readSize(buf, r3b + i3.len); if (!s3 || s3.unknown) break;
-              var d3 = r3 + i3.len + s3.len, e33 = d3 + s3.v;
-              if (i3.v === ID.Block) await takeBlock(d3, s3.v, clusterTs);
-              r3 = e33 > d3 ? e33 : d3;
-            }
-          }
-          q = e2 > d2 ? e2 : d2;
-        }
-      }
-      p = de > ds ? de : ds;
-      onProgress(total ? Math.min(1, p / total) : 1);
-    }
-    onProgress(1);
-
-    if (!cues.length) return fail('no-cue');
-    cues.sort(function (a, b) { return a.start - b.start; });
-    return {
-      ok: true,
-      srt: toSrt(cues),
-      count: cues.length,
-      track: { num: target.num, codec: target.codec, lang: target.lang, name: target.name },
-      tracks: subs.map(function (t) { return { num: t.num, codec: t.codec, lang: t.lang, name: t.name }; })
-    };
-  }
-
-  return { extractSubtitle: extractSubtitle, _toSrt: toSrt, _assTime: assTime };
-
-})();
-
+  try{ localStorage.setItem('cinema_cap', state.capOn?'1':'0'); }catch(e){}
+  renderCaption();
+}
+function toggleCaption(){
+  setCaption(!state.capOn);
+  sysTip(state.capOn?'字幕已显示，会同步显示在画面下方。':'字幕已隐藏，AI 仍然会用它，只是画面上不显示。');
+}
 function onSubtitle(file){
   if(!file) return;
   const r=new FileReader();
@@ -2129,113 +1921,14 @@ function onSubtitle(file){
     } else {
       saved = saveMovie({subCount:cues.length}) ? '，已存档（刷新不会丢）' : '，但存档失败了';
     }
-    sysTip(`字幕已解析：${cues.length} 条${saved}。先看上面的「匹配检测」对不对得上，再点「✨ 生成时间轴评论」。`);
+    sysTip(`字幕已解析：${cues.length} 条${saved}。${state.capOn?'正在画面上显示，不想要就点「💬 字幕」关掉。':''}先看上面的「匹配检测」对不对得上，再点「✨ 生成时间轴评论」。`);
+    renderCaption();
     renderHistory();
     renderSubMatch();
   };
   r.readAsText(file);
 }
 
-async function genSubtitle(){
-  const btn=$('genSubBtn'); if(!btn) return;
-  const info=$('subInfo');                            /* 结果写在按钮正下方，不用抬头找提示条 */
-  const say=function(m){ if(info) info.textContent=m; sysTip(m); };
-  const f=state.file;
-  if(!f){
-    /* File 对象只在「选文件那一刻」存在于浏览器里，刷新或从历史记录进来就没有了 */
-    say('要读影片里的字幕，得先用「选择影片」把文件选进来 —— 正在帮你打开文件框…');
-    const inp=$('fileInp');
-    if(inp){ state.pendingGenSub=true; inp.click(); }  /* 选完自动接上（见 fileInp 的 onchange） */
-    else say('右上角「选择影片」选一下文件，我才能从里面读字幕。');
-    return;
-  }
-  const orig=btn.textContent;
-  btn.textContent='⏳ 读取中 0%'; btn.style.opacity='.55'; btn.style.pointerEvents='none';
-  say('正在从影片里读字幕轨…');
-  try{
-    const r=await MkvSub.extractSubtitle(f,{
-      onProgress:function(p){
-        btn.textContent='⏳ 读取中 '+Math.round(p*100)+'%';
-        if(info) info.textContent='正在读字幕轨… '+Math.round(p*100)+'%';
-      }
-    });
-    btn.textContent=orig; btn.style.opacity=''; btn.style.pointerEvents='';
-    if(!r.ok){
-      say(({'not-mkv':'这个文件不是 mkv / webm 格式，只有这类格式才可能内嵌字幕轨',
-        'no-subtitle-track':'这部片子里没有内嵌的字幕轨，需要你手动上传字幕文件',
-        'no-cue':'找到字幕轨了，但没读出内容（可能是比较少见的编码）',
-        'empty':'文件读取失败'})[r.reason]||('提取失败：'+r.reason));
-      return;
-    }
-    const base=(state.meta.title||String(f.name).replace(/\.[^.]+$/,''));
-    onSubtitle(new File([r.srt], base+'.srt', {type:'text/plain'}));
-    setTimeout(function(){
-      say('从影片里读出 '+r.count+' 条字幕并已载入，接着点「✨ 生成时间轴评论」就行。');
-    },200);
-  }catch(e){
-    btn.textContent=orig; btn.style.opacity=''; btn.style.pointerEvents='';
-    say('字幕提取出错：'+((e&&e.message)||e));
-  }
-}
-
-/* ================= 截图分析 ================= */
-function onShotSelect(files){
-  if(!files || !files.length) return;
-  const cfg=loadCfg();
-  const key=cfg.key;
-  const model=cfg.model||'deepseek-flash';
-  const endpoint=cfg.endpoint||'https://api.deepseek.com';
-  if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
-  Array.from(files).forEach(file=>analyzeShot(file,endpoint,model,key));
-}
-async function analyzeShot(file,endpoint,model,key){
-  const id=Date.now()+Math.random();
-  const list=$('shotList');
-  const row=document.createElement('div'); row.className='shot-row'; row.id='shot-'+id;
-  const imgUrl=URL.createObjectURL(file);
-  row.innerHTML=`<img class="img" src="${imgUrl}"><div class="txt">正在分析画面…</div><div class="meta">${esc(file.name)}</div>`;
-  list.prepend(row);
-  try{
-    const base64=await fileToBase64(file);
-    const res=await fetch(endpoint,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({
-        model:model,
-        messages:[{
-          role:'user',
-          content:[
-            {type:'text',text:'你是陪用户看电影的 AI。请用一句话点评这张电影截图，语气像朋友一样。只输出一句。'},
-            {type:'image_url',image_url:{url:base64}}
-          ]
-        }],
-        max_tokens:120
-      })
-    });
-    if(!res.ok) throw new Error('API '+res.status);
-    const data=await res.json();
-    const txt=data.choices?.[0]?.message?.content?.trim()||'（AI 没有返回内容）';
-    row.querySelector('.txt').textContent=txt;
-    aiSay('AI', txt);
-  }catch(e){
-    row.querySelector('.txt').textContent='分析失败：'+e.message;
-  }
-}
-function fileToBase64(file){
-  return new Promise((resolve,reject)=>{
-    const r=new FileReader();
-    r.onload=()=>resolve(r.result);
-    r.onerror=reject;
-    r.readAsDataURL(file);
-  });
-}
-const paneAi=$('pane-ai');
-paneAi.addEventListener('dragover',e=>{ e.preventDefault(); paneAi.style.outline='2px dashed var(--accent)'; });
-paneAi.addEventListener('dragleave',e=>{ e.preventDefault(); paneAi.style.outline=''; });
-paneAi.addEventListener('drop',e=>{
-  e.preventDefault(); paneAi.style.outline='';
-  onShotSelect(e.dataTransfer.files);
-});
 
 /* ================= 实时视觉分析（可选） ================= */
 function setupVision(){
