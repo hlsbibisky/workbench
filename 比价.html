@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>比价</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --accent2:#5b8c7b; --mark:#f0e3d6;
+    --warn:#d9822b; --ok:#3f9d6b; --bad:#c0392b;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(58,54,49,.06), 0 10px 30px rgba(58,54,49,.05);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{margin:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased;padding:14px 16px 54px;}
+  ::selection{background:var(--mark);}
+  button,input,textarea,select{font-family:inherit;}
+
+  /* ── 顶部：搜索 + 右上角视图切换（页面内不放与外壳重复的大标题） ── */
+  .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .search{flex:1 1 260px;min-width:180px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:0 12px;height:38px;transition:.15s;}
+  .search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,113,78,.08);}
+  .search svg{width:15px;height:15px;flex:0 0 auto;stroke:var(--sub);fill:none;stroke-width:1.7;}
+  .search input{flex:1;border:0;outline:0;font-size:14px;background:transparent;color:var(--ink);min-width:0;}
+  .search input::placeholder{color:#bdb3a4;}
+  .tabs{display:flex;background:#efe9df;border-radius:10px;padding:3px;gap:2px;flex:0 0 auto;}
+  .tabs button{border:0;background:transparent;color:var(--sub);font-size:13px;padding:6px 14px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .tabs button.on{background:#fff;color:var(--accent);font-weight:600;box-shadow:0 1px 3px rgba(58,54,49,.08);}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;transition:.14s;height:38px;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.primary:hover{background:#a05f3d;color:#fff;}
+  .btn.ghost{background:transparent;}
+  .btn.sm{height:30px;padding:4px 10px;font-size:12px;border-radius:8px;}
+  .btn:disabled{opacity:.55;cursor:not-allowed;}
+
+  /* ── 粘贴解析区 ── */
+  .paste{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:12px;}
+  .paste textarea{width:100%;min-height:58px;max-height:220px;resize:vertical;border:1px dashed #ded3c1;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.6;background:#fdfbf6;color:var(--ink);outline:none;transition:.15s;}
+  .paste textarea:focus{border-color:var(--accent);background:#fff;border-style:solid;}
+  .paste textarea::placeholder{color:#bdb3a4;}
+  .prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;}
+  .prow .sp{flex:1;}
+  .hint{font-size:11.5px;color:var(--sub);line-height:1.7;}
+  .hint b{color:var(--accent);font-weight:600;}
+  .bmk{display:inline-flex;align-items:center;gap:5px;background:#f3ece1;border:1px dashed #d9c9b4;color:#8a6b52;border-radius:8px;padding:4px 10px;font-size:12px;text-decoration:none;cursor:grab;}
+  .bmk:hover{background:var(--mark);color:var(--accent);}
+
+  /* ── 平台筛选 ── */
+  .plats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .pchip{border:1px solid #e3d9c8;background:#faf6ee;color:var(--ink);border-radius:999px;padding:4px 12px;font-size:12.5px;cursor:pointer;transition:.13s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .pchip:hover{border-color:var(--accent);color:var(--accent);background:var(--mark);}
+  .pchip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .pchip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.65;}
+  .pchip .n{font-size:11px;opacity:.7;}
+
+  .statusbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-bottom:10px;}
+  .statusbar .key{color:var(--accent);font-weight:600;}
+  .statusbar .sp{flex:1;}
+
+  /* ── 商品网格：满宽自适应 ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:stretch;}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:.16s;position:relative;}
+  .item:hover{box-shadow:0 4px 12px rgba(58,54,49,.09),0 14px 36px rgba(58,54,49,.06);border-color:#e0d5c4;}
+  .ibody{display:flex;gap:12px;padding:12px;height:100%;}
+  .thumb{flex:0 0 86px;width:86px;height:86px;border-radius:10px;background:#f3ece1;display:grid;place-items:center;overflow:hidden;position:relative;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb .ph{font-size:22px;font-weight:700;color:#c9bda9;letter-spacing:1px;}
+  .imain{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .iplat{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+  .badge{font-size:10.5px;padding:1px 7px;border-radius:6px;color:#fff;letter-spacing:.5px;white-space:nowrap;}
+  .shopname{font-size:11.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+  .ititle{font-size:14px;font-weight:600;line-height:1.45;color:var(--ink);cursor:pointer;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
+  .ititle:hover{color:var(--accent);}
+  .price-row{display:flex;align-items:baseline;gap:8px;margin-top:5px;flex-wrap:wrap;}
+  .cur{font-size:19px;font-weight:700;color:var(--bad);letter-spacing:-.3px;font-variant-numeric:tabular-nums;}
+  .cur.none{font-size:13px;color:var(--sub);font-weight:400;}
+  .delta{font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:6px;}
+  .delta.good{background:#e8f3ec;color:#2f7a52;}
+  .delta.warn{background:#fdf1e2;color:#a8661d;}
+  .delta.bad{background:#fbeae8;color:#a8342a;}
+  .delta.flat{background:#f2eee8;color:#8a837a;}
+  .mini{margin-top:7px;}
+  .iacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:9px;}
+  .iacts button{font-size:11.5px;height:26px;padding:0 9px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;transition:.13s;}
+  .iacts button:hover{border-color:var(--accent);color:var(--accent);}
+  .iacts button.pri{background:#f7f1e8;border-color:#e8dccc;color:#9a6544;}
+
+  /* ── 空状态 ── */
+  .empty{grid-column:1/-1;background:var(--card);border:1px dashed #ddd1bd;border-radius:var(--radius);padding:34px 24px;text-align:center;}
+  .empty h3{font-size:15px;color:var(--ink);margin-bottom:6px;}
+  .empty p{font-size:12.5px;color:var(--sub);line-height:1.9;}
+  .empty .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px;text-align:left;}
+  .empty .st{background:#faf6ee;border:1px solid #eee5d7;border-radius:10px;padding:11px 12px;}
+  .empty .st b{display:block;font-size:12px;color:var(--accent);margin-bottom:4px;}
+  .empty .st span{font-size:11.5px;color:var(--sub);line-height:1.7;}
+
+  /* ── 抽屉 ── */
+  .mask{position:fixed;inset:0;background:rgba(58,54,49,.34);backdrop-filter:blur(1.5px);z-index:60;display:none;}
+  .mask.on{display:block;}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(600px,100%);background:var(--bg);z-index:61;transform:translateX(102%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(58,54,49,.14);}
+  .drawer.on{transform:none;}
+  .dhd{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);background:rgba(255,253,249,.9);backdrop-filter:blur(6px);flex:0 0 auto;}
+  .dhd .t{font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dbody{flex:1;overflow:auto;padding:16px;overscroll-behavior:contain;}
+  .xbtn{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;font-size:16px;line-height:1;}
+  .xbtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:12px;}
+  .card h2{font-size:12px;letter-spacing:2px;color:var(--sub);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .card h2 .n{background:var(--mark);color:var(--accent);border-radius:7px;font-size:11px;padding:0 7px;letter-spacing:0;}
+  .card h2 .sp{flex:1;}
+
+  .dtop{display:flex;gap:14px;}
+  .dtop .big{flex:0 0 118px;width:118px;height:118px;border-radius:12px;background:#f3ece1;overflow:hidden;display:grid;place-items:center;}
+  .dtop .big img{width:100%;height:100%;object-fit:cover;}
+  .dinfo{flex:1;min-width:0;}
+  .dinfo h1{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:6px;word-break:break-word;}
+  .metaline{font-size:12px;color:var(--sub);line-height:1.9;word-break:break-all;}
+  .metaline a{color:var(--accent);text-decoration:none;border-bottom:1px dashed rgba(184,113,78,.4);}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:10px;}
+  .stat{background:#faf6ee;border:1px solid #f0e7d8;border-radius:10px;padding:8px 10px;}
+  .stat em{display:block;font-size:10.5px;color:var(--sub);font-style:normal;letter-spacing:.5px;margin-bottom:2px;}
+  .stat b{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .stat b.g{color:#2f7a52;} .stat b.r{color:var(--bad);} .stat b.n{color:var(--ink);}
+
+  .chartbox{margin-top:4px;}
+  .chartbox svg{display:block;width:100%;height:auto;overflow:visible;}
+
+  .rowform{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+  .inp{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:13px;outline:none;color:var(--ink);min-width:0;transition:.14s;}
+  .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,113,78,.07);}
+  .inp.w100{flex:1;min-width:120px;}
+  .inp.w70{width:78px;}
+  .plabel{font-size:11.5px;color:var(--sub);flex:0 0 auto;}
+  .frow{margin-bottom:10px;}
+  .frow > label{display:block;font-size:11.5px;color:var(--sub);margin-bottom:4px;letter-spacing:.5px;}
+  .frow .inp{width:100%;}
+  .frow .flex{display:flex;gap:8px;}
+  .ftip{font-size:11px;color:#b0a696;margin-top:4px;line-height:1.6;}
+
+  .plist{max-height:none;}
+  .pitem{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+  .pitem:last-child{border-bottom:0;}
+  .pitem .d{color:var(--sub);font-variant-numeric:tabular-nums;flex:0 0 88px;}
+  .pitem .p{font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 82px;}
+  .pitem .s{font-size:10.5px;color:#b0a696;flex:1;}
+  .pitem .del{border:0;background:transparent;color:#c9bda9;cursor:pointer;font-size:14px;padding:0 4px;}
+  .pitem .del:hover{color:var(--bad);}
+
+  .cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px;}
+  .cmpgrid a{display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid #e8ddcc;background:#fdfaf4;border-radius:9px;padding:8px 6px;font-size:12px;color:var(--ink);text-decoration:none;transition:.13s;text-align:center;}
+  .cmpgrid a:hover{border-color:var(--accent);color:var(--accent);background:var(--mark);}
+  .cmpgrid a .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;}
+
+  .shopgrp{margin-bottom:14px;}
+  .shopgrp .sh{display:flex;align-items:baseline;gap:8px;margin-bottom:7px;flex-wrap:wrap;}
+  .shopgrp .sh b{font-size:13.5px;}
+  .shopgrp .sh span{font-size:11.5px;color:var(--sub);}
+  .shopgrp .sl{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:7px;}
+  .shopgrp .sl a{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:12.5px;color:var(--ink);text-decoration:none;transition:.13s;}
+  .shopgrp .sl a:hover{border-color:var(--accent);color:var(--accent);}
+  .shopgrp .sl a i{font-style:normal;font-variant-numeric:tabular-nums;font-weight:600;margin-left:auto;color:var(--bad);}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:rgba(58,54,49,.93);color:#fff;font-size:13px;padding:9px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.22s;z-index:99;max-width:88vw;text-align:center;}
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  .banner{background:#fdf3e6;border:1px solid #f0dfc6;border-radius:11px;padding:10px 12px;font-size:11.5px;color:#8a6b46;line-height:1.75;margin-bottom:12px;}
+  .banner b{color:#a05f3d;}
+
+  @media (max-width:760px){
+    body{padding:10px 10px 46px;}
+    .grid{grid-template-columns:1fr;}
+    .hd{gap:8px;}
+    .search{flex:1 1 100%;order:2;}
+    .tabs{order:1;margin-left:auto;}
+    #addBtn{order:1;}
+    .paste textarea{min-height:76px;}
+    .prow .sp{display:none;}
+    .bmk{width:100%;justify-content:center;}
+    .thumb{flex:0 0 74px;width:74px;height:74px;}
+    .cur{font-size:18px;}
+    .drawer{width:100%;}
+    .dtop .big{flex:0 0 92px;width:92px;height:92px;}
+    .pitem .d{flex:0 0 74px;}
+    .pitem .p{flex:0 0 70px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" placeholder="搜商品名 / 店铺 / 型号，支持模糊">
+  </div>
+  <div class="tabs" id="tabs">
+    <button data-v="items" class="on">商品</button>
+    <button data-v="shops">店铺</button>
+    <button data-v="save">划算榜</button>
+  </div>
+  <button class="btn primary" id="addBtn">＋ 新增</button>
+</div>
+
+<div class="paste">
+  <textarea id="raw" placeholder="① 商品链接　② 手机分享的那句话　③ 历史价页面的整段文字"></textarea>
+  <div class="prow">
+    <button class="btn primary" id="parseBtn">解析并入库</button>
+    <button class="btn ghost" id="demoBtn">看个例子</button>
+    <span class="sp"></span>
+    <a class="bmk" id="bmk" href="#" title="拖到书签栏；在任意商品页点一下，就能把标题/价格/图片/店铺抓回来">🔖 拖我：抓当前页</a>
+  </div>
+  <div class="prow" style="margin-top:7px">
+    <div class="hint">抓价小书签：在京东 / 淘宝 / 拼多多 / 抖音的商品页点一下就回填。<b>链接本身就能比价</b>，不用装任何东西。</div>
+  </div>
+</div>
+
+<div class="plats" id="plats"></div>
+
+<div class="statusbar">
+  <span id="stat"></span>
+  <span class="sp"></span>
+  <button class="btn sm" id="expBtn">导出</button>
+  <button class="btn sm" id="impBtn">导入</button>
+  <input type="file" id="impFile" accept=".json" style="display:none">
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="mask" id="mask"></div>
+
+<!-- 详情抽屉 -->
+<div class="drawer" id="dd">
+  <div class="dhd"><div class="t" id="ddTitle">详情</div><button class="xbtn" id="ddClose">✕</button></div>
+  <div class="dbody" id="ddBody"></div>
+</div>
+
+<!-- 编辑抽屉 -->
+<div class="drawer" id="ed">
+  <div class="dhd"><div class="t" id="edTitle">新增</div><button class="xbtn" id="edClose">✕</button></div>
+  <div class="dbody" id="edBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   比价 · 全平台价格记录与对比
+   - 数据只存本机 localStorage（键 PRICE_CMP_V1），随工作台自动云同步
+   - 不做任何伪造：没有拿到的价格一律显示「未记录」，绝不编造
+   ========================================================================= */
+(function(){
+'use strict';
+
+const K = 'PRICE_CMP_V1';
+const WIN_DAYS = 730;                 /* 24 个月 ≈ 730 天 */
+
+/* 平台表：keys 用于链接识别，search 用于跨平台搜索 */
+const PLATS = {
+  taobao:  {name:'淘宝',  color:'#ff5000', keys:['taobao.com','m.tb.cn','tb.cn','s.taobao'], search:'https://s.taobao.com/search?q='},
+  tmall:   {name:'天猫',  color:'#e0242b', keys:['tmall.com','tmall.hk'], search:'https://list.tmall.com/search_product.htm?q='},
+  jd:      {name:'京东',  color:'#e1251b', keys:['jd.com','jd.hk','3.cn','u.jd.com'], search:'https://search.jd.com/Search?keyword='},
+  pdd:     {name:'拼多多',color:'#e02e24', keys:['yangkeduo.com','pinduoduo.com','p.pinduoduo'], search:'https://mobile.yangkeduo.com/search_result.html?search_key='},
+  douyin:  {name:'抖音',  color:'#25242f', keys:['douyin.com','jinritemai.com'], search:'https://www.douyin.com/search/'},
+  vip:     {name:'唯品会',color:'#e4004f', keys:['vip.com'], search:'https://category.vip.com/suggest.php?keyword='},
+  suning:  {name:'苏宁',  color:'#f7a600', keys:['suning.com'], search:'https://search.suning.com/'},
+  ali1688: {name:'1688',  color:'#ff6a00', keys:['1688.com'], search:'https://s.1688.com/selloffer/offer_search.htm?keywords='},
+  xhs:     {name:'小红书',color:'#ff2442', keys:['xiaohongshu.com','xhslink.com'], search:'https://www.xiaohongshu.com/search_result?keyword='},
+  other:   {name:'其他',  color:'#8a837a', keys:[], search:''}
+};
+
+/* 已记录的店铺里可以直接跳的「历史价」站 */
+const HIST_SITES = [
+  {name:'慢慢买', url:'https://s.manmanbuy.com/default.aspx?key=', c:'#e4572e'},
+  {name:'西贴网', url:'http://www.xitie.com/search.php?kw=', c:'#3f7d6b'},
+  {name:'历史价格', url:'https://www.lsjgcx.com/', c:'#7a6fa8'}
+];
+
+/* ---------------- 存储 ---------------- */
+let S = {items:[], view:'items', plat:'all'};
+
+function load(){
+  try{
+    const raw = localStorage.getItem(K);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && Array.isArray(o.items)){ S.items = o.items; S.view = o.view || 'items'; }
+    }
+  }catch(e){ toast('本机数据读不出来，已用空白开始'); }
+  S.items.forEach(function(it){
+    if(!Array.isArray(it.prices)) it.prices = [];
+    if(!it.id) it.id = uid();
+  });
+}
+function save(){
+  try{ localStorage.setItem(K, JSON.stringify({items:S.items, view:S.view})); }
+  catch(e){ toast('保存失败：本机存储满了（约 5MB 上限）'); }
+}
+function uid(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+/* ---------------- 小工具 ---------------- */
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 2400);
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function dayNum(s){ const t=new Date(String(s)+'T12:00:00').getTime(); return isFinite(t)?t:0; }
+function money(n){
+  if(!isFinite(n) || n<=0) return '—';
+  const s = (n>=1000) ? String(Math.round(n*100)/100) : String(Math.round(n*100)/100);
+  const parts = s.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return '¥' + (parts[1] ? parts[0]+'.'+parts[1] : parts[0]);
+}
+function decodeEnt(s){
+  try{
+    const t = document.createElement('textarea');
+    t.innerHTML = String(s||'');
+    return t.value;
+  }catch(e){ return String(s||''); }
+}
+
+/* ---------------- 链接 / 文本解析 ---------------- */
+function detectPlat(url){
+  const u = String(url||'').toLowerCase();
+  const ks = Object.keys(PLATS);
+  for(let i=0;i<ks.length;i++){
+    const k = ks[i];
+    if(k==='other') continue;
+    const arr = PLATS[k].keys;
+    for(let j=0;j<arr.length;j++){ if(u.indexOf(arr[j])>=0) return k; }
+  }
+  return 'other';
+}
+function itemKey(url){
+  const u = String(url||'');
+  let m;
+  if((m=u.match(/[?&](?:id|itemId|item_id|spuId)=(\d{4,})/))) return m[1];
+  if((m=u.match(/goods_id=(\d+)/))) return m[1];
+  if((m=u.match(/item\.jd\.com\/(\d+)/))) return m[1];
+  if((m=u.match(/product-(\d+)/))) return m[1];
+  if((m=u.match(/offer\/(\d+)/))) return m[1];
+  if((m=u.match(/\/(\d{6,})\.html/))) return m[1];
+  if((m=u.match(/(\d{15,25})/))) return m[1];
+  return '';
+}
+function pickUrls(text){
+  const out = [];
+  const re = /(?:https?:\/\/|www\.)[^\s"'<>，。；、（）()【】「」《》]+/gi;
+  let m;
+  while((m = re.exec(text))){
+    let u = m[0].replace(/[),.;:!?，。、；：！？）】》．…]+$/,'');
+    if(u.indexOf('http') !== 0) u = 'https://' + u;
+    if(out.indexOf(u) < 0) out.push(u);
+  }
+  return out;
+}
+const PLAT_NAMES = ['淘宝','天猫','京东','拼多多','抖音','唯品会','苏宁','1688','小红书','分享','商品','链接'];
+function pickTitle(text){
+  const pats = [/「([^」]{3,140})」/, /“([^”]{3,140})”/, /【([^】]{4,140})】/];
+  for(let i=0;i<pats.length;i++){
+    const m = text.match(pats[i]);
+    if(m){
+      const t = m[1].trim();
+      if(PLAT_NAMES.indexOf(t) >= 0) continue;
+      return t;
+    }
+  }
+  const rest = text.replace(/(?:https?:\/\/|www\.)[^\s]+/g,' ')
+                   .replace(/[【】「」“”]/g,' ')
+                   .replace(/\b(CZ\d{3,4}|复制|打开|查看|点击|下单|领券)\b/g,' ')
+                   .trim();
+  if(rest && rest.length >= 4 && rest.length <= 140){
+    return rest.split(/\n|\s{2,}/)[0].trim().slice(0,140);
+  }
+  return '';
+}
+function pickPrice(text){
+  let m;
+  if((m = text.match(/[¥￥]\s*(\d{1,7}(?:\.\d{1,2})?)/))) return +m[1];
+  if((m = text.match(/(\d{1,7}(?:\.\d{1,2})?)\s*元/))) return +m[1];
+  if((m = text.match(/["']?(?:price|p|lowPrice)["']?\s*[:=]\s*["']?(\d{1,7}(?:\.\d{1,2})?)/i))) return +m[1];
+  return 0;
+}
+function pickShop(text){
+  const m = String(text||'').match(/(?:店铺|商铺|卖家|店名|商家|旗舰店)\s*[:：]\s*([^\s，,。；;|【】]{2,26})/);
+  return m ? m[1].trim() : '';
+}
+
+/* 历史价序列：整段粘贴 → [{d,p}] */
+function parseHistSeries(text){
+  const out = [], seen = {};
+  const lines = String(text||'').split(/[\n\r]+/);
+  const reDate = /(20\d{2})\s*[-/年.]\s*(\d{1,2})\s*[-/月.]\s*(\d{1,2})/;
+  lines.forEach(function(ln){
+    const md = ln.match(reDate);
+    if(!md) return;
+    const y = +md[1], mo = +md[2], d = +md[3];
+    if(mo<1 || mo>12 || d<1 || d>31) return;
+    const tail = ln.slice(ln.indexOf(md[0]) + md[0].length);
+    let pm = tail.match(/(?:[¥￥]\s*)?(\d{1,7}(?:\.\d{1,2})?)/);
+    if(!pm) pm = ln.slice(0, ln.indexOf(md[0])).match(/(?:[¥￥]\s*)?(\d{1,7}(?:\.\d{1,2})?)/);
+    if(!pm) return;
+    const p = +pm[1];
+    if(!(p > 0) || p > 9999999) return;
+    const ds = y+'-'+pad2(mo)+'-'+pad2(d);
+    if(seen[ds]) return;
+    seen[ds] = 1;
+    out.push({d:ds, p:p, src:'粘贴'});
+  });
+  if(!out.length){
+    lines.forEach(function(ln){
+      const m = ln.match(/^\s*(\d{1,2})\s*[-/.]\s*(\d{1,2})\D{0,12}?(\d{1,6}(?:\.\d{1,2})?)\s*$/);
+      if(!m) return;
+      const mo = +m[1], d = +m[2], p = +m[3];
+      if(mo<1||mo>12||d<1||d>31||!(p>0)) return;
+      const now = new Date();
+      let y = now.getFullYear();
+      if(new Date(y+'-'+pad2(mo)+'-'+pad2(d)+'T12:00:00').getTime() > now.getTime()) y--;
+      const ds = y+'-'+pad2(mo)+'-'+pad2(d);
+      if(seen[ds]) return;
+      seen[ds] = 1;
+      out.push({d:ds, p:p, src:'粘贴'});
+    });
+  }
+  return out.sort(function(a,b){ return a.d<b.d ? -1 : (a.d>b.d ? 1 : 0); });
+}
+
+/* 整页源码：抽标题 / 主图 / 价格 / 店铺 */
+function parseHtmlSource(html){
+  const r = {title:'', img:'', price:0, shop:'', url:''};
+  let m;
+  if((m = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i))) r.title = decodeEnt(m[1]);
+  if(!r.title && (m = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i))) r.title = decodeEnt(m[1]);
+  if(!r.title && (m = html.match(/<title[^>]*>([\s\S]{1,400}?)<\/title>/i))) r.title = decodeEnt(m[1]).replace(/\s+/g,' ').trim();
+  r.title = r.title
+    .replace(/[-_—|]\s*(京东|淘宝网|天猫|拼多多|唯品会|苏宁易购|抖音商城)[^-_—|]*$/,'')
+    .replace(/【[^】]{0,12}(行情|报价|价格|评测|图片|参数)[^】]{0,20}】/g,'')
+    .replace(/\s*-\s*京东$/,'').trim();
+
+  if((m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i))) r.img = m[1];
+  if(!r.img && (m = html.match(/https?:\/\/[^"'\s]*?(?:360buyimg|alicdn|pinduoduo|yangkeduo|vipstatic|suning)[^"'\s]*?\.(?:jpg|jpeg|png|webp)/i))) r.img = m[0];
+
+  const cands = [];
+  const p1 = html.match(/["'](?:p|price|lowPrice|salePrice|currentPrice)["']\s*:\s*["']?(\d{1,7}(?:\.\d{1,2})?)["']?/i);
+  if(p1) cands.push(+p1[1]);
+  const p2 = html.match(/[¥￥]\s*(\d{1,7}(?:\.\d{1,2})?)/);
+  if(p2) cands.push(+p2[1]);
+  const p3 = html.match(/class=["'][^"']*(?:price|Price)[^"']*["'][^>]*>[^0-9]{0,12}(\d{1,7}(?:\.\d{1,2})?)/);
+  if(p3) cands.push(+p3[1]);
+  const good = cands.filter(function(x){ return x>0 && x<9999999; });
+  if(good.length) r.price = Math.min.apply(null, good);
+
+  const s1 = html.match(/["'](?:shopName|sellerName|shop_name|storeName)["']\s*:\s*["']([^"']{2,30})["']/i);
+  if(s1) r.shop = decodeEnt(s1[1]).trim();
+  if(!r.shop){
+    const s2 = html.match(/class=["'][^"']*(?:shopName|shop-name|name)["'][^>]*>\s*(?:<a[^>]*>)?\s*([^<]{2,30})/i);
+    if(s2) r.shop = decodeEnt(s2[1]).trim();
+  }
+  const u1 = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+  if(u1) r.url = u1[1];
+  return r;
+}
+
+/* ---------------- 卡片统计（24 个月窗口） ---------------- */
+function statOf(it){
+  const from = Date.now() - WIN_DAYS*86400000;
+  const arr = (it.prices||[])
+    .filter(function(r){ return r && r.p>0 && dayNum(r.d)>0; })
+    .map(function(r){ return {t:dayNum(r.d), d:r.d, p:+r.p, src:r.src||''}; })
+    .sort(function(a,b){ return a.t-b.t; });
+  const inWin = arr.filter(function(r){ return r.t >= from; });
+  const use = inWin.length ? inWin : arr;
+  if(!use.length) return {n:0, cur:0, min:0, max:0, avg:0, minD:'', maxD:'', lastD:'', pct:0, inWin:0};
+  let min = Infinity, max = -Infinity, sum = 0, minD = '', maxD = '';
+  use.forEach(function(r){
+    if(r.p < min){ min = r.p; minD = r.d; }
+    if(r.p > max){ max = r.p; maxD = r.d; }
+    sum += r.p;
+  });
+  const last = use[use.length-1];
+  const pct = min>0 ? (last.p - min)/min*100 : 0;
+  return {n:use.length, cur:last.p, curD:last.d, min:min, max:max, avg:sum/use.length,
+          minD:minD, maxD:maxD, lastD:last.d, pct:pct, inWin:inWin.length};
+}
+function tier(pct){
+  if(pct <= 3) return {cls:'good', txt:'接近历史最低'};
+  if(pct <= 12) return {cls:'warn', txt:'比最低高一点'};
+  if(pct <= 30) return {cls:'warn', txt:'高于最低 '+Math.round(pct)+'%'};
+  return {cls:'bad', txt:'高位 · 高于最低 '+Math.round(pct)+'%'};
+}
+
+/* ---------------- SVG 曲线 ---------------- */
+function sparkline(it, W, H){
+  const st = statOf(it);
+  if(!st.n) return '';
+  const from = Date.now() - WIN_DAYS*86400000, to = Date.now();
+  const arr = (it.prices||[]).map(function(r){ return {t:dayNum(r.d), p:+r.p}; })
+    .filter(function(r){ return r.t>=from && r.p>0; }).sort(function(a,b){return a.t-b.t;});
+  if(arr.length < 2) return '';
+  const span = Math.max(to-from, 1);
+  const lo = Math.min.apply(null, arr.map(function(r){return r.p;})) * 0.96;
+  const hi = Math.max.apply(null, arr.map(function(r){return r.p;})) * 1.04 || 1;
+  const x = function(t){ return ((t-from)/span)*(W-6)+3; };
+  const y = function(p){ return H-3 - ((p-lo)/Math.max(hi-lo,0.01))*(H-6); };
+  let path = '';
+  arr.forEach(function(r,i){ path += (i? 'L':'M') + x(r.t).toFixed(1) + ' ' + y(r.p).toFixed(1); });
+  let area = path + 'L' + x(arr[arr.length-1].t).toFixed(1) + ' ' + (H-1) + 'L' + x(arr[0].t).toFixed(1) + ' ' + (H-1) + 'Z';
+  const lowR = arr.reduce(function(a,b){ return b.p<a.p?b:a; }, arr[0]);
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;max-width:100%">'
+    + '<path d="'+area+'" fill="rgba(184,113,78,.10)"/>'
+    + '<path d="'+path+'" fill="none" stroke="#b8714e" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<circle cx="'+x(arr[arr.length-1].t).toFixed(1)+'" cy="'+y(arr[arr.length-1].p).toFixed(1)+'" r="2.6" fill="#c0392b"/>'
+    + '<circle cx="'+x(lowR.t).toFixed(1)+'" cy="'+y(lowR.p).toFixed(1)+'" r="2.2" fill="#3f9d6b"/>'
+    + '</svg>';
+}
+
+function bigChart(it){
+  const W = 520, H = 190, PL = 44, PR = 12, PT = 14, PB = 24;
+  const st = statOf(it);
+  const from = Date.now() - WIN_DAYS*86400000, to = Date.now();
+  const arr = (it.prices||[]).map(function(r){ return {t:dayNum(r.d), p:+r.p, d:r.d}; })
+    .filter(function(r){ return r.t>=from && r.p>0; }).sort(function(a,b){return a.t-b.t;});
+  if(!arr.length){
+    return '<div style="padding:22px 8px;text-align:center;color:#9c948a;font-size:12.5px;line-height:1.9">'
+      + '还没有价格记录。<br>点下面的「记一笔」把今天看到的价格存进来，满 2 笔就有曲线了。</div>';
+  }
+  const iw = W-PL-PR, ih = H-PT-PB;
+  let rawLo = Math.min.apply(null, arr.map(function(r){return r.p;}));
+  let rawHi = Math.max.apply(null, arr.map(function(r){return r.p;}));
+  if(it.target>0){ rawLo = Math.min(rawLo, it.target); rawHi = Math.max(rawHi, it.target); }
+  if(rawHi === rawLo){ rawHi = rawLo*1.08 + 1; rawLo = Math.max(rawLo*0.92, 0); }
+  const span0 = rawHi - rawLo;
+  const mag = Math.pow(10, Math.max(0, Math.floor(Math.log(span0||1)/Math.LN10) - 1));
+  const step = Math.max(Math.ceil((span0/4)/mag)*mag, 0.01);
+  const lo = Math.max(0, Math.floor(rawLo/step)*step);
+  const gridMarks = Math.max(4, Math.ceil((rawHi-lo)/step));
+  const hi = lo + step*gridMarks;
+  const X = function(t){ return PL + ((t-from)/(to-from))*iw; };
+  const Y = function(p){ return PT + ih - ((p-lo)/Math.max(hi-lo,0.01))*ih; };
+
+  let g = '', ylab = '';
+  for(let i=0;i<=gridMarks;i++){
+    const p = lo + step*i;
+    const yy = Y(p);
+    g += '<line x1="'+PL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+yy.toFixed(1)+'" stroke="#efe7da" stroke-width="1"/>';
+    ylab += '<text x="'+(PL-7)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="#a9a094">'+Math.round(p)+'</text>';
+  }
+  let xlab = '';
+  for(let i=0;i<=6;i++){
+    const t = from + (to-from)*(i/6);
+    const d = new Date(t);
+    const xx = PL + iw*(i/6);
+    xlab += '<text x="'+xx.toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9.5" fill="#a9a094">'+(d.getMonth()+1)+'月</text>';
+    if(i>0 && i<6) g += '<line x1="'+xx.toFixed(1)+'" y1="'+PT+'" x2="'+xx.toFixed(1)+'" y2="'+(PT+ih)+'" stroke="#f5efe4" stroke-width="1"/>';
+  }
+  if(it.target>0){
+    const ty = Y(it.target);
+    const tyLab = ty < PT + 11 ? ty + 11 : ty - 4;
+    g += '<line x1="'+PL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+ty.toFixed(1)+'" stroke="#5b8c7b" stroke-width="1" stroke-dasharray="4 3"/>'
+      + '<text x="'+(PL+4)+'" y="'+tyLab.toFixed(1)+'" text-anchor="start" font-size="9.5" fill="#5b8c7b">目标 '+money(it.target)+'</text>';
+  }
+  let path = '';
+  arr.forEach(function(r,i){ path += (i?'L':'M') + X(r.t).toFixed(1) + ' ' + Y(r.p).toFixed(1); });
+  let area = path;
+  if(arr.length > 1){
+    area += 'L'+X(arr[arr.length-1].t).toFixed(1)+' '+(PT+ih)+'L'+X(arr[0].t).toFixed(1)+' '+(PT+ih)+'Z';
+  }
+  let dots = '';
+  arr.forEach(function(r){
+    const isLow = r.p === st.min;
+    dots += '<circle cx="'+X(r.t).toFixed(1)+'" cy="'+Y(r.p).toFixed(1)+'" r="'+(isLow?3.6:2.6)+'" fill="'+(isLow?'#3f9d6b':'#b8714e')+'"/>';
+  });
+  return '<div class="chartbox"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'
+    + g + ylab + xlab
+    + (arr.length>1 ? '<path d="'+area+'" fill="rgba(184,113,78,.09)"/>' : '')
+    + '<path d="'+path+'" fill="none" stroke="#b8714e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    + dots
+    + '</svg></div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:#a9a094;margin-top:2px;padding-left:4px">'
+    + '<span>横轴：最近 24 个月</span><span style="color:#3f9d6b">● 最低 '+money(st.min)+'</span>'
+    + '<span style="color:#b8714e">● 记录 '+st.n+' 次</span></div>';
+}
+/* ---------------- 入库 / 合并 ---------------- */
+function addPrice(it, d, p, src){
+  p = +p;
+  if(!(p > 0) || !d) return false;
+  const i = it.prices.findIndex(function(r){ return r.d === d; });
+  if(i >= 0){
+    if(Math.abs(it.prices[i].p - p) < 0.005) return false;
+    it.prices[i].p = p;
+    if(src) it.prices[i].src = src;
+    return true;
+  }
+  it.prices.push({d:d, p:p, src:src||'手动'});
+  it.prices.sort(function(a,b){ return a.d<b.d ? -1 : (a.d>b.d ? 1 : 0); });
+  return true;
+}
+function autoName(plat, url){
+  const pn = (PLATS[plat]||PLATS.other).name;
+  const k = itemKey(url);
+  return k ? (pn+' 商品 '+k) : (pn+' 商品（待补名称）');
+}
+function upsert(o){
+  o = o || {};
+  const url = o.url || '';
+  const key = itemKey(url);
+  let ex = null;
+  if(key){
+    ex = S.items.filter(function(x){ return x.plat === o.plat && itemKey(x.url) === key; })[0] || null;
+  }
+  if(!ex && o.title && o.title.length >= 6){
+    ex = S.items.filter(function(x){
+      if(!x.title) return false;
+      if(x.title === o.title) return true;
+      const a = x.title.replace(/\s/g,''), b = o.title.replace(/\s/g,'');
+      return a.length>=8 && b.length>=8 && (a.indexOf(b)>=0 || b.indexOf(a)>=0);
+    })[0] || null;
+  }
+  if(ex){
+    if(o.img && !ex.img) ex.img = o.img;
+    if(o.shop && !ex.shop) ex.shop = o.shop;
+    if(o.url && !ex.url) ex.url = o.url;
+    if(o.model && !ex.model) ex.model = o.model;
+    if(o.title && (!ex.title || ex.title.length < 6)) ex.title = o.title;
+    if(o.note && !ex.note) ex.note = o.note;
+    if(o.target > 0) ex.target = o.target;
+    if(o.price > 0) addPrice(ex, o.date || todayStr(), o.price, o.src || '抓取');
+    ex.updated = Date.now();
+    return {item:ex, merged:true};
+  }
+  const it = {
+    id: uid(),
+    title: o.title || autoName(o.plat, url),
+    plat: o.plat || 'other',
+    url: url,
+    img: o.img || '',
+    shop: o.shop || '',
+    model: o.model || '',
+    note: o.note || '',
+    tags: [],
+    target: o.target>0 ? +o.target : 0,
+    prices: [],
+    created: Date.now(),
+    updated: Date.now()
+  };
+  if(o.price > 0) addPrice(it, o.date || todayStr(), o.price, o.src || '抓取');
+  S.items.unshift(it);
+  return {item:it, merged:false};
+}
+
+/* ---------------- 解析入口 ---------------- */
+let ddItem = null;
+
+function handleParse(){
+  const raw = document.getElementById('raw').value.trim();
+  if(!raw){ toast('先粘贴链接或商品页文字'); return; }
+
+  const isHtml = /<\/?(html|body|div|meta|title|script|span|a\s)/i.test(raw) && raw.length > 200;
+  const series = parseHistSeries(raw);
+  const urls = pickUrls(raw);
+  let title = pickTitle(raw);
+  let shop = pickShop(raw);
+  let img = '';
+  let price = 0;
+
+  if(isHtml){
+    const h = parseHtmlSource(raw);
+    if(h.title) title = h.title;
+    if(h.img) img = h.img;
+    if(h.shop) shop = h.shop;
+    if(h.price) price = h.price;
+    if(!urls.length && h.url) urls.push(h.url);
+  } else if(!price){
+    price = pickPrice(raw);
+  }
+
+  if(!urls.length){
+    if(series.length && ddItem){
+      let n = 0;
+      series.forEach(function(r){ if(addPrice(ddItem, r.d, r.p, '粘贴')) n++; });
+      ddItem.updated = Date.now();
+      save(); render(); openDetail(ddItem);
+      toast(n ? ('已把 '+n+' 条历史价贴到这件商品') : '这些日期价格和已有的重复了');
+      document.getElementById('raw').value = '';
+      return;
+    }
+    if(series.length){
+      toast('认出了 '+series.length+' 条历史价 —— 先点开要归到哪件商品，再贴一次');
+      return;
+    }
+    toast('没认出链接。整段复制商品页（Ctrl+A → Ctrl+C）或手机分享文字都行');
+    return;
+  }
+
+  const added = [];
+  urls.forEach(function(u, i){
+    if(!/^https?:/i.test(u)) return;
+    const plat = detectPlat(u);
+    const r = upsert({
+      title: i===0 ? (title || autoName(plat, u)) : (title ? title+' （同款 '+(i+1)+'）' : autoName(plat, u)),
+      plat: plat,
+      url: u,
+      img: i===0 ? img : '',
+      shop: i===0 ? shop : '',
+      price: i===0 ? price : 0,
+      src: isHtml ? '页面解析' : '链接'
+    });
+    added.push(r);
+  });
+
+  save(); render();
+  document.getElementById('raw').value = '';
+
+  if(!added.length){ toast('没认出可用的商品链接'); return; }
+
+  if(series.length && added.length === 1){
+    let n = 0;
+    series.forEach(function(r){ if(addPrice(added[0].item, r.d, r.p, '粘贴')) n++; });
+    save(); render();
+    openDetail(added[0].item);
+    toast('已入库，并写入 '+n+' 条历史价');
+    return;
+  }
+  if(added.length === 1){
+    openDetail(added[0].item);
+    toast(added[0].merged ? '这件之前就在库里，已合并更新' : '已入库');
+    return;
+  }
+  toast('已入库 '+added.length+' 件商品');
+}
+
+/* ---------------- 渲染：平台筛选 ---------------- */
+function renderPlats(){
+  const box = document.getElementById('plats');
+  const cnt = {};
+  S.items.forEach(function(it){ cnt[it.plat] = (cnt[it.plat]||0) + 1; });
+  const keys = Object.keys(cnt).filter(function(k){ return cnt[k] > 0; })
+    .sort(function(a,b){ return cnt[b]-cnt[a]; });
+  let h = '<button class="pchip'+(S.plat==='all'?' on':'')+'" data-plat="all">全部 <span class="n">'+S.items.length+'</span></button>';
+  keys.forEach(function(k){
+    const p = PLATS[k] || PLATS.other;
+    h += '<button class="pchip'+(S.plat===k?' on':'')+'" data-plat="'+k+'">'
+       + '<span class="dot" style="background:'+p.color+'"></span>'+p.name+' <span class="n">'+cnt[k]+'</span></button>';
+  });
+  box.innerHTML = h;
+}
+
+/* ---------------- 渲染：列表 ---------------- */
+function matchQ(it, q){
+  if(!q) return true;
+  const hay = [it.title, it.shop, it.model, it.note, (it.tags||[]).join(' '), it.url,
+               (PLATS[it.plat]||PLATS.other).name].join(' ').toLowerCase();
+  const parts = q.toLowerCase().split(/\s+/).filter(Boolean);
+  for(let i=0;i<parts.length;i++){ if(hay.indexOf(parts[i]) < 0) return false; }
+  return true;
+}
+function filtered(){
+  const q = document.getElementById('q').value.trim();
+  return S.items.filter(function(it){
+    if(S.plat !== 'all' && it.plat !== S.plat) return false;
+    return matchQ(it, q);
+  });
+}
+function deltaHtml(st){
+  if(st.n >= 2){
+    const t = tier(st.pct);
+    return '<span class="delta '+t.cls+'">'+t.txt+'</span>';
+  }
+  return '<span class="delta flat">已记 1 次 · 再记一次可对比</span>';
+}
+function thumbHtml(it, cls){
+  const p = PLATS[it.plat] || PLATS.other;
+  if(it.img){
+    return '<div class="'+cls+'"><img src="'+esc(it.img)+'" referrerpolicy="no-referrer" loading="lazy" alt="" onerror="this.style.display=\'none\'"></div>';
+  }
+  return '<div class="'+cls+'"><span class="ph">'+esc(p.name.slice(0,1))+'</span></div>';
+}
+function cardHtml(it){
+  const p = PLATS[it.plat] || PLATS.other;
+  const st = statOf(it);
+  const shop = it.shop
+    ? '<span class="shopname">'+esc(it.shop)+'</span>'
+    : '<span class="shopname" style="color:#c8bda9">未填店铺</span>';
+  const priceHtml = st.n
+    ? '<span class="cur">'+money(st.cur)+'</span>'+deltaHtml(st)
+    : '<span class="cur none">未记录价格</span>';
+  const mini = st.n ? '<div class="mini">'+sparkline(it, 232, 34)+'</div>' : '';
+  return '<article class="item" data-id="'+it.id+'">'
+    + '<div class="ibody">'
+    +   thumbHtml(it, 'thumb')
+    +   '<div class="imain">'
+    +     '<div class="iplat"><span class="badge" style="background:'+p.color+'">'+p.name+'</span>'+shop+'</div>'
+    +     '<div class="ititle" data-act="open">'+esc(it.title)+'</div>'
+    +     '<div class="price-row">'+priceHtml+'</div>'
+    +     mini
+    +     '<div class="iacts">'
+    +       '<button data-act="open" class="pri">比价 / 曲线</button>'
+    +       '<button data-act="record">记一笔</button>'
+    +       (it.url ? '<button data-act="visit">原页面</button>' : '')
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + '</article>';
+}
+function searchWord(it){
+  if(it.model) return it.model;
+  let t = String(it.title||'');
+  t = t.replace(/【[^】]*】/g,' ')
+       .replace(/[（(][^）)]{0,26}[）)]/g,' ')
+       .replace(/(包邮|秒杀|现货|新品|官方旗舰店|旗舰店|正品|限时|下单立减|赠品|支持分期|免息|国行|全新|二手|促销|特价|补贴)/g,' ')
+       .replace(/\s+/g,' ').trim();
+  return (t || String(it.title||'')).slice(0,40) || '商品';
+}
+function cmpLinks(kw){
+  const enc = encodeURIComponent(kw);
+  const order = ['taobao','tmall','jd','pdd','douyin','vip','suning','ali1688','xhs'];
+  return order.map(function(k){
+    const p = PLATS[k];
+    let url = p.search + enc;
+    if(k === 'suning') url = p.search + enc + '/';
+    return {name:p.name, color:p.color, url:url};
+  });
+}
+function histLinks(kw){
+  const enc = encodeURIComponent(kw);
+  return HIST_SITES.map(function(s){ return {name:s.name, color:s.c, url:s.url + enc}; });
+}
+function renderGrid(){
+  const box = document.getElementById('grid');
+  const list = filtered();
+  const q = document.getElementById('q').value.trim();
+
+  if(S.view === 'shops'){ renderShops(box, list); return; }
+  if(S.view === 'save'){ renderSave(box, list); return; }
+
+  if(!list.length){
+    box.innerHTML = emptyHtml(q);
+    return;
+  }
+  list.sort(function(a,b){
+    const sa = statOf(a), sb = statOf(b);
+    return (sb.updated||0) - (sa.updated||0);
+  });
+  box.innerHTML = list.map(cardHtml).join('');
+}
+function emptyHtml(q){
+  let h = '<div class="empty">';
+  if(q){
+    h += '<h3>库里没有「'+esc(q)+'」</h3><p>换个词试试，或者直接去各平台搜：</p>'
+       + '<div class="cmpgrid" style="margin-top:12px">';
+    cmpLinks(q).forEach(function(l){
+      h += '<a href="'+esc(l.url)+'" target="_blank" rel="noopener"><span class="dot" style="background:'+l.color+'"></span>'+l.name+'</a>';
+    });
+    h += '</div><p style="margin-top:12px">搜到之后，把链接粘回上面的框里，就进库了。</p>';
+  }else{
+    h += '<h3>比价库还是空的</h3><p>三件事就够：贴链接 → 记价格 → 看曲线。</p>'
+       + '<div class="steps">'
+       + '<div class="st"><b>① 贴链接</b><span>淘宝/天猫/京东/拼多多/抖音/唯品会/苏宁/1688/小红书的商品链接，或手机分享的那一整句话，粘进上面的框。</span></div>'
+       + '<div class="st"><b>② 抓当前价</b><span>把「🔖 拖我」拖到书签栏，在任意商品页点一下，标题、价格、图片、店铺自动回来。</span></div>'
+       + '<div class="st"><b>③ 补历史价</b><span>在慢慢买等站点的历史价页面 Ctrl+A、Ctrl+C，回这里粘贴，24 个月曲线就长出来了。</span></div>'
+       + '<div class="st"><b>为什么这么做</b><span>这些平台都封了直连取价，任何「一键全平台历史价」都是编的。这里只存你真看到的价格。</span></div>'
+       + '</div>';
+  }
+  return h + '</div>';
+}
+function renderShops(box, list){
+  if(!list.length){ box.innerHTML = emptyHtml(document.getElementById('q').value.trim()); return; }
+  const g = {};
+  list.forEach(function(it){
+    const k = (it.shop || '未填店铺').trim();
+    (g[k] = g[k] || []).push(it);
+  });
+  const names = Object.keys(g).sort(function(a,b){ return g[b].length - g[a].length; });
+  let h = '';
+  names.forEach(function(n){
+    const arr = g[n];
+    const low = arr.map(function(x){ return statOf(x).min || Infinity; }).reduce(function(a,b){ return Math.min(a,b); }, Infinity);
+    h += '<div class="shopgrp"><div class="sh"><b>'+esc(n)+'</b><span>'+arr.length+' 件商品'
+       + (isFinite(low) ? ' · 其中最低 '+money(low) : '') + '</span></div><div class="sl">';
+    arr.forEach(function(it){
+      const st = statOf(it);
+      h += '<a href="'+(it.url?esc(it.url):'javascript:void 0')+'" data-id="'+it.id+'" '+(it.url?'target="_blank" rel="noopener"':'')+'>'
+         + '<span class="badge" style="background:'+(PLATS[it.plat]||PLATS.other).color+'">'+(PLATS[it.plat]||PLATS.other).name+'</span>'
+         + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(it.title)+'</span>'
+         + '<i>'+(st.n ? money(st.cur) : '—')+'</i></a>';
+    });
+    h += '</div></div>';
+  });
+  box.innerHTML = '<div style="grid-column:1/-1">'+h+'</div>';
+}
+function renderSave(box, list){
+  const rows = list.filter(function(it){ return statOf(it).n >= 2; });
+  if(!rows.length){
+    box.innerHTML = '<div class="empty"><h3>还不够算</h3><p>划算榜要同一件商品至少 2 次价格记录才能比较。<br>先记几笔，或者贴一段历史价进来。</p></div>';
+    return;
+  }
+  rows.sort(function(a,b){ return statOf(a).pct - statOf(b).pct; });
+  let h = '<div style="grid-column:1/-1">';
+  rows.forEach(function(it, i){
+    const st = statOf(it), t = tier(st.pct);
+    h += '<div class="item" style="margin-bottom:8px" data-id="'+it.id+'"><div class="ibody">'
+       + '<div style="flex:0 0 30px;font-size:13px;font-weight:700;color:#c9bda9;padding-top:2px">'+(i+1)+'</div>'
+       + thumbHtml(it, 'thumb')
+       + '<div class="imain">'
+       + '<div class="iplat"><span class="badge" style="background:'+(PLATS[it.plat]||PLATS.other).color+'">'+(PLATS[it.plat]||PLATS.other).name+'</span>'
+       + '<span class="shopname">'+esc(it.shop||'—')+'</span></div>'
+       + '<div class="ititle" data-act="open">'+esc(it.title)+'</div>'
+       + '<div class="price-row"><span class="cur">'+money(st.cur)+'</span>'
+       + '<span class="delta '+t.cls+'">'+t.txt+'</span>'
+       + '<span style="font-size:11.5px;color:#a9a094;margin-left:auto">最低 '+money(st.min)+'（'+esc(st.minD)+'）</span></div>'
+       + '<div class="mini">'+sparkline(it, 420, 40)+'</div>'
+       + '</div></div></div>';
+  });
+  h += '<div class="banner" style="margin-top:6px">按「当前价距 24 个月最低价」排序。差值 ≤3% 基本就是底价；>30% 建议再等等。<br><b>这是你自己记录的历史</b>，没记到的区间不会凭空补。</div></div>';
+  box.innerHTML = h;
+}
+/* ---------------- 抽屉 ---------------- */
+function showDrawer(id){
+  document.getElementById(id).classList.add('on');
+  document.getElementById('mask').classList.add('on');
+}
+function closeDrawers(){
+  document.getElementById('dd').classList.remove('on');
+  document.getElementById('ed').classList.remove('on');
+  document.getElementById('mask').classList.remove('on');
+  ddItem = null;
+}
+function statCell(label, val, cls, sub){
+  return '<div class="stat"><em>'+label+'</em><b class="'+cls+'">'+val+'</b>'
+    + (sub ? '<div style="font-size:10px;color:#b0a696;margin-top:1px">'+esc(sub)+'</div>' : '')
+    + '</div>';
+}
+function openDetail(it){
+  if(!it) return;
+  ddItem = it;
+  document.getElementById('ddTitle').textContent = it.title || '商品详情';
+  document.getElementById('ddBody').innerHTML = detailHtml(it);
+  showDrawer('dd');
+  document.getElementById('ddBody').scrollTop = 0;
+}
+function detailHtml(it){
+  const p = PLATS[it.plat] || PLATS.other;
+  const st = statOf(it);
+  const kw = searchWord(it);
+  let h = '';
+
+  h += '<div class="card"><div class="dtop">' + thumbHtml(it, 'big') + '<div class="dinfo">'
+     + '<h1>' + esc(it.title) + '</h1>'
+     + '<div class="metaline"><span class="badge" style="background:' + p.color + ';display:inline-block">' + p.name + '</span> '
+     + (it.shop ? esc(it.shop) : '<span style="color:#c8bda9">未填店铺</span>') + '</div>'
+     + '<div class="metaline">'
+     + (it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener">打开原商品页 ↗</a>' : '<span style="color:#c8bda9">没有链接</span>')
+     + (it.model ? ' · 关键词：' + esc(it.model) : '') + '</div>'
+     + '<div class="price-row">'
+     + (st.n ? '<span class="cur">' + money(st.cur) + '</span>' + deltaHtml(st) : '<span class="cur none">未记录价格</span>')
+     + (it.target > 0 ? '<span style="font-size:11.5px;color:#5b8c7b">目标 ' + money(it.target) + '</span>' : '')
+     + '</div></div></div>';
+
+  if(st.n){
+    h += '<div class="stats">'
+       + statCell('24月最低', money(st.min), 'g', st.minD)
+       + statCell('24月最高', money(st.max), 'r', st.maxD)
+       + statCell('均价', money(st.avg), 'n', st.n + ' 次记录')
+       + statCell('最近一次', money(st.cur), 'n', st.curD)
+       + '</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="card"><h2>价格曲线<span class="n">24 个月</span><span class="sp"></span>'
+     + '<span style="font-size:11px;color:#a9a094">' + st.n + ' 个点</span></h2>' + bigChart(it) + '</div>';
+
+  h += '<div class="card"><h2>记一笔</h2><div class="rowform">'
+     + '<span class="plabel">日期</span><input class="inp" type="date" id="recDate" value="' + todayStr() + '">'
+     + '<span class="plabel">价格</span><input class="inp w70" id="recPrice" inputmode="decimal" placeholder="0.00">'
+     + '<button class="btn primary sm" data-act="recSave" style="height:34px">存</button></div>'
+     + '<div class="ftip">看到多少记多少。同一天重复记会覆盖成最新的。</div></div>';
+
+  h += '<div class="card"><h2>去各平台比价<span class="sp"></span>'
+     + '<span style="font-size:11px;color:#a9a094">关键词「' + esc(kw) + '」</span></h2><div class="cmpgrid">';
+  cmpLinks(kw).forEach(function(l){
+    h += '<a href="' + esc(l.url) + '" target="_blank" rel="noopener"><span class="dot" style="background:' + l.color + '"></span>' + l.name + '</a>';
+  });
+  h += '</div><div class="ftip">点开就是该平台的搜索结果，用你自己已登录的浏览器看，价格最准。</div>'
+     + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">';
+  histLinks(kw).forEach(function(l){
+    h += '<a class="btn sm ghost" style="text-decoration:none;display:inline-flex;align-items:center;height:30px" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + l.name + ' · 查历史 ↗</a>';
+  });
+  h += '</div><div class="ftip">历史价站能看出过去两年的走势；看到表格就整段复制，回来贴在页面上方，自动变成曲线。</div></div>';
+
+  h += '<div class="card"><h2>全部记录<span class="n">' + it.prices.length + '</span><span class="sp"></span>'
+     + '<button class="btn sm" data-act="edit">编辑</button></h2>';
+  if(it.prices.length){
+    const arr = it.prices.slice().sort(function(a,b){ return a.d < b.d ? 1 : -1; });
+    h += '<div class="plist">';
+    arr.forEach(function(r){
+      h += '<div class="pitem"><span class="d">' + esc(r.d) + '</span><span class="p">' + money(r.p) + '</span>'
+         + '<span class="s">' + esc(r.src || '') + '</span>'
+         + '<button class="del" data-act="delRec" data-d="' + esc(r.d) + '" title="删掉这条">✕</button></div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:12.5px;color:#a9a094;padding:4px 0">还没有记录。</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="card"><h2>备注</h2>'
+     + '<textarea class="inp" id="dNote" style="width:100%;min-height:56px;resize:vertical" placeholder="为什么想买、在等什么价">' + esc(it.note || '') + '</textarea>'
+     + '<div class="rowform"><button class="btn sm" data-act="saveNote">存备注</button><span style="flex:1"></span>'
+     + '<button class="btn sm" data-act="delItem" style="color:#c0392b;border-color:#eed3cf">删掉这件</button></div></div>';
+  return h;
+}
+
+/* ---------------- 编辑 ---------------- */
+function field(label, inner){
+  return '<div class="frow"><label>' + label + '</label>' + inner + '</div>';
+}
+function openEdit(it){
+  const isNew = !it;
+  const d = it || {title:'', plat:'other', url:'', img:'', shop:'', model:'', target:0, note:''};
+  document.getElementById('edTitle').textContent = isNew ? '新增商品' : '编辑商品';
+  const opts = Object.keys(PLATS).map(function(k){
+    return '<option value="' + k + '"' + (d.plat === k ? ' selected' : '') + '>' + PLATS[k].name + '</option>';
+  }).join('');
+  document.getElementById('edBody').innerHTML = '<div class="card">'
+    + field('标题 *', '<input class="inp" id="fTitle" value="' + esc(d.title) + '" placeholder="商品名，越完整越好">')
+    + field('平台', '<select class="inp" id="fPlat">' + opts + '</select>')
+    + field('链接', '<input class="inp" id="fUrl" value="' + esc(d.url) + '" placeholder="https://…">')
+    + field('图片地址', '<input class="inp" id="fImg" value="' + esc(d.img) + '" placeholder="可留空；右键商品图 → 复制图片地址">')
+    + field('店铺名', '<input class="inp" id="fShop" value="' + esc(d.shop) + '" placeholder="以后可以按店铺模糊搜">')
+    + field('比价关键词', '<input class="inp" id="fModel" value="' + esc(d.model) + '" placeholder="留空会自动从标题提取；填「品牌 + 型号」最准">')
+    + field('目标价', '<input class="inp" id="fTarget" inputmode="decimal" value="' + (d.target > 0 ? d.target : '') + '" placeholder="降到这个价就标绿">')
+    + (isNew ? field('今天的价格', '<input class="inp" id="fPrice" inputmode="decimal" placeholder="看到多少填多少，可留空">') : '')
+    + field('备注', '<textarea class="inp" id="fNote" style="min-height:60px;resize:vertical">' + esc(d.note || '') + '</textarea>')
+    + '<div class="rowform"><button class="btn primary" data-act="save">保存</button>'
+    + '<button class="btn ghost" data-act="cancel">取消</button></div></div>';
+  showDrawer('ed');
+  setTimeout(function(){ const t = document.getElementById('fTitle'); if(t) t.focus(); }, 140);
+}
+
+/* ---------------- 渲染总入口 ---------------- */
+function render(){
+  renderPlats();
+  renderGrid();
+  const total = S.items.length;
+  let recs = 0, last = 0;
+  S.items.forEach(function(it){ recs += it.prices.length; last = Math.max(last, it.updated || 0); });
+  const d = last ? new Date(last) : null;
+  document.getElementById('stat').innerHTML = '共 <span class="key">' + total + '</span> 件 · <span class="key">' + recs + '</span> 条价格'
+    + (d ? ' · 最近更新 ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : '')
+    + ' · 只存你真看到的价格';
+}
+
+/* ---------------- 事件 ---------------- */
+function bind(){
+  const $ = function(id){ return document.getElementById(id); };
+
+  $('q').addEventListener('input', renderGrid);
+  $('q').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ renderGrid(); } });
+
+  $('parseBtn').onclick = handleParse;
+  $('addBtn').onclick = function(){ openEdit(null); };
+
+  $('raw').addEventListener('keydown', function(e){
+    if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); handleParse(); }
+  });
+
+  $('tabs').addEventListener('click', function(e){
+    const b = e.target.closest('button[data-v]');
+    if(!b) return;
+    S.view = b.dataset.v;
+    [].forEach.call($('tabs').children, function(x){ x.classList.toggle('on', x === b); });
+    save(); renderGrid();
+  });
+
+  $('plats').addEventListener('click', function(e){
+    const b = e.target.closest('button[data-plat]');
+    if(!b) return;
+    S.plat = b.dataset.plat;
+    save(); render();
+  });
+
+  $('grid').addEventListener('click', function(e){
+    if(e.target.closest('a[href]') && !e.target.closest('a[href^="javascript"]')) return;
+    const card = e.target.closest('[data-id]');
+    const actEl = e.target.closest('[data-act]');
+    if(!card) return;
+    const it = S.items.filter(function(x){ return x.id === card.dataset.id; })[0];
+    if(!it) return;
+    if(actEl && actEl.dataset.act === 'visit'){
+      e.preventDefault();
+      if(it.url) window.open(it.url, '_blank', 'noopener');
+      return;
+    }
+    if(actEl && actEl.dataset.act === 'record'){
+      openDetail(it);
+      setTimeout(function(){ const p = document.getElementById('recPrice'); if(p) p.focus(); }, 240);
+      return;
+    }
+    openDetail(it);
+  });
+
+  $('ddBody').addEventListener('click', function(e){
+    const b = e.target.closest('[data-act]');
+    if(!b || !ddItem) return;
+    const act = b.dataset.act;
+    if(act === 'recSave'){
+      const pv = parseFloat((document.getElementById('recPrice').value || '').replace(/[^\d.]/g,''));
+      const dv = document.getElementById('recDate').value || todayStr();
+      if(!(pv > 0)){ toast('价格还没填'); return; }
+      const ok = addPrice(ddItem, dv, pv, '手动');
+      ddItem.updated = Date.now();
+      save(); render(); openDetail(ddItem);
+      toast(ok ? '记下了：' + money(pv) : '这条和已有记录一样，没重复写');
+      return;
+    }
+    if(act === 'edit'){ openEdit(ddItem); return; }
+    if(act === 'saveNote'){
+      ddItem.note = document.getElementById('dNote').value.trim();
+      ddItem.updated = Date.now();
+      save(); render(); toast('备注已存');
+      return;
+    }
+    if(act === 'delRec'){
+      const d = b.dataset.d;
+      ddItem.prices = ddItem.prices.filter(function(r){ return r.d !== d; });
+      ddItem.updated = Date.now();
+      save(); render(); openDetail(ddItem);
+      toast('已删掉 ' + d + ' 这条');
+      return;
+    }
+    if(act === 'delItem'){
+      const t = ddItem.title;
+      if(!confirm('删掉「' + t + '」和它的 ' + ddItem.prices.length + ' 条价格记录？\n（删了就找不回来了）')) return;
+      const id = ddItem.id;
+      S.items = S.items.filter(function(x){ return x.id !== id; });
+      save(); render(); closeDrawers();
+      toast('已删除');
+      return;
+    }
+  });
+
+  $('edBody').addEventListener('click', function(e){
+    const b = e.target.closest('[data-act]');
+    if(!b) return;
+    if(b.dataset.act === 'cancel'){ closeDrawers(); return; }
+    if(b.dataset.act !== 'save') return;
+    const title = document.getElementById('fTitle').value.trim();
+    if(!title){ toast('标题得填一个'); return; }
+    const plat = document.getElementById('fPlat').value;
+    const url = document.getElementById('fUrl').value.trim();
+    const img = document.getElementById('fImg').value.trim();
+    const shop = document.getElementById('fShop').value.trim();
+    const model = document.getElementById('fModel').value.trim();
+    const note = document.getElementById('fNote').value.trim();
+    const target = parseFloat(document.getElementById('fTarget').value) || 0;
+    const pEl = document.getElementById('fPrice');
+    const price = pEl ? (parseFloat(pEl.value) || 0) : 0;
+
+    if(ddItem && document.getElementById('edTitle').textContent === '编辑商品'){
+      ddItem.title = title; ddItem.plat = plat; ddItem.url = url; ddItem.img = img;
+      ddItem.shop = shop; ddItem.model = model; ddItem.note = note; ddItem.target = target;
+      ddItem.updated = Date.now();
+      save(); render(); closeDrawers(); toast('已更新');
+      return;
+    }
+    const r = upsert({title:title, plat:plat, url:url, img:img, shop:shop, model:model, note:note, target:target, price:price, src:'手动'});
+    save(); render(); closeDrawers();
+    toast(r.merged ? '已合并到已有商品' : '已新增');
+  });
+
+  $('ddClose').onclick = closeDrawers;
+  $('edClose').onclick = closeDrawers;
+  $('mask').onclick = closeDrawers;
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeDrawers(); });
+
+  $('demoBtn').onclick = function(){
+    $('raw').value = '【淘宝】https://item.taobao.com/item.htm?id=681234567890 「某品牌 无线降噪耳机 Pro 版 主动降噪 长续航」\n'
+      + '京东 https://item.jd.com/100012043978.html  当前 ¥1299';
+    toast('填了个例子，点「解析并入库」试试');
+  };
+
+  $('expBtn').onclick = function(){
+    const blob = new Blob([JSON.stringify({app:'bijia', exportedAt:new Date().toISOString(), items:S.items}, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '比价库_' + todayStr() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+  };
+  $('impBtn').onclick = function(){ $('impFile').click(); };
+  $('impFile').onchange = function(){
+    const f = this.files && this.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = function(){
+      try{
+        const o = JSON.parse(rd.result);
+        const arr = Array.isArray(o) ? o : o.items;
+        if(!Array.isArray(arr)) throw new Error('bad');
+        let n = 0;
+        arr.forEach(function(x){
+          if(!x || !x.title) return;
+          const r = upsert({title:x.title, plat:x.plat||'other', url:x.url||'', img:x.img||'',
+                            shop:x.shop||'', model:x.model||'', note:x.note||'', target:x.target||0});
+          (x.prices||[]).forEach(function(p){ addPrice(r.item, p.d, p.p, p.src||'导入'); });
+          n++;
+        });
+        save(); render(); toast('导入 ' + n + ' 件');
+      }catch(err){ toast('文件格式不对'); }
+    };
+    rd.readAsText(f);
+    this.value = '';
+  };
+
+  document.getElementById('bmk').href = buildBookmarklet();
+}
+
+/* ---------------- 抓价小书签 ---------------- */
+function buildBookmarklet(){
+  const base = location.origin + location.pathname + '#cap=';
+  const parts = [
+    '(function(){',
+    'var T=function(s){var e=document.querySelector(s);return e?((e.innerText||e.textContent||"").trim()):""};',
+    'var N=function(s){var m=String(s).match(/(\\d+(?:\\.\\d+)?)/);return m?parseFloat(m[1]):0};',
+    'var pr=0,i,sel=[".p-price .price",".price-now",".tm-price",".sale-price",".product-price",".goods-price","[class*=price]"];',
+    'for(i=0;i<sel.length&&!pr;i++){pr=N(T(sel[i]))}',
+    'if(!pr){var m=(document.body.innerText||"").match(/[\\u00a5\\uffe5]\\s*(\\d+(?:\\.\\d+)?)/);if(m)pr=parseFloat(m[1])}',
+    'var im=document.querySelector("meta[property=\'og:image\']");',
+    'var sp=T("#shopName")||T(".shopName")||T(".shop-name")||T(".J-hove-wrap .name");',
+    'var ti=(document.title||"").replace(/\\s*[-_|].*$/,"").replace(/【[^】]{0,12}(\\u884c\\u60c5|\\u62a5\\u4ef7|\\u4ef7\\u683c|\\u8bc4\\u6d4b)[^】]{0,20}】/g,"");',
+    'var d={t:ti,u:location.href,i:im?im.content:((document.querySelector("#spec-img,img")||{}).src||""),p:pr,s:sp};',
+    'location.href="' + base + '"+encodeURIComponent(JSON.stringify(d));',
+    '})()'
+  ];
+  return 'javascript:' + parts.join('');
+}
+function checkCapture(){
+  const h = location.hash || '';
+  if(h.indexOf('#cap=') !== 0) return;
+  let d = null;
+  try{ d = JSON.parse(decodeURIComponent(h.slice(5))); }catch(e){}
+  try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+  if(!d || !d.u) return;
+  const plat = detectPlat(d.u);
+  const r = upsert({title:d.t || '', plat:plat, url:d.u, img:d.i || '', shop:d.s || '', price:+d.p || 0, src:'书签抓取'});
+  save(); render(); openDetail(r.item);
+  toast((r.merged ? '已更新这件商品' : '已抓取入库') + (d.p > 0 ? '：' + money(+d.p) : '（没认出价格，手动补一下）'));
+}
+
+/* ---------------- 启动 ---------------- */
+load();
+render();
+bind();
+checkCapture();
+window.__PC = {
+  PLATS: PLATS, S: S, statOf: statOf, detectPlat: detectPlat, itemKey: itemKey,
+  parseHistSeries: parseHistSeries, parseHtmlSource: parseHtmlSource,
+  searchWord: searchWord, upsert: upsert, addPrice: addPrice, handleParse: handleParse,
+  render: render, openDetail: openDetail
+};
+})();
+</script>
+</body>
+</html>
