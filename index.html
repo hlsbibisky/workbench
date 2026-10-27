@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261026a';
+const WB_THIS_VER='20261027a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -489,6 +489,7 @@ const MODULES = {
       {id:'qigua', name:'六爻起卦', type:'iframe', src:'起卦.html', status:'online'},
       {id:'huxing', name:'户型检测', type:'iframe', src:'风水.html', status:'online', note:'上传户型图 · AI 看图分析利弊、能改不能改 · 附户型图鉴参考'},
       {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'},
+      {id:'price', name:'比价', type:'iframe', src:'比价.html', status:'online', note:'全平台比价 · 24个月价格曲线 · 店铺模糊搜索'},
       {id:'bazimem', name:'八字记忆', type:'iframe', src:'八字记忆.html', status:'online', note:'天干五合 · 六合三合三会 · 刑冲破害 · 地支藏干 · 间隔重复题库'},
     ]
   },
