@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261031a';
+const WB_THIS_VER='20261101a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -458,13 +458,13 @@ const MODULES = {
   stock: {
     title:'股票', note:'行情 · 持仓 · 策略', group:'common',
     sub:[
-      {id:'valuation', name:'估值全景',   type:'iframe',  src:'估值全景.html',       status:'online'},
-      {id:'global',  name:'全球视野',     type:'iframe',  src:'全球视野.html',      status:'online', note:'全球股指 · 大宗 · 外汇 · 加密 · 黄金'},
-      {id:'gegu',    name:'个股分析',     type:'iframe',  src:'个股分析.html',      status:'online', note:'全维估值体检 · 输入代码实时换股生成报告'},
-      {id:'board',   name:'盘面跟踪',     type:'iframe',  src:'股票.html#board',   status:'online'},
-      {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
       {id:'journal', name:'状态记录',     type:'iframe',  src:'股票.html#journal', status:'online'},
       {id:'etf',     name:'300资金全景',   type:'iframe',  src:'沪深300资金全景.html', status:'online', note:'国家队买卖 / 成分股资金流 / ETF 占比 · 每日更新'},
+      {id:'valuation', name:'估值全景',   type:'iframe',  src:'估值全景.html',       status:'online'},
+      {id:'global',  name:'黄金&全球视野', type:'iframe',  src:'全球视野.html',      status:'online', note:'黄金 · 全球股指 · 大宗 · 外汇 · 加密'},
+      {id:'board',   name:'持仓一览',     type:'iframe',  src:'股票.html#board',   status:'online'},
+      {id:'review',  name:'个人账户复盘', type:'iframe',  src:'股票.html#review', status:'online'},
+      {id:'gegu',    name:'个股分析',     type:'iframe',  src:'个股分析.html',      status:'online', note:'全维估值体检 · 输入代码实时换股生成报告'},
     ]
   },
   drive: {
