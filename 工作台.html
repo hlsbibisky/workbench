@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261104a';
+const WB_THIS_VER='20261104b';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -470,9 +470,6 @@ const MODULES = {
   drive: {
     title:'人类观察学', note:'八字 · 十神 · 关系对应 · 生活场景', group:'common',
     sub:[
-      {id:'reltrain', name:'关系训练', type:'iframe', src:'关系训练.html', status:'online', note:'现实情境反应训练场 · 事实与推测 · 边界表达练习'},
-      {id:'drivebank', name:'驱动力题库', type:'iframe', src:'驱动力题库.html', status:'online', note:'1011题完整题干版 · 抽卡自测 · 五大主题'},
-      {id:'scene', name:'场景观察题库', type:'iframe', src:'生活场景观察.html', status:'online', note:'20个日常瞬间 · 互动问答 + 自由记录 · 含随机闯关'},
       {id:'cycle', name:'十神关系图', type:'iframe', src:'shishen_cycle.html', status:'online', note:'五神循环 + 用/忌 + 六亲关系'},
       {id:'energy',name:'八字能量分布', type:'iframe', src:'八字能量分布.html', status:'online', note:'含「能量分布 / 核心驱动力」双标签'},
       {id:'drive', name:'驱动力总览', type:'iframe', src:'驱动力.html',      status:'online', note:'情感模式全解 · 速查总览 / 特征库 / 六亲关系 / 配对匹配'},
@@ -490,8 +487,17 @@ const MODULES = {
       {id:'qigua', name:'六爻起卦', type:'iframe', src:'起卦.html', status:'online'},
       {id:'huxing', name:'户型检测', type:'iframe', src:'风水.html', status:'online', note:'上传户型图 · AI 看图分析利弊、能改不能改 · 附户型图鉴参考'},
       {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'},
-      {id:'price', name:'比价', type:'iframe', src:'比价.html', status:'online', note:'全平台比价 · 24个月价格曲线 · 店铺模糊搜索'},
-      {id:'bazimem', name:'八字记忆', type:'iframe', src:'八字记忆.html', status:'online', note:'天干五合 · 六合三合三会 · 刑冲破害 · 地支藏干 · 间隔重复题库'},
+    ]
+  },
+  /* 题库（2026-11-04 新增）：把散在各处的记忆/训练题库收拢到一处。
+     四个页面文件本身不动，只改挂载位置——原「工具›八字记忆」与「人类观察学›关系训练/驱动力题库/场景观察题库」已移除。 */
+  bank: {
+    title:'题库', note:'记忆 · 训练 · 反复刷', group:'other',
+    sub:[
+      {id:'bazimem',  name:'八字记忆',   type:'iframe', src:'八字记忆.html',     status:'online', note:'天干五合 · 六合三合三会 · 刑冲破害 · 地支藏干 · 间隔重复题库'},
+      {id:'reltrain', name:'关系训练',   type:'iframe', src:'关系训练.html',     status:'online', note:'现实情境反应训练场 · 事实与推测 · 边界表达练习'},
+      {id:'drivebank',name:'驱动力题库', type:'iframe', src:'驱动力题库.html',   status:'online', note:'1011题完整题干版 · 抽卡自测 · 五大主题'},
+      {id:'scene',    name:'场景观察题库',type:'iframe', src:'生活场景观察.html', status:'online', note:'20个日常瞬间 · 互动问答 + 自由记录 · 含随机闯关'},
     ]
   },
 };
@@ -516,7 +522,7 @@ function tick(){
 tick(); setInterval(tick, 1000*20);
 
 /* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
-const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools'];
+const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools','bank'];
 NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
   if(!m) return;
