@@ -391,7 +391,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261101a';
+const WB_THIS_VER='20261104c';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -470,9 +470,6 @@ const MODULES = {
   drive: {
     title:'人类观察学', note:'八字 · 十神 · 关系对应 · 生活场景', group:'common',
     sub:[
-      {id:'reltrain', name:'关系训练', type:'iframe', src:'关系训练.html', status:'online', note:'现实情境反应训练场 · 事实与推测 · 边界表达练习'},
-      {id:'drivebank', name:'驱动力题库', type:'iframe', src:'驱动力题库.html', status:'online', note:'1011题完整题干版 · 抽卡自测 · 五大主题'},
-      {id:'scene', name:'场景观察题库', type:'iframe', src:'生活场景观察.html', status:'online', note:'20个日常瞬间 · 互动问答 + 自由记录 · 含随机闯关'},
       {id:'cycle', name:'十神关系图', type:'iframe', src:'shishen_cycle.html', status:'online', note:'五神循环 + 用/忌 + 六亲关系'},
       {id:'energy',name:'八字能量分布', type:'iframe', src:'八字能量分布.html', status:'online', note:'含「能量分布 / 核心驱动力」双标签'},
       {id:'drive', name:'驱动力总览', type:'iframe', src:'驱动力.html',      status:'online', note:'情感模式全解 · 速查总览 / 特征库 / 六亲关系 / 配对匹配'},
@@ -486,12 +483,22 @@ const MODULES = {
     title:'工具', note:'效率 · 小工具', group:'other',
     sub:[
       {id:'yanwai', name:'Ta在说什么', type:'iframe', src:'Ta在说什么.html', status:'online', note:'粘贴聊天记录 · 翻译出对方真正想说的话'},
+      {id:'reading', name:'AI伴读', type:'iframe', src:'AI伴读.html', status:'online', note:'贴一段文字 · 贴着原文细读 · 换视角 · 陪你一路追问'},
       {id:'tarot', name:'塔罗占卜', type:'iframe', src:'塔罗.html', status:'online', note:'4 套公有领域古牌真图 · 6 种牌阵 · 亲手抽牌翻开 · AI 解读'},
       {id:'qigua', name:'六爻起卦', type:'iframe', src:'起卦.html', status:'online'},
       {id:'huxing', name:'户型检测', type:'iframe', src:'风水.html', status:'online', note:'上传户型图 · AI 看图分析利弊、能改不能改 · 附户型图鉴参考'},
       {id:'media', name:'音视频总结', type:'iframe', src:'音视频总结.html', status:'online'},
-      {id:'price', name:'比价', type:'iframe', src:'比价.html', status:'online', note:'全平台比价 · 24个月价格曲线 · 店铺模糊搜索'},
-      {id:'bazimem', name:'八字记忆', type:'iframe', src:'八字记忆.html', status:'online', note:'天干五合 · 六合三合三会 · 刑冲破害 · 地支藏干 · 间隔重复题库'},
+    ]
+  },
+  /* 题库（2026-11-04 新增）：把散在各处的记忆/训练题库收拢到一处。
+     四个页面文件本身不动，只改挂载位置——原「工具›八字记忆」与「人类观察学›关系训练/驱动力题库/场景观察题库」已移除。 */
+  bank: {
+    title:'题库', note:'记忆 · 训练 · 反复刷', group:'other',
+    sub:[
+      {id:'bazimem',  name:'八字记忆',   type:'iframe', src:'八字记忆.html',     status:'online', note:'天干五合 · 六合三合三会 · 刑冲破害 · 地支藏干 · 间隔重复题库'},
+      {id:'reltrain', name:'关系训练',   type:'iframe', src:'关系训练.html',     status:'online', note:'现实情境反应训练场 · 事实与推测 · 边界表达练习'},
+      {id:'drivebank',name:'驱动力题库', type:'iframe', src:'驱动力题库.html',   status:'online', note:'1011题完整题干版 · 抽卡自测 · 五大主题'},
+      {id:'scene',    name:'场景观察题库',type:'iframe', src:'生活场景观察.html', status:'online', note:'20个日常瞬间 · 互动问答 + 自由记录 · 含随机闯关'},
     ]
   },
 };
@@ -516,7 +523,7 @@ function tick(){
 tick(); setInterval(tick, 1000*20);
 
 /* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
-const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools'];
+const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools','bank'];
 NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
   if(!m) return;
@@ -730,6 +737,34 @@ function wbCleanJunk(){
     return rm;
   }catch(e){ return []; }
 }
+/* ===== AI 配置校验（2026-11-04）=====
+   事故：手机上「模型」输入框被浏览器自动填充塞进 'hlsbibisky/workbench'（本页网址），
+   塔罗页当时「输入框优先」→ 把网址当模型名发出去，接口报 model 不支持；
+   页面兜底又显示「没填密钥」，把人带偏。放映室只读 localStorage，所以一直正常。
+   原则：模型名 / 接口地址是配置而不是数据，坏值既不收集上云、也不落地回灌，并当场自愈。 */
+var WB_MODEL_RE=/^[A-Za-z0-9][A-Za-z0-9._:-]{1,39}$/;
+function wbOkModel(v){ v=(v||'').trim(); return WB_MODEL_RE.test(v) && v.indexOf('/')<0; }
+function wbOkBase(v){ v=(v||'').trim(); return /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[^\s]*)?$/i.test(v); }
+function wbIsBadAiCfg(k,v){
+  if(k!=='ywApiModel' && k!=='ywVlModel' && k!=='ywApiBase' && k!=='ywVlBase') return false;
+  if(typeof v!=='string') return true;
+  if(!v.trim()) return false;
+  return (k==='ywApiModel'||k==='ywVlModel') ? !wbOkModel(v) : !wbOkBase(v);
+}
+function wbHealAiCfg(){
+  try{
+    var fixed=[];
+    ['ywApiModel','ywVlModel','ywApiBase','ywVlBase'].forEach(function(k){
+      var v=localStorage.getItem(k);
+      if(v && wbIsBadAiCfg(k,v)){
+        var dva = (k.indexOf('Model')>=0) ? 'deepseek-flash' : 'https://api.deepseek.com';
+        localStorage.setItem(k, dva); fixed.push(k+'='+dva);
+      }
+    });
+    if(fixed.length) console.warn('[wb] AI 配置脏值已自愈:', fixed);
+    return fixed;
+  }catch(e){ return []; }
+}
 function wbLoadCfg(){
   try{ wbSync=JSON.parse(localStorage.getItem(WB_K_SYNC))||null; }catch(e){ wbSync=null; }
   if(!wbSync) wbSync={};
@@ -808,7 +843,10 @@ async function wbCollectExpanded(){
   const o={};
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(WB_SKIP.indexOf(k)<0 && !wbIsPrivate(k)){ const v=localStorage.getItem(k); if(!wbIsJunk(k,v)) o[k]=v; }
+    if(WB_SKIP.indexOf(k)>=0 || wbIsPrivate(k)) continue;
+    const v=localStorage.getItem(k);
+    if(wbIsJunk(k,v) || wbIsBadAiCfg(k,v)) continue;   /* 畸形 AI 配置不上云，避免污染其他设备 */
+    o[k]=v;
   }
   /* 2026-09-17 同步急救：food_* 不再把 idb:// 引用展开成 base64 上云（WB_SYNC_IMAGES=false）。
      事故根因：打卡图 base64 随包同步使包体涨到 2.01MB（food_checkin 一项 1.88MB），
@@ -837,7 +875,7 @@ async function wbApply(o){
   if(!o) return;
   let changed=false, quotaHit=false;
   for(const k of Object.keys(o)){
-    if(WB_SKIP.indexOf(k)<0 && !wbIsPrivate(k) && !wbIsJunk(k,o[k])){
+    if(WB_SKIP.indexOf(k)<0 && !wbIsPrivate(k) && !wbIsJunk(k,o[k]) && !wbIsBadAiCfg(k,o[k])){
       let v=o[k];
       /* food_* 含 base64 大图：先存 IndexedDB，本地只留 idb:// 引用，避免 5MB 配额超限 */
       if(k.indexOf('food_')===0 && typeof v==='string' && v.indexOf('data:image')>=0){
@@ -1157,6 +1195,8 @@ async function wbMergeAll(cloudObj, dir){
   const out=Object.assign({},cloudObj||{});
   Object.keys(local).forEach(k=>{
     const lv=local[k], cv=out[k], bv=shadow[k];
+    /* 云端 AI 配置是畸形值（例如模型名被写成网址）→ 一律用本机的正确值覆盖，绝不回灌 */
+    if(wbIsBadAiCfg(k,cv) && !wbIsEmptyVal(lv)){ out[k]=lv; return; }
     if(k==='DAILY_STATUS'){ out[k]=wbMergeDaily(lv,cv); return; }
     if(k==='TODAY_PLAN'){ out[k]=wbMergeToday(lv, cv); return; }   /* 今日安排：按日期/id 并集合并 */
     /* 美食数据：绝不允许「拉取」把本机较新的条目整键覆盖掉（9 月打卡反复丢失的根因）。
@@ -1178,7 +1218,7 @@ async function wbMergeAll(cloudObj, dir){
     if(wbIsEmptyVal(cv)&&!wbIsEmptyVal(lv)){ out[k]=lv; return; }            /* 云端空、本机有 → 必须显式赋值保留本机（2026-09-25 修复：out 初值是云端快照拷贝，原来只 return 会把云端空值留在 out 里，拉取落地把本机刚填的数据抹掉 —— 手机 API Key 反复被清空的根因） */
     out[k] = (dir==='pull') ? (wbIsEmptyVal(cv)?lv:cv) : lv;
   });
-  Object.keys(out).forEach(k=>{ if(wbIsJunk(k,out[k]) || wbIsPrivate(k)) delete out[k]; });    /* 清掉污染键与私密键（密钥不进合并结果，避免旧空值随包推送/落地） */
+  Object.keys(out).forEach(k=>{ if(wbIsJunk(k,out[k]) || wbIsPrivate(k) || wbIsBadAiCfg(k,out[k])) delete out[k]; });    /* 清掉污染键/私密键/畸形 AI 配置 */
   return out;
 }
 function wbSig(o){ let n=0,s=0; Object.keys(o||{}).forEach(k=>{ n++; s+=(o[k]||'').length; }); return n+':'+s; }
@@ -1778,6 +1818,7 @@ window.addEventListener('message', e=>{
 });
 async function wbSilentReconnect(){
   wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
+  wbHealAiCfg();          /* 再把被自动填充污染的模型名/接口地址纠正回来（2026-11-04） */
   wbTryHashToken();       /* 若通过 #gh=令牌 链接打开，自动把令牌写入本地（只此一次） */
   try{ const _e=getLastSyncErr(); if(_e&&_e.msg&&_e.msg.indexOf('wbSbOk')>=0) clearLastSyncErr(); }catch(e){}  /* 清掉旧版 bug 残留的错误记录 */
   wbVerWatch(); setInterval(wbVerWatch,120000);   /* 自动检测新版本并刷新，避免手动 Ctrl+F5 */
@@ -1861,9 +1902,9 @@ wbUpdateSyncUI();
     <fieldset>
       <legend>文本模型 · 解卦 / 聊天解读 / 字幕总结</legend>
       <div class="wbaigrid">
-        <label>接口地址</label><input id="waiBase" placeholder="https://api.deepseek.com">
-        <label>密钥</label><input id="waiKey" type="password" placeholder="sk-...">
-        <label>模型</label><input id="waiModel" placeholder="deepseek-flash">
+        <label>接口地址</label><input id="waiBase" placeholder="https://api.deepseek.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <label>密钥</label><input id="waiKey" type="password" placeholder="sk-..." autocomplete="new-password">
+        <label>模型</label><input id="waiModel" placeholder="deepseek-flash" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
     </fieldset>
     <fieldset>
@@ -1910,6 +1951,12 @@ function saveGlobalAi(){
   var vb = g('waiVlBase').value.trim()  || 'https://api.deepseek.com';
   var vm = g('waiVlModel').value.trim() || 'deepseek-flash';
   var vk = g('waiVlKey').value.trim() || k;
+  /* 保存前把门（2026-11-04 事故：手机自动填充把网址塞进「模型」框 → 全站 AI 全部报 model 不支持） */
+  var warn = [];
+  if(!wbOkBase(b)){  warn.push('接口地址不像网址，已用 https://api.deepseek.com'); b = 'https://api.deepseek.com'; }
+  if(!wbOkModel(m)){ warn.push('模型名「' + m.slice(0,20) + '」不合法（模型名里不会有 /），已用 deepseek-flash'); m = 'deepseek-flash'; }
+  if(!wbOkBase(vb)){ vb = 'https://api.deepseek.com'; }
+  if(!wbOkModel(vm)){ vm = 'deepseek-flash'; }
   try{
     localStorage.setItem('ywApiBase', b);
     localStorage.setItem('ywApiModel', m);
@@ -1934,7 +1981,7 @@ function saveGlobalAi(){
       else if(f.getAttribute('src')){ f.src = f.getAttribute('src'); }
     }catch(e){}
   });
-  wnudge('AI 设置已保存到全部页面');
+  wnudge(warn.length ? ('AI 设置已保存 · ' + warn.join('；')) : 'AI 设置已保存到全部页面');
 }
 </script>
 </body>
