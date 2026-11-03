@@ -1354,14 +1354,37 @@ function renderGuaAnswer(md){
   return html+'</div>';
 }
 
+/* ---------- 接口配置（2026-11-04，与塔罗页同一处修复） ----------
+   事故：手机端「模型」输入框被浏览器自动填充塞进 'hlsbibisky/workbench'（本页网址），
+   而旧代码「输入框优先」，把网址当模型名发给接口 → 接口报 model 不支持。
+   现规则：以工作台 🤖 AI 面板那份（localStorage）为准，输入框只作兜底；两者都过格式校验。 */
+const GUA_MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{1,39}$/;
+const GUA_BASE_RE  = /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[^\s]*)?$/i;
+function guaOkModel(v){ v=(v||'').trim(); return GUA_MODEL_RE.test(v) && v.indexOf('/')<0; }
+function guaOkBase(v){ v=(v||'').trim(); return GUA_BASE_RE.test(v); }
+function guaCfg(){
+  const g = id => document.getElementById(id);
+  const raw = k => { try{ return (localStorage.getItem(k)||'').trim(); }catch(e){ return ''; } };
+  const v = id => { const n = g(id); return n ? (n.value||'').trim() : ''; };
+  let base  = raw('ywApiBase')  || (guaOkBase(v('guaBase'))   ? v('guaBase')   : '') || 'https://api.deepseek.com';
+  let model = raw('ywApiModel') || (guaOkModel(v('guaModel')) ? v('guaModel')  : '') || 'deepseek-flash';
+  const key = raw('ywApiKey')   || v('guaKey');
+  if(!guaOkBase(base))  base  = 'https://api.deepseek.com';
+  if(!guaOkModel(model)) model = 'deepseek-flash';
+  try{
+    if(v('guaModel') && !guaOkModel(v('guaModel'))) g('guaModel').value = model;
+    if(v('guaBase')  && !guaOkBase(v('guaBase')))   g('guaBase').value  = base;
+    if(raw('ywApiModel') !== model) localStorage.setItem('ywApiModel', model);
+    if(raw('ywApiBase')  !== base)  localStorage.setItem('ywApiBase', base);
+  }catch(e){}
+  return { base: base.replace(/\/+$/,''), model: model, key: key };
+}
 async function askGuaAI(){
   const btn=document.getElementById('btnGuaAI');
   const st=document.getElementById('guaAIState');
   const box=document.getElementById('aiAnswer');
-  const key=(document.getElementById('guaKey').value.trim())||(localStorage.getItem('ywApiKey')||'');
-  let base=(document.getElementById('guaBase').value.trim())||(localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
-  const model=(document.getElementById('guaModel').value.trim())||(localStorage.getItem('ywApiModel')||'deepseek-flash');
-  base=base.replace(/\/+$/,'');
+  const cfg=guaCfg();
+  const key=cfg.key, base=cfg.base, model=cfg.model;
   const prompt=window.__guaPrompt||document.getElementById('aiPrompt').textContent;
   if(!key){ st.innerHTML='<span style="color:#c0392b">先把密钥填上（展开上面「接口设置」）</span>'; document.getElementById('guaSet').open=true; return; }
   btn.disabled=true; st.textContent='解卦中，通常十几秒…';
@@ -1383,7 +1406,7 @@ async function askGuaAI(){
     if(timer)clearTimeout(timer);
     let m=(e&&e.name==='AbortError')?'等太久放弃了':String((e&&e.message)||e);
     if(m.indexOf('Failed to fetch')>=0)m='连不上接口——检查网络或接口地址';
-    st.innerHTML='<span style="color:#c0392b">'+m+'</span>';
+    st.innerHTML='<span style="color:#c0392b">'+m+'</span><span style="color:#8a837a">　（本次用的是 '+aiEsc(model)+'）</span>';
     box.innerHTML='<div class="ai-ans"><div class="ai-sec"><div class="ai-sec-b" style="color:#c0392b;">解读没成功：'+aiEsc(m)+'</div></div></div>';
   }finally{ btn.disabled=false; }
 }
@@ -1398,7 +1421,12 @@ function openApiPanel(){
 function closeApiPanel(){ document.getElementById('apiMask').classList.remove('show'); }
 function saveApiPanel(){
   const g = id => document.getElementById(id);
-  const b = g('fabBase').value.trim(), k = g('fabKey').value.trim(), m = g('fabModel').value.trim();
+  const b = g('fabBase').value.trim() || 'https://api.deepseek.com';
+  const k = g('fabKey').value.trim();
+  const m = g('fabModel').value.trim() || 'deepseek-flash';
+  /* 保存前把门：模型名/地址被自动填充塞成网址时当场拦下，不写进配置 */
+  if(!guaOkBase(b)){ alert('接口地址要写成网址，例如 https://api.deepseek.com'); return; }
+  if(!guaOkModel(m)){ alert('「'+m+'」不像模型名（模型名里不会有 /）。常用：deepseek-flash'); return; }
   try{
     localStorage.setItem('ywApiBase', b);
     localStorage.setItem('ywApiKey', k);
@@ -1421,7 +1449,13 @@ function saveApiPanel(){
   g('guaKey').value=localStorage.getItem('ywApiKey')||'';
   const map={guaBase:'ywApiBase',guaModel:'ywApiModel',guaKey:'ywApiKey'};
   ['guaBase','guaModel','guaKey'].forEach(id=>{
-    g(id).addEventListener('change',()=>{ try{ localStorage.setItem(map[id],g(id).value.trim()); }catch(e){} });
+    g(id).addEventListener('change',()=>{
+      const val = g(id).value.trim();
+      /* 自动填充的脏值不许落库（否则会顺着云同步灌到别的设备） */
+      if(id==='guaModel' && !guaOkModel(val)){ g(id).value = localStorage.getItem('ywApiModel')||'deepseek-flash'; return; }
+      if(id==='guaBase'  && val && !guaOkBase(val)){ g(id).value = localStorage.getItem('ywApiBase')||'https://api.deepseek.com'; return; }
+      try{ localStorage.setItem(map[id], val); }catch(e){}
+    });
   });
 })();
 
