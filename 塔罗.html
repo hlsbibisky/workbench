@@ -267,13 +267,15 @@
   <!-- 接口设置 -->
   <div class="card stage-box" id="stageSet">
     <div class="card-title">⚙ 接口设置</div>
-    <div class="card-note">默认读工作台 🤖 AI 面板里填的那份（文本模型）。这里改只影响本页。</div>
+    <div class="card-note">和工作台右上角 🤖 AI 面板是<b>同一份配置</b>（存在本机、全站共用），这里只是快捷入口。</div>
     <div class="set-line">
-      <input id="tBase" placeholder="接口地址" style="width:230px">
-      <input id="tModel" placeholder="模型" style="width:150px">
-      <input id="tKey" placeholder="密钥 sk-…" style="width:260px" type="password">
+      <input id="tBase" placeholder="接口地址" style="width:230px" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input id="tModel" placeholder="模型 deepseek-flash" style="width:170px" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input id="tKey" placeholder="密钥 sk-…" style="width:260px" type="password" autocomplete="new-password">
+      <button class="btn-ghost" style="padding:8px 16px" id="btnTestSet">测试</button>
       <button class="btn-ghost" style="padding:8px 20px" id="btnSaveSet">保存</button>
     </div>
+    <div class="card-note" id="setMsg" style="margin-top:6px"></div>
   </div>
 
 </div>
@@ -613,9 +615,10 @@ function buildPrompt(r){
   s += '语气：温柔、平等、不说教、不恐吓、不宿命论，不要说"注定""必然"。不要用 Markdown 标题符号和星号。全文 600 字以内。\n';
   return s;
 }
-function fallbackReading(r){
+function fallbackReading(r, why, withHint){
   const sp = spreadOf(r.spread);
-  let s = '（没填密钥，这里先用牌意本身拼一个底稿。填上密钥就有完整解读。）\n\n';
+  let s = '（' + (why || '这次没拿到 AI 解读') + '，先按牌意本身拼一个底稿给你看。'
+    + (withHint ? '\n　上面那行红字是接口返回的真实原因，照着改就能通。' : '') + '）\n\n';
   r.cards.forEach((p,i)=>{
     const c = CARDS[p.id];
     s += '【' + sp.slots[i] + '】' + c.name + '（' + (p.rev?'逆位':'正位') + '）\n'
@@ -627,19 +630,53 @@ function fallbackReading(r){
       : '小牌居多，局面多半还在你手里，是可以慢慢调的。');
   return s;
 }
+/* ---------- AI 配置读取（2026-11-04 修复） ----------
+   事故：手机端「模型」输入框被浏览器自动填充塞进 'hlsbibisky/workbench'（本页网址），
+   旧代码是「输入框优先」，于是把网址当模型名发给接口 → 接口回
+   「supported model names are deepseek-flash, deepseek-v4-pro, but you passed hlsbibisky/workbench」，
+   而异常兜底又显示「没填密钥」，把排查方向彻底带偏（放映室只读 localStorage，所以一直正常）。
+   现规则：以工作台 🤖 AI 面板那份（localStorage）为唯一准，输入框只作兜底；
+   两者都过格式校验，坏值自动纠正、写回，并清掉输入框里的脏东西。 */
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{1,39}$/;
+const BASE_RE  = /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[^\s]*)?$/i;
+function okModel(v){ v = (v||'').trim(); return MODEL_RE.test(v) && v.indexOf('/') < 0; }
+function okBase(v){ v = (v||'').trim(); return BASE_RE.test(v); }
+function lsGet(k){ try{ return (localStorage.getItem(k)||'').trim(); }catch(e){ return ''; } }
+function readCfg(){
+  const notes = [];
+  const inp = id => { const n = $(id); return n ? (n.value||'').trim() : ''; };
+  let base  = lsGet('ywApiBase')  || (okBase(inp('tBase'))   ? inp('tBase')   : '') || 'https://api.deepseek.com';
+  let model = lsGet('ywApiModel') || (okModel(inp('tModel')) ? inp('tModel')  : '') || 'deepseek-flash';
+  const key = lsGet('ywApiKey')   || inp('tKey');
+  if(!okBase(base)){
+    notes.push('接口地址「' + base.slice(0,24) + '」不是网址，已改用 https://api.deepseek.com');
+    base = 'https://api.deepseek.com';
+  }
+  if(!okModel(model)){
+    notes.push('模型名「' + model.slice(0,24) + '」不是有效模型，已改用 deepseek-flash');
+    model = 'deepseek-flash';
+  }
+  /* 自愈：脏输入框清掉、坏值写回修正版，免得下次、下台设备再踩 */
+  try{
+    if(inp('tModel') && !okModel(inp('tModel'))) $('tModel').value = model;
+    if(inp('tBase')  && !okBase(inp('tBase')))   $('tBase').value  = base;
+    if(lsGet('ywApiModel') !== model) localStorage.setItem('ywApiModel', model);
+    if(lsGet('ywApiBase')  !== base)  localStorage.setItem('ywApiBase', base);
+  }catch(e){}
+  return { base: base.replace(/\/+$/,''), model: model, key: key, notes: notes };
+}
 async function askAI(){
   if(!lastResult || reading) return;
-  const key = ($('tKey').value.trim()) || (localStorage.getItem('ywApiKey')||'');
+  const cfg = readCfg();
+  const key = cfg.key;
   const box = $('aiBox'), st = $('aiState');
   box.style.display='block';
   if(!key){
-    box.textContent = fallbackReading(lastResult);
+    box.textContent = fallbackReading(lastResult, '没有填密钥');
     st.innerHTML = '<span style="color:#8a837a">未配置密钥，显示的是牌意底稿。点右上角「⚙ 接口设置」填上就有 AI 解读。</span>';
     return;
   }
-  let base = ($('tBase').value.trim()) || (localStorage.getItem('ywApiBase')||'https://api.deepseek.com');
-  const model = ($('tModel').value.trim()) || (localStorage.getItem('ywApiModel')||'deepseek-flash');
-  base = base.replace(/\/+$/,'');
+  const base = cfg.base, model = cfg.model;
   reading = true; $('btnRead').disabled = true;
   st.innerHTML = '<span class="spin"></span>正在解读…';
   box.textContent = '';
@@ -668,13 +705,16 @@ async function askAI(){
       throw '回复为空（finish_reason=' + ((ch && ch.finish_reason) || '未知') + '）';
     }
     box.textContent = txt;
-    st.innerHTML = '<span style="color:#3f9d6b">解读完成</span>';
+    st.innerHTML = '<span style="color:#3f9d6b">解读完成</span>'
+      + (cfg.notes.length ? '<span style="color:#b8860b">　· ' + esc(cfg.notes.join('；')) + '</span>' : '');
     histWriteAI(lastResult.id, txt);
   }catch(e){
     let m = (e && e.name === 'AbortError') ? '等太久放弃了' : String((e&&e.message)||e);
     if(m.indexOf('Failed to fetch') >= 0) m = '连不上接口 —— 检查网络或接口地址';
-    st.innerHTML = '<span style="color:#c0392b">' + esc(m) + '</span>';
-    box.textContent = fallbackReading(lastResult);
+    st.innerHTML = '<span style="color:#c0392b">' + esc(m) + '</span>'
+      + '<span style="color:#8a837a">　（本次用的是 ' + esc(model) + '）</span>'
+      + (cfg.notes.length ? '<div style="color:#b8860b;margin-top:4px">' + esc(cfg.notes.join('；')) + '</div>' : '');
+    box.textContent = fallbackReading(lastResult, 'AI 解读没成功', true);
   }finally{
     reading = false; $('btnRead').disabled = false;
   }
@@ -746,18 +786,50 @@ $('btnHist').onclick = ()=>{ $('stageHist').classList.toggle('on'); if($('stageH
 $('btnAiSet').onclick = ()=>{
   $('stageSet').classList.toggle('on');
   if($('stageSet').classList.contains('on')){
-    $('tBase').value = localStorage.getItem('ywApiBase') || 'https://api.deepseek.com';
-    $('tModel').value = localStorage.getItem('ywApiModel') || 'deepseek-flash';
-    $('tKey').value = localStorage.getItem('ywApiKey') || '';
+    const cfg = readCfg();            /* 走校验版读取：脏值在这里就被纠正，不会显示成“正常配置” */
+    $('tBase').value = cfg.base;
+    $('tModel').value = cfg.model;
+    $('tKey').value = lsGet('ywApiKey');
+    const msg = $('setMsg');
+    if(msg) msg.textContent = '';
     $('stageSet').scrollIntoView({behavior:'smooth',block:'start'});
   }
 };
+$('btnTestSet').onclick = async ()=>{
+  const msg = $('setMsg');
+  const cfg = readCfg();
+  if(!cfg.key){ msg.style.color='#c0392b'; msg.textContent='还没填密钥。'; return; }
+  msg.style.color='#8a837a'; msg.textContent='正在测试连接…';
+  try{
+    const r = await fetch(cfg.base + '/models', {headers:{'Authorization':'Bearer '+cfg.key}});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw ((j&&j.error&&j.error.message) || ('HTTP '+r.status));
+    const ids = ((j && j.data) || []).map(x=>x && x.id).filter(Boolean);
+    const hit = ids.indexOf(cfg.model) >= 0;
+    msg.style.color = hit ? '#3f9d6b' : '#b8860b';
+    msg.textContent = hit
+      ? '通了：密钥有效，模型 ' + cfg.model + ' 可用。'
+      : '密钥有效，但可用模型里没有「' + cfg.model + '」。可选：' + (ids.slice(0,8).join('、') || '（接口没返回列表）');
+  }catch(e){
+    let m = String((e&&e.message)||e);
+    if(m.indexOf('Failed to fetch') >= 0) m = '连不上接口 —— 检查网络或接口地址';
+    msg.style.color='#c0392b'; msg.textContent='测试失败：' + m;
+  }
+};
 $('btnSaveSet').onclick = ()=>{
-  localStorage.setItem('ywApiBase', $('tBase').value.trim() || 'https://api.deepseek.com');
-  localStorage.setItem('ywApiModel', $('tModel').value.trim() || 'deepseek-flash');
-  localStorage.setItem('ywApiKey', $('tKey').value.trim());
+  const b = ($('tBase').value||'').trim()  || 'https://api.deepseek.com';
+  const m = ($('tModel').value||'').trim() || 'deepseek-flash';
+  const k = ($('tKey').value||'').trim();
+  /* 保存前把门：模型名/地址被自动填充塞成网址时，当场拦下并说清楚，不写进配置 */
+  if(!okBase(b)){ $('setMsg').style.color='#c0392b'; $('setMsg').textContent='接口地址要写成网址，例如 https://api.deepseek.com'; return; }
+  if(!okModel(m)){ $('setMsg').style.color='#c0392b'; $('setMsg').textContent='「'+m+'」不像模型名（模型名里不会有 /）。常用：deepseek-flash'; return; }
+  try{
+    localStorage.setItem('ywApiBase', b);
+    localStorage.setItem('ywApiModel', m);
+    localStorage.setItem('ywApiKey', k);
+  }catch(e){}
   $('stageSet').classList.remove('on');
-  alert('已保存（全站共用这一份）。');
+  alert('已保存（和工作台 🤖 AI 是同一份，全站共用）。');
 };
 
 /* ---------- 初始化 ---------- */
