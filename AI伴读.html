@@ -43,9 +43,9 @@
   .pane-h .sp{flex:1;}
 
   /* 左：原文 */
-  #src{flex:1;min-height:120px;width:100%;border:0;outline:0;resize:none;background:transparent;
+  #src,#tSrc{flex:1;min-height:120px;width:100%;border:0;outline:0;resize:none;background:transparent;
     padding:14px 16px;color:var(--ink);font-family:inherit;font-size:15px;line-height:2.05;letter-spacing:.02em;}
-  #src::placeholder{color:#b8b0a4;line-height:2;}
+  #src::placeholder,#tSrc::placeholder{color:#b8b0a4;line-height:2;}
   .opts{flex:0 0 auto;padding:10px 15px 12px;border-top:1px solid var(--line);background:#fdfbf7;}
   .optrow{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
   .optrow .lb{font-size:11.5px;color:var(--sub);white-space:nowrap;padding-top:5px;min-width:62px;}
@@ -110,6 +110,26 @@
   #btnSend:hover{background:#a05f3d;}
   #btnSend:disabled{background:#d8cec1;border-color:#d8cec1;cursor:not-allowed;}
 
+  /* 翻译视图 */
+  .tgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:13px;
+    align-items:stretch;height:calc(100vh - 90px);}
+  select.sel{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 9px;
+    font-family:inherit;font-size:12.5px;color:var(--ink);outline:0;max-width:100%;}
+  select.sel:focus{border-color:var(--accent);}
+  .opt{display:block;font-style:normal;font-size:10px;color:#b9b0a4;line-height:1.35;letter-spacing:0;font-weight:400;}
+  .sec.plain{border-left-color:var(--accent2);background:#f5faf7;border-radius:0 10px 10px 0;padding:10px 13px;}
+  .sec.plain h4{color:var(--accent2);}
+  .sec.plain p{font-size:14.5px;line-height:2.05;}
+  .tr-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:11px;
+    padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;line-height:1.85;}
+  .tr-row:last-child{border-bottom:0;}
+  .tr-row .o{color:var(--sub);}
+  .tr-row .a{color:var(--ink);}
+  .sec.pairs{padding-left:0;border-left:0;}
+  .sec.pairs h4{padding-left:12px;}
+  .trans-out{padding:13px 16px 20px;}
+  .trans-out .sec p{font-size:14.5px;}
+
   /* 历史视图 */
   .hist{padding:2px 0 40px;}
   .hgroup{font-size:11.5px;color:var(--sub);letter-spacing:1.4px;margin:16px 0 8px;font-weight:600;}
@@ -149,8 +169,12 @@
   @media (max-width:900px){
     .page{padding:10px 11px 24px;}
     .main{grid-template-columns:1fr;height:auto;}
+    .tgrid{grid-template-columns:1fr;height:auto;}
+    .tr-row{grid-template-columns:1fr;gap:2px;}
+    .tr-row .o{font-size:12.5px;}
     .pane{min-height:0;}
     #src{min-height:32vh;font-size:15px;line-height:1.95;}
+    #tSrc{min-height:26vh;font-size:15px;line-height:1.95;}
     .chat{max-height:none;overflow:visible;padding:12px 12px 4px;}
     .askbar{position:sticky;bottom:0;z-index:10;}
     .msg .bub,.sec p{font-size:14.5px;}
@@ -170,6 +194,7 @@
     </div>
     <div class="views">
       <button class="chip on" id="vRead">共读</button>
+      <button class="chip" id="vTrans">翻译</button>
       <button class="chip" id="vHist">历史</button>
       <button class="chip mini" id="btnSet">⚙ 接口</button>
     </div>
@@ -184,11 +209,12 @@
           <span class="tt">原文</span>
           <span class="sp"></span>
           <button class="chip mini" id="btnSample">试试示例</button>
+          <button class="chip mini" id="btnSample2">古文示例</button>
         </div>
         <textarea id="src" placeholder="把想读透的那段文字贴进来。&#10;小说片段、书摘、影视台词、一句歌词、自己的日记都行。"></textarea>
         <div class="opts">
-          <div class="optrow"><span class="lb">这是</span><div class="chips" id="genreChips"></div></div>
-          <div class="optrow"><span class="lb">我想弄明白</span><div class="chips" id="focusChips"></div></div>
+          <div class="optrow"><span class="lb">这是<em class="opt">可不选</em></span><div class="chips" id="genreChips"></div></div>
+          <div class="optrow"><span class="lb">我想弄明白<em class="opt">可不选·可多选</em></span><div class="chips" id="focusChips"></div></div>
         </div>
         <button class="go" id="btnGo">开始共读</button>
         <button class="go2" id="btnAgain" style="display:none">换一段新的 · 清空这次对话</button>
@@ -232,6 +258,46 @@
   <!-- ========== 历史视图 ========== -->
   <div id="viewHist" style="display:none">
     <div class="hist" id="histList"></div>
+  </div>
+
+  <!-- ========== 翻译视图 ========== -->
+  <div id="viewTrans" style="display:none">
+    <div class="tgrid">
+      <section class="pane">
+        <div class="pane-h">
+          <span class="tt">要翻译的文字</span>
+          <span class="sp"></span>
+          <button class="chip mini" id="btnTakeSrc">取左栏原文</button>
+        </div>
+        <textarea id="tSrc" placeholder="古文、旧白话、方言、外语都可以贴。&#10;比如鲁迅那种拗口的句子，或者一整段文言。"></textarea>
+        <div class="opts">
+          <div class="optrow"><span class="lb">从</span><select class="sel" id="tFrom"></select></div>
+          <div class="optrow"><span class="lb">到</span><select class="sel" id="tTo"></select></div>
+        </div>
+        <button class="go" id="btnTrans">翻 译</button>
+        <div class="hint" id="tHint">默认「古文 · 旧白话 → 现代白话（简体）」。古籍只会翻成大白话，不会翻成外语。</div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-h">
+          <span class="tt">译文</span>
+          <span class="meta" id="tMeta"></span>
+          <span class="sp"></span>
+          <button class="chip mini" id="btnTransCopy" style="display:none">复制</button>
+          <button class="chip mini" id="btnToRead" style="display:none">带去共读</button>
+        </div>
+        <div class="chat trans-out" id="tOut">
+          <div class="empty" id="tEmpty">
+            <b>怎么用</b>
+            <ol>
+              <li>贴一段看不懂的文字，选好「从什么语到什么语」；</li>
+              <li>点「翻译」，右边给整段白话、逐句对照、难词注解三块；</li>
+              <li>看完可以点「带去共读」，让它接着陪你细读。</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -330,7 +396,7 @@ function apiErr(status, j){
   return m;
 }
 
-async function callAI(messages, cfgIn){
+async function callAI(messages, cfgIn, temp){
   var cfg = cfgIn || readCfg();
   if(!cfg.key) throw new Error('还没填密钥——点右上「⚙ 接口」填上，或者去工作台 🤖 AI 面板填');
   var ctrl = ('AbortController' in window) ? new AbortController() : null;
@@ -339,7 +405,7 @@ async function callAI(messages, cfgIn){
     var r = await fetch(cfg.base + '/chat/completions', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + cfg.key },
-      body: JSON.stringify({ model: cfg.model, temperature: 0.72, messages: messages }),
+      body: JSON.stringify({ model: cfg.model, temperature: (temp == null ? 0.72 : temp), messages: messages }),
       signal: ctrl ? ctrl.signal : undefined
     });
     var j = await r.json().catch(function(){ return {}; });
@@ -379,11 +445,26 @@ function sysPrompt(){
   ].join('\n');
 }
 
+function needPlain(){
+  if(String(S.genre||'').indexOf('古文') >= 0) return true;
+  return (S.focus || []).some(function(f){ return String(f).indexOf('古语白话') >= 0; });
+}
+
 function firstPrompt(){
   var g = S.genre ? '【体裁】' + S.genre : '【体裁】未注明';
   var f = S.focus.length ? '【读者最想弄明白的】' + S.focus.join('、') : '【读者最想弄明白的】未注明，请自己判断这段最值得看的地方';
+  var plain = needPlain();
+  var plainSec = plain
+    ? '【白话】原文里所有费解的词句，先翻成现代白话（简体中文），再给整段的白话复述。\n'
+      + '　写法：先逐条列 3-8 组「原句 → 白话」，再空一行给整段白话。\n'
+      + '　铁律：是翻成现代汉语白话，不是翻成英文或任何外语；不许半文半白，不许用文言腔去解释文言。\n'
+      + '　遇到典故、生僻字、旧时用法，在白话后面用括号补一句来历或字面意思。\n'
+      + '　不要在这一节里做赏析、下判断，只把话说清楚。\n'
+    : '';
   return g + '\n' + f + '\n\n【原文】\n"""\n' + S.text + '\n"""\n\n'
-    + '请按下面这个固定格式回复。六个小节的标记必须原样保留、写在行首，顺序不要变：\n\n'
+    + '请按下面这个固定格式回复。小节的标记必须原样保留、写在行首，顺序不要变：\n\n'
+    + plainSec
+    + (plain ? '' : '（若原文里有晦涩难懂的词句——文言、旧白话、方言、生僻典故——请在最前面自行加一节【白话】，先译成现代白话；通篇好懂就省略这一节。）\n')
     + '【抓住】一句话说出这段文字真正在写的东西。不要复述情节，不要评价，说那个核心。\n'
     + '【肌理】2 到 3 句，讲它是怎么写出来的：哪个细节、哪个用词、哪个转折在起作用。要引原文。\n'
     + '【暗流】这段文字里没说出口的情绪是什么？人物（或叙述者）在回避什么？给出依据。\n'
@@ -416,8 +497,8 @@ function buildMessages(){
 }
 
 /* ================= 状态 ================= */
-var GENRES = ['小说片段','散文随笔','书摘','影视台词','诗词歌词','日记或聊天','说不清'];
-var FOCUS = ['人物的动机','没说出口的话','情感暗流','写法与结构','和我自己的关系','我读不懂的地方'];
+var GENRES = ['小说片段','散文随笔','书摘','影视台词','诗词歌词','日记或聊天','古文·旧白话','说不清'];
+var FOCUS = ['人物的动机','没说出口的话','情感暗流','写法与结构','和我自己的关系','我读不懂的地方','古语白话（看不懂的词句）'];
 
 var S = {
   text:'', readText:'', genre:'', focus:[], msgs:[], qs:[], qsErr:'', busy:false, sid:'', view:'read'
@@ -479,6 +560,7 @@ function renderAI(m, idx){
     var cls = 'sec';
     if(key === '抓住') cls += ' lead';
     if(key === '留一个问题') cls += ' q';
+    if(key === '白话' || key === '白话译文' || key === '译文') cls += ' plain';
     html += '<div class="' + cls + '">'
       + (key ? '<h4>' + esc(key) + '</h4>' : '')
       + '<p>' + md(x.body) + '</p></div>';
@@ -542,7 +624,7 @@ function updateMeta(){
   $('btnCopyAll').style.display = S.msgs.length ? 'block' : 'none';
   $('goHint').textContent = S.text.length > 8000
     ? '这段有点长（' + cnLen(S.text) + ' 字），AI 可能读得粗。建议拆成片段，一段一段来。'
-    : '会先给你一份贴着原文的细读，再陪你往下问。';
+    : '会先给你一份贴着原文的细读，再陪你往下问。上面两组标签都可不选；勾「古语白话」会先给译文。';
 }
 
 /* ================= 存储 ================= */
@@ -757,9 +839,239 @@ function switchView(v){
   S.view = v;
   $('viewRead').style.display = v === 'read' ? 'block' : 'none';
   $('viewHist').style.display = v === 'hist' ? 'block' : 'none';
+  $('viewTrans').style.display = v === 'trans' ? 'block' : 'none';
   $('vRead').classList.toggle('on', v === 'read');
   $('vHist').classList.toggle('on', v === 'hist');
+  $('vTrans').classList.toggle('on', v === 'trans');
   if(v === 'hist') renderHist();
+}
+
+/* ================= 翻译 ================= */
+var LANGS_FROM = [
+  ['auto','自动识别'],
+  ['classic','文言文 · 古文'],
+  ['oldvern','旧白话（民国白话文）'],
+  ['hant','繁体中文'],
+  ['yue','粤语'],
+  ['nan','闽南语 · 台语'],
+  ['wuu','上海话 · 吴语'],
+  ['hak','客家话'],
+  ['csz','潮汕话'],
+  ['sc','四川话'],
+  ['ne','东北话'],
+  ['en','英语'],
+  ['ja','日语'],
+  ['ko','韩语'],
+  ['fr','法语'],
+  ['de','德语'],
+  ['es','西班牙语'],
+  ['ru','俄语'],
+  ['pt','葡萄牙语'],
+  ['it','意大利语'],
+  ['ar','阿拉伯语'],
+  ['sa','梵文'],
+  ['pi','巴利文'],
+  ['la','拉丁文'],
+  ['grc','古希腊语'],
+  ['bo','藏文'],
+  ['th','泰文'],
+  ['vi','越南文'],
+  ['other','其他（在文字里注明）']
+];
+var LANGS_TO = [
+  ['bai','现代白话（简体中文）'],
+  ['zh','简体中文 · 书面语'],
+  ['hant','繁体中文'],
+  ['yue','粤语'],
+  ['en','英语'],
+  ['ja','日语'],
+  ['ko','韩语'],
+  ['fr','法语'],
+  ['de','德语'],
+  ['es','西班牙语'],
+  ['ru','俄语']
+];
+
+var TR = { src:'', from:'auto', to:'bai', out:'', busy:false };
+var KT = 'WBDU_TRANS';
+
+function langName(list, code){
+  for(var i=0;i<list.length;i++){ if(list[i][0] === code) return list[i][1]; }
+  return list[0][1];
+}
+
+function toShort(code){
+  if(code === 'bai') return '白话';
+  if(code === 'zh') return '简体';
+  if(code === 'hant') return '繁体';
+  if(code === 'yue') return '粤语';
+  return langName(LANGS_TO, code);
+}
+
+function transSys(){
+  return [
+    '你是一位专做「翻成看得懂的话」的译者。你的活儿只有一件：把给定的文字准确、完整地译成目标语言。',
+    '',
+    '硬性要求：',
+    '1. 目标是「现代白话（简体中文）」时，输出必须全部是简体中文白话。绝对不许输出英文或其他外语，不许半文半白，不许用文言腔去解释文言。',
+    '2. 逐句翻译，不省略、不概括、不合并、不改写。原文有多少句就译多少句，顺序不能乱。',
+    '3. 人名、地名、书名、官职名保留原字；必要时在括号里补一句身份或所指。',
+    '4. 遇到典故、生僻字、旧时用法，先按字面译，再到【难词注解】里补一句来历。',
+    '5. 不赏析、不评价、不加总结、不替作者升华。你是译者，不是评论者。',
+    '6. 只用简体中文写小节标题和说明文字，不要用 Markdown 的井号和星号。'
+  ].join('\n');
+}
+
+function transPrompt(txt){
+  var from = langName(LANGS_FROM, TR.from);
+  var to = langName(LANGS_TO, TR.to);
+  var bai = (TR.to === 'bai');
+  return '从【' + from + '】译成【' + to + '】。\n\n【原文】\n"""\n' + txt + '\n"""\n\n'
+    + '严格按下面这个格式输出，三个标记必须原样写在行首、顺序不变：\n\n'
+    + '【' + (bai ? '白话译文' : '译文') + '】\n'
+    + '整段译文，保留原文的分段和换行。只写译文，不要加任何说明。\n\n'
+    + '【逐句对照】\n'
+    + '一句原文对应一句译文，每行一条，格式固定为：原句 → 译文\n'
+    + '前半段照抄原文（不改字），箭头后面是这一句的译文。原文有几句就写几行，一行都不能少。\n\n'
+    + '【难词注解】\n'
+    + '3 到 6 条，格式为「词：解释」。只解释真正会影响理解的词（典故、生僻字、旧时说法）。\n'
+    + '如果确实一个都没有，就写「无」。' + (bai ? '\n\n再次强调：这是翻成现代汉语白话，不是翻成外语。全篇除人名书名外，必须是简体中文。' : '');
+}
+
+function renderPairs(body){
+  var out = [];
+  String(body||'').split('\n').forEach(function(l){
+    var s = l.replace(/^\s*[-*·•]\s*/,'').replace(/^\s*\d+[.、)]\s*/,'').trim();
+    if(!s) return;
+    var p = s.split(/\s*(?:→|->|⇒|＝|=)\s*/);
+    if(p.length >= 2) out.push([p[0], p.slice(1).join(' → ')]);
+    else out.push([s, '']);
+  });
+  return out;
+}
+
+function renderTrans(text){
+  var secs = parseSections(text);
+  var hasMark = secs.some(function(x){ return x.k; });
+  var box = $('tOut');
+  if(!hasMark){ box.innerHTML = '<div class="msg ai"><div class="bub">' + md(text) + '</div></div>'; return; }
+  var html = '';
+  secs.forEach(function(x){
+    var k = x.k;
+    if(k === '逐句对照' || k === '对照'){
+      var rows = renderPairs(x.body);
+      html += '<div class="sec pairs"><h4>逐句对照</h4>'
+        + rows.map(function(r){
+            return '<div class="tr-row"><span class="o">' + esc(r[0]) + '</span>'
+              + '<span class="a">' + (r[1] ? esc(r[1]) : '<span style="color:#c3b8a8">（未译）</span>') + '</span></div>';
+          }).join('')
+        + '</div>';
+      return;
+    }
+    var cls = 'sec';
+    if(k === '白话译文' || k === '译文' || k === '白话') cls += ' plain';
+    if(k === '难词注解') cls += ' q';
+    var body = (k === '难词注解' || k === '逐句对照') ? x.body.replace(/^\s*[-*·•]\s*/gm, '') : x.body;
+    html += '<div class="' + cls + '">' + (k ? '<h4>' + esc(k) + '</h4>' : '') + '<p>' + md(body) + '</p></div>';
+  });
+  box.innerHTML = '<div class="msg ai">' + html + '</div>';
+}
+
+function plainOf(text){
+  var secs = parseSections(text);
+  for(var i=0;i<secs.length;i++){
+    var k = secs[i].k;
+    if(k === '白话译文' || k === '译文' || k === '白话') return secs[i].body;
+  }
+  return '';
+}
+
+function saveTrans(){
+  try{
+    lsSet(KT, JSON.stringify({
+      src: String(TR.src||'').slice(0, 4000),
+      out: String(TR.out||'').slice(0, 12000),
+      from: TR.from, to: TR.to, ts: Date.now()
+    }));
+  }catch(e){}
+}
+function loadTrans(){
+  try{
+    var v = JSON.parse(lsGet(KT, 'null'));
+    if(!v || typeof v !== 'object') return;
+    TR.src = v.src || ''; TR.out = v.out || '';
+    TR.from = v.from || 'auto'; TR.to = v.to || 'bai';
+  }catch(e){}
+}
+
+async function doTrans(){
+  if(TR.busy) return;
+  var txt = ($('tSrc').value || '').trim();
+  if(cnLen(txt) < 2){ $('tHint').textContent = '先贴一点要翻译的文字。'; return; }
+  TR.src = txt; TR.from = $('tFrom').value; TR.to = $('tTo').value;
+  TR.busy = true;
+  var btn = $('btnTrans');
+  btn.disabled = true; btn.textContent = '翻译中…';
+  $('tMeta').textContent = '';
+  $('tOut').innerHTML = '<div class="thinking"><i></i><i></i><i></i> 在译……</div>';
+  try{
+    var out = await callAI([
+      { role:'system', content: transSys() },
+      { role:'user', content: transPrompt(txt) }
+    ], null, 0.25);
+    TR.out = out;
+    renderTrans(out);
+    $('tMeta').textContent = cnLen(txt) + ' 字 → ' + toShort(TR.to);
+    $('btnTransCopy').style.display = 'block';
+    $('btnToRead').style.display = 'block';
+    saveTrans();
+  }catch(e){
+    $('tOut').innerHTML = '<div class="msg ai err"><div class="bub">' + esc((e && e.message) || e) + '</div></div>';
+  }finally{
+    TR.busy = false; btn.disabled = false; btn.textContent = '翻 译';
+  }
+}
+
+function initTrans(){
+  $('tFrom').innerHTML = LANGS_FROM.map(function(x){
+    return '<option value="' + x[0] + '"' + (TR.from === x[0] ? ' selected' : '') + '>' + esc(x[1]) + '</option>';
+  }).join('');
+  $('tTo').innerHTML = LANGS_TO.map(function(x){
+    return '<option value="' + x[0] + '"' + (TR.to === x[0] ? ' selected' : '') + '>' + esc(x[1]) + '</option>';
+  }).join('');
+
+  if(TR.src) $('tSrc').value = TR.src;
+  if(TR.out){
+    renderTrans(TR.out);
+    $('btnTransCopy').style.display = 'block';
+    $('btnToRead').style.display = 'block';
+    $('tMeta').textContent = cnLen(TR.src) + ' 字 → ' + toShort(TR.to);
+  }
+
+  $('tFrom').onchange = function(){ TR.from = this.value; saveTrans(); };
+  $('tTo').onchange = function(){ TR.to = this.value; saveTrans(); };
+  $('btnTrans').onclick = doTrans;
+
+  $('btnTakeSrc').onclick = function(){
+    var t = ($('src').value || '').trim();
+    if(!t){ $('tHint').textContent = '左栏还没有文字，先去「共读」贴一段。'; return; }
+    $('tSrc').value = t;
+    TR.src = t;
+    $('tHint').textContent = '已取来左栏原文，选好语言对就能翻。';
+  };
+
+  $('btnTransCopy').onclick = function(){ copyText(TR.out); };
+
+  $('btnToRead').onclick = function(){
+    var plain = plainOf(TR.out);
+    if(!plain){ $('tHint').textContent = '这段译文里没有可带走的正文。'; return; }
+    $('src').value = plain;
+    S.text = plain; S.readText = '';
+    S.msgs = []; S.qs = []; S.qsErr = ''; S.sid = '';
+    saveCur(); renderChat(); updateMeta();
+    switchView('read');
+    $('goHint').textContent = '译文已经放进左栏，点「开始共读」接着往下细读。';
+  };
 }
 
 /* ================= 初始化 ================= */
@@ -791,12 +1103,19 @@ var SAMPLE = '他把碗放下的时候，手在抖。她说了一句“凉了就
   + '吃到一半他忽然站起来去关窗，回来的时候碗里多了一块肉——是她夹过去的。'
   + '他盯着那块肉看了两秒，什么也没说，低头吃掉了。';
 
+var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣树，还有一株也是枣树。'
+  + '这上面的夜的天空，奇怪而高，我生平没有见过这样的奇怪而高的天空。'
+  + '他仿佛要离开人间而去，使人们仰面不再看见。然而现在却非常之蓝，闪闪地眨着几十个星星的眼，冷眼。'
+  + '他的口角上现出微笑，似乎自以为大有深意，而将繁霜洒在我的园里的野花草上。';
+
 /* 启动 */
 (function init(){
   EMPTY_HTML = $('emptyBox') ? $('emptyBox').outerHTML : '';
   loadCur();
+  loadTrans();
   if(S.text) $('src').value = S.text;
   buildChips();
+  initTrans();
   if(!S.qs.length){
     for(var i=S.msgs.length-1;i>=0;i--){
       if(S.msgs[i].role === 'ai' && S.msgs[i].qs && S.msgs[i].qs.length){ S.qs = S.msgs[i].qs; break; }
@@ -820,13 +1139,22 @@ var SAMPLE = '他把碗放下的时候，手在抖。她说了一句“凉了就
     updateMeta();
     $('goHint').textContent = '示例已经填好，点「开始共读」看效果。';
   };
+  $('btnSample2').onclick = function(){
+    $('src').value = SAMPLE2;
+    S.text = SAMPLE2;
+    S.genre = '古文·旧白话';
+    S.focus = ['古语白话（看不懂的词句）'];
+    buildChips();
+    updateMeta();
+    $('goHint').textContent = '这是鲁迅《秋夜》开头，已经把「古语白话」勾上了，点「开始共读」会先给译文。';
+  };
   $('btnAgain').onclick = function(){
     S.msgs = []; S.qs = []; S.qsErr = ''; S.sid = ''; S.text = ''; S.readText = '';
     $('src').value = '';
     saveCur();
     renderChat();
     updateMeta();
-    $('goHint').textContent = '会先给你一份贴着原文的细读，再陪你往下问。';
+    $('goHint').textContent = '会先给你一份贴着原文的细读，再陪你往下问。上面两组标签都可不选；勾「古语白话」会先给译文。';
   };
   $('btnCopyAll').onclick = function(){
     var t = S.msgs.map(function(m){
@@ -844,6 +1172,7 @@ var SAMPLE = '他把碗放下的时候，手在抖。她说了一句“凉了就
 
   $('vRead').onclick = function(){ switchView('read'); };
   $('vHist').onclick = function(){ switchView('hist'); };
+  $('vTrans').onclick = function(){ switchView('trans'); };
 
   /* 设置面板 */
   function openSet(){
