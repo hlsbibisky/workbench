@@ -470,7 +470,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261105c';
+const WB_THIS_VER='20261105d';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -2131,8 +2131,33 @@ function wbToggleLayout(){
   try{ wnudge(next==='mobile' ? '已切到手机版 · 所有页面按竖版显示' : '已切回电脑版'); }catch(e){}
 }
 /* iframe 每次加载完都要补一次：切 tab、点刷新、srcdoc 重载都覆盖到 */
-function wbFrameLoaded(f){ wbPatchFrame(f, wbLayoutMode()); }
+function wbFrameLoaded(f){
+  wbPatchFrame(f, wbLayoutMode());
+  try{ wbFixFrameAi(f); }catch(e){}
+}
+/* 智谱 URL 修正注入进 iframe（同源可写），塔罗/起卦/户型/总结/放映室等老页面零改动即可用 */
+function wbFixFrameAi(f){
+  var w, d;
+  try{ w = f.contentWindow; d = f.contentDocument || (w && w.document); }catch(e){ return; }
+  if(!w || !d || !d.head) return;
+  try{
+    if(!w.__wbAiFixDone){
+      var s = d.createElement('script');
+      s.textContent = WB_AI_FETCH_FIX;
+      d.head.appendChild(s);
+    }
+  }catch(e){}
+  try{
+    var inner = d.querySelectorAll('iframe');
+    for(var i=0;i<inner.length;i++) wbFixFrameAi(inner[i]);
+  }catch(e){}
+}
 wbApplyLayout(wbLayoutMode(), false);
+/* 等所有 script 块都执行完（补丁常量在后面那个块里）再补一次 */
+setTimeout(function(){
+  var fs = document.querySelectorAll('iframe');
+  for(var i=0;i<fs.length;i++){ try{ wbFixFrameAi(fs[i]); }catch(e){} }
+}, 0);
 
 </script>
 
@@ -2209,6 +2234,23 @@ function wbNormBase(b){
   }
   return b;
 }
+/* 2026-11-05 真机实测：智谱 WAF 只给「/chat/completions/」(带尾斜杠) 放行跨域预检，
+   不带斜杠时浏览器连 POST 都发不出去，但 GET /models 那条路是通的 ——
+   于是旧版「测试」报通了、共读/翻译却全废。这里统一修正地址。 */
+function wbAiChatUrl(base){
+  var b = String(base || '').replace(/\/+$/, '');
+  var u = b + '/chat/completions';
+  return /open\.bigmodel\.cn/i.test(b) ? u + '/' : u;
+}
+/* 注入进每个 iframe：老页面（塔罗/起卦/户型/总结/放映室…）不用逐个改也能用智谱 */
+var WB_AI_FETCH_FIX = [
+  "(function(){try{",
+  "var of=window.fetch;if(typeof of!=='function'||window.__wbAiFixDone)return;window.__wbAiFixDone=1;",
+  "window.fetch=function(a,b){try{var u=(typeof a==='string')?a:(a&&a.url);",
+  "if(typeof u==='string'&&/open\\.bigmodel\\.cn\\/api\\/paas\\/v4\\/chat\\/completions$/i.test(u)){",
+  "if(typeof a==='string')a=u+'/';else if(a&&a.url){try{a=new Request(u+'/',a);}catch(e){}}",
+  "}}catch(e){}return of.call(window,a,b);};}catch(e){}})();"
+].join('');
 function wbFetchT(url, opt, ms){
   opt = opt || {};
   var ctrl = ('AbortController' in window) ? new AbortController() : null;
@@ -2257,47 +2299,38 @@ function wbAiProbe(kind){
   wbAiMsg(el, '正在测试连接…');
 
   var auth = { 'Authorization':'Bearer ' + key };
-  wbFetchT(base + '/models', { headers: auth }, 18000).then(function(r1){
-    if(r1.ok){
-      var ids = [];
-      try{ ids = (JSON.parse(r1.txt).data || []).map(function(x){ return x && x.id; }).filter(Boolean); }catch(e){}
-      if(!ids.length){ wbAiMsg(el, '通了：密钥有效（接口没返回模型列表，没法核对模型名）。' + fixNote, 'ok'); return; }
-      var lower = ids.map(function(x){ return String(x).toLowerCase(); });
-      var hit = lower.indexOf(String(model).toLowerCase()) >= 0;
-      wbAiMsg(el, hit
-        ? '通了：密钥有效，' + model + ' 可用。' + fixNote
-        : '密钥有效，但这个接口的模型列表里没有「' + model + '」。可选：' + ids.slice(0,8).join('、') + fixNote,
-        hit ? 'ok' : 'warn');
+  var body = JSON.stringify({ model:model, temperature:0, messages:[{ role:'user', content:'只回一个字：好' }] });
+  /* 主验证 = 真发一条对话，和共读/翻译走完全相同的路。
+     以前只查 GET /models，那条路通不代表 POST 能用，所以会出现「测试通过、功能全废」。 */
+  wbFetchT(wbAiChatUrl(base), {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+    body: body
+  }, 60000).then(function(r){
+    if(r.ok){
+      var got = '';
+      try{ var j = JSON.parse(r.txt), c = j.choices && j.choices[0]; got = (c && c.message && (c.message.content || '')) || ''; }catch(e){}
+      wbAiMsg(el, '通了：真发出去一句话并收到回复' + (got ? '（回了「' + String(got).trim().slice(0,12) + '」）' : '')
+        + '，共读 / 翻译 / 解读都能用。' + fixNote, 'ok');
       return;
     }
-    var m1 = wbErrMsg(r1);
-    if(r1.status === 401 || r1.status === 403){
-      wbAiMsg(el, '密钥被拒（HTTP ' + r1.status + '）：' + m1 + fixNote, 'bad'); return;
+    if(r.status === 0){
+      wbAiMsg(el, '真实请求被浏览器拦下：' + wbErrMsg(r)
+        + '。这个接口不允许网页直接 POST（跨域预检没过），换一家或走代理。' + fixNote, 'bad');
+      return;
     }
-    if(r1.status === 404 || r1.status === 405 || r1.status === 501 || r1.status === 0){
-      /* 该厂商没有 /models 列表端点（智谱、部分国产网关都是这样）→ 直接发一条最小对话真试 */
-      wbAiMsg(el, '这个接口没有 /models 列表，改发一条最小对话验证…');
-      return wbFetchT(base + '/chat/completions', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
-        body: JSON.stringify({ model:model, temperature:0, messages:[{ role:'user', content:'只回一个字：好' }] })
-      }, 60000).then(function(r2){
-        if(r2.ok){
-          var got = '';
-          try{
-            var j = JSON.parse(r2.txt), c = j.choices && j.choices[0];
-            got = (c && c.message && (c.message.content || '')) || '';
-          }catch(e){}
-          wbAiMsg(el, '通了：密钥有效、' + model + ' 能正常回话' + (got ? '（回了「' + String(got).trim().slice(0,12) + '」）' : '（返回里没有正文，可能把额度花在思考上）') + '。' + fixNote, 'ok');
-          return;
-        }
-        var m2 = wbErrMsg(r2);
-        if(r2.status === 401 || r2.status === 403) wbAiMsg(el, '密钥被拒（HTTP ' + r2.status + '）：' + m2 + fixNote, 'bad');
-        else if(r2.status === 400 || r2.status === 422) wbAiMsg(el, '地址和密钥是通的，但模型名「' + model + '」用不了：' + m2 + fixNote, 'warn');
-        else wbAiMsg(el, '测试失败：HTTP ' + r2.status + ' ' + m2 + fixNote, 'bad');
+    if(r.status === 401 || r.status === 403){
+      wbAiMsg(el, '密钥被拒（HTTP ' + r.status + '）：' + wbErrMsg(r) + fixNote, 'bad'); return;
+    }
+    if(r.status === 400 || r.status === 422){
+      return wbFetchT(base + '/models', { headers: auth }, 12000).then(function(rr){
+        var ids = [];
+        try{ ids = (JSON.parse(rr.txt).data || []).map(function(x){ return x && x.id; }).filter(Boolean); }catch(e){}
+        wbAiMsg(el, '地址和密钥是通的，但模型名「' + model + '」用不了：' + wbErrMsg(r)
+          + (ids.length ? '；可用：' + ids.slice(0,8).join('、') : '；去服务商控制台核对模型名') + fixNote, 'warn');
       });
     }
-    wbAiMsg(el, '测试失败：HTTP ' + r1.status + ' ' + m1 + fixNote, 'bad');
+    wbAiMsg(el, '测试失败：HTTP ' + r.status + ' ' + wbErrMsg(r) + fixNote, 'bad');
   }).catch(function(e){
     wbAiMsg(el, '测试出错：' + String((e && e.message) || e), 'bad');
   }).then(function(){
