@@ -312,6 +312,22 @@
   .wbaiacts{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
   .wbaiacts button{border:1px solid #ece5da;background:#fff;color:#3a3631;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit;}
   .wbaiacts .pri{background:#b8714e;border-color:#b8714e;color:#fff;}
+  /* 2026-11-04 合并测试按钮 + 预设厂商 */
+  .wbaipanel{max-width:468px;}
+  .wbaipre{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;}
+  .wbaipre span{font-size:11.5px;color:#a39a8d;}
+  .wbaipre button{border:1px solid #e8dccb;background:#fdf7f0;color:#b8714e;border-radius:8px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;transition:.14s;}
+  .wbaipre button:hover{background:#f6ead9;}
+  .wbaitestline{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .wbaitestline button{border:1px solid #e8dccb;background:#fff;color:#b8714e;border-radius:9px;padding:6px 15px;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .wbaitestline button:hover:not(:disabled){border-color:#b8714e;}
+  .wbaitestline button:disabled{opacity:.6;cursor:default;}
+  .wbaitestmsg{font-size:12px;color:#8a837a;line-height:1.65;flex:1;min-width:180px;word-break:break-word;}
+  .wbaitestmsg.ok{color:#3f9d6b;}
+  .wbaitestmsg.bad{color:#c0392b;}
+  .wbaitestmsg.warn{color:#b8860b;}
+  .wbaitestmsg b{font-weight:600;}
+  .wbaisame{margin:0 0 12px;}
   .wbnudge{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#fffdf8;color:#2c241b;border:1px solid #e2d7c6;box-shadow:0 8px 24px rgba(58,50,42,.16);font-size:13px;padding:9px 18px;border-radius:10px;z-index:300;opacity:0;transition:.2s;pointer-events:none;}
   .wbnudge.show{opacity:1;}
 </style>
@@ -391,7 +407,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261104d';
+const WB_THIS_VER='20261104e';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -1898,21 +1914,35 @@ wbUpdateSyncUI();
 <div class="wbaimask" id="wbAiMask" onclick="if(event.target===this)closeGlobalAi()">
   <div class="wbaipanel">
     <h3>AI 接口设置（全站统一）</h3>
-    <div class="sub">在这里填一次，工作台里所有页面的 AI 都跟着这一套走。密钥只存在这台电脑的浏览器里。</div>
+    <div class="sub">只填这一套，全站 AI 都跟着它走。密钥只存在这台设备的浏览器里，不会上云。</div>
     <fieldset>
-      <legend>文本模型 · 解卦 / 聊天解读 / 字幕总结</legend>
+      <legend>接口地址 · 密钥 · 模型</legend>
       <div class="wbaigrid">
         <label>接口地址</label><input id="waiBase" placeholder="https://api.deepseek.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <label>密钥</label><input id="waiKey" type="password" placeholder="sk-..." autocomplete="new-password">
         <label>模型</label><input id="waiModel" placeholder="deepseek-flash" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
+      <div class="wbaipre"><span>常用：</span>
+        <button type="button" data-base="https://api.deepseek.com" data-model="deepseek-flash">DeepSeek</button>
+        <button type="button" data-base="https://open.bigmodel.cn/api/paas/v4" data-model="glm-4-flash">智谱 GLM</button>
+        <button type="button" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-model="qwen-flash">阿里通义</button>
+      </div>
+      <div class="wbaitestline">
+        <button type="button" id="waiTest">测试连接</button>
+        <div class="wbaitestmsg" id="waiTestMsg">点一下，验证地址、密钥、模型能不能真的用。</div>
+      </div>
     </fieldset>
-    <fieldset>
-      <legend>看图模型 · 户型检测</legend>
+    <label class="wbaicheck wbaisame"><input type="checkbox" id="waiVlSame" checked> 看图模型（户型检测）也用上面这一套</label>
+    <fieldset id="waiVlBox" style="display:none">
+      <legend>看图模型 · 单独一套</legend>
       <div class="wbaigrid">
-        <label>接口地址</label><input id="waiVlBase" placeholder="https://api.deepseek.com">
-        <label>密钥</label><input id="waiVlKey" type="password" placeholder="留空就用上面那个密钥">
-        <label>模型</label><input id="waiVlModel" placeholder="deepseek-flash">
+        <label>接口地址</label><input id="waiVlBase" placeholder="https://open.bigmodel.cn/api/paas/v4" autocomplete="off" spellcheck="false">
+        <label>密钥</label><input id="waiVlKey" type="password" placeholder="留空就用上面那个密钥" autocomplete="new-password">
+        <label>模型</label><input id="waiVlModel" placeholder="glm-4v-flash" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="wbaitestline">
+        <button type="button" id="waiVlTest">测试看图模型</button>
+        <div class="wbaitestmsg" id="waiVlTestMsg">只测接口和密钥（看图能力要发图才验证）。</div>
       </div>
     </fieldset>
     <label class="wbaicheck"><input type="checkbox" id="waiForce" checked> 清掉放映室、音视频总结各自存的那份，让它们也跟着这里走</label>
@@ -1931,32 +1961,172 @@ function wnudge(t){
   n.classList.add('show');
   setTimeout(function(){ n.classList.remove('show'); }, 2200);
 }
+/* ===== 全站 AI 面板：一套配置 + 连接测试（2026-11-04 合并） =====
+   背景：以前文本 / 看图要各填一遍地址密钥模型，用户觉得重复；
+   而「测试」原来只在塔罗页，测法是 GET /models，智谱这类厂商没有该端点，
+   密钥明明是对的也报 404 失败。现在：面板里只填一套（看图默认跟随），
+   测试先试 /models，404/405 就自动改发一条最小对话真试一次。 */
+function wbAiMsg(el, txt, cls){
+  if(!el) return;
+  el.textContent = txt;
+  el.className = 'wbaitestmsg' + (cls ? ' ' + cls : '');
+}
+function wbNormBase(b){
+  b = (b || '').trim().replace(/\/+$/, '');
+  b = b.replace(/\/chat\/completions$/i, '');                 /* 有人把完整端点整条贴进来 */
+  if(/open\.bigmodel\.cn/i.test(b) && !/\/v4$/i.test(b)){      /* 智谱漏了 /v4 */
+    b = b.replace(/\/api\/paas.*$/i, '') + '/api/paas/v4';
+  }
+  return b;
+}
+function wbFetchT(url, opt, ms){
+  opt = opt || {};
+  var ctrl = ('AbortController' in window) ? new AbortController() : null;
+  var timer = null;
+  if(ctrl){ opt.signal = ctrl.signal; timer = setTimeout(function(){ ctrl.abort(); }, ms || 20000); }
+  return fetch(url, opt).then(function(r){
+    return r.text().then(function(txt){
+      if(timer) clearTimeout(timer);
+      return { ok:r.ok, status:r.status, txt:txt };
+    });
+  }).catch(function(e){
+    if(timer) clearTimeout(timer);
+    return { ok:false, status:0, txt:'', err:(e && e.name === 'AbortError') ? 'timeout' : String((e && e.message) || e) };
+  });
+}
+function wbErrMsg(r){
+  var m = '';
+  try{ var j = JSON.parse(r.txt); m = (j.error && j.error.message) || j.message || j.msg || ''; }catch(e){}
+  if(!m && r.txt && r.status !== 404){
+    var t = String(r.txt).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if(t && t.length <= 160) m = t;
+  }
+  if(!m && r.status === 0){
+    m = (r.err === 'timeout') ? '等太久没回应'
+      : (String(r.err||'').indexOf('fetch') >= 0 || String(r.err||'').indexOf('Network') >= 0)
+        ? '浏览器连不上（地址写错，或该接口不允许网页直接调用，或被网络拦了）'
+        : (r.err || '连不上');
+  }
+  return m || ('HTTP ' + r.status);
+}
+function wbAiProbe(kind){
+  var g = function(id){ return document.getElementById(id); };
+  var isVl = kind === 'vl';
+  var btn  = g(isVl ? 'waiVlTest' : 'waiTest');
+  var el   = g(isVl ? 'waiVlTestMsg' : 'waiTestMsg');
+  var rawBase  = g(isVl ? 'waiVlBase' : 'waiBase').value;
+  var key      = g(isVl ? 'waiVlKey' : 'waiKey').value.trim() || (isVl ? g('waiKey').value.trim() : '');
+  var model    = g(isVl ? 'waiVlModel' : 'waiModel').value.trim();
+  if(isVl && !g('waiVlKey').value.trim() && !key){ wbAiMsg(el, '还没填密钥（上面那套也没填）。', 'bad'); return; }
+  if(!model){ wbAiMsg(el, '还没填模型名。', 'bad'); return; }
+  if(!/^https?:\/\//i.test((rawBase||'').trim())){ wbAiMsg(el, '接口地址要写成网址，例如 https://api.deepseek.com', 'bad'); return; }
+  var base = wbNormBase(rawBase);
+  var fixNote = (base !== (rawBase||'').trim().replace(/\/+$/, '')) ? '（地址已自动修正为 ' + base + '，测通了记得点保存）' : '';
+  if(!key){ wbAiMsg(el, '还没填密钥。', 'bad'); return; }
+  btn.disabled = true;
+  wbAiMsg(el, '正在测试连接…');
+
+  var auth = { 'Authorization':'Bearer ' + key };
+  wbFetchT(base + '/models', { headers: auth }, 18000).then(function(r1){
+    if(r1.ok){
+      var ids = [];
+      try{ ids = (JSON.parse(r1.txt).data || []).map(function(x){ return x && x.id; }).filter(Boolean); }catch(e){}
+      if(!ids.length){ wbAiMsg(el, '通了：密钥有效（接口没返回模型列表，没法核对模型名）。' + fixNote, 'ok'); return; }
+      var lower = ids.map(function(x){ return String(x).toLowerCase(); });
+      var hit = lower.indexOf(String(model).toLowerCase()) >= 0;
+      wbAiMsg(el, hit
+        ? '通了：密钥有效，' + model + ' 可用。' + fixNote
+        : '密钥有效，但这个接口的模型列表里没有「' + model + '」。可选：' + ids.slice(0,8).join('、') + fixNote,
+        hit ? 'ok' : 'warn');
+      return;
+    }
+    var m1 = wbErrMsg(r1);
+    if(r1.status === 401 || r1.status === 403){
+      wbAiMsg(el, '密钥被拒（HTTP ' + r1.status + '）：' + m1 + fixNote, 'bad'); return;
+    }
+    if(r1.status === 404 || r1.status === 405 || r1.status === 501 || r1.status === 0){
+      /* 该厂商没有 /models 列表端点（智谱、部分国产网关都是这样）→ 直接发一条最小对话真试 */
+      wbAiMsg(el, '这个接口没有 /models 列表，改发一条最小对话验证…');
+      return wbFetchT(base + '/chat/completions', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+        body: JSON.stringify({ model:model, temperature:0, messages:[{ role:'user', content:'只回一个字：好' }] })
+      }, 60000).then(function(r2){
+        if(r2.ok){
+          var got = '';
+          try{
+            var j = JSON.parse(r2.txt), c = j.choices && j.choices[0];
+            got = (c && c.message && (c.message.content || '')) || '';
+          }catch(e){}
+          wbAiMsg(el, '通了：密钥有效、' + model + ' 能正常回话' + (got ? '（回了「' + String(got).trim().slice(0,12) + '」）' : '（返回里没有正文，可能把额度花在思考上）') + '。' + fixNote, 'ok');
+          return;
+        }
+        var m2 = wbErrMsg(r2);
+        if(r2.status === 401 || r2.status === 403) wbAiMsg(el, '密钥被拒（HTTP ' + r2.status + '）：' + m2 + fixNote, 'bad');
+        else if(r2.status === 400 || r2.status === 422) wbAiMsg(el, '地址和密钥是通的，但模型名「' + model + '」用不了：' + m2 + fixNote, 'warn');
+        else wbAiMsg(el, '测试失败：HTTP ' + r2.status + ' ' + m2 + fixNote, 'bad');
+      });
+    }
+    wbAiMsg(el, '测试失败：HTTP ' + r1.status + ' ' + m1 + fixNote, 'bad');
+  }).catch(function(e){
+    wbAiMsg(el, '测试出错：' + String((e && e.message) || e), 'bad');
+  }).then(function(){
+    btn.disabled = false;
+  });
+}
 function openGlobalAi(){
   var g = function(id){ return document.getElementById(id); };
   var ls = function(k,d){ try{ return localStorage.getItem(k) || d; }catch(e){ return d; } };
-  g('waiBase').value   = ls('ywApiBase','') || 'https://api.deepseek.com';
-  g('waiModel').value  = ls('ywApiModel','') || 'deepseek-flash';
-  g('waiKey').value    = ls('ywApiKey','');
-  g('waiVlBase').value = ls('ywVlBase','')  || 'https://api.deepseek.com';
-  g('waiVlModel').value= ls('ywVlModel','') || 'deepseek-flash';
-  g('waiVlKey').value  = ls('ywVlKey','');
+  var b  = ls('ywApiBase','')  || 'https://api.deepseek.com';
+  var m  = ls('ywApiModel','') || 'deepseek-flash';
+  var k  = ls('ywApiKey','');
+  var vb = ls('ywVlBase',''), vm = ls('ywVlModel',''), vk = ls('ywVlKey','');
+  /* 一看就懂：视觉三项跟文本完全一样（或只是历史遗留的默认值、或没填过）→ 视为「同一套」，收起不让人重复填 */
+  var same = (function(){
+    var vb0 = vb || '', vm0 = vm || '', vk0 = vk || '';
+    if(!vb0 && !vm0 && !vk0) return true;
+    if(vb0 === b && vm0 === m && vk0 === k) return true;
+    /* 老版本给视觉框预填的默认值（deepseek + deepseek-flash，密钥沿用文本）不算「用户特意分开配」 */
+    var baseDefault = (!vb0 || vb0 === 'https://api.deepseek.com');
+    var modelDefault = (!vm0 || vm0 === 'deepseek-flash' || vm0 === m);
+    var keyDefault  = (!vk0 || vk0 === k);
+    return baseDefault && modelDefault && keyDefault;
+  })();
+  g('waiBase').value  = b;
+  g('waiModel').value = m;
+  g('waiKey').value   = k;
+  g('waiVlBase').value  = same ? b : vb;
+  g('waiVlModel').value = same ? m : vm;
+  g('waiVlKey').value   = same ? k : vk;
+  g('waiVlSame').checked = same;
+  g('waiVlBox').style.display = same ? 'none' : 'block';
+  wbAiMsg(g('waiTestMsg'), '点一下，验证地址、密钥、模型能不能真的用。');
+  wbAiMsg(g('waiVlTestMsg'), '只测接口和密钥（看图能力要发图才验证）。');
   g('wbAiMask').classList.add('show');
 }
 function closeGlobalAi(){ document.getElementById('wbAiMask').classList.remove('show'); }
 function saveGlobalAi(){
   var g = function(id){ return document.getElementById(id); };
-  var b  = g('waiBase').value.trim()    || 'https://api.deepseek.com';
-  var m  = g('waiModel').value.trim()   || 'deepseek-flash';
+  var b  = wbNormBase(g('waiBase').value)    || 'https://api.deepseek.com';
+  var m  = g('waiModel').value.trim()        || 'deepseek-flash';
   var k  = g('waiKey').value.trim();
-  var vb = g('waiVlBase').value.trim()  || 'https://api.deepseek.com';
-  var vm = g('waiVlModel').value.trim() || 'deepseek-flash';
-  var vk = g('waiVlKey').value.trim() || k;
+  var same = g('waiVlSame').checked;
+  var vb, vm, vk;
+  if(same){ vb = b; vm = m; vk = k; }
+  else{
+    vb = wbNormBase(g('waiVlBase').value)  || b;
+    vm = g('waiVlModel').value.trim()      || m;
+    vk = g('waiVlKey').value.trim()        || k;
+  }
   /* 保存前把门（2026-11-04 事故：手机自动填充把网址塞进「模型」框 → 全站 AI 全部报 model 不支持） */
   var warn = [];
   if(!wbOkBase(b)){  warn.push('接口地址不像网址，已用 https://api.deepseek.com'); b = 'https://api.deepseek.com'; }
   if(!wbOkModel(m)){ warn.push('模型名「' + m.slice(0,20) + '」不合法（模型名里不会有 /），已用 deepseek-flash'); m = 'deepseek-flash'; }
-  if(!wbOkBase(vb)){ vb = 'https://api.deepseek.com'; }
-  if(!wbOkModel(vm)){ vm = 'deepseek-flash'; }
+  if(same){ vb = b; vm = m; vk = k; }
+  else{
+    if(!wbOkBase(vb))  vb = b;
+    if(!wbOkModel(vm)) vm = m;
+  }
   try{
     localStorage.setItem('ywApiBase', b);
     localStorage.setItem('ywApiModel', m);
@@ -1983,6 +2153,29 @@ function saveGlobalAi(){
   });
   wnudge(warn.length ? ('AI 设置已保存 · ' + warn.join('；')) : 'AI 设置已保存到全部页面');
 }
+/* 面板内交互绑定（脚本位于面板之后，元素已就绪） */
+(function(){
+  var g = function(id){ return document.getElementById(id); };
+  if(!g('waiTest')) return;
+  g('waiTest').onclick   = function(){ wbAiProbe('txt'); };
+  g('waiVlTest').onclick = function(){ wbAiProbe('vl'); };
+  g('waiVlSame').onchange = function(){
+    var on = g('waiVlSame').checked;
+    g('waiVlBox').style.display = on ? 'none' : 'block';
+    if(on){
+      g('waiVlBase').value  = g('waiBase').value;
+      g('waiVlModel').value = g('waiModel').value;
+      g('waiVlKey').value   = g('waiKey').value;
+    }
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('.wbaipre button'), function(btn){
+    btn.onclick = function(){
+      g('waiBase').value  = btn.getAttribute('data-base');
+      g('waiModel').value = btn.getAttribute('data-model');
+      wbAiMsg(g('waiTestMsg'), '已填入 ' + btn.textContent + ' 的地址和模型，密钥要自己贴。点「测试连接」验证。');
+    };
+  });
+})();
 </script>
 </body>
 </html>
