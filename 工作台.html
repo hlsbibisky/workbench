@@ -407,7 +407,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261104e';
+const WB_THIS_VER='20261104f';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -768,16 +768,18 @@ function wbIsBadAiCfg(k,v){
   return (k==='ywApiModel'||k==='ywVlModel') ? !wbOkModel(v) : !wbOkBase(v);
 }
 function wbHealAiCfg(){
+  /* 2026-11-04 用户立规：AI 配置出现脏值时「清空」而不是换回 DeepSeek ——
+     自作主张换默认值，会让用户每次打开面板都发现"上次的配置没了、又跳成 DeepSeek"。
+     清空后面板显示为空（没配置就是空），用户自己重填；运行请求仍有各页的兜底。 */
   try{
     var fixed=[];
     ['ywApiModel','ywVlModel','ywApiBase','ywVlBase'].forEach(function(k){
       var v=localStorage.getItem(k);
       if(v && wbIsBadAiCfg(k,v)){
-        var dva = (k.indexOf('Model')>=0) ? 'deepseek-flash' : 'https://api.deepseek.com';
-        localStorage.setItem(k, dva); fixed.push(k+'='+dva);
+        localStorage.removeItem(k); fixed.push(k);
       }
     });
-    if(fixed.length) console.warn('[wb] AI 配置脏值已自愈:', fixed);
+    if(fixed.length) console.warn('[wb] AI 配置脏值已清空（不再回填默认）:', fixed);
     return fixed;
   }catch(e){ return []; }
 }
@@ -1946,6 +1948,7 @@ wbUpdateSyncUI();
       </div>
     </fieldset>
     <label class="wbaicheck"><input type="checkbox" id="waiForce" checked> 清掉放映室、音视频总结各自存的那份，让它们也跟着这里走</label>
+    <div class="wbaitestmsg bad" id="waiSaveMsg" style="display:none"></div>
     <div class="wbaiacts">
       <button onclick="closeGlobalAi()">取消</button>
       <button class="pri" onclick="saveGlobalAi()">保存并应用到全部页面</button>
@@ -2077,21 +2080,15 @@ function wbAiProbe(kind){
 function openGlobalAi(){
   var g = function(id){ return document.getElementById(id); };
   var ls = function(k,d){ try{ return localStorage.getItem(k) || d; }catch(e){ return d; } };
-  var b  = ls('ywApiBase','')  || 'https://api.deepseek.com';
-  var m  = ls('ywApiModel','') || 'deepseek-flash';
-  var k  = ls('ywApiKey','');
+  /* 2026-11-04 用户立规：面板如实显示「上次保存的配置」；没配置就空着，
+     绝不自动回填 DeepSeek —— 否则用户每次打开都发现上次填的没了。 */
+  var b  = ls('ywApiBase',''),  m = ls('ywApiModel',''), k = ls('ywApiKey','');
   var vb = ls('ywVlBase',''), vm = ls('ywVlModel',''), vk = ls('ywVlKey','');
-  /* 一看就懂：视觉三项跟文本完全一样（或只是历史遗留的默认值、或没填过）→ 视为「同一套」，收起不让人重复填 */
-  var same = (function(){
-    var vb0 = vb || '', vm0 = vm || '', vk0 = vk || '';
-    if(!vb0 && !vm0 && !vk0) return true;
-    if(vb0 === b && vm0 === m && vk0 === k) return true;
-    /* 老版本给视觉框预填的默认值（deepseek + deepseek-flash，密钥沿用文本）不算「用户特意分开配」 */
-    var baseDefault = (!vb0 || vb0 === 'https://api.deepseek.com');
-    var modelDefault = (!vm0 || vm0 === 'deepseek-flash' || vm0 === m);
-    var keyDefault  = (!vk0 || vk0 === k);
-    return baseDefault && modelDefault && keyDefault;
-  })();
+  /* 看图默认与上面同一套（勾选、收起）。只有用户真的给看图单独配过
+     （base 或 model 是一个跟文本不同、也不是历史默认值的独立配置）才展开。 */
+  var distinct = (vb && vb !== b && vb !== 'https://api.deepseek.com')
+              || (vm && vm !== m && vm !== 'deepseek-flash');
+  var same = !distinct;
   g('waiBase').value  = b;
   g('waiModel').value = m;
   g('waiKey').value   = k;
@@ -2100,32 +2097,48 @@ function openGlobalAi(){
   g('waiVlKey').value   = same ? k : vk;
   g('waiVlSame').checked = same;
   g('waiVlBox').style.display = same ? 'none' : 'block';
-  wbAiMsg(g('waiTestMsg'), '点一下，验证地址、密钥、模型能不能真的用。');
+  var sm = g('waiSaveMsg');
+  if(sm) sm.style.display = 'none';
+  wbAiMsg(g('waiTestMsg'), b ? '改了什么就点「测试连接」验证一下，测通了记得保存。' : '点一下，验证地址、密钥、模型能不能真的用。');
   wbAiMsg(g('waiVlTestMsg'), '只测接口和密钥（看图能力要发图才验证）。');
   g('wbAiMask').classList.add('show');
 }
 function closeGlobalAi(){ document.getElementById('wbAiMask').classList.remove('show'); }
+function wbAiSaveErr(msg){
+  var el = document.getElementById('waiSaveMsg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
 function saveGlobalAi(){
   var g = function(id){ return document.getElementById(id); };
-  var b  = wbNormBase(g('waiBase').value)    || 'https://api.deepseek.com';
-  var m  = g('waiModel').value.trim()        || 'deepseek-flash';
+  var b  = wbNormBase(g('waiBase').value);
+  var m  = g('waiModel').value.trim();
   var k  = g('waiKey').value.trim();
   var same = g('waiVlSame').checked;
   var vb, vm, vk;
   if(same){ vb = b; vm = m; vk = k; }
   else{
-    vb = wbNormBase(g('waiVlBase').value)  || b;
-    vm = g('waiVlModel').value.trim()      || m;
-    vk = g('waiVlKey').value.trim()        || k;
+    vb = wbNormBase(g('waiVlBase').value);
+    vm = g('waiVlModel').value.trim();
+    vk = g('waiVlKey').value.trim() || k;
   }
-  /* 保存前把门（2026-11-04 事故：手机自动填充把网址塞进「模型」框 → 全站 AI 全部报 model 不支持） */
-  var warn = [];
-  if(!wbOkBase(b)){  warn.push('接口地址不像网址，已用 https://api.deepseek.com'); b = 'https://api.deepseek.com'; }
-  if(!wbOkModel(m)){ warn.push('模型名「' + m.slice(0,20) + '」不合法（模型名里不会有 /），已用 deepseek-flash'); m = 'deepseek-flash'; }
-  if(same){ vb = b; vm = m; vk = k; }
-  else{
-    if(!wbOkBase(vb))  vb = b;
-    if(!wbOkModel(vm)) vm = m;
+  /* 2026-11-04 用户立规：缺什么就明说、什么不像话就拦下，绝不静默换成 DeepSeek。
+     自动填充把网址塞进模型框的事故靠「拦截 + 说清楚」防住，而不是替用户做主。 */
+  var miss = [];
+  if(!b) miss.push('接口地址');
+  if(!m) miss.push('模型');
+  if(!k) miss.push('密钥');
+  if(miss.length){ wbAiSaveErr('还差：' + miss.join('、') + '。填齐了再保存（留空的话所有 AI 功能都用不了）。'); return; }
+  if(!wbOkBase(b)){ wbAiSaveErr('接口地址「' + b.slice(0,40) + '」不像网址。要写成 https://… 开头的完整地址（智谱是 https://open.bigmodel.cn/api/paas/v4）。'); return; }
+  if(!wbOkModel(m)){ wbAiSaveErr('模型名「' + m.slice(0,24) + '」不合法：模型名里不会有 /。按你接口控制台里写的名字填。'); return; }
+  if(!same){
+    var miss2 = [];
+    if(!vb) miss2.push('看图接口地址');
+    if(!vm) miss2.push('看图模型');
+    if(miss2.length){ wbAiSaveErr('看图模型单独配置还差：' + miss2.join('、') + '。不想单独配就勾上「也用上面这一套」。'); return; }
+    if(!wbOkBase(vb)){ wbAiSaveErr('看图接口地址「' + vb.slice(0,40) + '」不像网址。'); return; }
+    if(!wbOkModel(vm)){ wbAiSaveErr('看图模型名「' + vm.slice(0,24) + '」不合法（模型名里不会有 /）。'); return; }
   }
   try{
     localStorage.setItem('ywApiBase', b);
@@ -2151,7 +2164,7 @@ function saveGlobalAi(){
       else if(f.getAttribute('src')){ f.src = f.getAttribute('src'); }
     }catch(e){}
   });
-  wnudge(warn.length ? ('AI 设置已保存 · ' + warn.join('；')) : 'AI 设置已保存到全部页面');
+  wnudge('AI 设置已保存（下次打开还是这一套）');
 }
 /* 面板内交互绑定（脚本位于面板之后，元素已就绪） */
 (function(){
