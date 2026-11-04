@@ -328,6 +328,10 @@
   .wbaitestmsg.warn{color:#b8860b;}
   .wbaitestmsg b{font-weight:600;}
   .wbaisame{margin:0 0 12px;}
+  /* 2026-11-04 发现用户把智谱填在了「看图模型」栏 → 主位还是 DeepSeek。给个一键挪上来的提示行 */
+  .wbaiup{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:7px 11px;border:1px dashed #dfc69c;border-radius:9px;background:#fdf6ec;font-size:12px;color:#8a6d4a;line-height:1.6;}
+  .wbaiup button{border:1px solid #d9b98c;background:#fff;color:#b8714e;border-radius:8px;padding:3px 11px;font-size:11.5px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .wbaiup button:hover{background:#f6ead9;}
   .wbnudge{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#fffdf8;color:#2c241b;border:1px solid #e2d7c6;box-shadow:0 8px 24px rgba(58,50,42,.16);font-size:13px;padding:9px 18px;border-radius:10px;z-index:300;opacity:0;transition:.2s;pointer-events:none;}
   .wbnudge.show{opacity:1;}
 </style>
@@ -407,7 +411,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261104f';
+const WB_THIS_VER='20261104g';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -1929,6 +1933,10 @@ wbUpdateSyncUI();
         <button type="button" data-base="https://open.bigmodel.cn/api/paas/v4" data-model="glm-4-flash">智谱 GLM</button>
         <button type="button" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-model="qwen-flash">阿里通义</button>
       </div>
+      <div class="wbaiup" id="wbAiLift" style="display:none">
+        <span id="wbAiLiftTxt"></span>
+        <button type="button" id="wbAiLiftBtn">挪上来</button>
+      </div>
       <div class="wbaitestline">
         <button type="button" id="waiTest">测试连接</button>
         <div class="wbaitestmsg" id="waiTestMsg">点一下，验证地址、密钥、模型能不能真的用。</div>
@@ -2097,6 +2105,20 @@ function openGlobalAi(){
   g('waiVlKey').value   = same ? k : vk;
   g('waiVlSame').checked = same;
   g('waiVlBox').style.display = same ? 'none' : 'block';
+  /* 用户把有效配置填在了「看图模型」栏、主位还是空/DeepSeek 旧配置（2026-11-04 真实场景）：
+     给一个「挪上来」的提示，一步把整套搬到主位，不用手动抄三遍。 */
+  var lift = g('wbAiLift');
+  var hasVlCfg = !!(vk && vb && vm);
+  var mainIsOldDefault = (!b || b === 'https://api.deepseek.com') && (!m || m === 'deepseek-flash');
+  var suggest = distinct && hasVlCfg && (mainIsOldDefault || !k);
+  if(lift){
+    if(suggest){
+      g('wbAiLiftTxt').textContent = '看图那一栏存着一套 ' + (vm || '') + ' 的配置，上面主位还是旧的。要统一用它吗？';
+      lift.style.display = 'flex';
+    }else{
+      lift.style.display = 'none';
+    }
+  }
   var sm = g('waiSaveMsg');
   if(sm) sm.style.display = 'none';
   wbAiMsg(g('waiTestMsg'), b ? '改了什么就点「测试连接」验证一下，测通了记得保存。' : '点一下，验证地址、密钥、模型能不能真的用。');
@@ -2188,6 +2210,24 @@ function saveGlobalAi(){
       wbAiMsg(g('waiTestMsg'), '已填入 ' + btn.textContent + ' 的地址和模型，密钥要自己贴。点「测试连接」验证。');
     };
   });
+  var liftBtn = g('wbAiLiftBtn');
+  if(liftBtn){
+    liftBtn.onclick = function(){
+      var nb = wbNormBase(g('waiVlBase').value);
+      g('waiBase').value  = nb || g('waiVlBase').value;
+      g('waiModel').value = g('waiVlModel').value;
+      g('waiKey').value   = g('waiVlKey').value;
+      var s = g('waiVlSame');
+      s.checked = true;
+      g('waiVlBox').style.display = 'none';
+      g('waiVlBase').value  = nb;
+      g('waiVlModel').value = g('waiModel').value;
+      g('waiVlKey').value   = g('waiKey').value;
+      var lp = g('wbAiLift');
+      if(lp) lp.style.display = 'none';
+      wbAiMsg(g('waiTestMsg'), '已把看图那一栏的配置挪到主位（地址顺手修正成 ' + (nb || '?') + '）。点「测试连接」验证，通了就保存。');
+    };
+  }
 })();
 </script>
 </body>
