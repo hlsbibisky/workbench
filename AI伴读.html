@@ -363,6 +363,15 @@ var BASE_RE  = /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[^\s]*)?$/i;
 function okModel(v){ v = (v||'').trim(); return MODEL_RE.test(v) && v.indexOf('/') < 0; }
 function okBase(v){ v = (v||'').trim(); return BASE_RE.test(v); }
 
+/* 2026-11-05 实测：智谱 WAF 只给「/chat/completions/」(带尾斜杠) 放行跨域预检，
+   不带斜杠时浏览器连 POST 都发不出去（TypeError: Failed to fetch）。
+   GET /models 那条路是通的，所以旧「测试」会骗人：测过了，共读/翻译却全废。 */
+function aiChatUrl(base){
+  var b = String(base || '').replace(/\/+$/, '');
+  var u = b + '/chat/completions';
+  return /open\.bigmodel\.cn/i.test(b) ? u + '/' : u;
+}
+
 function readCfg(){
   var notes = [];
   var inp = function(id){ var n = $(id); return n ? (n.value||'').trim() : ''; };
@@ -401,7 +410,7 @@ async function callAI(messages, cfgIn, temp){
   var ctrl = ('AbortController' in window) ? new AbortController() : null;
   var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 120000) : null;
   try{
-    var r = await fetch(cfg.base + '/chat/completions', {
+    var r = await fetch(aiChatUrl(cfg.base), {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + cfg.key },
       body: JSON.stringify({ model: cfg.model, temperature: (temp == null ? 0.72 : temp), messages: messages }),
@@ -419,7 +428,8 @@ async function callAI(messages, cfgIn, temp){
   }catch(e){
     var m = (e && e.name === 'AbortError') ? '等了 120 秒没回应，再试一次'
       : String((e && e.message) || e);
-    if(m.indexOf('Failed to fetch') >= 0) m = '连不上接口 ' + cfg.base + '——检查网络';
+    if(m.indexOf('Failed to fetch') >= 0) m = '浏览器没能把请求送出去（' + cfg.base
+      + '）——多半是这个接口不允许网页直接调用（跨域被拦），或网络被挡。点右上「⚙ 接口」用「测试」看具体原因。';
     throw new Error(m);
   }finally{
     if(timer) clearTimeout(timer);
@@ -1200,30 +1210,35 @@ var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣�
     updateMeta();
   };
 
+  /* 「测试」必须和共读/翻译走同一条路：真发一句 POST 到 /chat/completions。
+     以前测 GET /models，那条路能通、但真实 POST 被跨域拦 → 测试通过功能全废。 */
   $('btnTest').onclick = async function(){
     var btn = this;
-    var b = $('sBase').value.trim() || 'https://api.deepseek.com';
-    var m = $('sModel').value.trim() || 'deepseek-flash';
-    var k = $('sKey').value.trim() || lsGet('ywApiKey','');
-    $('setRes').textContent = '正在测试…';
+    var saved = readCfg();
+    var b = $('sBase').value.trim()  || saved.base;
+    var m = $('sModel').value.trim() || saved.model;
+    var k = $('sKey').value.trim()   || saved.key;
+    if(!k){ $('setRes').innerHTML = '<span style="color:var(--red)">还没填密钥。</span>'; return; }
+    $('setRes').textContent = '正在发一条真实对话请求…';
     btn.disabled = true;
     try{
-      var r = await fetch(b.replace(/\/+$/,'') + '/models', {
-        headers: { 'Authorization': 'Bearer ' + k }
+      var r = await fetch(aiChatUrl(b), {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer ' + k},
+        body: JSON.stringify({ model:m, temperature:0, messages:[{role:'user',content:'只回一个字：好'}] })
       });
       var j = await r.json().catch(function(){ return {}; });
       if(!r.ok){
-        $('setRes').innerHTML = '<span style="color:var(--red)">失败：' + esc(apiErr(r.status, j)) + '</span>';
+        $('setRes').innerHTML = '<span style="color:var(--red)">真实请求失败：' + esc(apiErr(r.status, j))
+          + '（本次用的是 ' + esc(m) + '）</span>';
       }else{
-        var names = (j && j.data) ? j.data.map(function(x){ return x.id; }) : [];
-        var has = names.indexOf(m) >= 0;
-        $('setRes').innerHTML = '<span style="color:var(--green)">密钥有效</span>'
-          + (names.length ? '<br>可用模型：' + esc(names.slice(0,8).join(' / ')) + (names.length>8?' …':'') : '')
-          + (names.length ? '<br>' + (has ? '<span style="color:var(--green)">当前模型「' + esc(m) + '」在列表里</span>'
-            : '<span style="color:var(--red)">但「' + esc(m) + '」不在列表里</span>') : '');
+        $('setRes').innerHTML = '<span style="color:var(--green)">通了：' + esc(m)
+          + ' 真的回话了，共读 / 翻译都能用。</span>';
       }
     }catch(e){
-      $('setRes').innerHTML = '<span style="color:var(--red)">连不上：' + esc(String(e.message||e)) + '</span>';
+      var msg = String((e && e.message) || e);
+      if(msg.indexOf('Failed to fetch') >= 0) msg = '浏览器拦下了这次请求（跨域预检没过）——这个地址不能从网页直连';
+      $('setRes').innerHTML = '<span style="color:var(--red)">请求没发出去：' + esc(msg) + '</span>';
     }finally{
       btn.disabled = false;
     }
