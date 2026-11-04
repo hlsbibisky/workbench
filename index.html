@@ -122,7 +122,7 @@ try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.c
   .wbsync-state.off{ color:#a99c8c; }
   .wb-icon-btn{ font-family:inherit; font-size:12.5px; font-weight:500; color:var(--accent); background:#fff;
     border:1px solid var(--line); border-radius:9px; padding:6px 12px; cursor:pointer;
-    display:inline-flex; align-items:center; gap:4px; transition:.14s; }
+    display:inline-flex; align-items:center; gap:4px; transition:.14s; white-space:nowrap; }
   .wb-icon-btn:hover{ background:var(--mark); border-color:var(--accent); }
   .topright label.wb-icon-btn input{ display:none; }
   .topright .clock{ font-variant-numeric:tabular-nums; color:var(--ink);
@@ -392,6 +392,24 @@ try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.c
   html.wb-mobile .wbaimask{ padding:20px 12px; }
   html.wb-mobile .wbaipanel{ padding:16px 14px; }
   html.wb-mobile .wbLayoutBtn{ border-color:var(--accent) !important; background:var(--mark) !important; }
+
+  /* === ⛶ 放大：外壳让位，当前子页独占整个窗口，长文/长回复少滚动（2026-11-05） === */
+  html.wb-zoom .sidebar{ display:none !important; }
+  html.wb-zoom .app > .main{ flex:1 1 auto !important; width:100% !important; min-width:0 !important; }
+  /* 顶栏压成一条 34px 的窄条，只留「还原」键 —— 不遮内容、任何页面都能退出 */
+  html.wb-zoom .topbar{
+    height:34px !important; flex:0 0 34px !important; min-height:0 !important;
+    padding:0 12px !important; position:static !important;
+    border-bottom:1px solid var(--line) !important; background:var(--card) !important;
+    backdrop-filter:none !important; justify-content:flex-end !important;
+  }
+  html.wb-zoom .topbar > *:not(.topright){ display:none !important; }
+  html.wb-zoom .topright{ gap:0 !important; }
+  html.wb-zoom .topright > *:not(#wbZoomBtn){ display:none !important; }
+  html.wb-zoom .content{ padding:0 !important; max-width:none !important; margin:0 !important; width:100% !important; }
+  html.wb-zoom .modhead{ display:none !important; }
+  html.wb-zoom .modbody{ margin-top:0 !important; }
+  html.wb-zoom .framebox{ border:0 !important; border-radius:0 !important; box-shadow:none !important; }
 </style>
 <script src="supabase-js.min.js" onerror="wbLoadSupaFallback()"></script>
 <script>
@@ -448,6 +466,7 @@ function wbLoadSupaFallback(){
         <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地；若已连接云同步则同时上传" data-page-node-id="D5xBf3F2QYLUQaFOSbLuhD"><span class="icn" data-page-node-id="rTLCCSFLtdtaJFWC7TKf94">💾</span><span class="lbl" data-page-node-id="q9g6j7HqH0bT6kL46mMXJl"> 保存</span></button>
         <button class="wb-icon-btn" onclick="openGlobalAi()" title="全站统一的 AI 接口设置（端口 / 模型 / 密钥）"><span class="icn">🤖</span><span class="lbl"> AI</span></button>
         <button class="wb-icon-btn wbLayoutBtn" id="wbLayoutBtn" onclick="wbToggleLayout()" title="切换电脑版 / 手机版显示（所有页面一起变）"><span class="icn">🖥</span><span class="lbl"> 电脑版</span></button>
+        <button class="wb-icon-btn" id="wbZoomBtn" onclick="wbToggleZoom()" title="把当前页面撑满窗口，长文少滚动；再点一次还原"><span class="icn">⛶</span><span class="lbl"> 放大</span></button>
         <span class="wbsync-state off" id="wbSyncState" title="云同步状态：未连接 / 已同步时间" data-page-node-id="GjD5HgrrCOOkgTfFVgC4IU">未连接</span>
         <span class="hi" id="hi" data-page-node-id="rxixCs1sSKfRFMfe9EE8EW"></span>
         <span id="today" data-page-node-id="NF9w1IGUSzEetvpt1feShr"></span>
@@ -470,7 +489,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261105d';
+const WB_THIS_VER='20261105e';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -1899,6 +1918,7 @@ window.addEventListener('message', e=>{
      旧版没有 wb-food-sync 分支，子页展开好的整包数据被静默丢弃，只能靠 6 秒指纹兜底，
      这是「美食记录改了半天传不上去」的关键一环。 */
   if(e.data.type==='wb-data-changed' || e.data.type==='wb-food-sync'){ wbSchedulePush(); }
+  if(e.data.type==='wb-zoom-toggle'){ wbToggleZoom(); }
 });
 async function wbSilentReconnect(){
   wbCleanJunk();          /* 启动先自愈：清掉旧写法留下的 setItem 等污染条目，恢复 localStorage 写入能力 */
@@ -2130,6 +2150,33 @@ function wbToggleLayout(){
   wbApplyLayout(next, true);
   try{ wnudge(next==='mobile' ? '已切到手机版 · 所有页面按竖版显示' : '已切回电脑版'); }catch(e){}
 }
+
+/* ⛶ 放大：顶栏压成窄条、侧栏与模块标题让位，让 iframe 独占窗口；
+   iframe 内的 100vh 随之变大，子页内容区自动跟着长高，不用在小框里反复拉滚动条。 */
+var WB_ZOOM_KEY = 'WB_ZOOM';
+function wbZoomOn(){ try{ return localStorage.getItem(WB_ZOOM_KEY) === '1'; }catch(e){ return false; } }
+function wbApplyZoom(on){
+  var h = document.documentElement;
+  if(on){ h.classList.add('wb-zoom'); }
+  else{ h.classList.remove('wb-zoom'); }
+  var btn = document.getElementById('wbZoomBtn');
+  if(btn){
+    var ic = btn.querySelector('.icn'), lb = btn.querySelector('.lbl');
+    if(ic) ic.textContent = on ? '⤡' : '⛶';
+    if(lb) lb.textContent = on ? ' 还原' : ' 放大';
+    btn.title = on ? '还原工作台' : '把当前页面撑满窗口，长文少滚动；再点一次还原';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('iframe'), function(f){
+    try{ f.contentWindow.postMessage({type:'wb-zoom-state', on:on}, '*'); }catch(e){}
+  });
+}
+function wbToggleZoom(){
+  var on = !wbZoomOn();
+  try{ localStorage.setItem(WB_ZOOM_KEY, on ? '1' : '0'); }catch(e){}
+  wbApplyZoom(on);
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && wbZoomOn()) wbToggleZoom(); });
+wbApplyZoom(wbZoomOn());
 /* iframe 每次加载完都要补一次：切 tab、点刷新、srcdoc 重载都覆盖到 */
 function wbFrameLoaded(f){
   wbPatchFrame(f, wbLayoutMode());
