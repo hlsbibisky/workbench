@@ -37,7 +37,7 @@
     align-items:stretch;height:calc(100vh - 90px);}
   .pane{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;}
-  .pane-h{display:flex;align-items:center;gap:9px;padding:11px 15px 9px;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  .pane-h{display:flex;align-items:center;gap:9px;padding:9px 15px 8px;border-bottom:1px solid var(--line);flex:0 0 auto;}
   .pane-h .tt{font-size:13px;color:var(--accent);letter-spacing:1.4px;font-weight:600;}
   .pane-h .meta{font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums;}
   .pane-h .sp{flex:1;}
@@ -46,22 +46,22 @@
   #src,#tSrc{flex:1;min-height:120px;width:100%;border:0;outline:0;resize:none;background:transparent;
     padding:14px 16px;color:var(--ink);font-family:inherit;font-size:15px;line-height:2.05;letter-spacing:.02em;}
   #src::placeholder,#tSrc::placeholder{color:#b8b0a4;line-height:2;}
-  .opts{flex:0 0 auto;padding:10px 15px 12px;border-top:1px solid var(--line);background:#fdfbf7;}
+  .opts{flex:0 0 auto;padding:8px 15px 8px;border-top:1px solid var(--line);background:#fdfbf7;}
   .optrow{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
   .optrow .lb{font-size:11.5px;color:var(--sub);white-space:nowrap;padding-top:5px;min-width:62px;}
   .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
-  .go{width:calc(100% - 30px);margin:2px 15px 13px;border:1px solid var(--accent);background:var(--accent);
+  .go{width:calc(100% - 30px);margin:2px 15px 9px;border:1px solid var(--accent);background:var(--accent);
     color:#fff;border-radius:11px;padding:11px;font-size:14.5px;font-weight:600;cursor:pointer;
     font-family:inherit;transition:.15s;letter-spacing:.5px;}
   .go:hover{background:#a05f3d;}
   .go:disabled{background:#d8cec1;border-color:#d8cec1;cursor:not-allowed;}
-  .go2{width:calc(100% - 30px);margin:0 15px 12px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  .go2{width:calc(100% - 30px);margin:0 15px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);
     border-radius:11px;padding:9px;font-size:12.5px;cursor:pointer;font-family:inherit;transition:.15s;}
   .go2:hover{border-color:var(--accent);color:var(--accent);}
   .hint{font-size:11.5px;color:var(--sub);padding:0 15px 12px;line-height:1.7;}
 
   /* 右：对话 */
-  .chat{flex:1;min-height:0;overflow-y:auto;padding:14px 15px 6px;scroll-behavior:smooth;}
+  .chat{flex:1;min-height:0;overflow-y:auto;padding:12px 15px 6px;scroll-behavior:smooth;}
   .empty{color:var(--sub);font-size:13px;line-height:2;padding:6px 2px;}
   .empty b{color:var(--ink);}
   .empty ol{margin:8px 0 0;padding-left:20px;}
@@ -196,6 +196,7 @@
       <button class="chip on" id="vRead">共读</button>
       <button class="chip" id="vTrans">翻译</button>
       <button class="chip" id="vHist">历史</button>
+      <button class="chip mini" id="btnZoom" title="把这个页面撑满窗口，长文少滚动；再点一次还原">⛶ 放大</button>
       <button class="chip mini" id="btnSet">⚙ 接口</button>
     </div>
   </div>
@@ -634,6 +635,8 @@ function updateMeta(){
   $('goHint').textContent = S.text.length > 8000
     ? '这段有点长（' + cnLen(S.text) + ' 字），AI 可能读得粗。建议拆成片段，一段一段来。'
     : '会先给你一份贴着原文的细读，再陪你往下问。下面的标签可不选；勾「古语白话」会先给译文。';
+  /* 贴了内容又不算超长时，这句提示就没用了，收起来把高度让给原文框 */
+  $('goHint').style.display = (S.text && S.text.length < 8000) ? 'none' : '';
 }
 
 /* ================= 存储 ================= */
@@ -1187,6 +1190,28 @@ var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣�
     $('mask').classList.remove('on');
     $('setp').classList.remove('on');
   }
+  /* ⛶ 放大：让工作台外壳把整块地方让给这一页；单独打开时用浏览器全屏兜底 */
+  function wbZoomSync(){
+    var on = false;
+    try{ on = localStorage.getItem('WB_ZOOM') === '1'; }catch(e){}
+    $('btnZoom').textContent = on ? '⤡ 还原' : '⛶ 放大';
+  }
+  $('btnZoom').onclick = function(){
+    if(parent && parent !== window){
+      try{ parent.postMessage({type:'wb-zoom-toggle'}, '*'); }catch(e){}
+    }else{
+      try{
+        if(document.fullscreenElement) document.exitFullscreen();
+        else if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      }catch(e){}
+    }
+  };
+  window.addEventListener('message', function(e){
+    if(!e.data || e.data.type !== 'wb-zoom-state') return;
+    $('btnZoom').textContent = e.data.on ? '⤡ 还原' : '⛶ 放大';
+  });
+  wbZoomSync();
+
   $('btnSet').onclick = function(){
     if($('setp').classList.contains('on')) closeSet(); else openSet();
   };
