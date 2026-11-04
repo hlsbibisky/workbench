@@ -267,12 +267,11 @@
   <!-- 接口设置 -->
   <div class="card stage-box" id="stageSet">
     <div class="card-title">⚙ 接口设置</div>
-    <div class="card-note">和工作台右上角 🤖 AI 面板是<b>同一份配置</b>（存在本机、全站共用），这里只是快捷入口。</div>
+    <div class="card-note">和工作台右上角 🤖 AI 面板是<b>同一份配置</b>（存在本机、全站共用），这里只是快捷入口。<b>测试连接</b>已经搬到 🤖 AI 面板里了。</div>
     <div class="set-line">
       <input id="tBase" placeholder="接口地址" style="width:230px" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input id="tModel" placeholder="模型 deepseek-flash" style="width:170px" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input id="tKey" placeholder="密钥 sk-…" style="width:260px" type="password" autocomplete="new-password">
-      <button class="btn-ghost" style="padding:8px 16px" id="btnTestSet">测试</button>
       <button class="btn-ghost" style="padding:8px 20px" id="btnSaveSet">保存</button>
     </div>
     <div class="card-note" id="setMsg" style="margin-top:6px"></div>
@@ -795,27 +794,8 @@ $('btnAiSet').onclick = ()=>{
     $('stageSet').scrollIntoView({behavior:'smooth',block:'start'});
   }
 };
-$('btnTestSet').onclick = async ()=>{
-  const msg = $('setMsg');
-  const cfg = readCfg();
-  if(!cfg.key){ msg.style.color='#c0392b'; msg.textContent='还没填密钥。'; return; }
-  msg.style.color='#8a837a'; msg.textContent='正在测试连接…';
-  try{
-    const r = await fetch(cfg.base + '/models', {headers:{'Authorization':'Bearer '+cfg.key}});
-    const j = await r.json().catch(()=>({}));
-    if(!r.ok) throw ((j&&j.error&&j.error.message) || ('HTTP '+r.status));
-    const ids = ((j && j.data) || []).map(x=>x && x.id).filter(Boolean);
-    const hit = ids.indexOf(cfg.model) >= 0;
-    msg.style.color = hit ? '#3f9d6b' : '#b8860b';
-    msg.textContent = hit
-      ? '通了：密钥有效，模型 ' + cfg.model + ' 可用。'
-      : '密钥有效，但可用模型里没有「' + cfg.model + '」。可选：' + (ids.slice(0,8).join('、') || '（接口没返回列表）');
-  }catch(e){
-    let m = String((e&&e.message)||e);
-    if(m.indexOf('Failed to fetch') >= 0) m = '连不上接口 —— 检查网络或接口地址';
-    msg.style.color='#c0392b'; msg.textContent='测试失败：' + m;
-  }
-};
+/* 「测试连接」已合并到工作台右上角 🤖 AI 面板（全站统一测一次）；这里只保留保存。
+   原因：原来是 GET /models 探测，智谱这类厂商没有该端点，会把好密钥判成 404 失败。 */
 $('btnSaveSet').onclick = ()=>{
   const b = ($('tBase').value||'').trim()  || 'https://api.deepseek.com';
   const m = ($('tModel').value||'').trim() || 'deepseek-flash';
