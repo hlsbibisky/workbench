@@ -3,6 +3,11 @@
 <head data-page-node-id="Xhy0eUPWFpy9pwjDUqin5a">
 <meta charset="UTF-8" data-page-node-id="6JsZsO1DVhkJgnbEAXrkci">
 <title>工作台</title>
+<script>
+/* 电脑版 / 手机版：在 CSS 之前就打好标记，避免刷新时闪一下电脑版布局。
+   默认 pc（完全保持原样）；只有用户主动点顶栏按钮切到手机版才存成 mobile。 */
+try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.classList.add('wb-mobile'); }catch(e){}
+</script>
 <link rel="manifest" href="manifest.json" data-page-node-id="pHHJYsjDC9v5xLCYhC8CMc">
 <meta name="theme-color" content="#b8714e" data-page-node-id="g6r6WJQdNbjnfkRw3FjmrO">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="2lSgr679LIQh6t6ZAK4e2y">
@@ -334,6 +339,59 @@
   .wbaiup button:hover{background:#f6ead9;}
   .wbnudge{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#fffdf8;color:#2c241b;border:1px solid #e2d7c6;box-shadow:0 8px 24px rgba(58,50,42,.16);font-size:13px;padding:9px 18px;border-radius:10px;z-index:300;opacity:0;transition:.2s;pointer-events:none;}
   .wbnudge.show{opacity:1;}
+
+  /* ===== 手动「手机版」视图（2026-11-05）=====
+     默认完全不生效，电脑版保持原样。顶栏按钮切换 html.wb-mobile：
+     ① 外壳按窄屏渲染（抽屉侧栏 / 紧凑顶栏）；
+     ② 内容区限成手机宽度，iframe 真的变窄 → 子页自带的 @media 全部命中、自动竖版；
+     ③ 再对每个 iframe 注入一层通用竖版补丁，兜住没写响应式的页面。 */
+  html.wb-mobile .app{ flex-direction:column; }
+  html.wb-mobile .sidebar{
+    position:fixed; top:0; left:0; bottom:0; z-index:60; width:260px; height:100vh;
+    flex:0 0 auto; flex-direction:column; align-items:stretch; gap:6px; padding:14px 8px 18px;
+    border-right:1px solid var(--line); border-bottom:none; background:#fffdf9;
+    box-shadow:0 0 24px rgba(0,0,0,.06); overflow-y:auto; -webkit-overflow-scrolling:touch;
+    transform:translateX(-100%); transition:transform .28s ease;
+  }
+  html.wb-mobile body.menu-open .sidebar{ transform:translateX(0); }
+  html.wb-mobile body.menu-open .menu-mask{ display:block; }
+  html.wb-mobile .brand{ padding:0 6px 10px; border-bottom:1px solid var(--line); margin-bottom:8px; }
+  html.wb-mobile .brand-stack, html.wb-mobile .brand-tag, html.wb-mobile .brand-title{ font-size:17px; padding-bottom:2px; letter-spacing:1px; }
+  html.wb-mobile .brand .dot{ left:7px; top:25px; width:7px; height:7px; box-shadow:0 0 0 3px rgba(184,113,78,.14); }
+  html.wb-mobile .brand-en, html.wb-mobile .sidefoot, html.wb-mobile .navlabel{ display:none; }
+  html.wb-mobile .navlabel{ display:block; font-size:11px; padding:8px 10px 4px; color:var(--sub); }
+  html.wb-mobile #navCommon, html.wb-mobile #navOther{ display:flex; flex-direction:column; gap:2px; width:100%; }
+  html.wb-mobile .navitem{ width:100%; padding:10px 12px; font-size:14.5px; justify-content:flex-start; }
+  html.wb-mobile .navitem .navbadge{ position:static; margin-left:8px; }
+  html.wb-mobile .topbar{ padding:0 10px; height:44px; flex:0 0 44px; gap:8px; }
+  html.wb-mobile .crumb{ font-size:12px; letter-spacing:0; gap:4px; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  html.wb-mobile .topright{ gap:6px; }
+  html.wb-mobile .topright .wb-icon-btn{ padding:4px 8px; font-size:11.5px; border-radius:8px; }
+  html.wb-mobile .wb-icon-btn .lbl{ display:none; }
+  html.wb-mobile .wb-icon-btn .icn{ font-size:15px; line-height:1; }
+  html.wb-mobile #wbSaveBtn{ padding:5px 9px; font-size:12px; border-radius:8px; white-space:nowrap; }
+  html.wb-mobile #wbSaveBtn .icn{ font-size:15px; line-height:1; }
+  html.wb-mobile #wbSaveBtn .lbl{ display:none; }   /* 顶栏窄，只留图标，避免「保/存」折成两行 */
+  html.wb-mobile .wbsearch{ flex:0 1 116px; max-width:116px; min-width:80px; }
+  html.wb-mobile .wbsync-state, html.wb-mobile .topright .clock, html.wb-mobile .topright .hi, html.wb-mobile #today{ display:none; }
+  html.wb-mobile .wbmenu-btn{ display:inline-grid; place-items:center; flex:0 0 auto; width:34px; height:34px;
+    border:1px solid var(--line); background:#fff; border-radius:9px; cursor:pointer; color:var(--accent); padding:0; font-family:inherit; }
+  html.wb-mobile .wbmenu-btn svg{ width:18px; height:18px; }
+  html.wb-mobile .modtitle{ font-size:17px; letter-spacing:.5px; gap:8px; margin-bottom:10px; }
+  html.wb-mobile .modtitle small{ display:none; }
+  html.wb-mobile .modhead{ margin-bottom:12px; }
+  html.wb-mobile .subtab{ padding:7px 11px; font-size:12.5px; gap:5px; }
+  html.wb-mobile .subtabs{ gap:5px; }
+  html.wb-mobile .framebox{ border-radius:16px; box-shadow:0 6px 26px rgba(90,70,50,.10); }
+  /* 关键：把整块内容限成手机宽度并居中，iframe 随之变窄 */
+  html.wb-mobile .content{
+    width:100%; max-width:430px; margin-left:auto; margin-right:auto;
+    padding:12px 10px 30px;
+  }
+  html.wb-mobile .framebox iframe{ width:100%; flex:1; min-height:0; }
+  html.wb-mobile .wbaimask{ padding:20px 12px; }
+  html.wb-mobile .wbaipanel{ padding:16px 14px; }
+  html.wb-mobile .wbLayoutBtn{ border-color:var(--accent) !important; background:var(--mark) !important; }
 </style>
 <script src="supabase-js.min.js" onerror="wbLoadSupaFallback()"></script>
 <script>
@@ -389,6 +447,7 @@ function wbLoadSupaFallback(){
         <label class="wb-icon-btn" title="从 JSON 备份恢复全部数据" style="cursor:pointer" data-page-node-id="v58VDoubB0obEuEKlqzHEh"><span class="icn" data-page-node-id="i53SjLqQvuKDNRU8VD035h">⬆</span><span class="lbl" data-page-node-id="BEoG5PBrWOn2SC28rbACGE"> 导入</span><input type="file" accept="application/json" style="display:none" onchange="wbImport(this.files[0])" data-page-node-id="XY3v8oWUEhG1nRdRX9k93h"></label>
         <button id="wbSaveBtn" onclick="wbRequestSave()" title="把当前页面正在编辑的内容立即保存到本地；若已连接云同步则同时上传" data-page-node-id="D5xBf3F2QYLUQaFOSbLuhD"><span class="icn" data-page-node-id="rTLCCSFLtdtaJFWC7TKf94">💾</span><span class="lbl" data-page-node-id="q9g6j7HqH0bT6kL46mMXJl"> 保存</span></button>
         <button class="wb-icon-btn" onclick="openGlobalAi()" title="全站统一的 AI 接口设置（端口 / 模型 / 密钥）"><span class="icn">🤖</span><span class="lbl"> AI</span></button>
+        <button class="wb-icon-btn wbLayoutBtn" id="wbLayoutBtn" onclick="wbToggleLayout()" title="切换电脑版 / 手机版显示（所有页面一起变）"><span class="icn">🖥</span><span class="lbl"> 电脑版</span></button>
         <span class="wbsync-state off" id="wbSyncState" title="云同步状态：未连接 / 已同步时间" data-page-node-id="GjD5HgrrCOOkgTfFVgC4IU">未连接</span>
         <span class="hi" id="hi" data-page-node-id="rxixCs1sSKfRFMfe9EE8EW"></span>
         <span id="today" data-page-node-id="NF9w1IGUSzEetvpt1feShr"></span>
@@ -411,7 +470,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261104g';
+const WB_THIS_VER='20261105c';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -615,6 +674,9 @@ function selectSub(modKey, subId){
     const f = document.createElement('iframe'); f.title = s.name;
     f.allow = 'microphone; fullscreen; autoplay'; // 语音输入 + 放映室全屏 + 自动播放
     f.setAttribute('allowfullscreen','');
+    /* 手机版：新建 / 加载完 / 延迟都补一次（srcdoc 的 load 时机不稳，三重兜底） */
+    f.addEventListener('load', ()=>{ try{ wbFrameLoaded(f); }catch(e){} });
+    [80, 700].forEach(function(ms){ setTimeout(function(){ try{ wbFrameLoaded(f); }catch(e){} }, ms); });
     if(s.srcdoc){ f.srcdoc = s.srcdoc; } else { f.src = wbIframeSrc(s.src); }
     btn.onclick = ()=>{ if(s.srcdoc){ f.srcdoc = f.srcdoc; } else { f.src = f.src; } };
     bar.appendChild(btn);
@@ -1914,6 +1976,163 @@ window.addEventListener('beforeunload', function(){
 wbSilentReconnect();
 wbUpdateSyncUI();
 
+/* ===== 电脑版 / 手机版切换（2026-11-05）=====
+   电脑版：一行代码都不生效，完全保持原样。
+   手机版：① 外壳 html.wb-mobile 按窄屏渲染；② 内容区限成手机宽度，
+           iframe 真的变窄，子页自带的 @media 全部命中、自动竖版；
+           ③ 往每个 iframe 里注入下面这段补丁，兜住没写响应式的页面。
+   注入式的好处：不用改二十几个子页文件，切换不重载 iframe，正在填的内容不丢。 */
+const WB_LAYOUT_KEY = 'WB_LAYOUT';
+/* 手机版「式样库」：BASE = 整套手机版共用的设计语言，SKINS = 一页一套单独做的版式。
+   这不是把电脑版挤窄，而是按手机重新定字号、卡片、按钮、输入、间距。 */
+const WB_MOBILE_BASE = `
+html[data-wb-mobile="1"], html[data-wb-mobile="1"] body{max-width:100% !important; overflow-x:hidden !important;}
+html[data-wb-mobile="1"] body{font-size:15px !important; -webkit-text-size-adjust:100% !important;}
+html[data-wb-mobile="1"] .wrap,html[data-wb-mobile="1"] .page-wrap,html[data-wb-mobile="1"] .container,html[data-wb-mobile="1"] .app,html[data-wb-mobile="1"] .content,html[data-wb-mobile="1"] .main{
+  max-width:100% !important; min-width:0 !important; margin-left:0 !important; margin-right:0 !important;
+  padding-left:12px !important; padding-right:12px !important;
+}
+/* 卡片：手机版统一成轻阴影大圆角、上下堆叠 */
+html[data-wb-mobile="1"] .card,html[data-wb-mobile="1"] .pane,html[data-wb-mobile="1"] .panel,html[data-wb-mobile="1"] .cat,html[data-wb-mobile="1"] .stage-box{
+  border-radius:16px !important; padding:14px !important; margin-left:0 !important; margin-right:0 !important; margin-bottom:12px !important;
+  box-shadow:0 2px 10px rgba(90,70,50,.06) !important;
+}
+/* 拇指友好：按钮/标签/输入统一加大 */
+html[data-wb-mobile="1"] button,html[data-wb-mobile="1"] .btn,html[data-wb-mobile="1"] .mini,html[data-wb-mobile="1"] .subtab,html[data-wb-mobile="1"] .chip{
+  min-height:36px !important; font-size:14px !important;
+}
+html[data-wb-mobile="1"] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),html[data-wb-mobile="1"] textarea,html[data-wb-mobile="1"] select{
+  font-size:15px !important; min-height:42px !important; max-width:100% !important; min-width:0 !important;
+}
+html[data-wb-mobile="1"] .go,html[data-wb-mobile="1"] .go2,html[data-wb-mobile="1"] .btn.primary,html[data-wb-mobile="1"] .primary{
+  width:100% !important; margin-left:0 !important; margin-right:0 !important; min-height:46px !important;
+}
+/* 页面里与外壳重复的大标题收掉 */
+html[data-wb-mobile="1"] .top-title,html[data-wb-mobile="1"] .top-sub,html[data-wb-mobile="1"] .brand-en{display:none !important;}
+html[data-wb-mobile="1"] .chips,html[data-wb-mobile="1"] .tabs,html[data-wb-mobile="1"] .tagstrip,html[data-wb-mobile="1"] .pills,html[data-wb-mobile="1"] .subtabs{flex-wrap:wrap !important;}
+html[data-wb-mobile="1"] table{max-width:100% !important; font-size:12px !important;}
+html[data-wb-mobile="1"] img{max-width:100% !important; height:auto !important;}
+/* 还没单独做式样的页面：至少把长条表单竖起来，不留横向长框 */
+html[data-wb-mobile="1"] .set-line,html[data-wb-mobile="1"] .bar,html[data-wb-mobile="1"] .bar2,html[data-wb-mobile="1"] .tools,html[data-wb-mobile="1"] .optrow,html[data-wb-mobile="1"] .form-row,html[data-wb-mobile="1"] .pickerrow,html[data-wb-mobile="1"] .modal-btns,html[data-wb-mobile="1"] .hd,html[data-wb-mobile="1"] .mhead,html[data-wb-mobile="1"] .rec,html[data-wb-mobile="1"] .row,html[data-wb-mobile="1"] .entry,html[data-wb-mobile="1"] .item,html[data-wb-mobile="1"] .line,html[data-wb-mobile="1"] .tagrow{
+  flex-direction:column !important; align-items:stretch !important;
+}
+`;
+/* 一页一套：按 iframe 的文件名挑专属式样。往后每做完一页就在这里加一项。 */
+const WB_MOBILE_SKINS = {
+  '每日状态记录.html': `
+    html[data-wb-mobile="1"] .rec{flex-direction:column !important; gap:8px !important;}
+    html[data-wb-mobile="1"] .datecol{width:100% !important; flex:none !important; min-width:0 !important;}
+    html[data-wb-mobile="1"] .tagpick .tgroup{flex-direction:column !important; gap:4px !important;}
+    html[data-wb-mobile="1"] .pickerrow{gap:4px 10px !important;}
+  `,
+  '日期记录.html': `
+    html[data-wb-mobile="1"] .cal-grid{gap:3px !important;}
+    html[data-wb-mobile="1"] .cal-cell{min-height:52px !important; font-size:12px !important;}
+    html[data-wb-mobile="1"] .year-grid{grid-template-columns:repeat(2,1fr) !important;}
+    html[data-wb-mobile="1"] .cal-head{flex-wrap:wrap !important;}
+    html[data-wb-mobile="1"] .md-head{flex-wrap:wrap !important;}
+  `,
+  '历史检索.html': `
+    html[data-wb-mobile="1"] .overview{grid-template-columns:repeat(2,1fr) !important;}
+    html[data-wb-mobile="1"] .mood{grid-template-columns:1fr !important;}
+    html[data-wb-mobile="1"] .bar,html[data-wb-mobile="1"] .bar2{flex-direction:column !important; align-items:stretch !important;}
+    html[data-wb-mobile="1"] .rec{flex-direction:column !important;}
+    html[data-wb-mobile="1"] .rec .dc{width:100% !important; min-width:0 !important;}
+  `,
+  'AI伴读.html': `
+    html[data-wb-mobile="1"] .main{display:flex !important; flex-direction:column !important; height:auto !important;}
+    html[data-wb-mobile="1"] .pane{min-height:0 !important; height:auto !important;}
+    html[data-wb-mobile="1"] .optrow{flex-direction:column !important; gap:5px !important;}
+    html[data-wb-mobile="1"] .go,html[data-wb-mobile="1"] .go2{width:100% !important; margin:6px 0 10px !important;}
+    html[data-wb-mobile="1"] textarea#src{min-height:190px !important;}
+  `,
+  '今日安排.html': `
+    html[data-wb-mobile="1"] .grid2,html[data-wb-mobile="1"] .hgrid{grid-template-columns:1fr !important;}
+    html[data-wb-mobile="1"] .wrap{padding:0 12px 30px !important;}
+  `,
+  '周计划.html': `
+    html[data-wb-mobile="1"] .days{flex-wrap:wrap !important;}
+    html[data-wb-mobile="1"] .task{flex-wrap:wrap !important;}
+    html[data-wb-mobile="1"] .content{padding:12px !important;}
+  `,
+  '美食记录.html': `
+    html[data-wb-mobile="1"] .content{padding:12px !important;}
+    html[data-wb-mobile="1"] .topbar{height:auto !important; padding:8px 12px !important; flex-wrap:wrap !important;}
+  `,
+  '塔罗.html': `
+    html[data-wb-mobile="1"] .page-wrap{padding:12px 12px 60px !important;}
+    html[data-wb-mobile="1"] .deck-grid{grid-template-columns:repeat(2,1fr) !important;}
+    html[data-wb-mobile="1"] .set-line{flex-direction:column !important; align-items:stretch !important;}
+  `,
+  '八字记忆.html': `
+    html[data-wb-mobile="1"] .covergrid{grid-template-columns:1fr !important;}
+    html[data-wb-mobile="1"] .big{flex:1 1 100% !important;}
+    html[data-wb-mobile="1"] .hero-t{font-size:18px !important;}
+  `,
+  '放映室': `
+    html[data-wb-mobile="1"] .app{flex-direction:column !important; height:auto !important; min-height:0 !important;}
+    html[data-wb-mobile="1"] .main{padding:10px !important;}
+  `
+};
+function wbMobileCssFor(f){
+  var src = '', srcdoc = false;
+  try{ src = f.getAttribute('src') || ''; srcdoc = !!f.getAttribute('srcdoc'); }catch(e){}
+  var name = srcdoc ? '放映室' : decodeURIComponent(String(src).split('?')[0].split('#')[0].split('/').pop() || '');
+  return WB_MOBILE_BASE + '\n' + (WB_MOBILE_SKINS[name] || '');
+}
+function wbLayoutMode(){
+  try{ return localStorage.getItem(WB_LAYOUT_KEY)==='mobile' ? 'mobile' : 'pc'; }catch(e){ return 'pc'; }
+}
+function wbPatchFrame(f, mode){
+  var d;
+  try{ d = f && f.contentDocument; }catch(e){ return; }
+  if(!d || !d.documentElement || !d.head) return;
+  try{
+    if(mode==='mobile'){
+      d.documentElement.setAttribute('data-wb-mobile','1');
+      var st = d.getElementById('wbMobilePatch');
+      if(!st){ st = d.createElement('style'); st.id = 'wbMobilePatch'; d.head.appendChild(st); }
+      st.textContent = wbMobileCssFor(f);
+    }else{
+      d.documentElement.removeAttribute('data-wb-mobile');
+      var old = d.getElementById('wbMobilePatch');
+      if(old && old.parentNode) old.parentNode.removeChild(old);
+    }
+    /* 子页里再嵌 iframe（美食记录 SPA）也要一起变 */
+    var inner = d.querySelectorAll('iframe');
+    for(var i=0;i<inner.length;i++) wbPatchFrame(inner[i], mode);
+  }catch(e){}
+}
+function wbApplyLayout(mode, persist){
+  var mobile = (mode === 'mobile');
+  document.documentElement.classList.toggle('wb-mobile', mobile);
+  if(persist){ try{ localStorage.setItem(WB_LAYOUT_KEY, mobile ? 'mobile' : 'pc'); }catch(e){} }
+  var btn = document.getElementById('wbLayoutBtn');
+  if(btn){
+    var icn = btn.querySelector('.icn'), lbl = btn.querySelector('.lbl');
+    if(icn) icn.textContent = mobile ? '📱' : '🖥';
+    if(lbl) lbl.textContent = mobile ? ' 手机版' : ' 电脑版';
+    btn.title = mobile ? '当前：手机版（所有页面按竖版显示）· 点击切回电脑版'
+                       : '当前：电脑版 · 点击切到手机版（所有页面按竖版显示）';
+  }
+  var fs = document.querySelectorAll('iframe');
+  for(var i=0;i<fs.length;i++) wbPatchFrame(fs[i], mobile ? 'mobile' : 'pc');
+  /* srcdoc（放映室）与个别异步渲染的子页，load 事件不一定赶得上，补两次 */
+  [220, 1200].forEach(function(ms){
+    setTimeout(function(){
+      var fx = document.querySelectorAll('iframe');
+      for(var j=0;j<fx.length;j++) wbPatchFrame(fx[j], wbLayoutMode());
+    }, ms);
+  });
+}
+function wbToggleLayout(){
+  var next = wbLayoutMode()==='mobile' ? 'pc' : 'mobile';
+  wbApplyLayout(next, true);
+  try{ wnudge(next==='mobile' ? '已切到手机版 · 所有页面按竖版显示' : '已切回电脑版'); }catch(e){}
+}
+/* iframe 每次加载完都要补一次：切 tab、点刷新、srcdoc 重载都覆盖到 */
+function wbFrameLoaded(f){ wbPatchFrame(f, wbLayoutMode()); }
+wbApplyLayout(wbLayoutMode(), false);
 
 </script>
 
