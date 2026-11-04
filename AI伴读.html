@@ -213,7 +213,6 @@
         </div>
         <textarea id="src" placeholder="把想读透的那段文字贴进来。&#10;小说片段、书摘、影视台词、一句歌词、自己的日记都行。"></textarea>
         <div class="opts">
-          <div class="optrow"><span class="lb">这是<em class="opt">可不选</em></span><div class="chips" id="genreChips"></div></div>
           <div class="optrow"><span class="lb">我想弄明白<em class="opt">可不选·可多选</em></span><div class="chips" id="focusChips"></div></div>
         </div>
         <button class="go" id="btnGo">开始共读</button>
@@ -451,7 +450,8 @@ function needPlain(){
 }
 
 function firstPrompt(){
-  var g = S.genre ? '【体裁】' + S.genre : '【体裁】未注明';
+  /* 体裁标签已删除：不再向模型报「未注明」，让它自己读出来 */
+  var g = S.genre ? '【体裁】' + S.genre : '【体裁】自己判断这段文字属于哪种体裁，不必特意说出来';
   var f = S.focus.length ? '【读者最想弄明白的】' + S.focus.join('、') : '【读者最想弄明白的】未注明，请自己判断这段最值得看的地方';
   var plain = needPlain();
   var plainSec = plain
@@ -497,7 +497,6 @@ function buildMessages(){
 }
 
 /* ================= 状态 ================= */
-var GENRES = ['小说片段','散文随笔','书摘','影视台词','诗词歌词','日记或聊天','古文·旧白话','说不清'];
 var FOCUS = ['人物的动机','没说出口的话','情感暗流','写法与结构','和我自己的关系','我读不懂的地方','古语白话（看不懂的词句）'];
 
 var S = {
@@ -624,7 +623,7 @@ function updateMeta(){
   $('btnCopyAll').style.display = S.msgs.length ? 'block' : 'none';
   $('goHint').textContent = S.text.length > 8000
     ? '这段有点长（' + cnLen(S.text) + ' 字），AI 可能读得粗。建议拆成片段，一段一段来。'
-    : '会先给你一份贴着原文的细读，再陪你往下问。上面两组标签都可不选；勾「古语白话」会先给译文。';
+    : '会先给你一份贴着原文的细读，再陪你往下问。下面的标签可不选；勾「古语白话」会先给译文。';
 }
 
 /* ================= 存储 ================= */
@@ -1076,16 +1075,7 @@ function initTrans(){
 
 /* ================= 初始化 ================= */
 function buildChips(){
-  $('genreChips').innerHTML = GENRES.map(function(g){
-    return '<button class="chip mini' + (S.genre === g ? ' on' : '') + '" data-g="' + esc(g) + '">' + esc(g) + '</button>';
-  }).join('');
-  Array.prototype.forEach.call($('genreChips').querySelectorAll('.chip'), function(b){
-    b.onclick = function(){
-      S.genre = (S.genre === b.dataset.g) ? '' : b.dataset.g;
-      buildChips();
-    };
-  });
-
+  /* 2026-11-05 用户要求删掉「这是」体裁标签整行；体裁改由 AI 自己判断/示例按钮内部标注 */
   $('focusChips').innerHTML = FOCUS.map(function(f){
     return '<button class="chip mini' + (S.focus.indexOf(f) >= 0 ? ' on' : '') + '" data-f="' + esc(f) + '">' + esc(f) + '</button>';
   }).join('');
@@ -1154,7 +1144,7 @@ var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣�
     saveCur();
     renderChat();
     updateMeta();
-    $('goHint').textContent = '会先给你一份贴着原文的细读，再陪你往下问。上面两组标签都可不选；勾「古语白话」会先给译文。';
+    $('goHint').textContent = '会先给你一份贴着原文的细读，再陪你往下问。下面的标签可不选；勾「古语白话」会先给译文。';
   };
   $('btnCopyAll').onclick = function(){
     var t = S.msgs.map(function(m){
