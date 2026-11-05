@@ -2,11 +2,20 @@
 <html lang="zh-CN" data-page-node-id="h6gEJhZ2vGol0bGWMrrjBU">
 <head data-page-node-id="Xhy0eUPWFpy9pwjDUqin5a">
 <meta charset="UTF-8" data-page-node-id="6JsZsO1DVhkJgnbEAXrkci">
+<!-- ⚠ 必须有：没这条时手机浏览器按 980px 桌面宽度渲染（实测 innerWidth=980），
+     整页被缩成「缩小版电脑网页」，任何手机版式样都白做。 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>工作台</title>
 <script>
 /* 电脑版 / 手机版：在 CSS 之前就打好标记，避免刷新时闪一下电脑版布局。
    默认 pc（完全保持原样）；只有用户主动点顶栏按钮切到手机版才存成 mobile。 */
-try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.classList.add('wb-mobile'); }catch(e){}
+/* 手机浏览器第一次打开：直接给手机版（没存过才这样，用户手动选过的一律尊重） */
+try{
+  var _wbl = localStorage.getItem('WB_LAYOUT');
+  if(_wbl === 'mobile' || (!_wbl && window.matchMedia && matchMedia('(max-width:560px)').matches)){
+    document.documentElement.classList.add('wb-mobile');
+  }
+}catch(e){}
 </script>
 <link rel="manifest" href="manifest.json" data-page-node-id="pHHJYsjDC9v5xLCYhC8CMc">
 <meta name="theme-color" content="#b8714e" data-page-node-id="g6r6WJQdNbjnfkRw3FjmrO">
@@ -109,6 +118,16 @@ try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.c
   .crumb .sep{ color:var(--line); }
   .crumb .now{ color:var(--accent); font-weight:600; }
   .topright{ display:flex; align-items:center; gap:14px; font-size:13px; color:var(--sub); }
+  /* 1366 这类窄一点的电脑屏上，顶栏会被时间/问候语挤到折行（「工作台」竖排）→ 让面包屑省略、日期收起 */
+  .topbar{ overflow:hidden; }
+  .topbar > .topright{ flex:0 0 auto; }
+  .topbar .crumb, .topbar .topright, .topbar .topright > *{ white-space:nowrap; }
+  .topbar .crumb{ min-width:0; overflow:hidden; }
+  .topbar #wbSaveBtn{ white-space:nowrap; }
+  @media (max-width:1560px){
+    #today, .topright .hi{ display:none; }
+    .wbsync-state{ max-width:104px; overflow:hidden; text-overflow:ellipsis; }
+  }
   .topright .hi{ color:var(--ink); font-weight:600; }
   #wbSaveBtn{ font-family:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--accent);
 
@@ -363,35 +382,84 @@ try{ if(localStorage.getItem('WB_LAYOUT')==='mobile') document.documentElement.c
   html.wb-mobile #navCommon, html.wb-mobile #navOther{ display:flex; flex-direction:column; gap:2px; width:100%; }
   html.wb-mobile .navitem{ width:100%; padding:10px 12px; font-size:14.5px; justify-content:flex-start; }
   html.wb-mobile .navitem .navbadge{ position:static; margin-left:8px; }
-  html.wb-mobile .topbar{ padding:0 10px; height:44px; flex:0 0 44px; gap:8px; }
-  html.wb-mobile .crumb{ font-size:12px; letter-spacing:0; gap:4px; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  html.wb-mobile .topright{ gap:6px; }
-  html.wb-mobile .topright .wb-icon-btn{ padding:4px 8px; font-size:11.5px; border-radius:8px; }
+  /* 顶栏：做成真正的手机 App 条 —— ☰ + 当前页名 + 少量图标；导出/导入这类低频项收起来 */
+  html.wb-mobile .topbar{ padding:0 10px; height:52px; flex:0 0 52px; gap:8px;
+    background:rgba(255,253,249,.94); }
+  html.wb-mobile .crumb{ font-size:13.5px; letter-spacing:0; gap:6px; min-width:0; flex:1 1 auto;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* 「工作台 › 模块 › 子页」在手机上只留后两段，省出宽度给标题本身 */
+  html.wb-mobile .crumb > *:nth-child(1), html.wb-mobile .crumb > *:nth-child(2){ display:none; }
+  html.wb-mobile .crumb .now{ font-size:14.5px; }
+  html.wb-mobile .topright{ gap:5px; flex:0 0 auto; }
+  html.wb-mobile .topright .wb-icon-btn{ padding:0; width:34px; height:34px; justify-content:center; border-radius:10px; }
   html.wb-mobile .wb-icon-btn .lbl{ display:none; }
-  html.wb-mobile .wb-icon-btn .icn{ font-size:15px; line-height:1; }
-  html.wb-mobile #wbSaveBtn{ padding:5px 9px; font-size:12px; border-radius:8px; white-space:nowrap; }
-  html.wb-mobile #wbSaveBtn .icn{ font-size:15px; line-height:1; }
+  html.wb-mobile .wb-icon-btn .icn{ font-size:16px; line-height:1; }
+  html.wb-mobile #wbSaveBtn{ padding:0; width:34px; height:34px; justify-content:center; border-radius:10px; }
+  html.wb-mobile #wbSaveBtn .icn{ font-size:16px; line-height:1; }
   html.wb-mobile #wbSaveBtn .lbl{ display:none; }   /* 顶栏窄，只留图标，避免「保/存」折成两行 */
-  html.wb-mobile .wbsearch{ flex:0 1 116px; max-width:116px; min-width:80px; }
+  /* 导出 / 导入：手机上低频，先收起（电脑版照旧在顶栏） */
+  html.wb-mobile .topright .wb-icon-btn[onclick^="wbExport"],
+  html.wb-mobile .topright label.wb-icon-btn{ display:none; }
+  /* 搜索收成一个 🔍，点一下横向展开 */
+  html.wb-mobile .wbsearch{ flex:0 0 auto; width:34px; min-width:0; max-width:34px;
+    transition:width .22s ease, max-width .22s ease; }
+  html.wb-mobile .wbsearch:focus-within{ width:170px; max-width:170px; }
   html.wb-mobile .wbsync-state, html.wb-mobile .topright .clock, html.wb-mobile .topright .hi, html.wb-mobile #today{ display:none; }
   html.wb-mobile .wbmenu-btn{ display:inline-grid; place-items:center; flex:0 0 auto; width:34px; height:34px;
     border:1px solid var(--line); background:#fff; border-radius:9px; cursor:pointer; color:var(--accent); padding:0; font-family:inherit; }
   html.wb-mobile .wbmenu-btn svg{ width:18px; height:18px; }
-  html.wb-mobile .modtitle{ font-size:17px; letter-spacing:.5px; gap:8px; margin-bottom:10px; }
+  /* 页内大标题不再重复（顶栏已经显示当前页名），只留一排能横滑的胶囊 tab */
+  html.wb-mobile .modtitle{ display:none; }
   html.wb-mobile .modtitle small{ display:none; }
-  html.wb-mobile .modhead{ margin-bottom:12px; }
-  html.wb-mobile .subtab{ padding:7px 11px; font-size:12.5px; gap:5px; }
-  html.wb-mobile .subtabs{ gap:5px; }
-  html.wb-mobile .framebox{ border-radius:16px; box-shadow:0 6px 26px rgba(90,70,50,.10); }
-  /* 关键：把整块内容限成手机宽度并居中，iframe 随之变窄 */
+  html.wb-mobile .modhead{ margin:0; padding:8px 12px 0; flex:0 0 auto; }
+  html.wb-mobile .subtabs{
+    border-bottom:0; gap:6px; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+    padding-bottom:8px; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  html.wb-mobile .subtabs::-webkit-scrollbar{ display:none; }
+  html.wb-mobile .subtab{
+    border:1px solid var(--line); border-radius:999px; background:#fff;
+    padding:6px 14px; font-size:13px; gap:5px; margin:0; white-space:nowrap; flex:0 0 auto;
+  }
+  html.wb-mobile .subtab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* 关键：内容区在真机上真的铺满整屏（不再是 430 窄栏飘在中间），高度全给 iframe */
+  html.wb-mobile .app{ height:100vh; height:100dvh; overflow:hidden; }
+  html.wb-mobile .main{ height:100%; min-height:0; }
   html.wb-mobile .content{
-    width:100%; max-width:430px; margin-left:auto; margin-right:auto;
-    padding:12px 10px 30px;
+    width:100%; max-width:none; margin:0; padding:0;
+    flex:1; min-height:0; display:flex; flex-direction:column;
+  }
+  html.wb-mobile .framebox{
+    border:0; border-radius:0; box-shadow:none; background:transparent;
+    flex:1; min-height:0;
   }
   html.wb-mobile .framebox iframe{ width:100%; flex:1; min-height:0; }
   html.wb-mobile .wbaimask{ padding:20px 12px; }
   html.wb-mobile .wbaipanel{ padding:16px 14px; }
   html.wb-mobile .wbLayoutBtn{ border-color:var(--accent) !important; background:var(--mark) !important; }
+
+  /* 电脑上切手机版：收成一条手机壳，一眼就是「手机预览」，而不是被挤窄的网页 */
+  @media (min-width:561px){
+    html.wb-mobile{ background:#ece4d8; }
+    html.wb-mobile .app{
+      position:relative; padding:14px 0; align-items:center; justify-content:center;
+      background:#ece4d8; overflow:hidden;
+    }
+    html.wb-mobile .main{
+      position:relative; flex:0 0 auto;
+      width:392px; max-width:392px; height:100%;
+      border:1px solid #d8cdbc; border-radius:26px; overflow:hidden;
+      box-shadow:0 18px 50px rgba(80,62,44,.18);
+      background:var(--bg);
+    }
+    /* 抽屉跟着手机壳走，别从窗口左边缘滑出来 */
+    html.wb-mobile .sidebar{
+      position:absolute; top:14px; bottom:14px; left:calc(50% - 196px); width:276px; height:auto;
+      border-radius:0 18px 18px 0; transform:none; opacity:0; pointer-events:none;
+      transition:opacity .18s ease;
+    }
+    html.wb-mobile body.menu-open .sidebar{ transform:none; opacity:1; pointer-events:auto; }
+  }
 
   /* === ⛶ 放大：外壳让位，当前子页独占整个窗口，长文/长回复少滚动（2026-11-05） === */
   html.wb-zoom .sidebar{ display:none !important; }
@@ -489,7 +557,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261105e';
+const WB_THIS_VER='20261105g';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -681,8 +749,10 @@ function selectSub(modKey, subId){
   const s = m.sub.find(x=>x.id===subId);
   subEl.querySelectorAll('.subtab').forEach(t=> t.classList.toggle('active', t.dataset.id === subId));
 
-  // 面包屑
-  crumbEl.innerHTML = `<span>工作台</span><span class="sep">›</span><span>${m.title}</span><span class="sep">›</span><span class="now">${s.name}</span>`;
+  // 面包屑（模块名与子页同名时只写一次，别出现「今日安排 › 今日安排」）
+  crumbEl.innerHTML = (m.title === s.name)
+    ? `<span>工作台</span><span class="sep">›</span><span class="now">${s.name}</span>`
+    : `<span>工作台</span><span class="sep">›</span><span>${m.title}</span><span class="sep">›</span><span class="now">${s.name}</span>`;
 
   bodyEl.innerHTML = '';
   if(s.type === 'iframe'){
@@ -2101,7 +2171,14 @@ function wbMobileCssFor(f){
   return WB_MOBILE_BASE + '\n' + (WB_MOBILE_SKINS[name] || '');
 }
 function wbLayoutMode(){
-  try{ return localStorage.getItem(WB_LAYOUT_KEY)==='mobile' ? 'mobile' : 'pc'; }catch(e){ return 'pc'; }
+  try{
+    var v = localStorage.getItem(WB_LAYOUT_KEY);
+    if(v === 'mobile' || v === 'pc') return v;          /* 用户自己选过的，一律照办 */
+  }catch(e){}
+  try{                                                  /* 没选过：窄屏（手机）默认手机版 */
+    if(window.matchMedia && window.matchMedia('(max-width:560px)').matches) return 'mobile';
+  }catch(e){}
+  return 'pc';
 }
 function wbPatchFrame(f, mode){
   var d;
