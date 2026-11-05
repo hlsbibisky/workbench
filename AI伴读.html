@@ -166,6 +166,18 @@
   .setp .acts button.pri:hover{color:#fff;}
   .setres{font-size:12px;line-height:1.7;margin-top:10px;color:var(--sub);word-break:break-word;}
 
+  /* 窄屏：把「我想弄明白」那排标签收起来，省下的高度全给原文框（2026-11-05） */
+  .optstog{display:none;}
+  @media (max-width:900px){
+    .optstog{display:flex;align-items:center;gap:7px;margin:0 15px 7px;padding:8px 12px;
+      border:1px dashed #ddd3c4;border-radius:10px;background:#fffdf9;color:var(--sub);
+      font-size:12.5px;font-family:inherit;cursor:pointer;text-align:left;}
+    .optstog em{font-style:normal;font-size:11px;color:#b3a795;}
+    .optstog.on{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--mark);}
+    #optsC{display:none;}
+    #optsC.open{display:block;}
+  }
+
   @media (max-width:900px){
     .page{padding:10px 11px 24px;}
     .main{grid-template-columns:1fr;height:auto;}
@@ -173,7 +185,7 @@
     .tr-row{grid-template-columns:1fr;gap:2px;}
     .tr-row .o{font-size:12.5px;}
     .pane{min-height:0;}
-    #src{min-height:32vh;font-size:15px;line-height:1.95;}
+    #src{min-height:40vh;font-size:15px;line-height:1.95;}
     #tSrc{min-height:26vh;font-size:15px;line-height:1.95;}
     .chat{max-height:none;overflow:visible;padding:12px 12px 4px;}
     .askbar{position:sticky;bottom:0;z-index:10;}
@@ -213,7 +225,8 @@
           <button class="chip mini" id="btnSample2">古文示例</button>
         </div>
         <textarea id="src" placeholder="把想读透的那段文字贴进来。&#10;小说片段、书摘、影视台词、一句歌词、自己的日记都行。"></textarea>
-        <div class="opts">
+        <button class="optstog" id="btnOpts" type="button">＋ 我想弄明白<em>可不选·可多选</em></button>
+        <div class="opts" id="optsC">
           <div class="optrow"><span class="lb">我想弄明白<em class="opt">可不选·可多选</em></span><div class="chips" id="focusChips"></div></div>
         </div>
         <button class="go" id="btnGo">开始共读</button>
@@ -1133,6 +1146,11 @@ var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣�
   });
 
   $('btnGo').onclick = startRead;
+  $('btnOpts').onclick = function(){
+    var o = $('optsC');
+    var on = o.classList.toggle('open');
+    this.classList.toggle('on', on);
+  };
   $('btnSample').onclick = function(){
     $('src').value = SAMPLE;
     S.text = SAMPLE;
