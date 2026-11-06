@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261105h';
+const WB_THIS_VER='20261107a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -649,6 +649,7 @@ const MODULES = {
       {id:'now',     name:'当下状态', type:'iframe',      src:'每日状态记录.html', status:'online'},
       {id:'calendar', name:'日期记录', type:'iframe', src:'日期记录.html', status:'online'},
       {id:'history', name:'历史检索', type:'iframe', src:'历史检索.html', status:'online'},
+      {id:'liunian', name:'流年全览', type:'iframe', src:'流年全览.html', status:'online'},
     ]
   },
   today: {
