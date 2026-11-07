@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261107a';
+const WB_THIS_VER='20261108a';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -2011,8 +2011,21 @@ function wbSelfCheckHTML(){
 function wbOpenSync(){
   wbLoadCfg();
   let m=document.getElementById('wbSyncModal');
-  if(!m){ m=document.createElement('div'); m.id='wbSyncModal'; m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998'; document.body.appendChild(m); }
-  m.onclick=e=>{ if(e.target===m) m.style.display='none'; };
+  if(!m){
+    m=document.createElement('div'); m.id='wbSyncModal';
+    /* 手机上面板内容比屏幕还高：旧写法 flex 居中把标题顶出屏幕上方、把「关闭」压到屏幕下方，
+       遮罩又是 overflow:visible 滚不动 —— 用户就卡死在这一页。这里给遮罩留上下安全边，
+       面板自己限高、内容区内部滚动，标题栏（含常驻 ✕）永远可见。 */
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998;box-sizing:border-box;padding:12px 0;overflow-y:auto;overscroll-behavior:contain';
+    document.body.appendChild(m);
+  }
+  m.onclick=e=>{ if(e.target===m) wbCloseSync(); };
+  if(!window.__wbSyncEscBound){
+    window.__wbSyncEscBound=true;
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape'){ const mm=document.getElementById('wbSyncModal'); if(mm && mm.style.display!=='none') wbCloseSync(); }
+    });
+  }
   m.style.display='flex';
   const conn=wbSync.connected?'已连接（自动同步中）':'未连接';
   const urlMask=WB_SUPABASE_URL.replace(/^(https:\/\/[^.]+).*$/,'$1• • • • •');
@@ -2022,8 +2035,12 @@ function wbOpenSync(){
     ?(wbGhToken()?(wbGhOk?'已连通 ✓':('不可达'+(wbGhErr?('：'+wbGhErr):''))):'未配置（不开代理也能同步，建议填）')
     :(wbGhToken()?'验证中…':'未配置（不开代理也能同步，建议填）');
   if(!wbVerified && !wbSync.userDisconnected){ try{ wbConnect(true); }catch(e){} }
-  m.innerHTML='<div style="background:#faf7f1;max-width:480px;width:94%;border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
-    +'<h2 style="margin:0 0 6px;font-size:19px;color:#2c241b">☁ 工作台云同步（双通道）</h2>'
+  m.innerHTML='<div id="wbSyncPanel" style="background:#faf7f1;max-width:480px;width:94%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)">'
+    +'<div style="flex:0 0 auto;position:relative;padding:15px 52px 11px 22px;border-bottom:1px solid #ece5da">'
+    +'<h2 style="margin:0;font-size:18px;color:#2c241b">☁ 工作台云同步（双通道）</h2>'
+    +'<button id="wbSyncX" onclick="wbCloseSync()" aria-label="关闭" style="position:absolute;right:12px;top:10px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:#f0e6d9;color:#6b5f50;font-size:17px;line-height:1;cursor:pointer">✕</button>'
+    +'</div>'
+    +'<div id="wbSyncBody" style="flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 22px 22px">'
     +'<p style="margin:0 0 14px;font-size:13px;color:#7a6f60;line-height:1.6">同步<b>全部页面</b>数据（美食/股票/驱动力/周计划…），电脑与手机自动一致。<b>两通道互为备份</b>：Supabase 主通道 + GitHub 文件备份（不开代理也能存）。任一通即同步。</p>'
     +'<div style="margin-bottom:10px;font-size:12px;color:#7a6f60">Supabase 主通道：<b style="color:#2c241b">'+escAttr(urlMask)+'</b> · '+sbState+'</div>'
     +'<div style="margin-bottom:12px;padding:10px;background:#f3ece1;border-radius:10px">'
@@ -2046,9 +2063,11 @@ function wbOpenSync(){
     +'<button onclick="wbPull(true);" style="background:#efe7da;color:#2c241b;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">拉取</button>'
     + (wbSync.connected?'<button onclick="wbDisconnect()" style="background:#e8d9cf;color:#a23;border:0;padding:9px 16px;border-radius:9px;cursor:pointer">断开</button>':'')
     +'</div>'
-    +'<div style="margin-top:12px;text-align:right"><button onclick="document.getElementById(\'wbSyncModal\').style.display=\'none\'" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
+    +'<div style="margin-top:12px;text-align:right"><button onclick="wbCloseSync()" style="background:none;border:0;color:#7a6f60;cursor:pointer;font-size:13px">关闭</button></div>'
+    +'</div>'
     +'</div>';
 }
+function wbCloseSync(){ const mm=document.getElementById('wbSyncModal'); if(mm) mm.style.display='none'; }
 function escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 window.addEventListener('message', e=>{
   if(!e.data) return;
