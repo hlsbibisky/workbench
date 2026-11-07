@@ -44,6 +44,34 @@
   }
   .tools button:hover{ border-color:var(--accent2); color:var(--accent2); }
 
+  /* 一键到本月第一条 / 最后一条：固定在右下角，滚到哪儿都在 */
+  .jumpbar{
+    position:fixed; right:30px; bottom:20px; z-index:80;
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .jumpbar .jbtn{
+    width:48px; height:48px; padding:0; border-radius:50%;
+    border:1px solid var(--line); background:rgba(255,253,249,.96);
+    color:var(--ink); cursor:pointer; box-shadow:0 4px 14px rgba(90,70,50,.16);
+    display:grid; place-items:center; align-content:center; line-height:1.05;
+    backdrop-filter:blur(4px); transition:border-color .15s,color .15s,transform .15s;
+  }
+  .jumpbar .jbtn:hover{ border-color:var(--accent); color:var(--accent); transform:translateY(-2px); }
+  .jumpbar .jbtn:active{ transform:translateY(0); }
+  .jumpbar .arw{ font-size:17px; font-weight:700; }
+  .jumpbar .tx{ font-size:10px; letter-spacing:1px; margin-top:1px; }
+  /* 外壳手机版会把所有 button 统一放大到 36px/14px，用更高权重把悬浮球收回来 */
+  html[data-wb-mobile="1"] .jumpbar{ right:10px !important; bottom:14px !important; gap:7px !important; }
+  html[data-wb-mobile="1"] .jumpbar .jbtn{
+    width:44px !important; height:44px !important; min-height:0 !important;
+    font-size:10px !important; flex:0 0 auto !important; padding:0 !important; margin:0 !important;
+  }
+  html[data-wb-mobile="1"] .jumpbar .arw{ font-size:16px !important; }
+  @media (max-width:560px){
+    .jumpbar{ right:10px; bottom:14px; gap:7px; }
+    .jumpbar .jbtn{ width:44px; height:44px; }
+  }
+
   .summary{ font-size:13px; color:var(--sub); margin:6px 4px 18px; }
   .summary b{ color:var(--noted); }
 
@@ -200,6 +228,11 @@
     干支年以「立春」为界，干支月以十二节令（立春·惊蛰·清明…）为界，整月自「节」起至下一「节」前一日止。<br>
     节气由「寿星公式」推算，个别中气可能与官方日历相差 1 天。每日标签可多选、可随时点除。
   </footer>
+</div>
+
+<div class="jumpbar">
+  <button class="jbtn" id="jumpTop" title="回到第一条"><span class="arw">↑</span><span class="tx">最上</span></button>
+  <button class="jbtn" id="jumpEnd" title="跳到最后一条（本月通常就是昨天）"><span class="arw">↓</span><span class="tx">最下</span></button>
 </div>
 
 <script>
@@ -619,6 +652,33 @@ function scrollToKey(){
 
 render();
 scrollToKey();
+
+/* 一键到最上 / 最下。整月按「今日起环形、昨日收尾」排，所以最后一条通常正是昨天，
+   不用再拖进度条到底。瞬时跳转（不用 smooth），跳完给目标卡片闪一下便于认位置。 */
+function wbFlashDay(el){
+  if(!el) return;
+  el.style.transition='none'; el.style.background='#fbe9d6';
+  setTimeout(()=>{ el.style.background=''; }, 900);
+}
+function wbJumpEdge(toEnd){
+  const sc=document.scrollingElement||document.documentElement;
+  const days=document.querySelectorAll('#list .day');
+  if(!toEnd){
+    window.scrollTo({top:0,behavior:'auto'});
+    wbFlashDay(days[0]);
+    return;
+  }
+  const last=days[days.length-1];
+  if(last){
+    const y=last.getBoundingClientRect().top+sc.scrollTop-10;
+    window.scrollTo({top:Math.max(0,y),behavior:'auto'});
+    wbFlashDay(last);
+  }else{
+    window.scrollTo({top:sc.scrollHeight,behavior:'auto'});
+  }
+}
+document.getElementById('jumpTop').addEventListener('click',()=>wbJumpEdge(false));
+document.getElementById('jumpEnd').addEventListener('click',()=>wbJumpEdge(true));
 </script>
 </body>
 </html>
