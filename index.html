@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261108b';
+const WB_THIS_VER='20261108c';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -659,6 +659,10 @@ const MODULES = {
   week: {
     title:'周计划', note:'一周安排 · 待办', group:'common',
     sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
+  },
+  read: {
+    title:'阅读记录', note:'书架 · 摘抄 · 笔记', group:'common',
+    sub:[ {id:'shelf', name:'阅读记录', type:'iframe', src:'阅读记录.html', status:'online'} ]
   },
   daily: {
     title:'美食记录', note:'美食记录 · 好好吃饭', group:'common',
@@ -739,7 +743,7 @@ function tick(){
 tick(); setInterval(tick, 1000*20);
 
 /* 构建左侧导航（按分组渲染，顺序由 NAV_ORDER 控制） */
-const NAV_ORDER = ['inner','today','week','daily','stock','drive','cinema','tools','bank'];
+const NAV_ORDER = ['inner','today','week','read','daily','stock','drive','cinema','tools','bank'];
 NAV_ORDER.forEach(key=>{
   const m = MODULES[key];
   if(!m) return;
@@ -934,7 +938,9 @@ const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver',
   /* 设备本地偏好，绝不跨设备（2026-11-05）：
      WB_LAYOUT 曾被同步上云，电脑切成电脑版 → 手机拉回 'pc' → 手机永远进不了手机版，
      顶栏一堆按钮被裁掉。WB_ZOOM 同理：电脑上放大，手机打开也会莫名压成窄条。 */
-  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM'];
+  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM',
+  /* 子页 UI 偏好，同理不跨设备（阅读记录默认视图） */
+  'READ_VIEW'];
 /* 私密键（2026-09-25）：密钥/令牌绝不上云，也不被云端回灌。
    事故链：wbCollect 收集全部键 → 云端曾存入空的 ywApiKey（密钥未填时保存过一次）
    → 合并层对「云端空、本机有」误保留云端空值 → 拉取整键落地 → 手机刚填的 Key 几秒内被抹掉。
@@ -1466,6 +1472,8 @@ function wbRequestSave(){
 const WB_SEARCH_KEYS=[
   {k:'TODAY_PLAN',     mod:'today',  sub:'today',   name:'今日安排'},
   {k:'weekly_plan',    mod:'week',   sub:'plan',    name:'周计划'},
+  {k:'READ_BOOKS_V1',  mod:'read',   sub:'shelf',   name:'阅读书架'},
+  {k:'READ_NOTES_V1',  mod:'read',   sub:'shelf',   name:'阅读笔记'},
   {k:'DAILY_STATUS',   mod:'inner',  sub:'now',     name:'每日状态记录'},
   {k:'stock_journal',  mod:'stock',  sub:'journal', name:'股票状态记录'},
   {k:'food_menu',      mod:'daily',  sub:'food',    name:'美食菜谱'},
@@ -2250,6 +2258,18 @@ const WB_MOBILE_SKINS = {
     html[data-wb-mobile="1"] .days{flex-wrap:wrap !important;}
     html[data-wb-mobile="1"] .task{flex-wrap:wrap !important;}
     html[data-wb-mobile="1"] .content{padding:12px !important;}
+  `,
+  '阅读记录.html': `
+    /* 阅读记录：整页自己做了手机适配，这里只压回外壳「拇指友好」通配带来的膨胀
+       （.btn.primary/.go 会被拉满宽、.bar/.tools 会被强制竖排 → 一律不套用） */
+    html[data-wb-mobile="1"] .rdbar .btn{width:auto !important; min-height:34px !important;}
+    html[data-wb-mobile="1"] .rdpanel{padding:0 !important; margin:0 !important;
+      border-radius:18px 18px 0 0 !important; box-shadow:none !important; max-height:calc(100dvh - 20px) !important;}
+    html[data-wb-mobile="1"] .mini{min-height:30px !important; font-size:12px !important;}
+    html[data-wb-mobile="1"] .chip{min-height:30px !important; font-size:12.5px !important;}
+    html[data-wb-mobile="1"] .segb{min-height:32px !important; font-size:13px !important;}
+    html[data-wb-mobile="1"] .search{min-height:36px !important; font-size:13px !important;}
+    html[data-wb-mobile="1"] .nacts .mini,html[data-wb-mobile="1"] .bacts .mini{min-height:28px !important;}
   `,
   '美食记录.html': `
     html[data-wb-mobile="1"] .content{padding:12px !important;}
