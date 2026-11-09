@@ -67,9 +67,17 @@ input::placeholder{color:#b8b0a5;}
 .btn:disabled{opacity:.5;cursor:wait;}
 
 .actrow{display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap;}
-.state{font-size:12.5px;color:var(--sub);}
+.state{font-size:12.5px;color:var(--sub);min-width:0;word-break:break-word;line-height:1.45;}
 .state b{color:var(--noted);font-weight:500;}
 .state i{font-style:normal;color:var(--bad);}
+/* 失败时把「接口原话 + 本次用的配置」摊开说清楚，不猜原因、不让人对着一句红字干瞪眼 */
+.diag{display:none;margin:9px 0 2px;padding:10px 12px;border-radius:10px;
+  background:#fdf1ec;border:1px solid #eecfc0;font-size:12px;line-height:1.65;
+  color:#8d5233;word-break:break-word;}
+.diag.on{display:block;}
+.diag b{font-weight:600;}
+.diag code{font-family:inherit;font-size:11.5px;color:#6b5f50;word-break:break-all;}
+.diag .lnk2{color:var(--accent);cursor:pointer;text-decoration:underline;}
 
 details.mini{position:relative;}
 details.mini summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 13px;font-size:12.5px;color:var(--sub);user-select:none;}
@@ -179,16 +187,17 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
               <option value="custom">自定义</option>
             </select>
             <label>接口地址</label>
-            <input type="text" id="baseURL" placeholder="https://...">
+            <input type="text" id="baseURL" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
             <label>密钥</label>
-            <input type="password" id="apiKey" placeholder="sk-...">
+            <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
             <label>模型</label>
-            <input type="text" id="model" placeholder="deepseek-flash">
+            <input type="text" id="model" placeholder="deepseek-flash" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
             <div class="tip">密钥只存在你这台电脑的浏览器里。<br>模型那一格填什么，请求里就发什么：填 <b>deepseek-flash</b> 走便宜那个，填 <b>deepseek-v4-pro</b> 走贵那个。</div>
           </div>
         </div>
       </details>
     </div>
+    <div class="diag" id="diag"></div>
   </div>
 
   <div class="outwrap off" id="outWrap">
@@ -240,6 +249,44 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     dashscope:{ base:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus' },
     custom:   { base:'', model:'' }
   };
+
+  /* 接口配置只认 localStorage。输入框会被手机浏览器自动填充悄悄改写
+     （2026-11-04 踩过：网址被塞进模型名 → 400），发请求前一律读存下来的值，
+     坏值按服务商预设自愈，绝不拿去发请求。 */
+  var BASE_RE = /^https?:\/\/[A-Za-z0-9.\-]+/i;
+  var MODEL_RE = /^[A-Za-z0-9._:\-]+$/;
+  function normBase(b){
+    var s = String(b||'').trim().replace(/\/+$/,'').replace(/\/chat\/completions$/i,'');
+    if(/open\.bigmodel\.cn/i.test(s) && !/\/v4$/i.test(s)) s += '/v4';
+    return s;
+  }
+  function readCfg(){
+    var prov = lsGet(K.prov,'deepseek');
+    var p = PRESETS[prov] || PRESETS.deepseek;
+    var base = normBase(lsGet(K.base, p.base));
+    var model = String(lsGet(K.model, p.model)||'').trim();
+    var key = String(lsGet(K.key,'')||'').trim();
+    var fixed = [];
+    if(!BASE_RE.test(base)){ base = p.base; fixed.push('接口地址'); }
+    if(!MODEL_RE.test(model)){ model = p.model; fixed.push('模型名'); }
+    return { key:key, base:base, model:model, prov:prov, fixed:fixed };
+  }
+  /* 智谱 /chat/completions 不带尾斜杠时预检拿不到 CORS 头，带尾斜杠才放行。
+     外壳会注入 fetch 补丁，这里自己也补一次（幂等，补丁没注入到时也能用）。 */
+  function apiUrl(base){
+    var u = String(base||'').replace(/\/+$/,'') + '/chat/completions';
+    return /open\.bigmodel\.cn/i.test(base) ? u + '/' : u;
+  }
+  function cfgLabel(c){
+    var host = String(c.base||'').replace(/^https?:\/\//i,'');
+    return (c.model || '未填模型') + ' @ ' + (host || '未填地址');
+  }
+  function aiErr(msg, raw){
+    var e = new Error(msg);
+    e.raw = raw || '';
+    return e;
+  }
+  function aiFail(msg, raw){ throw aiErr(msg, raw); }
 
   var SYS_PROMPT = [
     '你是一个对话潜台词翻译器。用户给你一段聊天记录，每行用「自己：」或「对方：」标注说话人。',
@@ -582,21 +629,24 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
   }
 
   /* ---------- API ---------- */
-  function currentCfg(){
-    return {
-      key: $('apiKey').value.trim(),
-      base: $('baseURL').value.trim().replace(/\/+$/,''),
-      model: $('model').value.trim()
-    };
-  }
-  function callApi(norm){
-    var c = currentCfg();
-    if(!c.key){ return Promise.reject('先点右上「接口设置」，把密钥填上'); }
-    if(!c.base){ return Promise.reject('接口地址不能为空'); }
-    if(!c.model){ return Promise.reject('模型名不能为空'); }
+  var AI_TIMEOUT_MS = 30000;   /* 原来 90 秒，手机上干等一分半太久了 */
+  function currentCfg(){ return readCfg(); }
+  function callApi(norm, onTick){
+    var c = readCfg();
+    if(!c.key) return Promise.reject(aiErr('没填密钥——点「接口设置」，或工作台右上角 🤖 填一次',''));
+    if(!c.base) return Promise.reject(aiErr('接口地址不能为空',''));
+
+    var url = apiUrl(c.base);
     var ctrl = ('AbortController' in window) ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 90000) : null;
-    return fetch(c.base + '/chat/completions', {
+    var timer = ctrl ? setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, AI_TIMEOUT_MS) : null;
+    var tick = null, t0 = Date.now();
+    if(onTick){
+      onTick(0, c);
+      tick = setInterval(function(){ onTick(Math.round((Date.now()-t0)/1000), c); }, 1000);
+    }
+    function done(){ if(timer) clearTimeout(timer); if(tick) clearInterval(tick); }
+
+    return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.key },
       body: JSON.stringify({
@@ -609,25 +659,35 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
       }),
       signal: ctrl ? ctrl.signal : undefined
     }).then(function(r){
-      if(timer) clearTimeout(timer);
-      return r.json().catch(function(){ return {}; }).then(function(j){
+      return r.text().catch(function(){ return ''; }).then(function(txt){
+        done();                       /* 正文读完才停表；流式响应一直不结束也会超时 */
+        var j = {};
+        try{ j = JSON.parse(txt); }catch(e){}
         if(!r.ok){
           var m = (j && j.error && j.error.message) ? j.error.message : ('HTTP ' + r.status);
-          if(r.status === 401) m = '密钥不对（401）——去服务商那里检查一下密钥';
-          else if(r.status === 402) m = '余额不足（402）——去服务商那里充一点';
-          else if(r.status === 429) m = '请求太频繁（429），等一会儿再试';
-          else if(r.status === 404) m = '接口地址或模型名不对（404）——检查接口设置';
-          throw m;
+          if(r.status === 401) m = '密钥不对（401）';
+          else if(r.status === 402) m = '余额不足（402）';
+          else if(r.status === 429) m = '请求太频繁（429）';
+          else if(r.status === 404) m = '接口地址或模型名不对（404）';
+          aiFail(m, (j && j.error && j.error.message) || txt.slice(0,180) || ('HTTP ' + r.status));
         }
-        var txt = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-        if(!txt) throw '模型回了空内容，再试一次';
-        return txt;
+        var ch = j && j.choices && j.choices[0];
+        var out = ch && ch.message && ch.message.content;
+        if(!out){
+          var why = ch && ch.finish_reason ? ('finish_reason=' + ch.finish_reason) : '';
+          if(j && j.error && j.error.message) why += (why ? ' · ' : '') + j.error.message;
+          aiFail('模型回了空内容', why || '响应里没有 choices[0].message.content');
+        }
+        return out;
       });
     }).catch(function(e){
-      if(timer) clearTimeout(timer);
-      if(e && e.name === 'AbortError') throw '等太久放弃了（90 秒），再试一次';
-      if(String(e).indexOf('Failed to fetch') >= 0) throw '连不上这个接口地址——检查网络，或换个服务商试试';
-      throw e;
+      done();
+      if(e && e.raw !== undefined) throw e;                 /* 已包装好的业务错误，原样传出去 */
+      if(e && e.name === 'AbortError') aiFail('等了 ' + (AI_TIMEOUT_MS/1000) + ' 秒没回应', 'AbortError：请求超时被主动取消');
+      var raw = String((e && e.message) || e);
+      if(raw.indexOf('Failed to fetch') >= 0 || raw.indexOf('NetworkError') >= 0)
+        aiFail('连不上这个接口地址', raw);
+      aiFail('请求没成功', raw);
     });
   }
 
@@ -737,6 +797,30 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     var el = $('state');
     el.innerHTML = kind==='bad' ? '<i>'+esc(msg)+'</i>' : (kind==='ok' ? '<b>'+esc(msg)+'</b>' : esc(msg));
   }
+  function hideDiag(){
+    var d = $('diag'); if(d){ d.classList.remove('on'); d.innerHTML = ''; }
+  }
+  /* 失败时把「本次用的是什么」和「接口原话」摊开，不猜原因、不让人对着一句红字干瞪眼 */
+  function showFail(e){
+    var msg = (e && e.message) ? e.message : String(e);
+    var raw = (e && e.raw) || '';
+    var c = readCfg();
+    flash(msg, 'bad');
+    var d = $('diag'); if(!d) return;
+    d.innerHTML = '<b>' + esc(msg) + '</b>'
+      + '<br>本次用的是：<code>' + esc(cfgLabel(c)) + '</code>'
+      + (raw ? ('<br>接口原话：<code>' + esc(raw) + '</code>') : '')
+      + (c.fixed.length ? ('<br>已自动按预设重填了「' + esc(c.fixed.join('、')) + '」。') : '')
+      + '<br><span class="lnk2" id="diagOpenSet">点这里核对接口设置</span> · 也可以用下面的「复制给 WorkBuddy」。';
+    d.classList.add('on');
+    /* 用户常常停在下面的「解读结果」区，红字在上面等于没提示：失败时主动滚过去 */
+    try{ d.scrollIntoView({behavior:'smooth', block:'center'}); }catch(x){}
+    var lk = $('diagOpenSet');
+    if(lk) lk.onclick = function(){
+      $('apiBox').open = true;
+      try{ $('apiBox').scrollIntoView({behavior:'smooth', block:'nearest'}); }catch(x){}
+    };
+  }
   /* 任何未预料到的错误都要显示出来，绝不出现「点了没反应」 */
   window.addEventListener('error', function(e){
     try{ flash('出错了：' + ((e && e.message) ? e.message : '未知错误'), 'bad'); }catch(x){}
@@ -813,13 +897,21 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     var norm = toNormalized(msgs);
     var btn = $('btnGo');
     btn.disabled = true;
-    flash('解读中，通常几秒到十几秒…');
-    callApi(norm).then(function(txt){
+    hideDiag();
+    flash('正在请求…');
+    callApi(norm, function(sec, c){
+      if(c.fixed.length && sec < 2){
+        flash('接口设置里的「' + c.fixed.join('、') + '」看着不对，这次按预设重填了', 'bad');
+      }else{
+        flash('正在请求 ' + c.model + ' …' + (sec > 0 ? (' 已等 ' + sec + ' 秒') : ''));
+      }
+    }).then(function(txt){
       btn.disabled = false;
+      hideDiag();
       doRender(txt, norm);
     }).catch(function(e){
       btn.disabled = false;
-      flash(String(e && e.message ? e.message : e), 'bad');
+      showFail(e);
     });
   };
 
@@ -881,8 +973,10 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     $('chat').value = lsGet(K.chat,'');
     $('prov').value = lsGet(K.prov,'deepseek');
     var p = PRESETS[$('prov').value] || PRESETS.deepseek;
-    $('baseURL').value = lsGet(K.base, p.base);
-    $('model').value = lsGet(K.model, p.model);
+    /* 启动时把自愈后的值显示出来，别让被自动填充污染的内容留在框里误导人 */
+    var cfg = readCfg();
+    $('baseURL').value = cfg.base || p.base;
+    $('model').value = cfg.model || p.model;
     $('apiKey').value = lsGet(K.key,'');
     syncCnt();
     renderHist();
