@@ -415,9 +415,9 @@
 <div class="modal" id="cfgModal" onclick="if(event.target===this)closeAiCfg()">
   <div class="mdialog">
     <h3>AI 配置</h3>
-    <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.deepseek.com"></div>
-    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="deepseek-flash"></div>
-    <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..."></div>
+    <div class="mrow"><label>API 端点</label><input id="cfgEndpoint" placeholder="https://api.deepseek.com" autocomplete="off" spellcheck="false"></div>
+    <div class="mrow"><label>模型</label><input id="cfgModel" placeholder="deepseek-flash" autocomplete="off" spellcheck="false"></div>
+    <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..." autocomplete="new-password"></div>
     <div class="mrow"><label>实时视觉分析间隔（秒，0=关闭）</label><input id="cfgVision" type="number" min="0" step="5" placeholder="0"></div>
     <div class="hint">实时视觉分析会定时截图并调用多模态模型，费用较高，默认关闭。</div>
     <div class="macts">
@@ -506,21 +506,56 @@ Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ i
 Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ notifyParent(); }catch(e){} return r; };
 window.__wbStorageHooked=true; } }catch(e){}
 
+/* 接口地址归一化：允许填 base，也允许误贴完整端点。
+   智谱 open.bigmodel.cn 必须走 /v4，且 /chat/completions 结尾要带尾斜杠，
+   否则浏览器跨域预检被对方 WAF 拦掉，报 Failed to fetch。
+   以前只靠外壳往 iframe 注入 fetch 补丁来补这一下，补丁没到就整页失效；
+   现在放映室自己算对，内嵌、独立打开、缓存旧外壳都不受影响。 */
+function normBase(b){
+  var v=String(b||'').trim().replace(/\/+$/,'');
+  v=v.replace(/\/chat\/completions\/?$/i,'').replace(/\/+$/,'');
+  if(/open\.bigmodel\.cn/i.test(v) && !/\/v4$/i.test(v)) v=v+'/v4';
+  return v;
+}
+function aiChatUrl(base){
+  var b=normBase(base), u=b+'/chat/completions';
+  return /open\.bigmodel\.cn/i.test(b) ? u+'/' : u;
+}
+/* 全站 🤖 面板的配置优先：面板改了立刻生效，不再被本页存过的旧值锁死。
+   本页 K_CFG 只在没配过全站时兜底（独立打开这一页时用得上）。 */
 function loadCfg(){
-  let cfg=lsGet(K_CFG)||{};
+  var own=lsGet(K_CFG)||{}, g={};
   try{
-    if(!cfg.key) cfg.key=localStorage.getItem('ywApiKey')||'';
-    if(!cfg.endpoint) cfg.endpoint=localStorage.getItem('ywApiBase')||'';
-    if(!cfg.model || cfg.model==='deepseek-flash') cfg.model=localStorage.getItem('ywApiModel')||cfg.model;
+    g.key=localStorage.getItem('ywApiKey')||'';
+    g.base=localStorage.getItem('ywApiBase')||'';
+    g.model=localStorage.getItem('ywApiModel')||'';
   }catch(e){}
-  cfg.endpoint=(cfg.endpoint||'https://api.deepseek.com').replace(/\/+$/,'');
-  if(cfg.endpoint.indexOf('/chat/completions')<0) cfg.endpoint=cfg.endpoint+'/chat/completions';
-  cfg.model=cfg.model||'deepseek-flash';
-  cfg.key=cfg.key||'';
-  cfg.vision=cfg.vision||0;
-  return cfg;
+  var base=(g.base||'').trim() || own.endpoint || 'https://api.deepseek.com';
+  var model=(g.model||'').trim() || own.model || 'deepseek-flash';
+  if(/\//.test(model) || !/^[\w.\-]+$/.test(model)) model='deepseek-flash';  /* 坏值自愈 */
+  return {
+    key:(g.key||'').trim() || own.key || '',
+    base:normBase(base),
+    endpoint:aiChatUrl(base),
+    model:model,
+    vision:own.vision||0
+  };
 }
 function saveCfg(cfg){ lsSet(K_CFG,cfg); }
+/* AI 请求统一走这里：30 秒超时 + 明确报错，7 段生成不再无限干等 */
+function aiFetch(url,opt,ms){
+  opt=opt||{}; var ctrl=null,timer=null; ms=ms||30000;
+  if('AbortController' in window){
+    ctrl=new AbortController(); opt.signal=ctrl.signal;
+    timer=setTimeout(function(){ try{ctrl.abort();}catch(e){} }, ms);
+  }
+  return fetch(url,opt).then(function(r){ if(timer)clearTimeout(timer); return r; })
+    .catch(function(e){
+      if(timer)clearTimeout(timer);
+      if(e&&e.name==='AbortError') throw new Error('等太久没回应（'+(Math.round(ms/100)/10)+' 秒）');
+      throw e;
+    });
+}
 
 /* ===== 影片档 ===== */
 function movieKey(id){ return K_MOVIE+id; }
@@ -1296,7 +1331,7 @@ async function ensureProfile(cfg){
 +(subHead?('\n\n开头字幕：\n'+subHead):'')
 +(plot?('\n\n剧情资料：'+plot):'');
   try{
-    const res=await fetch(cfg.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+    const res=await aiFetch(cfg.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
       body:JSON.stringify({model:cfg.model,messages:[{role:'user',content:askTxt}],temperature:0.2})});
     if(!res.ok) throw new Error('API '+res.status);
     const data=await res.json();
@@ -1380,7 +1415,7 @@ async function chatWithAI(userText){
   if(nearNotes) ctx+=`；刚刚出现过的 AI 评论：${nearNotes}`;
   try{
     const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。回复要短：一般一到三句话，尽量不超过 60 字，除非用户明确要求展开、解释或多说一些。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
-    const res=await fetch(endpoint,{
+    const res=await aiFetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:model,messages:[{role:'system',content:sys},{role:'user',content:userText}],temperature:0.8})
@@ -1390,7 +1425,7 @@ async function chatWithAI(userText){
     const txt=data.choices?.[0]?.message?.content?.trim()||'（AI 没有返回内容）';
     aiSay('AI', txt);
   }catch(e){
-    aiSay('AI','（调用 AI 失败：'+e.message+'）');
+    aiSay('AI','（调用 AI 失败：'+e.message+'｜用的是 '+cfg.model+' @ '+cfg.endpoint+'）');
   }
 }
 /* 取当前播放点之前的邻近字幕（供「问这一幕」用，稍后字幕上传后生效） */
@@ -1432,12 +1467,17 @@ function openAiCfg(){
 }
 function closeAiCfg(){$('cfgModal').classList.remove('show');}
 function saveAiCfg(){
-  saveCfg({
-    endpoint:$('cfgEndpoint').value.trim(),
-    model:$('cfgModel').value.trim(),
-    key:$('cfgKey').value.trim(),
-    vision:parseInt($('cfgVision').value||'0',10)
-  });
+  var b=normBase($('cfgEndpoint').value.trim());
+  var m=$('cfgModel').value.trim();
+  var k=$('cfgKey').value.trim();
+  saveCfg({ endpoint:aiChatUrl(b), model:m, key:k, vision:parseInt($('cfgVision').value||'0',10) });
+  /* 本页改动写回全站配置：🤖 面板与放映室从此是同一套，密钥仍不进同步包 */
+  try{
+    localStorage.setItem('ywApiBase', b);
+    localStorage.setItem('ywApiModel', m);
+    localStorage.setItem('ywApiKey', k);
+    parent.postMessage({type:'wb-data-changed'},'*');
+  }catch(e){}
   closeAiCfg();
   setupVision();
 }
@@ -1445,14 +1485,21 @@ function saveAiCfg(){
 /* ================= AI 生成时间轴 ================= */
 /* 调一次 AI，并从中解析出 JSON 数组 */
 async function callJson(endpoint,model,key,prompt){
-  const res=await fetch(endpoint,{
+  const res=await aiFetch(endpoint,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
     body:JSON.stringify({model:model,messages:[{role:'user',content:prompt}],temperature:0.85})
   });
-  if(!res.ok) throw new Error('API '+res.status);
-  const data=await res.json();
+  const data=await res.json().catch(function(){ return {}; });
+  if(!res.ok){
+    const em=(data&&data.error&&data.error.message)||'';
+    throw new Error('接口返回 '+res.status+(em?('：'+em):''));
+  }
   let text=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+  if(!text){
+    const fr=(data.choices&&data.choices[0]&&data.choices[0].finish_reason)||'无';
+    throw new Error('模型回了空内容（finish_reason='+fr+'），换个模型或稍后再试');
+  }
   text=text.replace(/```json/g,'').replace(/```/g,'').trim();
   const s=text.indexOf('['), e=text.lastIndexOf(']');
   if(s>=0 && e>s) text=text.slice(s,e+1);
@@ -1726,11 +1773,14 @@ ${plot}`;
     sysTip( saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
   }catch(e){
     const msg=String((e&&e.message)||e);
-    /* 网络类错误和「填错密钥」看起来很像，不分开说会白折腾半天 */
-    let tip='请检查右上角「AI配置」里的 API Key、模型名和接口地址是否正确。';
+    const now=loadCfg();
+    let tip='本次用的是：'+now.model+' @ '+now.endpoint
+      +'\n配置以工作台右上角 🤖 AI 面板为准；点放映室「AI 配置」可核对。';
     if(/failed to fetch|networkerror|network request failed|load failed|ERR_/i.test(msg)){
-      tip='这是网络连不上接口地址，多半是代理 / 梯子把请求拦了，也可能接口地址被墙。\n'
-         +'先把代理关掉再试一次；当前用的接口地址是：'+endpoint;
+      tip='浏览器没能连上接口：'+now.endpoint+'\n'
+        +'可能是该地址不允许网页跨域调用、网络或代理拦截、地址写错。\n'
+        +'可点工作台右上角 🤖 面板里的「测试连接」对照；两边用的必须是同一套配置。\n'
+        +'本次用的是：'+now.model+' @ '+now.endpoint;
     }
     alert('生成失败：'+msg+'\n\n'+tip);
   }finally{
@@ -1948,7 +1998,7 @@ async function captureAndAnalyze(){
     canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||360;
     const ctx=canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
     const base64=canvas.toDataURL('image/jpeg',0.7);
-    const res=await fetch(cfg.endpoint||'https://api.deepseek.com',{
+    const res=await aiFetch(cfg.endpoint||'https://api.deepseek.com',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
       body:JSON.stringify({
@@ -1960,7 +2010,6 @@ async function captureAndAnalyze(){
             {type:'image_url',image_url:{url:base64}}
           ]
         }],
-        max_tokens:80
       })
     });
     if(!res.ok) return;
