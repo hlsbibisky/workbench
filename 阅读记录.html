@@ -6,677 +6,1045 @@
 <title>阅读记录 · 工作台</title>
 <style>
   :root{
-    --bg:#f7f4ee; --card:#fffdf9; --ink:#3a3631; --sub:#8a837a;
-    --line:#ece5da; --accent:#b8714e; --mark:#f0e3d6;
-    --ok:#3f8d6b; --warn:#c08a3e; --bad:#c0392b;
-    --radius:14px;
+    --bg:#f7f4ee; --paper:#fffdf9; --ink:#3a3631; --sub:#8a837a;
+    --line:#ece5da; --accent:#b8714e; --mark:#f0e3d6; --wood:#c9a882;
+    --ok:#3f8d6b; --warn:#c08a3e; --bad:#c0392b; --radius:14px;
   }
   *{ box-sizing:border-box; }
   html,body{ margin:0; }
   body{ background:var(--bg); color:var(--ink); line-height:1.55;
         font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
         -webkit-font-smoothing:antialiased; }
+  button,input,textarea,select{ font-family:inherit; }
   ::selection{ background:var(--mark); }
-  button{ font-family:inherit; }
+  b,strong{ font-weight:700; }
 
-  /* ===== 顶部工具条（视图切换在右上） ===== */
-  .rdbar{ position:sticky; top:0; z-index:8; display:flex; align-items:center; gap:10px;
-        padding:10px 16px; background:rgba(247,244,238,.94); backdrop-filter:blur(8px);
-        border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  .seg{ display:flex; background:#efe9de; border-radius:11px; padding:3px; gap:2px; }
-  .segb{ border:0; background:transparent; color:var(--sub); font-size:13px; padding:6px 15px;
-         border-radius:9px; cursor:pointer; transition:.14s; }
-  .segb.on{ background:var(--card); color:var(--accent); font-weight:600; box-shadow:0 1px 2px rgba(58,54,49,.09); }
-  .spacer{ flex:1; }
-  .btn{ border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px;
-        padding:7px 13px; font-size:13px; cursor:pointer; transition:.14s; }
-  .btn:hover{ border-color:var(--accent); color:var(--accent); }
-  .btn.acc{ background:var(--accent); border-color:var(--accent); color:#fff; }
-  .btn.acc:hover{ background:#a05f3d; color:#fff; }
-  .btn.ghost{ background:transparent; }
+  /* ===== 顶栏：视图切换在右上 ===== */
+  .rdbar{ position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+          padding:9px 16px; background:rgba(247,244,238,.96); backdrop-filter:blur(10px);
+          border-bottom:1px solid var(--line); }
+  .rdsearch{ border:1px solid var(--line); background:var(--paper); border-radius:10px; padding:7px 12px;
+             font-size:13px; width:190px; color:var(--ink); outline:none; }
+  .rdsearch:focus{ border-color:var(--accent); }
+  .rdspace{ flex:1; }
+  .rdseg{ display:flex; background:#efe9de; border-radius:11px; padding:3px; gap:2px; flex:none; }
+  .rdseg button{ border:0; background:transparent; color:var(--sub); font-size:13px; padding:6px 13px;
+                 border-radius:9px; cursor:pointer; transition:.14s; white-space:nowrap; }
+  .rdseg button.on{ background:var(--paper); color:var(--accent); font-weight:700; box-shadow:0 1px 2px rgba(58,54,49,.09); }
+  .rdlook{ display:flex; gap:2px; background:#efe9de; border-radius:10px; padding:3px; flex:none; }
+  .rdlook button{ border:0; background:transparent; color:var(--sub); font-size:12px; padding:5px 9px;
+                  border-radius:7px; cursor:pointer; white-space:nowrap; }
+  .rdlook button.on{ background:var(--paper); color:var(--accent); font-weight:700; }
+  .rdbtn{ border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:10px;
+          padding:7px 12px; font-size:13px; cursor:pointer; transition:.14s; white-space:nowrap; }
+  .rdbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  .rdbtn.acc{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .rdbtn.acc:hover{ background:#a05f3d; color:#fff; }
+  .rdbtn.mini{ padding:4px 9px; font-size:11.5px; border-radius:8px; background:var(--mark); border-color:transparent; color:var(--accent); }
+  .rdbtn.mini:hover{ border-color:#e0c9b2; }
+  .rdbtn.mini.ok{ background:#e6f2ec; color:#33795b; }
+  .rdbtn.mini.del{ background:transparent; color:#b9b0a4; }
+  .rdbtn.mini.del:hover{ color:var(--bad); background:#f8e6e2; }
+  .rdbtn.mini.del[data-armed]{ background:var(--bad); color:#fff; }
 
-  /* ===== 统计 ===== */
-  .stats{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; padding:14px 16px 2px; }
-  .stat{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:11px 13px;
-         display:flex; flex-direction:column; gap:1px; }
-  .stat b{ font-size:22px; font-weight:700; letter-spacing:.4px; font-variant-numeric:tabular-nums; line-height:1.25; }
-  .stat span{ font-size:11.5px; color:var(--sub); }
-  .stat.hl b{ color:var(--accent); }
+  /* ===== 示范提示 ===== */
+  .rdnotice{ display:none; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 16px 0;
+             padding:10px 14px; background:#fbf1e5; border:1px solid #eddac0; border-radius:12px;
+             font-size:12.5px; color:#7a6046; }
+  .rdnotice.show{ display:flex; }
+  .rdnotice span{ flex:1; min-width:180px; }
 
   /* ===== 筛选行 ===== */
-  .rdtools{ display:flex; align-items:center; gap:8px; padding:13px 16px 4px; flex-wrap:wrap; }
-  .chiprow{ display:flex; gap:6px; flex-wrap:wrap; }
-  .chip{ border:1px solid var(--line); background:var(--card); color:var(--sub); border-radius:999px;
-         padding:5px 13px; font-size:12.5px; cursor:pointer; transition:.14s; white-space:nowrap; }
-  .chip:hover{ border-color:var(--accent); color:var(--accent); }
-  .chip.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
-  .chip .n{ opacity:.62; margin-left:3px; font-size:11px; }
-  .search{ margin-left:auto; border:1px solid var(--line); background:var(--card); border-radius:10px;
-           padding:7px 12px; font-size:13px; min-width:160px; color:var(--ink); outline:none; }
-  .search:focus{ border-color:var(--accent); }
+  .rdtools{ display:flex; align-items:center; gap:8px 14px; padding:12px 16px 2px; flex-wrap:wrap; }
+  .rdchipline{ display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+  .rdchipline > em{ font-style:normal; font-size:11px; color:#aaa195; margin-right:2px; white-space:nowrap; }
+  .rdchip{ border:1px solid var(--line); background:var(--paper); color:var(--sub); border-radius:999px;
+           padding:4px 11px; font-size:12px; cursor:pointer; transition:.14s; white-space:nowrap; line-height:1.6; }
+  .rdchip:hover{ border-color:var(--accent); color:var(--accent); }
+  .rdchip.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
+  .rdchip .n{ opacity:.65; margin-left:3px; font-size:10.5px; }
+  .rdcount{ font-size:11.5px; color:var(--sub); margin-left:auto; white-space:nowrap; }
+  .rdlookmobile{ display:none; }
 
-  /* ===== 书架 ===== */
-  .shelf{ display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:12px; padding:10px 16px 44px; }
-  .bcard{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:13px;
-          display:flex; gap:12px; cursor:pointer; transition:.16s; position:relative; overflow:hidden; }
-  .bcard:hover{ border-color:#dccbb6; box-shadow:0 6px 20px rgba(58,54,49,.06); }
-  .cov{ width:54px; height:74px; border-radius:6px; flex:none; display:flex; align-items:center; justify-content:center;
-        color:#fff; font-size:20px; font-weight:700; position:relative; overflow:hidden;
-        box-shadow:0 2px 6px rgba(58,54,49,.18); }
-  .cov::after{ content:''; position:absolute; left:0; top:0; bottom:0; width:6px; background:rgba(0,0,0,.13); }
-  .cov span{ position:relative; z-index:1; text-shadow:0 1px 2px rgba(0,0,0,.16); }
-  .bmain{ flex:1; min-width:0; display:flex; flex-direction:column; }
-  .bline{ display:flex; align-items:baseline; gap:7px; }
-  .btitle{ font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto; }
-  .pill{ font-size:10.5px; padding:1px 8px; border-radius:999px; flex:none; line-height:1.7; }
-  .pill.wish{ background:#eef1f6; color:#61748c; }
-  .pill.reading{ background:#f9e8db; color:#a9623c; }
-  .pill.done{ background:#e6f2ec; color:#33795b; }
-  .pill.drop{ background:#f0ece6; color:#8a837a; }
-  .bmeta{ font-size:11.5px; color:var(--sub); margin-top:2px; }
-  .prog{ height:5px; background:#efe9de; border-radius:3px; overflow:hidden; margin:8px 0 6px; }
-  .prog i{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,#cf9a75,#b8714e); transition:width .3s; }
-  .bmeta2{ font-size:11.5px; color:var(--sub); font-variant-numeric:tabular-nums; }
-  .bquote{ font-size:12px; color:#6d6255; margin-top:5px; padding-left:8px; border-left:2px solid var(--mark);
-           display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .bacts{ display:flex; gap:6px; margin-top:auto; padding-top:9px; }
-  .mini{ border:1px solid transparent; background:var(--mark); color:var(--accent); border-radius:8px;
-         padding:3px 10px; font-size:11.5px; cursor:pointer; white-space:nowrap; }
-  .mini:hover{ border-color:#e0c9b2; }
-  .mini.ok{ background:#e6f2ec; color:#33795b; }
-  .mini.del{ background:transparent; color:#b9b0a4; padding:3px 6px; }
-  .mini.del:hover{ color:var(--bad); background:#f8e6e2; }
-  .mini.del[data-armed]{ background:var(--bad); color:#fff; padding:3px 10px; }
+  .rdpill{ font-size:10.5px; padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.7; }
+  .rdpill.wish{ background:#eef1f6; color:#61748c; }
+  .rdpill.reading{ background:#f9e8db; color:#a9623c; }
+  .rdpill.done{ background:#e6f2ec; color:#33795b; }
+  .rdpill.drop{ background:#f0ece6; color:#8a837a; }
+  .rdempty{ color:var(--sub); font-size:13px; padding:36px 16px; text-align:center; }
+  .rdempty b{ display:block; color:var(--ink); font-size:15px; margin-bottom:5px; }
+  .rdhint{ font-size:11.5px; color:var(--sub); padding:2px 16px 34px; line-height:1.7; }
+
+  /* ===== 正在读 ===== */
+  .rdnowwrap{ padding:14px 16px 2px; }
+  .rdnowhead{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px; }
+  .rdnowhead b{ font-size:13.5px; }
+  .rdnowhead span{ font-size:11.5px; color:var(--sub); }
+  .rdnow{ display:grid; grid-template-columns:repeat(auto-fill,minmax(285px,1fr)); gap:10px; }
+  .rdnowbk{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:11px 12px;
+            display:flex; gap:10px; cursor:pointer; transition:.16s; }
+  .rdnowbk:hover{ border-color:#dccbb6; box-shadow:0 4px 14px rgba(58,54,49,.06); }
+  .rdnowbk .rdcov{ width:40px; height:56px; font-size:16px; }
+  .rdnowinfo{ flex:1; min-width:0; }
+  .rdnowinfo .t{ font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rdnowinfo .m{ font-size:11px; color:var(--sub); margin-top:2px; }
+  .rdnowbk .rdacts{ margin-top:7px; }
+  .rdshelfdivider{ height:1px; background:var(--line); margin:16px 16px 0; }
+
+  /* ===== 书脊墙 ===== */
+  .rdwallbox{ padding:14px 16px 8px; }
+  .rdwallbox + .rdwallbox{ padding-top:2px; }
+  .rdwalllabel{ font-size:11.5px; color:var(--sub); margin:0 0 8px 2px; letter-spacing:.4px; }
+  .rdwall{ display:flex; flex-wrap:wrap; align-content:flex-start; gap:0 3px; padding:6px 14px 0;
+           border:1px solid #e3d6c2; border-radius:10px; overflow:hidden;
+           background:repeating-linear-gradient(to bottom,
+              #f2ebdf 0px, #f2ebdf 174px,
+              #c9a882 174px, #c9a882 182px,
+              #ab8962 182px, #ab8962 186px); }
+  .rdslot{ width:40px; height:186px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:12px; }
+  .rdspine{ width:34px; height:var(--h); border-radius:3px 3px 1px 1px; cursor:pointer; position:relative;
+            color:#fff; writing-mode:vertical-rl; text-orientation:mixed; text-align:center;
+            padding:11px 7px 9px; box-shadow:inset -4px 0 0 rgba(0,0,0,.13), inset 3px 0 0 rgba(255,255,255,.14),
+            0 2px 5px rgba(70,48,28,.22); transition:transform .16s, box-shadow .16s; overflow:hidden; }
+  .rdspine:hover{ transform:translateY(-8px); box-shadow:inset -4px 0 0 rgba(0,0,0,.13), 0 8px 14px rgba(70,48,28,.3); }
+  .rdspine::before{ content:''; position:absolute; left:4px; right:4px; top:7px; height:1px; background:rgba(255,255,255,.45); }
+  .rdspine::after{ content:''; position:absolute; left:4px; right:4px; bottom:7px; height:1px; background:rgba(255,255,255,.38); }
+  .rdspine .spt{ display:inline-block; font-size:var(--fs,12.5px); font-weight:700;
+                 letter-spacing:1px; line-height:1.3; max-height:calc(100% - 18px); overflow:hidden;
+                 text-shadow:0 1px 2px rgba(0,0,0,.28); white-space:nowrap; }
+  .rdspine .spa{ display:inline-block; font-size:8.5px; opacity:.8; margin-right:3px; max-height:56px;
+                 overflow:hidden; white-space:nowrap; }
+  .rdspine .spdot{ position:absolute; bottom:4px; left:50%; transform:translateX(-50%); width:5px; height:5px;
+                   border-radius:50%; background:rgba(255,255,255,.8); }
+  .rdspine.undone{ filter:saturate(.72); }
+
+  /* ===== 卡片网格 ===== */
+  .rdgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:12px; padding:12px 16px 8px; align-items:stretch; }
+  .rdbk{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:13px;
+         display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:.16s; min-height:184px; }
+  .rdbk:hover{ border-color:#dccbb6; box-shadow:0 6px 20px rgba(58,54,49,.07); transform:translateY(-2px); }
+  .rdbktop{ display:flex; gap:11px; }
+  .rdcov{ width:50px; height:70px; border-radius:5px; flex:none; display:flex; align-items:center; justify-content:center;
+          color:#fff; font-size:19px; font-weight:700; position:relative; overflow:hidden;
+          box-shadow:0 2px 6px rgba(58,54,49,.18); }
+  .rdcov::after{ content:''; position:absolute; left:0; top:0; bottom:0; width:6px; background:rgba(0,0,0,.14); }
+  .rdcov em{ position:relative; z-index:1; font-style:normal; text-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .rdbkinfo{ flex:1; min-width:0; }
+  .rdbktitle{ font-size:14.5px; font-weight:700; line-height:1.35; word-break:break-word;
+              display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .rdbkauthor{ font-size:11.5px; color:var(--sub); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rdbkrow{ display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .rdrate{ font-size:11px; color:#d9a441; letter-spacing:1px; }
+  .rdprog{ height:5px; background:#efe9de; border-radius:3px; overflow:hidden; }
+  .rdprog i{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,#cf9a75,#b8714e); transition:width .3s; }
+  .rdbkmeta{ font-size:11px; color:var(--sub); font-variant-numeric:tabular-nums; }
+  .rdquote{ font-size:11.5px; color:#6d6255; padding-left:8px; border-left:2px solid var(--mark); line-height:1.6;
+            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .rdacts{ display:flex; gap:5px; flex-wrap:wrap; margin-top:auto; padding-top:3px; }
+  .rddemo{ font-size:10px; color:#b08a5a; border:1px solid #e8d6ba; border-radius:6px; padding:0 5px; line-height:1.6; }
+
+  /* ===== 列表 ===== */
+  .rdlist{ padding:12px 16px 8px; }
+  .rdli{ display:grid; grid-template-columns:minmax(150px,2.2fr) 1.1fr 74px 1.1fr 60px 46px auto;
+         gap:10px; align-items:center; padding:10px 12px; background:var(--paper); border:1px solid var(--line);
+         border-radius:10px; margin-bottom:7px; font-size:12.5px; cursor:pointer; }
+  .rdli:hover{ border-color:#dccbb6; }
+  .rdli .t{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rdli .a, .rdli .m{ color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rdlihead{ display:grid; grid-template-columns:minmax(150px,2.2fr) 1.1fr 74px 1.1fr 60px 46px auto;
+             gap:10px; padding:0 12px 6px; font-size:11px; color:#aaa195; }
 
   /* ===== 笔记 ===== */
-  .notes{ display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:12px; padding:10px 16px 44px; align-items:start; }
-  .ncard{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px 15px;
-          position:relative; }
-  .ncard:hover{ border-color:#dccbb6; }
-  .nhead{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:7px; }
-  .nbook{ font-size:12px; font-weight:700; color:var(--accent); cursor:pointer; }
-  .nbook:hover{ text-decoration:underline; }
-  .nkind{ font-size:10.5px; padding:1px 7px; border-radius:999px; background:var(--mark); color:#9a7455; }
-  .nkind.think{ background:#eef1f6; color:#61748c; }
-  .nkind.line{ background:#f3ecf7; color:#7d6290; }
-  .nkind.act{ background:#e6f2ec; color:#33795b; }
-  .npg{ font-size:11px; color:var(--sub); font-variant-numeric:tabular-nums; }
-  .ntime{ font-size:11px; color:#b3aa9e; margin-left:auto; }
-  .ntext{ font-size:14.5px; line-height:1.86; color:#403a33; white-space:pre-wrap; word-break:break-word; }
-  .ntext.long{ display:-webkit-box; -webkit-line-clamp:8; -webkit-box-orient:vertical; overflow:hidden; }
-  .nmore{ background:none; border:0; color:var(--accent); font-size:12px; cursor:pointer; padding:4px 0 0; }
-  .nacts{ display:flex; gap:6px; margin-top:9px; }
-  .empty{ color:var(--sub); font-size:13px; padding:26px 4px; text-align:center; grid-column:1/-1; }
-  .empty b{ display:block; color:var(--ink); font-size:14px; margin-bottom:4px; }
+  .rdnotes{ padding:12px 16px 40px; }
+  .rdgroup{ margin-bottom:22px; }
+  .rdgrouphead{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:0 2px 9px;
+                border-bottom:1px solid var(--line); margin-bottom:11px; }
+  .rdgrouphead b{ font-size:14.5px; cursor:pointer; color:var(--accent); }
+  .rdgrouphead b:hover{ text-decoration:underline; }
+  .rdgrouphead span{ font-size:11.5px; color:var(--sub); }
+  .rdnotecards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:11px; align-items:start; }
+  .rdnote{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px; position:relative; }
+  .rdnote:hover{ border-color:#dccbb6; }
+  .rdnhead{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:8px; }
+  .rdkind{ font-size:10.5px; padding:1px 8px; border-radius:999px; background:var(--mark); color:#9a7455; }
+  .rdkind.think{ background:#eef1f6; color:#61748c; }
+  .rdkind.line{ background:#f3ecf7; color:#7d6290; }
+  .rdkind.act{ background:#e6f2ec; color:#33795b; }
+  .rdpg{ font-size:11px; color:var(--sub); }
+  .rdtime{ font-size:11px; color:#b3aa9e; margin-left:auto; }
+  .rdntext{ font-size:14px; line-height:1.85; color:#403a33; white-space:pre-wrap; word-break:break-word; }
+  .rdntext.long{ display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; }
+  .rdtags{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
+  .rdtag{ font-size:10.5px; color:#8a6a4d; background:#f7efe5; border-radius:6px; padding:1px 7px; }
+  .rdnacts{ display:flex; gap:5px; margin-top:9px; flex-wrap:wrap; }
 
-  /* ===== 弹层（固定头 + 限高 + 内部滚动） ===== */
-  .mask{ position:fixed; inset:0; background:rgba(40,30,20,.44); display:none; z-index:60;
-         align-items:flex-end; justify-content:center; }
-  .mask.show{ display:flex; }
-  .rdpanel{ background:var(--bg); width:100%; max-width:660px; max-height:calc(100dvh - 20px);
-          display:flex; flex-direction:column; border-radius:18px 18px 0 0; overflow:hidden;
-          box-shadow:0 -6px 40px rgba(40,30,20,.24); animation:up .2s ease; }
-  @keyframes up{ from{ transform:translateY(26px); opacity:.5; } to{ transform:none; opacity:1; } }
-  .phead{ flex:none; display:flex; align-items:center; justify-content:space-between;
-          padding:13px 16px; border-bottom:1px solid var(--line); background:var(--bg); }
-  .phead b{ font-size:15px; letter-spacing:.5px; }
-  .x{ border:0; background:transparent; font-size:17px; color:var(--sub); cursor:pointer; padding:2px 6px; line-height:1; }
-  .x:hover{ color:var(--accent); }
-  .pbody{ flex:1; min-height:0; overflow-y:auto; padding:14px 16px 18px; -webkit-overflow-scrolling:touch; }
-  .pfoot{ flex:none; display:flex; gap:8px; padding:11px 16px; border-top:1px solid var(--line);
-          background:var(--bg); }
-  .pfoot .btn{ flex:1; padding:10px 0; text-align:center; font-size:14px; }
+  /* ===== 统计 ===== */
+  .rdstats{ padding:14px 16px 40px; }
+  .rdkpis{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+  .rdkpi{ background:var(--paper); border:1px solid var(--line); border-radius:13px; padding:12px 13px; }
+  .rdkpi b{ display:block; font-size:23px; font-weight:700; line-height:1.25; font-variant-numeric:tabular-nums; }
+  .rdkpi span{ font-size:11.5px; color:var(--sub); }
+  .rdkpi.hl b{ color:var(--accent); }
+  .rdcard2{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:15px 17px; margin-bottom:14px; }
+  .rdcard2 h3{ margin:0 0 3px; font-size:14.5px; }
+  .rdcard2 .sub{ font-size:11.5px; color:var(--sub); margin-bottom:12px; }
+  .rdgoalrow{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .rdgoalrow b{ font-size:27px; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .rdgoalrow span{ font-size:12.5px; color:var(--sub); }
+  .rdgoalbar{ height:12px; background:#efe9de; border-radius:7px; overflow:hidden; }
+  .rdgoalbar i{ display:block; height:100%; border-radius:7px; background:linear-gradient(90deg,#d9a878,#b8714e); transition:width .4s; }
+  .rdbars{ display:flex; align-items:flex-end; gap:6px; height:130px; padding-top:8px; }
+  .rdbars .col{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px; }
+  .rdbars .col i{ display:block; width:100%; max-width:38px; border-radius:5px 5px 0 0;
+                  background:linear-gradient(180deg,#cf9a75,#b8714e); min-height:2px; transition:height .3s; }
+  .rdbars .col span{ font-size:10px; color:var(--sub); white-space:nowrap; }
+  .rdbars .col em{ font-style:normal; font-size:10px; color:#a89a88; }
+  .rdtwocol{ display:grid; grid-template-columns:1.5fr 1fr; gap:14px; }
+  .rdtwocol > *{ min-width:0; }
+  .rdcard2{ min-width:0; }
+  .rdcalwrap{ overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
+  .rdcal{ display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,11px); gap:3px; width:max-content; }
+  .rdtile{ width:11px; height:11px; border-radius:2px; background:#eee8dd; }
+  .rdtile[data-l="1"]{ background:#ecd9c3; }
+  .rdtile[data-l="2"]{ background:#dcb595; }
+  .rdtile[data-l="3"]{ background:#c68f65; }
+  .rdtile[data-l="4"]{ background:#a7603c; }
+  .rdcallegend{ display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--sub); margin-top:10px; }
+  .rddist{ display:flex; flex-direction:column; gap:9px; }
+  .rddist .d{ display:grid; grid-template-columns:52px 1fr 26px; gap:8px; align-items:center; font-size:11.5px; }
+  .rddist .d .bar{ height:8px; background:#efe9de; border-radius:5px; overflow:hidden; }
+  .rddist .d .bar i{ display:block; height:100%; background:#c99065; border-radius:5px; }
+  .rddist .d .n{ color:var(--sub); text-align:right; font-variant-numeric:tabular-nums; }
+  .rdtoplist{ display:flex; flex-direction:column; gap:0; }
+  .rdtoplist .li{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:12.5px; }
+  .rdtoplist .li:last-child{ border-bottom:0; }
+  .rdtoplist .li b{ flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rdtoplist .li .r{ color:#d9a441; font-size:11px; letter-spacing:1px; }
+  .rdtoplist .li .p{ font-size:10.5px; color:var(--sub); }
+  .rdmonths{ display:flex; flex-direction:column; gap:0; }
+  .rdmonth{ border-bottom:1px dashed var(--line); padding:9px 0; }
+  .rdmonth:last-child{ border-bottom:0; }
+  .rdmonth > span{ font-size:12px; font-weight:700; color:var(--accent); }
+  .rdmonth .books{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .rdmonth .books i{ font-style:normal; font-size:11.5px; background:#f6efe6; border-radius:7px; padding:3px 9px; cursor:pointer; }
+  .rdmonth .books i:hover{ background:#eddcc7; }
 
-  .fld{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-  .fld > span{ font-size:11.5px; color:var(--sub); letter-spacing:.3px; }
-  .fld input, .fld textarea, .fld select{ width:100%; border:1px solid var(--line); background:var(--card);
-          border-radius:10px; padding:9px 11px; font-family:inherit; font-size:14px; color:var(--ink); outline:none; }
-  .fld input:focus, .fld textarea:focus, .fld select:focus{ border-color:var(--accent); }
-  .fld textarea{ resize:vertical; line-height:1.7; }
-  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .stars{ display:flex; gap:3px; font-size:23px; line-height:1; color:#ded3c3; user-select:none; }
-  .stars i{ font-style:normal; cursor:pointer; transition:.12s; }
-  .stars i.on{ color:#d9a441; }
-  .pickrow{ display:flex; gap:6px; flex-wrap:wrap; }
-  .pickrow .chip{ padding:5px 14px; }
+  /* ===== 弹层：固定头 + 限高 + 内层滚动 ===== */
+  .rdmask{ position:fixed; inset:0; background:rgba(40,30,20,.46); display:none; z-index:60;
+           align-items:flex-end; justify-content:center; }
+  .rdmask.show{ display:flex; }
+  .rdpanel{ background:var(--bg); width:100%; max-width:720px; max-height:calc(100dvh - 20px);
+            display:flex; flex-direction:column; border-radius:18px 18px 0 0; overflow:hidden;
+            box-shadow:0 -6px 40px rgba(40,30,20,.24); animation:rdup .2s ease; }
+  @keyframes rdup{ from{ transform:translateY(24px); opacity:.5; } to{ transform:none; opacity:1; } }
+  .rdhead{ flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px;
+           padding:12px 16px; border-bottom:1px solid var(--line); background:var(--bg); }
+  .rdhead b{ font-size:15px; }
+  .rdhead .x{ border:0; background:transparent; font-size:19px; color:var(--sub); cursor:pointer; padding:2px 7px; line-height:1; }
+  .rdhead .x:hover{ color:var(--accent); }
+  .rdbody{ flex:1; min-height:0; overflow-y:auto; padding:14px 16px 18px; -webkit-overflow-scrolling:touch; }
+  .rdfoot{ flex:none; display:flex; gap:8px; padding:10px 16px; border-top:1px solid var(--line); background:var(--bg); }
+  .rdfoot .rdbtn{ flex:1; padding:9px 0; text-align:center; font-size:14px; }
+  .rdfld{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+  .rdfld > span{ font-size:11.5px; color:var(--sub); letter-spacing:.3px; }
+  .rdfld input, .rdfld textarea, .rdfld select{ width:100%; border:1px solid var(--line); background:var(--paper);
+          border-radius:10px; padding:9px 11px; font-size:14px; color:var(--ink); outline:none; }
+  .rdfld input:focus, .rdfld textarea:focus, .rdfld select:focus{ border-color:var(--accent); }
+  .rdfld textarea{ resize:vertical; line-height:1.7; }
+  .rdrow2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rdpick{ display:flex; gap:6px; flex-wrap:wrap; }
+  .rdstars{ display:flex; gap:4px; font-size:24px; line-height:1; color:#ded3c3; user-select:none; }
+  .rdstars i{ font-style:normal; cursor:pointer; transition:.12s; }
+  .rdstars i.on{ color:#d9a441; }
+  .rddetailhead{ display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+  .rdsec{ margin:16px 0 8px; font-size:12px; color:var(--sub); border-bottom:1px solid var(--line); padding-bottom:5px; }
+  .rdkv{ display:grid; grid-template-columns:74px 1fr; gap:5px 10px; font-size:12.5px; margin-bottom:10px; }
+  .rdkv > span{ color:var(--sub); }
+  .rdquick{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .rdlogline{ display:flex; gap:8px; font-size:12px; color:var(--sub); padding:4px 0; border-bottom:1px dashed var(--line); }
+  .rdlogline b{ color:var(--ink); font-weight:600; }
+  .rdmininote{ background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:12.5px; }
+  .rdmininote .h{ font-size:10.5px; color:var(--sub); margin-bottom:4px; }
+  .rdmininote .t{ white-space:pre-wrap; line-height:1.7; }
+  .rdtoast{ position:fixed; left:50%; top:62px; transform:translateX(-50%) translateY(-10px);
+            background:#3a2c1f; color:#fff; padding:10px 15px; border-radius:12px; font-size:13px;
+            box-shadow:0 10px 28px rgba(0,0,0,.22); z-index:90; opacity:0; pointer-events:none;
+            transition:.24s; max-width:92vw; }
+  .rdtoast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* toast */
-  .toast{ position:fixed; left:50%; top:64px; transform:translateX(-50%) translateY(-10px);
-          background:#3a2c1f; color:#fff; padding:10px 15px; border-radius:12px; font-size:13px;
-          box-shadow:0 10px 28px rgba(0,0,0,.22); z-index:80; opacity:0; pointer-events:none;
-          transition:.24s; max-width:92vw; }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-  .hint{ font-size:12px; color:var(--sub); padding:0 16px 30px; line-height:1.7; }
-
-  @media (max-width:860px){
-    .stats{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  @media (max-width:1000px){
+    .rdkpis{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .rdtwocol{ grid-template-columns:1fr; }
+    .rdli, .rdlihead{ grid-template-columns:minmax(130px,2fr) 1fr 70px 1fr 52px; }
+    .rdli .rate, .rdli .notes, .rdlihead .rate, .rdlihead .notes{ display:none; }
   }
   @media (max-width:640px){
-    .rdbar{ padding:9px 12px; gap:8px; }
-    .row2.st{ grid-template-columns:1fr; }
-    .stats{ padding:12px 12px 0; gap:8px; }
-    .stat{ padding:9px 11px; }
-    .stat b{ font-size:19px; }
-    .rdtools{ padding:11px 12px 0; }
-    .search{ margin-left:0; width:100%; }
-    .shelf, .notes{ grid-template-columns:1fr; padding:10px 12px 40px; gap:10px; }
-    .cov{ width:46px; height:64px; font-size:17px; }
-    .hint{ padding:0 12px 26px; }
-    .btn{ padding:7px 11px; font-size:12.5px; }
+    .rdbar{ padding:8px 12px; gap:6px; }
+    .rdsearch{ width:100%; order:-1; }
+    .rdspace{ display:none; }
+    .rdseg button{ padding:6px 11px; font-size:12.5px; }
+    .rdlook button{ padding:5px 7px; font-size:11px; }
+    .rdbtn{ padding:7px 10px; font-size:12.5px; }
+    .rdtools{ padding:10px 12px 0; }
+    .rdlookmobile{ display:flex; }
+    .rdbar .rdlook{ display:none !important; }
+    .rdcount{ width:100%; margin-left:0; }
+    .rdnotice{ margin:11px 12px 0; }
+    .rdwallbox, .rdgrid, .rdlist, .rdnotes, .rdstats{ padding-left:12px; padding-right:12px; }
+    .rdgrid, .rdnotecards{ grid-template-columns:1fr; }
+    .rdkpis{ gap:8px; }
+    .rdkpi{ padding:10px 11px; }
+    .rdkpi b{ font-size:20px; }
+    .rdslot{ width:35px; }
+    .rdspine{ width:30px; }
+    .rdspine .spt{ font-size:11.5px; }
+    .rdrow2{ grid-template-columns:1fr; }
+    .rdli, .rdlihead{ grid-template-columns:1fr 66px 1fr; }
+    .rdli .a, .rdli .rate, .rdli .notes, .rdli .act,
+    .rdlihead .a, .rdlihead .rate, .rdlihead .notes, .rdlihead .act{ display:none; }
+    .rdhint{ padding:2px 12px 30px; }
   }
   @media (min-width:700px){
-    .mask{ align-items:center; }
+    .rdmask{ align-items:center; }
     .rdpanel{ border-radius:16px; max-height:calc(100dvh - 60px); }
   }
 </style>
 </head>
-<body>
+<body class="rdapp">
 <script>
-/* 工作台级云同步桥接（与周计划同款） */
+/* 工作台云同步桥：localStorage 写入即通知外壳 */
 (function(){
   try{ if(!window.__wbStorageHooked){ var _oS=Storage.prototype.setItem, _oR=Storage.prototype.removeItem;
     Storage.prototype.setItem=function(k,v){ var r=_oS.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
     Storage.prototype.removeItem=function(k){ var r=_oR.apply(this,arguments); try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){} return r; };
     window.__wbStorageHooked=true; } }catch(e){}
-  function _editing(){
-    var a=document.activeElement;
-    if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable)) return true;
-    return false;
-  }
+  function _editing(){ var a=document.activeElement; return !!(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable)); }
   window.addEventListener('message',function(e){
     if(!e.data) return;
     if(e.data.type==='wb-reload'){ if(_editing()) return; try{ location.reload(); }catch(err){} }
     else if(e.data.type==='wb-request-save'){ try{ if(window.__savePage) window.__savePage(); }catch(err){} }
   });
-  window.__savePage=function(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); try{ window.parent.postMessage({type:'wb-saved',msg:'已保存（自动保存）'},'*'); }catch(e){} };
+  window.__savePage=function(){ if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    try{ window.parent.postMessage({type:'wb-saved',msg:'已保存（自动保存）'},'*'); }catch(e){} };
 })();
 </script>
 
 <div class="rdbar">
-  <div class="seg" id="seg">
-    <button class="segb on" data-v="shelf">书架</button>
-    <button class="segb" data-v="notes">笔记</button>
+  <input class="rdsearch" id="rdSearch" placeholder="找书名、作者、笔记…" autocomplete="off">
+  <div class="rdspace"></div>
+  <div class="rdlook" id="rdLook">
+    <button data-act="look" data-v="wall" class="on">书脊</button>
+    <button data-act="look" data-v="grid">卡片</button>
+    <button data-act="look" data-v="list">列表</button>
   </div>
-  <div class="spacer"></div>
-  <button class="btn" id="btnAddNote">＋ 写笔记</button>
-  <button class="btn acc" id="btnAddBook">＋ 新增书</button>
+  <div class="rdseg" id="rdSeg">
+    <button data-act="view" data-v="shelf" class="on">书架</button>
+    <button data-act="view" data-v="notes">笔记</button>
+    <button data-act="view" data-v="stats">统计</button>
+  </div>
+  <button class="rdbtn" data-act="addbook">＋ 添书</button>
+  <button class="rdbtn acc" data-act="log">＋ 记一页</button>
 </div>
 
-<div class="stats" id="stats"></div>
-
-<div id="vShelf">
-  <div class="rdtools">
-    <div class="chiprow" id="statusChips"></div>
-    <input class="search" id="qShelf" placeholder="搜书名 / 作者">
-  </div>
-  <div class="shelf" id="shelf"></div>
+<div class="rdnotice" id="rdNotice">
+  <span>这是一份示范书架，先看看能做什么。开始用自己的时候，一键清空就好。</span>
+  <button class="rdbtn mini" data-act="cleardemo">清空示范</button>
 </div>
 
-<div id="vNotes" style="display:none">
-  <div class="rdtools">
-    <div class="chiprow" id="bookChips"></div>
-    <input class="search" id="qNote" placeholder="搜笔记 / 书名">
-  </div>
-  <div class="notes" id="noteList"></div>
-</div>
+<div class="rdtools" id="rdTools"></div>
+<div id="rdMain"></div>
+<div class="rdhint" id="rdHint"></div>
 
-<div class="hint" id="hint">点书卡可编辑 · 点「读完」会自动记下今天为读完日 · 笔记可归属到具体某本书</div>
-
-<!-- 书：新增 / 编辑 -->
-<div class="mask" id="mBook">
+<div class="rdmask" id="rdMask">
   <div class="rdpanel">
-    <div class="phead"><b id="bTitle">新增书</b><button class="x" data-close>✕</button></div>
-    <div class="pbody">
-      <label class="fld"><span>书名 *</span><input id="f_title" placeholder="写到书名号里的那部分" maxlength="80"></label>
-      <div class="row2 st">
-        <label class="fld"><span>作者</span><input id="f_author" placeholder="可留空" maxlength="40"></label>
-        <div class="fld"><span>状态</span>
-          <div class="pickrow" id="f_status"></div>
-        </div>
-      </div>
-      <div class="row2">
-        <label class="fld"><span>总页数</span><input id="f_total" type="number" min="0" placeholder="如 320"></label>
-        <label class="fld"><span>已读到第几页</span><input id="f_done" type="number" min="0" placeholder="如 120"></label>
-      </div>
-      <div class="row2">
-        <label class="fld"><span>开始日期</span><input id="f_start" type="date"></label>
-        <label class="fld"><span>读完日期</span><input id="f_finish" type="date"></label>
-      </div>
-      <div class="fld"><span>评分</span><div class="stars" id="f_stars"></div></div>
-      <label class="fld"><span>一句话印象</span><textarea id="f_note" rows="2" placeholder="读完最想留下的那句话（可留空）" maxlength="200"></textarea></label>
-    </div>
-    <div class="pfoot">
-      <button class="btn" data-close>取消</button>
-      <button class="btn acc" id="bSave">保存</button>
-    </div>
+    <div class="rdhead"><b id="rdHeadT">详情</b><button class="x" data-act="close">✕</button></div>
+    <div class="rdbody" id="rdBody"></div>
+    <div class="rdfoot" id="rdFoot"></div>
   </div>
 </div>
-
-<!-- 笔记：新增 / 编辑 -->
-<div class="mask" id="mNote">
-  <div class="rdpanel">
-    <div class="phead"><b id="nTitle">写笔记</b><button class="x" data-close>✕</button></div>
-    <div class="pbody">
-      <label class="fld"><span>属于哪本书 *</span><select id="n_book"></select></label>
-      <div class="row2">
-        <div class="fld"><span>类型</span><div class="pickrow" id="n_kind"></div></div>
-        <label class="fld"><span>页码 / 位置</span><input id="n_page" placeholder="如 128 或 第三章" maxlength="20"></label>
-      </div>
-      <label class="fld"><span>内容 *</span><textarea id="n_text" rows="7" placeholder="摘抄原文，或写下此刻的想法…"></textarea></label>
-    </div>
-    <div class="pfoot">
-      <button class="btn" data-close>取消</button>
-      <button class="btn acc" id="nSave">保存</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div class="rdtoast" id="rdToast"></div>
 
 <script>
-/* ============ 数据层 ============ */
-var KB='READ_BOOKS_V1', KN='READ_NOTES_V1';
-var PAL=['#b8714e','#5b8c7b','#8a6f9e','#c08a3e','#6b7f99','#a85b5b','#7a8a5b','#9b7263'];
-var ST={ wish:['想读','wish'], reading:['在读','reading'], done:['读完','done'], drop:['弃读','drop'] };
-var KINDS=[['quote','摘抄',''],['think','想法','think'],['line','金句','line'],['act','行动','act']];
-var ORD={ reading:0, wish:1, done:2, drop:3 };
+/* ==================== 数据层 ==================== */
+var KB='READ_BOOKS_V1', KN='READ_NOTES_V1', KL='READ_LOGS_V1', KG='READ_GOAL_V1';
+var KV='READ_VIEW', KS='READ_SHELF_VIEW';
+var STATUS={ wish:'想读', reading:'在读', done:'读完', drop:'弃读' };
+var STATUS_ORDER=['wish','reading','done','drop'];
+var CATS=['文学','心理','历史','社科','商业','科技','艺术','生活','其他'];
+var KINDS={ quote:'摘抄', think:'想法', line:'金句', act:'行动' };
+var KIND_ORDER=['quote','think','line','act'];
+var TAGS=['关系','自我','成长','思考','情绪','习惯','写作','世界观'];
+var SPINE_COLORS=['#8c5a3c','#a8704a','#6f7a68','#7b6a8a','#b08a4e','#5b6b7a','#9a5b4a','#4e5d52','#bb8a5c','#7a5b46','#6d6a86','#94734f'];
+
+var BOOKS=[], NOTES=[], LOGS=[], GOAL=24;
+var S={ view:'shelf', look:'wall', status:'all', cat:'all', q:'', noteBook:'all', noteKind:'all', noteTag:'all' };
+var DRAFT={};
+var ARMED={};
 
 function jget(k){ try{ var a=JSON.parse(localStorage.getItem(k)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-var BOOKS=jget(KB), NOTES=jget(KN);
-
-function live(list){ return list.filter(function(x){ return x && !x.deleted; }); }
-function persist(k,arr){ try{ localStorage.setItem(k, JSON.stringify(arr)); }
-  catch(e){ toast('保存失败：'+(e&&e.message||'存储空间不足')); } }
-
+function jset(k,a){ try{ localStorage.setItem(k,JSON.stringify(a)); }catch(e){ toast('本机存储写入失败'); } }
+function live(a){ return a.filter(function(x){ return x && !x.deleted; }); }
 function uid(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function num(v){ var n=parseInt(v,10); return isNaN(n)||n<0?0:n; }
-function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
-  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function todayStr(d){ d=d||new Date(); var m=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2);
-  return d.getFullYear()+'-'+m+'-'+dd; }
-function fmtDate(s){ if(!s) return ''; var p=String(s).split('-'); return p.length===3 ? (parseInt(p[1],10)+'月'+parseInt(p[2],10)+'日') : s; }
-function firstChar(t){ t=String(t||'').replace(/^[《「『（(【\s]+/,''); return t.charAt(0)||'书'; }
-function grad(id){
-  var h=0; for(var i=0;i<String(id).length;i++){ h=(h*31+String(id).charCodeAt(i))>>>0; }
-  var a=PAL[h%PAL.length], b=PAL[(h>>3)%PAL.length];
-  return 'linear-gradient(135deg,'+a+','+b+')';
-}
-function progress(b){
-  var t=num(b.total), d=num(b.done);
-  if(t>0) return Math.max(0,Math.min(100,Math.round(d/t*100)));
-  return b.status==='done'?100:0;
-}
-function bookById(id){ for(var i=0;i<BOOKS.length;i++){ if(BOOKS[i].id===id) return BOOKS[i]; } return null; }
+function num(v){ var n=parseInt(v,10); return (isNaN(n)||n<0)?0:n; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function $(id){ return document.getElementById(id); }
+function dstr(d){ var m=d.getMonth()+1, day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day; }
+function today(){ return dstr(new Date()); }
+function back(n){ var d=new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()-n); return dstr(d); }
+function cnDate(s){ if(!s) return ''; var p=s.split('-'); return p.length===3?(p[1].replace(/^0/,'')+'月'+p[2].replace(/^0/,'')+'日'):s; }
+function hash(s){ var h=0; s=String(s||''); for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function colorOf(s){ return SPINE_COLORS[hash(s)%SPINE_COLORS.length]; }
+function heightOf(s){ return 148+(hash(s+'h')%24); }
+function pct(b){ var t=num(b.total), d=num(b.done); return t>0?Math.min(100,Math.round(d/t*100)):(b.status==='done'?100:0); }
+function rateStars(n){ n=num(n); var s=''; for(var i=1;i<=5;i++) s+=(i<=n?'★':'☆'); return s; }
+function bookById(id){ for(var i=0;i<BOOKS.length;i++) if(BOOKS[i].id===id) return BOOKS[i]; return null; }
+function bookTitle(id){ var b=bookById(id); return b?b.title:'（已移出的书）'; }
+function toast(m){ var t=$('rdToast'); t.textContent=m; t.className='rdtoast show'; clearTimeout(toast._t); toast._t=setTimeout(function(){ t.className='rdtoast'; },2200); }
+function touch(o){ o.updated=Date.now(); }
+function commit(){ jset(KB,BOOKS); jset(KN,NOTES); jset(KL,LOGS); render(); }
+function markDel(o){ o.deleted=Date.now(); o.updated=Date.now(); }
 
-/* ============ 状态 ============ */
-var S={ view:'shelf', fs:'all', q:'', nq:'', nbook:'all' };
-var editingBook=null, editingNote=null, formStatus='reading', formRating=0, formKind='quote';
-
-/* ============ 视图 ============ */
-var $=function(id){ return document.getElementById(id); };
-
-var segEl=$('seg'), statsEl=$('stats'), shelfEl=$('shelf'), noteEl=$('noteList');
-
-function setView(v){
-  S.view=v;
-  [].forEach.call(segEl.children, function(b){ b.classList.toggle('on', b.dataset.v===v); });
-  $('vShelf').style.display = (v==='shelf')?'':'none';
-  $('vNotes').style.display = (v==='notes')?'':'none';
-  $('btnAddBook').style.display = (v==='shelf')?'':'none';
-  $('btnAddNote').style.display = (v==='notes')?'':'none';
-  $('hint').textContent = (v==='shelf')
-    ? '点书卡可编辑 · 点「读完」会自动记下今天为读完日 · 笔记可归属到具体某本书'
-    : '点书名可只看这本书的笔记 · 长笔记可展开全文 · 右上角「＋ 写笔记」随时记';
-  try{ localStorage.setItem('READ_VIEW', v); }catch(e){}
-  render();
-}
-segEl.addEventListener('click', function(e){
-  var b=e.target.closest('.segb'); if(b) setView(b.dataset.v);
-});
-
-/* ---------- 统计 ---------- */
-function renderStats(){
-  var bs=live(BOOKS), ns=live(NOTES);
-  var done=0, reading=0, wish=0, yr=String(new Date().getFullYear()), yrDone=0, pages=0;
-  bs.forEach(function(b){
-    if(b.status==='done'){ done++; if(String(b.finish||'').slice(0,4)===yr) yrDone++; }
-    else if(b.status==='reading') reading++;
-    else if(b.status==='wish') wish++;
-    pages+=num(b.done);
+/* ==================== 示范内容（仅首次写入，可一键清空） ==================== */
+function seedDemo(){
+  if(localStorage.getItem(KB)!==null || localStorage.getItem(KN)!==null || localStorage.getItem(KL)!==null) return;
+  var ts=Date.now();
+  var base=[
+    ['活着','余华','文学','作家出版社',191,'done',5,191,['3','3'],'人是为活着本身而活着，而不是为了活着之外的任何事物而活着。'],
+    ['百年孤独','加西亚·马尔克斯','文学','南海出版公司',360,'done',5,360,['42','42'],'七代人，一个家族，一座小镇，最后都被风刮走了。'],
+    ['人类简史','尤瓦尔·赫拉利','历史','中信出版社',440,'done',4,440,['118','118'],'虚构故事让大批陌生人能够灵活合作，这是智人胜出的关键。'],
+    ['小王子','圣埃克苏佩里','文学','人民文学出版社',96,'done',5,96,['8','8'],'只有用心才能看清，真正重要的东西，用眼睛是看不见的。'],
+    ['月亮与六便士','毛姆','文学','上海译文出版社',304,'done',4,304,['76','76'],'满地都是六便士，他却抬头看见了月亮。'],
+    ['悉达多','黑塞','文学','上海人民出版社',160,'done',5,160,['21','21'],'知识可以传授，但智慧不能。'],
+    ['蛤蟆先生去看心理医生','罗伯特·戴博德','心理','天津人民出版社',200,'done',4,200,['55','55'],'处在「儿童自我状态」里的人，会把情绪的责任交出去。'],
+    ['被讨厌的勇气','岸见一郎 · 古贺史健','心理','机械工业出版社',296,'reading',4,168,['96','0'],'所谓的自由，就是被别人讨厌。'],
+    ['思考，快与慢','丹尼尔·卡尼曼','心理','中信出版社',424,'reading',0,132,['150','0'],'系统一快而直觉，系统二慢而费力，两个系统一直在轮流掌舵。'],
+    ['乡土中国','费孝通','社科','生活·读书·新知三联书店',168,'reading',0,46,['180','0'],'差序格局：以自己为中心，一圈一圈推出去的亲疏关系。'],
+    ['万历十五年','黄仁宇','历史','中华书局',288,'wish',0,0,['0','0'],''],
+    ['置身事内','兰小欢','社科','上海人民出版社',340,'wish',0,0,['0','0'],'']
+  ];
+  BOOKS=base.map(function(b,i){
+    return { id:'demo_b'+i, updated:ts-i, sample:1, title:b[0], author:b[1], cat:b[2], pub:b[3],
+      total:b[4], status:b[5], rate:b[6], done:b[7], start:b[8][0]==='0'?'':back(num(b[8][0])+12),
+      finish:b[5]==='done'?back(num(b[8][1])):'', quote:b[9], note:'' };
   });
-  statsEl.innerHTML=
-    '<div class="stat hl"><b>'+bs.length+'</b><span>书架总册数</span></div>'+
-    '<div class="stat"><b>'+done+'</b><span>已读完</span></div>'+
-    '<div class="stat"><b>'+reading+'</b><span>在读</span></div>'+
-    '<div class="stat"><b>'+wish+'</b><span>想读</span></div>'+
-    '<div class="stat"><b>'+yrDone+'</b><span>'+yr+' 年读完</span></div>'+
-    '<div class="stat"><b>'+ns.length+'</b><span>笔记条数</span></div>';
+  var nb=[
+    [0,'quote','','「人是为活着本身而活着的，而不是为活着之外的任何事物而活着。」','关系,世界观','3'],
+    [3,'quote','','「只有用心才能看清，真正重要的东西，用眼睛是看不见的。」','关系,自我','8'],
+    [7,'line','','「所谓的自由，就是被别人讨厌。」','自我,关系','96'],
+    [7,'think','','课题分离最难的不是分清「这是谁的事」，而是忍住不去替别人着急。','自我,情绪','34'],
+    [8,'act','','做重要决定前，先写下三条「我可能错在哪」，把系统二叫醒。','思考,习惯','150'],
+    [5,'quote','','「知识可以传授，但智慧不能。」—— 得自己走过一遍才算数。','成长,世界观','21'],
+    [2,'think','','农业革命像是「史上最大的一桩骗局」：小麦驯化了人，不是人驯化了小麦。','世界观,思考','118']
+  ];
+  NOTES=nb.map(function(n,i){
+    return { id:'demo_n'+i, updated:ts-i, sample:1, bookId:'demo_b'+n[0], kind:n[1], page:n[2]||n[5],
+      text:n[3], tags:n[4].split(','), date:back(num(n[5])>300?60:num(n[5])), note:'' };
+  });
+  /* 近 320 天的阅读打卡，确定性伪随机，让月度柱状图和日历有真实形状 */
+  var rnd=function(i){ var x=Math.sin(i*12.9898+4.1)*43758.5453; return x-Math.floor(x); };
+  LOGS=[];
+  for(var i=0;i<320;i++){
+    if(rnd(i)>0.58) continue;
+    var pick=Math.floor(rnd(i+777)*9);
+    LOGS.push({ id:'demo_l'+i, updated:ts-i, sample:1, bookId:'demo_b'+pick,
+      date:back(i), pages:8+Math.floor(rnd(i+31)*44), minutes:15+Math.floor(rnd(i+91)*55) });
+  }
+  jset(KB,BOOKS); jset(KN,NOTES); jset(KL,LOGS);
+  try{ if(localStorage.getItem(KG)===null) localStorage.setItem(KG,'24'); }catch(e){}
 }
 
-/* ---------- 书架 ---------- */
-function renderStatusChips(){
-  var bs=live(BOOKS);
-  var cnt={ all:bs.length, reading:0, done:0, wish:0, drop:0 };
-  bs.forEach(function(b){ if(cnt[b.status]!==undefined) cnt[b.status]++; });
-  var items=[['all','全部'],['reading','在读'],['done','读完'],['wish','想读'],['drop','弃读']];
-  $('statusChips').innerHTML=items.map(function(it){
-    var n=cnt[it[0]]||0;
-    return '<button class="chip'+(S.fs===it[0]?' on':'')+'" data-f="'+it[0]+'">'+it[1]+'<span class="n">'+n+'</span></button>';
-  }).join('');
+/* ==================== 载入 ==================== */
+function loadAll(){
+  seedDemo();
+  BOOKS=jget(KB); NOTES=jget(KN); LOGS=jget(KL);
+  try{ var g=parseInt(localStorage.getItem(KG),10); GOAL=(isNaN(g)||g<1)?24:g; }catch(e){ GOAL=24; }
+  try{ var v=localStorage.getItem(KV); if(v==='notes'||v==='stats') S.view=v; }catch(e){}
+  try{ var l=localStorage.getItem(KS); if(l==='grid'||l==='list'||l==='wall') S.look=l; }catch(e){}
+}
+function savePref(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+/* ==================== 统计计算 ==================== */
+function yearStr(){ return String(new Date().getFullYear()); }
+function finishedThisYear(){ return live(BOOKS).filter(function(b){ return b.status==='done' && b.finish && b.finish.slice(0,4)===yearStr(); }); }
+function logMap(){ var m={}; live(LOGS).forEach(function(l){ m[l.date]=(m[l.date]||0)+num(l.pages); }); return m; }
+function totalPages(){ var n=0; live(LOGS).forEach(function(l){ n+=num(l.pages); }); return n; }
+function totalMinutes(){ var n=0; live(LOGS).forEach(function(l){ n+=num(l.minutes); }); return n; }
+function streak(){ var m=logMap(), d=new Date(); d.setHours(12,0,0,0);
+  if(!m[dstr(d)]) d.setDate(d.getDate()-1);
+  var n=0; while(m[dstr(d)]){ n++; d.setDate(d.getDate()-1); if(n>400) break; } return n; }
+function monthBars(){
+  var out=[], now=new Date();
+  for(var k=11;k>=0;k--){ var d=new Date(now.getFullYear(),now.getMonth()-k,1);
+    out.push({ key:d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1), label:(d.getMonth()+1)+'月', pages:0, books:0 }); }
+  var idx={}; out.forEach(function(o,i){ idx[o.key]=i; });
+  live(LOGS).forEach(function(l){ var key=String(l.date||'').slice(0,7); if(idx[key]!==undefined) out[idx[key]].pages+=num(l.pages); });
+  finishedThisYear().forEach(function(b){ var key=String(b.finish||'').slice(0,7); if(idx[key]!==undefined) out[idx[key]].books++; });
+  return out;
+}
+function catDist(){ var m={}; live(BOOKS).forEach(function(b){ var c=b.cat||'其他'; m[c]=(m[c]||0)+1; });
+  return Object.keys(m).map(function(k){ return {k:k,n:m[k]}; }).sort(function(a,b){ return b.n-a.n; }); }
+
+/* ==================== 工具行 ==================== */
+function chipHtml(group,val,label,n,on){
+  return '<button class="rdchip'+(on?' on':'')+'" data-act="'+group+'" data-v="'+esc(val)+'">'+esc(label)+
+    (n===undefined||n===null?'':'<span class="n">'+n+'</span>')+'</button>';
+}
+function renderTools(){
+  var bs=live(BOOKS), h='';
+  var hasSample=BOOKS.concat(NOTES,LOGS).some(function(x){ return x && (x.sample||x.wasSample) && !x.deleted; });
+  if(S.view==='shelf'){
+    h+='<div class="rdchipline"><em>状态</em>'+chipHtml('fstatus','all','全部',bs.length,S.status==='all');
+    STATUS_ORDER.forEach(function(k){
+      var n=bs.filter(function(b){ return b.status===k; }).length;
+      h+=chipHtml('fstatus',k,STATUS[k],n,S.status===k);
+    }); h+='</div>';
+    h+='<div class="rdchipline"><em>分类</em>'+chipHtml('fcat','all','全部',null,S.cat==='all');
+    CATS.forEach(function(c){ var n=bs.filter(function(b){ return (b.cat||'其他')===c; }).length;
+      if(n||c==='其他') h+=chipHtml('fcat',c,c,n,S.cat===c); }); h+='</div>';
+    h+='<div class="rdchipline rdlookmobile"><em>摆放</em>'+
+      chipHtml('look','wall','书脊',null,S.look==='wall')+
+      chipHtml('look','grid','卡片',null,S.look==='grid')+
+      chipHtml('look','list','列表',null,S.look==='list')+'</div>';
+  }else if(S.view==='notes'){
+    h+='<div class="rdchipline"><em>类型</em>'+chipHtml('nkind','all','全部',null,S.noteKind==='all');
+    KIND_ORDER.forEach(function(k){ var n=live(NOTES).filter(function(x){ return x.kind===k; }).length;
+      h+=chipHtml('nkind',k,KINDS[k],n,S.noteKind===k); }); h+='</div>';
+    h+='<div class="rdchipline"><em>标签</em>'+chipHtml('ntag','all','全部',null,S.noteTag==='all');
+    TAGS.forEach(function(t){ var n=live(NOTES).filter(function(x){ return (x.tags||[]).indexOf(t)>=0; }).length;
+      if(n) h+=chipHtml('ntag',t,t,n,S.noteTag===t); }); h+='</div>';
+    h+='<div class="rdchipline"><em>书</em><select class="rdchip" data-act="nbooksel" style="padding:5px 10px;max-width:230px">'+
+       '<option value="all">全部书</option>'+bs.map(function(b){
+         return '<option value="'+esc(b.id)+'"'+(S.noteBook===b.id?' selected':'')+'>'+esc(b.title)+'</option>'; }).join('')+'</select>'+
+       '<button class="rdbtn mini" data-act="exportnotes">导出笔记 .md</button></div>';
+  }else{
+    h+='<div class="rdchipline"><button class="rdbtn mini" data-act="setgoal">设定年度目标</button>'+
+       '<button class="rdbtn mini" data-act="exportbooks">导出书单 .md</button></div>';
+  }
+  if(!hasSample) h+='<div class="rdchipline"><button class="rdchip" data-act="redemo">看看满书架的示范</button></div>';
+  h+='<div class="rdcount" id="rdCount"></div>';
+  $('rdTools').innerHTML=h;
+  $('rdLook').style.display=(S.view==='shelf')?'':'none';
+  $('rdSearch').placeholder=S.view==='notes'?'搜笔记正文、书名、标签…':(S.view==='stats'?'':'找书名、作者…');
+  $('rdSearch').style.display=S.view==='stats'?'none':'';
+  [].forEach.call($('rdSeg').children,function(b){ b.className=(b.dataset.v===S.view?'on':''); });
+  [].forEach.call($('rdLook').children,function(b){ b.className=(b.dataset.v===S.look?'on':''); });
+  $('rdNotice').className='rdnotice'+(hasSample?' show':'');
 }
 
-function renderShelf(){
-  renderStatusChips();
+/* ==================== 书架视图 ==================== */
+function filteredBooks(){
   var q=S.q.trim().toLowerCase();
-  var list=live(BOOKS).filter(function(b){
-    if(S.fs!=='all' && b.status!==S.fs) return false;
-    if(!q) return true;
-    return (String(b.title||'')+' '+String(b.author||'')+' '+String(b.note||'')).toLowerCase().indexOf(q)>=0;
-  });
-  list.sort(function(a,b){
-    var oa=ORD[a.status]===undefined?9:ORD[a.status], ob=ORD[b.status]===undefined?9:ORD[b.status];
-    if(oa!==ob) return oa-ob;
-    return (b.updated||0)-(a.updated||0);
-  });
+  return live(BOOKS).filter(function(b){
+    if(S.status!=='all' && b.status!==S.status) return false;
+    if(S.cat!=='all' && (b.cat||'其他')!==S.cat) return false;
+    if(q && (String(b.title||'')+String(b.author||'')+String(b.cat||'')+String(b.quote||'')).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){ var o={reading:0,wish:1,done:2,drop:3};
+    var x=(o[a.status]===undefined?9:o[a.status]), y=(o[b.status]===undefined?9:o[b.status]); return x-y; });
+}
+function noteCount(id){ return live(NOTES).filter(function(n){ return n.bookId===id; }).length; }
+function renderShelf(){
+  var list=filteredBooks(), h='';
   if(!list.length){
-    shelfEl.innerHTML='<div class="empty"><b>'+(live(BOOKS).length?'没有符合条件的书':'书架还是空的')+'</b>'+
-      (live(BOOKS).length?'换个筛选或搜别的词':'点右上角「＋ 新增书」把第一本放上来')+'</div>';
-    return;
+    var all=live(BOOKS).length;
+    $('rdMain').innerHTML= all
+      ? '<div class="rdempty"><b>这个筛选下没有书</b>换一组状态或分类，就能看见了。</div>'
+      : '<div class="rdempty"><b>书架现在空着</b>添一本正在读的书，或者把示范书架放回来看看。<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+
+        '<button class="rdbtn acc" data-act="addbook">＋ 添第一本书</button>'+
+        '<button class="rdbtn" data-act="redemo">放回示范书架</button></div></div>';
+    $('rdCount').textContent='共 0 本'; $('rdHint').textContent=''; return;
   }
-  var allNotes=live(NOTES);
-  shelfEl.innerHTML=list.map(function(b){
-    var st=ST[b.status]||ST.wish;
-    var pct=progress(b);
-    var n=0; allNotes.forEach(function(x){ if(x.bookId===b.id) n++; });
-    var meta2;
-    if(num(b.total)) meta2='已读 '+num(b.done)+' / '+num(b.total)+' 页 · '+pct+'%';
-    else if(b.status==='done') meta2='已读完';
-    else if(b.status==='wish') meta2='想读 · 还没开始';
-    else if(b.status==='drop') meta2='弃读';
-    else meta2='在读 · 还没填页数';
-    return '<div class="bcard" data-id="'+b.id+'">'+
-      '<div class="cov" style="background:'+grad(b.id)+'"><span>'+esc(firstChar(b.title))+'</span></div>'+
-      '<div class="bmain">'+
-        '<div class="bline"><span class="btitle">'+esc(b.title)+'</span><span class="pill '+st[1]+'">'+st[0]+'</span></div>'+
-        '<div class="bmeta">'+esc(b.author||'佚名')+(num(b.total)?(' · '+num(b.total)+' 页'):'')+(b.finish?(' · 读完于 '+fmtDate(b.finish)):'')+'</div>'+
-        '<div class="prog"><i style="width:'+pct+'%"></i></div>'+
-        '<div class="bmeta2">'+meta2+(n?(' · '+n+' 条笔记'):'')+'</div>'+
-        (b.note?('<div class="bquote">'+esc(b.note)+'</div>'):'')+
-        '<div class="bacts">'+
-          '<button class="mini" data-act="edit">编辑</button>'+
-          '<button class="mini" data-act="note">＋笔记</button>'+
-          (b.status!=='done'?'<button class="mini ok" data-act="done">读完</button>':'')+
-          '<button class="mini del" data-act="del" data-label="删">删</button>'+
-        '</div>'+
-      '</div></div>';
-  }).join('');
-}
-
-shelfEl.addEventListener('click', function(e){
-  var card=e.target.closest('.bcard'); if(!card) return;
-  var id=card.dataset.id, b=bookById(id); if(!b) return;
-  var btn=e.target.closest('button[data-act]');
-  if(!btn){ openBook(id); return; }
-  var act=btn.dataset.act;
-  if(act==='edit'){ openBook(id); }
-  else if(act==='note'){ openNote(null, id); }
-  else if(act==='done'){ markDone(id); }
-  else if(act==='del'){ confirmDel(btn, function(){ delBook(id); }); }
-});
-
-$('statusChips').addEventListener('click', function(e){
-  var c=e.target.closest('.chip'); if(!c) return;
-  S.fs=c.dataset.f; renderShelf();
-});
-$('qShelf').addEventListener('input', function(e){ S.q=e.target.value; renderShelf(); });
-
-function confirmDel(btn, fn){
-  if(btn.dataset.armed==='1'){ delete btn.dataset.armed; fn(); return; }
-  btn.dataset.armed='1'; btn.textContent='确定删？';
-  setTimeout(function(){
-    if(btn.dataset.armed){ delete btn.dataset.armed; btn.textContent=btn.dataset.label||'删'; }
-  }, 3000);
-}
-
-function markDone(id){
-  var i=-1; for(var k=0;k<BOOKS.length;k++){ if(BOOKS[k].id===id){ i=k; break; } }
-  if(i<0) return;
-  var b=BOOKS[i], now=Date.now();
-  b.status='done'; b.updated=now;
-  if(num(b.total)>0) b.done=num(b.total);
-  if(!b.finish) b.finish=todayStr();
-  BOOKS[i]=b; persist(KB,BOOKS); render(); toast('记下了 · 读完于 '+fmtDate(b.finish));
-}
-
-function delBook(id){
-  var n=0;
-  NOTES.forEach(function(x){ if(x.bookId===id && !x.deleted) n++; });
-  for(var i=0;i<BOOKS.length;i++){
-    if(BOOKS[i].id===id){ BOOKS[i].deleted=Date.now(); BOOKS[i].updated=Date.now(); break; }
+  if(S.look==='wall'){
+    var reading=list.filter(function(b){ return b.status==='reading'; }).slice(0,4);
+    if(reading.length){
+      h+='<div class="rdnowwrap"><div class="rdnowhead"><b>正在读 · '+reading.length+' 本</b>'+
+         '<span>点一下就往前推，顺手写一条打卡</span>'+
+         '<button class="rdbtn mini" data-act="log">＋ 记一页</button></div><div class="rdnow">';
+      reading.forEach(function(b){
+        var p=pct(b);
+        h+='<div class="rdnowbk" data-act="open" data-id="'+esc(b.id)+'">'+
+          '<div class="rdcov" style="background:'+colorOf(b.title)+'"><em>'+esc(String(b.title||'书').slice(0,1))+'</em></div>'+
+          '<div class="rdnowinfo"><div class="t">'+esc(b.title)+'</div>'+
+          '<div class="m">'+esc(b.author||'')+' · '+num(b.done)+' / '+num(b.total)+' 页 · '+p+'% · '+noteCount(b.id)+' 条笔记</div>'+
+          '<div class="rdprog" style="margin:7px 0 0"><i style="width:'+p+'%"></i></div>'+
+          '<div class="rdacts"><button class="rdbtn mini" data-act="plus" data-id="'+esc(b.id)+'" data-n="10">＋10页</button>'+
+          '<button class="rdbtn mini" data-act="addnote" data-id="'+esc(b.id)+'">写笔记</button>'+
+          '<button class="rdbtn mini ok" data-act="finish" data-id="'+esc(b.id)+'">读完</button></div></div></div>';
+      });
+      h+='</div></div><div class="rdshelfdivider"></div>';
+    }
+    var byCat={}, order=[];
+    list.forEach(function(b){ var c=b.cat||'其他'; if(!byCat[c]){ byCat[c]=[]; order.push(c); } byCat[c].push(b); });
+    h+='<div class="rdwallbox"><div class="rdwalllabel">书架 · 按分类分成 '+order.length+' 层，点书脊翻开这一本</div></div>';
+    order.forEach(function(c){
+      h+='<div class="rdwallbox"><div class="rdwalllabel">'+esc(c)+' · '+byCat[c].length+' 本</div><div class="rdwall">';
+      byCat[c].forEach(function(b){
+        var tl=String(b.title||'').length, fs=tl>12?9.5:(tl>8?11:12.5);
+        h+='<div class="rdslot"><div class="rdspine'+(b.status==='wish'||b.status==='drop'?' undone':'')+'" '+
+           'style="--h:'+heightOf(b.title)+'px;--fs:'+fs+'px;background:'+colorOf(b.title)+'" data-act="open" data-id="'+esc(b.id)+'" '+
+           'title="'+esc(b.title)+' · '+esc(b.author||'')+' · '+STATUS[b.status]+'"><span class="spt">'+esc(b.title)+'</span>'+
+           (b.status==='reading'?'<div class="spdot"></div>':'')+'</div></div>';
+      });
+      h+='</div></div>';
+    });
+  }else if(S.look==='grid'){
+    h+='<div class="rdgrid">';
+    list.forEach(function(b){
+      var p=pct(b), nc=noteCount(b.id);
+      h+='<div class="rdbk" data-act="open" data-id="'+esc(b.id)+'"><div class="rdbktop">'+
+        '<div class="rdcov" style="background:'+colorOf(b.title)+'"><em>'+esc(String(b.title||'书').slice(0,1))+'</em></div>'+
+        '<div class="rdbkinfo"><div class="rdbktitle">'+esc(b.title)+'</div>'+
+        '<div class="rdbkauthor">'+esc(b.author||'未填作者')+' · '+esc(b.cat||'其他')+'</div>'+
+        '<div class="rdbkrow"><span class="rdpill '+b.status+'">'+STATUS[b.status]+'</span>'+
+        (num(b.rate)?'<span class="rdrate">'+rateStars(b.rate)+'</span>':'')+
+        (b.sample?'<span class="rddemo">示范</span>':'')+'</div></div></div>'+
+        '<div class="rdprog"><i style="width:'+p+'%"></i></div>'+
+        '<div class="rdbkmeta">'+num(b.done)+' / '+num(b.total)+' 页 · '+p+'% · '+nc+' 条笔记'+
+        (b.finish?' · '+cnDate(b.finish)+'读完':'')+'</div>'+
+        (b.quote?'<div class="rdquote">'+esc(b.quote)+'</div>':'')+
+        '<div class="rdacts"><button class="rdbtn mini" data-act="plus" data-id="'+esc(b.id)+'" data-n="10">＋10页</button>'+
+        '<button class="rdbtn mini" data-act="addnote" data-id="'+esc(b.id)+'">写笔记</button>'+
+        '<button class="rdbtn mini ok" data-act="finish" data-id="'+esc(b.id)+'">读完</button></div></div>';
+    });
+    h+='</div>';
+  }else{
+    h+='<div class="rdlist"><div class="rdlihead"><span>书名</span><span class="a">作者</span><span>状态</span><span>进度</span>'+
+       '<span class="rate">评分</span><span class="notes">笔记</span><span class="act"></span></div>';
+    list.forEach(function(b){
+      var p=pct(b);
+      h+='<div class="rdli" data-act="open" data-id="'+esc(b.id)+'"><span class="t">'+esc(b.title)+'</span>'+
+        '<span class="a">'+esc(b.author||'')+'</span><span><span class="rdpill '+b.status+'">'+STATUS[b.status]+'</span></span>'+
+        '<span><div class="rdprog" style="margin-bottom:3px"><i style="width:'+p+'%"></i></div><span class="m">'+p+'%</span></span>'+
+        '<span class="rate">'+(num(b.rate)?rateStars(b.rate):'')+'</span><span class="notes">'+noteCount(b.id)+'</span>'+
+        '<span class="act"><button class="rdbtn mini" data-act="plus" data-id="'+esc(b.id)+'" data-n="10">＋10页</button></span></div>';
+    });
+    h+='</div>';
   }
-  NOTES.forEach(function(x){ if(x.bookId===id && !x.deleted){ x.deleted=Date.now(); x.updated=Date.now(); } });
-  persist(KB,BOOKS); persist(KN,NOTES);
-  if(S.nbook===id) S.nbook='all';
-  render();
-  toast(n?('已移出书架（含 '+n+' 条笔记）'):'已移出书架');
+  $('rdMain').innerHTML=h;
+  $('rdCount').textContent='共 '+list.length+' 本';
+  $('rdHint').textContent=S.look==='wall'?'竖着的是书脊，颜色按书名生成，在读的书脊下方有一个小圆点；同一层的书属于同一个分类。点开任意一本可以记进度、写笔记、看打卡。':'';
 }
 
-/* ---------- 笔记 ---------- */
-function renderBookChips(){
-  var ns=live(NOTES), map={}, order=[];
-  ns.forEach(function(x){ if(!map[x.bookId]){ map[x.bookId]=0; order.push(x.bookId); } map[x.bookId]++; });
-  var html='<button class="chip'+(S.nbook==='all'?' on':'')+'" data-b="all">全部<span class="n">'+ns.length+'</span></button>';
-  order.forEach(function(bid){
-    var b=bookById(bid);
-    var name=b?b.title:'（已删的书）';
-    if(name.length>10) name=name.slice(0,10)+'…';
-    html+='<button class="chip'+(S.nbook===bid?' on':'')+'" data-b="'+bid+'">'+esc(name)+'<span class="n">'+map[bid]+'</span></button>';
-  });
-  $('bookChips').innerHTML=html;
-}
-
+/* ==================== 笔记视图 ==================== */
 function renderNotes(){
-  renderBookChips();
-  var q=S.nq.trim().toLowerCase();
-  var list=live(NOTES).filter(function(x){
-    if(S.nbook!=='all' && x.bookId!==S.nbook) return false;
-    if(!q) return true;
-    var b=bookById(x.bookId);
-    return (String(x.text||'')+' '+(b?b.title:'')).toLowerCase().indexOf(q)>=0;
+  var q=S.q.trim().toLowerCase();
+  var list=live(NOTES).filter(function(n){
+    if(S.noteBook!=='all' && n.bookId!==S.noteBook) return false;
+    if(S.noteKind!=='all' && n.kind!==S.noteKind) return false;
+    if(S.noteTag!=='all' && (n.tags||[]).indexOf(S.noteTag)<0) return false;
+    if(q && (String(n.text||'')+bookTitle(n.bookId)+String(n.page||'')+(n.tags||[]).join('')).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+  if(!list.length){ $('rdMain').innerHTML='<div class="rdempty"><b>还没有符合条件的笔记</b>从书架点开一本书，就能写下第一句。</div>';
+    $('rdCount').textContent='共 0 条'; $('rdHint').textContent=''; return; }
+  var groups={}, order=[];
+  list.forEach(function(n){ var k=n.bookId||'none'; if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(n); });
+  var h='<div class="rdnotes">';
+  order.forEach(function(k){
+    h+='<div class="rdgroup"><div class="rdgrouphead"><b data-act="filterbook" data-id="'+esc(k)+'">《'+esc(bookTitle(k))+'》</b>'+
+       '<span>'+groups[k].length+' 条 · '+esc((bookById(k)||{}).author||'')+'</span>'+
+       '<button class="rdbtn mini" data-act="addnote" data-id="'+esc(k)+'">＋ 给这本书写</button></div><div class="rdnotecards">';
+    groups[k].forEach(function(n){
+      var long=String(n.text||'').length>190;
+      h+='<div class="rdnote"><div class="rdnhead"><span class="rdkind '+n.kind+'">'+KINDS[n.kind]+'</span>'+
+        (n.page?'<span class="rdpg">'+esc(n.page)+'</span>':'')+'<span class="rdtime">'+esc(n.date||'')+'</span></div>'+
+        '<div class="rdntext'+(long?' long':'')+'" data-id="'+esc(n.id)+'">'+esc(n.text)+'</div>'+
+        (long?'<button class="rdbtn mini" data-act="expand" data-id="'+esc(n.id)+'">展开全文</button>':'')+
+        ((n.tags||[]).length?'<div class="rdtags">'+n.tags.map(function(t){ return '<span class="rdtag">'+esc(t)+'</span>'; }).join('')+'</div>':'')+
+        '<div class="rdnacts"><button class="rdbtn mini" data-act="editnote" data-id="'+esc(n.id)+'">编辑</button>'+
+        '<button class="rdbtn mini del" data-act="delnote" data-id="'+esc(n.id)+'"'+(ARMED[n.id]?' data-armed="1"':'')+'>'+
+        (ARMED[n.id]?'确定删？':'删')+'</button></div></div>';
+    });
+    h+='</div></div>';
   });
-  list.sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
-  if(!list.length){
-    noteEl.innerHTML='<div class="empty"><b>'+(live(NOTES).length?'没有符合条件的笔记':'还没有笔记')+'</b>'+
-      (live(NOTES).length?'换个筛选或搜别的词':'读到喜欢的地方，点「＋ 写笔记」留下来')+'</div>';
-    return;
-  }
-  noteEl.innerHTML=list.map(function(x){
-    var b=bookById(x.bookId);
-    var kind=null; KINDS.forEach(function(k){ if(k[0]===x.kind) kind=k; });
-    if(!kind) kind=KINDS[0];
-    var when=new Date(x.updated||x.created||Date.now());
-    var dt=(when.getMonth()+1)+'月'+when.getDate()+'日';
-    return '<div class="ncard" data-id="'+x.id+'">'+
-      '<div class="nhead">'+
-        '<span class="nbook" data-bid="'+x.bookId+'">'+esc(b?('《'+b.title+'》'):'《已删除的书》')+'</span>'+
-        '<span class="nkind '+(kind[2]||'')+'">'+kind[1]+'</span>'+
-        (x.page?('<span class="npg">'+(/^\d+$/.test(x.page)?('p.'+x.page):esc(x.page))+'</span>'):'')+
-        '<span class="ntime">'+dt+'</span>'+
-      '</div>'+
-      '<div class="ntext'+(String(x.text||'').length>220?' long':'')+'">'+esc(x.text)+'</div>'+
-      (String(x.text||'').length>220?'<button class="nmore" data-act="more">展开全文</button>':'')+
-      '<div class="nacts">'+
-        '<button class="mini" data-act="edit">编辑</button>'+
-        '<button class="mini del" data-act="del" data-label="删" style="margin-left:auto">删</button>'+
-      '</div></div>';
-  }).join('');
+  h+='</div>';
+  $('rdMain').innerHTML=h;
+  $('rdCount').textContent='共 '+list.length+' 条';
+  $('rdHint').textContent='每一条笔记都挂在某一本书下面；导出会把它们按书整理成一份 Markdown 文稿。';
 }
 
-noteEl.addEventListener('click', function(e){
-  var card=e.target.closest('.ncard');
-  var bid=e.target.closest('[data-bid]');
-  if(bid){ S.nbook=bid.dataset.bid; setView('notes'); renderNotes(); return; }
-  if(!card) return;
-  var id=card.dataset.id;
-  var btn=e.target.closest('button[data-act]');
-  if(!btn) return;
-  if(btn.dataset.act==='more'){ btn.previousElementSibling.classList.remove('long'); btn.remove(); }
-  else if(btn.dataset.act==='edit'){ openNote(id); }
-  else if(btn.dataset.act==='del'){ confirmDel(btn, function(){ delNote(id); }); }
-});
-$('bookChips').addEventListener('click', function(e){
-  var c=e.target.closest('.chip'); if(!c) return;
-  S.nbook=c.dataset.b; renderNotes();
-});
-$('qNote').addEventListener('input', function(e){ S.nq=e.target.value; renderNotes(); });
+/* ==================== 统计视图 ==================== */
+function renderStats(){
+  var bs=live(BOOKS), doneY=finishedThisYear(), bars=monthBars(), dist=catDist(), mp=logMap();
+  var pages=totalPages(), mins=totalMinutes(), st=streak(), noLogs=(live(LOGS).length===0);
+  var emptyChart=function(msg){ return '<div style="padding:20px 6px;text-align:center;font-size:12.5px;color:var(--sub);line-height:1.8">'+
+    esc(msg)+'<div style="margin-top:10px"><button class="rdbtn acc" data-act="log">＋ 记第一页</button></div></div>'; };
+  var maxP=Math.max.apply(null,bars.map(function(b){ return b.pages; }).concat([1]));
+  var rated=bs.filter(function(b){ return num(b.rate)>0; }).sort(function(a,b){ return num(b.rate)-num(a.rate); }).slice(0,6).reverse();
+  var h='<div class="rdstats">';
+  h+='<div class="rdkpis">'+
+    '<div class="rdkpi hl"><b>'+doneY.length+'</b><span>今年读完</span></div>'+
+    '<div class="rdkpi"><b>'+bs.length+'</b><span>书架藏书</span></div>'+
+    '<div class="rdkpi"><b>'+bs.filter(function(b){return b.status==="reading";}).length+'</b><span>正在读</span></div>'+
+    '<div class="rdkpi"><b>'+pages+'</b><span>累计页数</span></div>'+
+    '<div class="rdkpi"><b>'+(Math.round(mins/60*10)/10)+'</b><span>累计小时</span></div>'+
+    '<div class="rdkpi"><b>'+st+'</b><span>连续打卡天</span></div></div>';
 
-function delNote(id){
-  for(var i=0;i<NOTES.length;i++){
-    if(NOTES[i].id===id){ NOTES[i].deleted=Date.now(); NOTES[i].updated=Date.now(); break; }
+  var left=Math.max(0,GOAL-doneY.length), rate=Math.min(100,Math.round(doneY.length/GOAL*100));
+  h+='<div class="rdcard2"><h3>'+yearStr()+' 年读 '+GOAL+' 本</h3>'+
+     '<div class="sub">按读完日期统计 · 可以点「设定年度目标」改成自己的数字</div>'+
+     '<div class="rdgoalrow"><b>'+doneY.length+'</b><span>/ '+GOAL+' 本 · '+(left?('还差 '+left+' 本'):'已经达成了')+'</span></div>'+
+     '<div class="rdgoalbar"><i style="width:'+rate+'%"></i></div></div>';
+
+  if(noLogs){
+    h+='<div class="rdcard2"><h3>近 12 个月 · 读过多少页</h3>'+
+       '<div class="sub">每次「记一页」都会落到这里，柱子越高那个月读得越多</div>'+
+       emptyChart('还没有记过页数。今天读了几页，记一次，这里就会长出第一根柱子。')+'</div>';
+  }else{
+    h+='<div class="rdcard2"><h3>近 12 个月 · 读过多少页</h3><div class="sub">每次「记一页」都会落到这里，柱子越高那个月读得越多</div><div class="rdbars">';
+    bars.forEach(function(b){ var hh=Math.round(b.pages/maxP*100);
+      h+='<div class="col"><em>'+(b.pages?b.pages:'')+'</em><i style="height:'+hh+'%" title="'+b.label+' '+b.pages+' 页 / 读完 '+b.books+' 本"></i><span>'+b.label+'</span></div>'; });
+    h+='</div></div>';
   }
-  persist(KN,NOTES); render(); toast('笔记已删除');
+
+  /* 年度阅读日历：最近 26 周，按周列排 */
+  var end=new Date(); end.setHours(12,0,0,0);
+  var start=new Date(end); start.setDate(start.getDate()-181);
+  start.setDate(start.getDate()-((start.getDay()+6)%7));
+  var cells='', cur=new Date(start), maxDay=Math.max.apply(null,Object.keys(mp).map(function(k){return mp[k];}).concat([1]));
+  var guard=0;
+  while(cur<=end && guard<210){
+    var k=dstr(cur), v=mp[k]||0, lv=v?(Math.min(4,Math.ceil(v/maxDay*4))):0;
+    cells+='<div class="rdtile" data-l="'+lv+'" title="'+k+' · '+v+' 页"></div>';
+    cur.setDate(cur.getDate()+1); guard++;
+  }
+  h+='<div class="rdtwocol"><div class="rdcard2"><h3>阅读日历 · 最近半年</h3>'+
+     '<div class="sub">有打卡的日子会染上颜色，颜色越深那天读得越多</div>'+
+     (noLogs
+       ? emptyChart('日历还空着。记过一页之后，那一天就会被染上颜色。')
+       : '<div class="rdcalwrap"><div class="rdcal">'+cells+'</div></div>'+
+         '<div class="rdcallegend">少 <span class="rdtile" data-l="0"></span><span class="rdtile" data-l="1"></span>'+
+         '<span class="rdtile" data-l="2"></span><span class="rdtile" data-l="3"></span><span class="rdtile" data-l="4"></span> 多</div>')+'</div>';
+  h+='<div class="rdcard2"><h3>书架都装了什么</h3><div class="sub">按分类看自己的口味</div><div class="rddist">';
+  var mx=Math.max.apply(null,dist.map(function(d){return d.n;}).concat([1]));
+  dist.forEach(function(d){ h+='<div class="d"><span>'+esc(d.k)+'</span><span class="bar"><i style="width:'+Math.round(d.n/mx*100)+'%"></i></span><span class="n">'+d.n+'</span></div>'; });
+  h+='</div><div class="rdsec">打过高分的书</div><div class="rdtoplist">';
+  if(!rated.length) h+='<div class="rdtoplist"><div class="li">还没有打过分</div></div>';
+  rated.forEach(function(b){ h+='<div class="li" data-act="open" data-id="'+esc(b.id)+'" style="cursor:pointer"><b>'+esc(b.title)+'</b>'+
+    '<span class="r">'+rateStars(b.rate)+'</span><span class="p">'+esc(b.cat||'')+'</span></div>'; });
+  h+='</div></div></div>';
+
+  /* 年度书单：按读完月份归档 */
+  var mm={}; doneY.forEach(function(b){ var k=String(b.finish||'').slice(0,7)||'未填日期'; (mm[k]=mm[k]||[]).push(b); });
+  var keys=Object.keys(mm).sort().reverse();
+  h+='<div class="rdcard2"><h3>'+yearStr()+' 年读过的书</h3><div class="sub">按读完的月份归档，点书名可以翻回详情</div><div class="rdmonths">';
+  if(!keys.length) h+='<div style="font-size:12.5px;color:var(--sub)">今年还没有读完的书。</div>';
+  keys.forEach(function(k){
+    h+='<div class="rdmonth"><span>'+(k==='未填日期'?k:(num(k.split('-')[1])+' 月'))+' · '+mm[k].length+' 本</span><div class="books">'+
+      mm[k].map(function(b){ return '<i data-act="open" data-id="'+esc(b.id)+'">'+esc(b.title)+'</i>'; }).join('')+'</div></div>';
+  });
+  h+='</div></div></div>';
+  $('rdMain').innerHTML=h;
+  $('rdCount').textContent='';
+  $('rdHint').textContent='数字都由书和打卡记录现算出来，改一条记录这里立刻跟着变。';
 }
 
-function render(){ renderStats(); if(S.view==='shelf') renderShelf(); else renderNotes(); }
+function render(){
+  renderTools();
+  if(S.view==='shelf') renderShelf();
+  else if(S.view==='notes') renderNotes();
+  else renderStats();
+}
 
-/* ============ 弹层：书 ============ */
+/* ==================== 弹层 ==================== */
+function openPanel(title,body,foot){
+  $('rdHeadT').textContent=title; $('rdBody').innerHTML=body; $('rdFoot').innerHTML=foot||'';
+  $('rdMask').className='rdmask show'; $('rdBody').scrollTop=0;
+}
+function closePanel(){ $('rdMask').className='rdmask'; DRAFT={}; }
+function pickRow(group,items,cur){
+  return '<div class="rdpick" data-group="'+group+'">'+items.map(function(it){
+    return '<button type="button" class="rdchip'+(cur===it[0]?' on':'')+'" data-act="pick" data-group="'+group+'" data-v="'+esc(it[0])+'">'+esc(it[1])+'</button>';
+  }).join('')+'</div>';
+}
+function picked(group){
+  var el=document.querySelector('.rdpick[data-group="'+group+'"] .rdchip.on');
+  return el?el.dataset.v:'';
+}
+function starsHtml(n){ var h='<div class="rdstars" id="fStars" data-v="'+num(n)+'">';
+  for(var i=1;i<=5;i++) h+='<i data-act="star" data-v="'+i+'" class="'+(i<=num(n)?'on':'')+'">★</i>';
+  return h+'</div>'; }
+
+/* --- 书籍详情 --- */
 function openBook(id){
-  editingBook=id||null;
-  var b=id?bookById(id):null;
-  $('bTitle').textContent = b?'编辑书籍':'新增书籍';
-  $('f_title').value  = b?(b.title||''):'';
-  $('f_author').value = b?(b.author||''):'';
-  $('f_total').value  = b&&num(b.total)?num(b.total):'';
-  $('f_done').value   = b&&num(b.done)?num(b.done):'';
-  $('f_start').value  = b?(b.start||''):todayStr();
-  $('f_finish').value = b?(b.finish||''):'';
-  $('f_note').value   = b?(b.note||''):'';
-  formStatus = b?(b.status||'reading'):'reading';
-  formRating = b?num(b.rating):0;
-  drawStatus(); drawStars();
-  showMask('mBook');
-  setTimeout(function(){ $('f_title').focus(); },160);
+  var b=bookById(id); if(!b) return;
+  var ns=live(NOTES).filter(function(n){ return n.bookId===id; }).sort(function(a,c){ return String(c.date||'').localeCompare(String(a.date||'')); });
+  var ls=live(LOGS).filter(function(l){ return l.bookId===id; }).sort(function(a,c){ return String(c.date||'').localeCompare(String(a.date||'')); }).slice(0,8);
+  var p=pct(b), totalP=0, totalM=0;
+  live(LOGS).forEach(function(l){ if(l.bookId===id){ totalP+=num(l.pages); totalM+=num(l.minutes); } });
+  var h='<div class="rddetailhead"><div class="rdcov" style="width:64px;height:92px;font-size:24px;background:'+colorOf(b.title)+'">'+
+    '<em>'+esc(String(b.title||'书').slice(0,1))+'</em></div><div style="flex:1;min-width:0">'+
+    '<div style="font-size:18px;font-weight:700;line-height:1.35">'+esc(b.title)+'</div>'+
+    '<div style="font-size:12px;color:var(--sub);margin-top:3px">'+esc(b.author||'未填作者')+' · '+esc(b.cat||'其他')+
+    (b.pub?' · '+esc(b.pub):'')+'</div>'+
+    '<div class="rdbkrow"><span class="rdpill '+b.status+'">'+STATUS[b.status]+'</span>'+
+    (num(b.rate)?'<span class="rdrate">'+rateStars(b.rate)+'</span>':'')+'</div></div></div>';
+  h+='<div class="rdkv"><span>阅读进度</span><span><b>'+num(b.done)+'</b> / '+num(b.total)+' 页 · '+p+'%'+
+      (b.start?' · '+cnDate(b.start)+'开读':'')+(b.finish?' · '+cnDate(b.finish)+'读完':'')+'</span>'+
+      '<span>打卡累计</span><span>'+totalP+' 页 · '+totalM+' 分钟 · '+ls.length+(live(LOGS).filter(function(l){return l.bookId===id;}).length>8?'+':'')+' 次</span>'+
+      '<span>笔记</span><span>'+ns.length+' 条</span></div>'+
+      '<div class="rdprog" style="margin-bottom:14px"><i style="width:'+p+'%"></i></div>';
+  h+='<div class="rdsec">记一下今天读到哪</div><div class="rdquick">'+
+     '<span style="font-size:11.5px;color:var(--sub)">点一下就加页数，并自动记一条今天的打卡：</span>'+
+     [10,20,30,50].map(function(n){ return '<button class="rdbtn mini" data-act="plus" data-id="'+esc(id)+'" data-n="'+n+'">＋'+n+'页</button>'; }).join('')+
+     '<button class="rdbtn mini ok" data-act="finish" data-id="'+esc(id)+'">标记读完</button>'+
+     '<button class="rdbtn mini" data-act="logfor" data-id="'+esc(id)+'">记一页…</button></div>';
+  if(b.quote){ h+='<div class="rdsec">一句话</div><div class="rdquote" style="font-size:13px">'+esc(b.quote)+'</div>'; }
+  h+='<div class="rdsec">这本书的笔记 · '+ns.length+' 条</div>';
+  if(!ns.length) h+='<div style="font-size:12.5px;color:var(--sub);padding:4px 0 8px">还没有写下什么。</div>';
+  ns.slice(0,12).forEach(function(n){
+    h+='<div class="rdmininote"><div class="h"><span class="rdkind '+n.kind+'">'+KINDS[n.kind]+'</span> '+
+      esc(n.page||'')+' · '+esc(n.date||'')+'</div><div class="t">'+esc(String(n.text||'').slice(0,260))+
+      (String(n.text||'').length>260?'…':'')+'</div></div>';
+  });
+  h+='<button class="rdbtn mini" data-act="addnote" data-id="'+esc(id)+'" style="margin-top:4px">＋ 写一条笔记</button>';
+  h+='<div class="rdsec">最近打卡</div>';
+  if(!ls.length) h+='<div style="font-size:12.5px;color:var(--sub)">还没有打卡记录。</div>';
+  ls.forEach(function(l){ h+='<div class="rdlogline"><span>'+esc(l.date||'')+'</span><b>'+num(l.pages)+' 页</b><span>'+num(l.minutes)+' 分钟</span></div>'; });
+  var foot='<button class="rdbtn" data-act="editbook" data-id="'+esc(id)+'">编辑这本书</button>'+
+    '<button class="rdbtn" data-act="delbook" data-id="'+esc(id)+'"'+(ARMED[id]?' data-armed="1"':'')+'>'+(ARMED[id]?'确定删？':'移出书架')+'</button>'+
+    '<button class="rdbtn acc" data-act="close">合上</button>';
+  openPanel('《'+b.title+'》',h,foot);
 }
-function drawStatus(){
-  $('f_status').innerHTML=Object.keys(ST).map(function(k){
-    return '<button type="button" class="chip'+(formStatus===k?' on':'')+'" data-s="'+k+'">'+ST[k][0]+'</button>';
-  }).join('');
-}
-$('f_status').addEventListener('click', function(e){
-  var c=e.target.closest('.chip'); if(!c) return;
-  formStatus=c.dataset.s; drawStatus();
-  if(formStatus==='done' && !$('f_finish').value) $('f_finish').value=todayStr();
-});
-function drawStars(){
-  var h='';
-  for(var i=1;i<=5;i++) h+='<i class="'+(i<=formRating?'on':'')+'" data-r="'+i+'">★</i>';
-  $('f_stars').innerHTML=h;
-}
-$('f_stars').addEventListener('click', function(e){
-  var i=e.target.closest('i'); if(!i) return;
-  var r=num(i.dataset.r);
-  formRating = (r===formRating)?0:r;
-  drawStars();
-});
 
-$('bSave').addEventListener('click', function(){
-  var title=$('f_title').value.trim();
-  if(!title){ toast('书名不能为空'); $('f_title').focus(); return; }
-  var now=Date.now();
-  var data={
-    title:title, author:$('f_author').value.trim(), status:formStatus,
-    total:num($('f_total').value), done:num($('f_done').value),
-    start:$('f_start').value||'', finish:$('f_finish').value||'',
-    rating:formRating, note:$('f_note').value.trim(), updated:now
-  };
-  if(data.total>0 && data.done>data.total) data.done=data.total;
-  if(data.status==='done'){
-    if(data.total>0) data.done=data.total;
-    if(!data.finish) data.finish=todayStr();
-  }
-  if(editingBook){
-    for(var i=0;i<BOOKS.length;i++){
-      if(BOOKS[i].id===editingBook){ BOOKS[i]=Object.assign({},BOOKS[i],data); break; }
-    }
-  }else{
-    data.id=uid('b'); data.created=now; BOOKS.push(data);
-  }
-  persist(KB,BOOKS); hideMask('mBook'); render(); toast('已保存');
-});
+/* --- 编辑书 --- */
+function bookForm(b){
+  b=b||{};
+  var catItems=[['', '未分类']].concat(CATS.map(function(c){ return [c,c]; }));
+  return '<label class="rdfld"><span>书名</span><input id="fTitle" value="'+esc(b.title||'')+'" placeholder="书名" maxlength="60"></label>'+
+    '<div class="rdrow2"><label class="rdfld"><span>作者</span><input id="fAuthor" value="'+esc(b.author||'')+'" placeholder="可留空" maxlength="60"></label>'+
+    '<label class="rdfld"><span>出版社</span><input id="fPub" value="'+esc(b.pub||'')+'" placeholder="可留空" maxlength="40"></label></div>'+
+    '<label class="rdfld"><span>状态</span>'+pickRow('status',STATUS_ORDER.map(function(k){return [k,STATUS[k]];}),b.status||'wish')+'</label>'+
+    '<label class="rdfld"><span>分类</span>'+pickRow('cat',catItems,b.cat||'')+'</label>'+
+    '<div class="rdrow2"><label class="rdfld"><span>总页数</span><input id="fTotal" type="number" min="0" value="'+num(b.total)+'"></label>'+
+    '<label class="rdfld"><span>已读到</span><input id="fDone" type="number" min="0" value="'+num(b.done)+'"></label></div>'+
+    '<div class="rdrow2"><label class="rdfld"><span>开始日期</span><input id="fStart" type="date" value="'+esc(b.start||'')+'"></label>'+
+    '<label class="rdfld"><span>读完日期</span><input id="fFinish" type="date" value="'+esc(b.finish||'')+'"></label></div>'+
+    '<label class="rdfld"><span>评分</span>'+starsHtml(b.rate)+'</label>'+
+    '<label class="rdfld"><span>一句话印象</span><textarea id="fQuote" rows="2" placeholder="读完最想记住的一句">'+esc(b.quote||'')+'</textarea></label>';
+}
+function saveBook(id){
+  var title=($('fTitle').value||'').trim(); if(!title){ toast('先写个书名'); return; }
+  var b=id?bookById(id):null, isNew=!b;
+  if(isNew){ b={ id:uid('b'), updated:Date.now(), status:'wish', rate:0 }; BOOKS.unshift(b); }
+  b.title=title; b.author=($('fAuthor').value||'').trim(); b.pub=($('fPub').value||'').trim();
+  b.status=picked('status')||'wish'; b.cat=picked('cat')||'';
+  b.total=num($('fTotal').value); b.done=Math.min(b.total||999999,num($('fDone').value));
+  b.start=$('fStart').value||''; b.finish=$('fFinish').value||'';
+  b.rate=num($('fStars').dataset.v); b.quote=($('fQuote').value||'').trim();
+  if(b.status==='done' && b.total) b.done=b.total;
+  if(b.status==='done' && !b.finish) b.finish=today();
+  if(b.sample) b.wasSample=1; b.sample=0; touch(b); commit(); closePanel();
+  toast(isNew?'已放进书架':'已保存');
+}
 
-/* ============ 弹层：笔记 ============ */
-function openNote(id, presetBookId){
-  editingNote=id||null;
-  var x=id?live(NOTES).filter(function(n){ return n.id===id; })[0]:null;
-  $('nTitle').textContent = x?'编辑笔记':'写笔记';
+/* --- 编辑笔记 --- */
+function noteForm(n,bookId){
+  n=n||{};
   var bs=live(BOOKS);
-  if(!bs.length){ toast('先在书架加一本书'); openBook(null); return; }
-  var sel=$('n_book');
-  sel.innerHTML=bs.map(function(b){
-    return '<option value="'+b.id+'">'+esc(b.title)+(b.author?(' · '+b.author):'')+'</option>';
-  }).join('');
-  var want = x?x.bookId : (presetBookId || (S.nbook!=='all'?S.nbook:bs[0].id));
-  if(want && bs.filter(function(b){ return b.id===want; }).length) sel.value=want;
-  formKind = x?(x.kind||'quote'):'quote';
-  $('n_page').value = x?(x.page||''):'';
-  $('n_text').value = x?(x.text||''):'';
-  drawKinds();
-  showMask('mNote');
-  if(!x) setTimeout(function(){ $('n_text').focus(); },160);
+  var opts=bs.map(function(b){ return '<option value="'+esc(b.id)+'"'+((n.bookId||bookId)===b.id?' selected':'')+'>'+esc(b.title)+'</option>'; }).join('');
+  var tagItems=TAGS.map(function(t){ return [t,t]; });
+  var curTags=n.tags||[];
+  var tagHtml='<div class="rdpick" data-group="tags">'+tagItems.map(function(it){
+    return '<button type="button" class="rdchip'+(curTags.indexOf(it[0])>=0?' on':'')+'" data-act="pickmulti" data-group="tags" data-v="'+esc(it[0])+'">'+esc(it[1])+'</button>'; }).join('')+'</div>';
+  return '<label class="rdfld"><span>属于哪本书</span><select id="nBook">'+opts+'</select></label>'+
+    '<label class="rdfld"><span>记的是</span>'+pickRow('kind',KIND_ORDER.map(function(k){return [k,KINDS[k]];}),n.kind||'quote')+'</label>'+
+    '<div class="rdrow2"><label class="rdfld"><span>页码 / 章节</span><input id="nPage" value="'+esc(n.page||'')+'" placeholder="例如 87 或 第三章"></label>'+
+    '<label class="rdfld"><span>日期</span><input id="nDate" type="date" value="'+esc(n.date||today())+'"></label></div>'+
+    '<label class="rdfld"><span>正文</span><textarea id="nText" rows="7" placeholder="抄下那一句，或者写下当时的想法…">'+esc(n.text||'')+'</textarea></label>'+
+    '<label class="rdfld"><span>标签（可多选）</span>'+tagHtml+'</label>';
 }
-function drawKinds(){
-  $('n_kind').innerHTML=KINDS.map(function(k){
-    return '<button type="button" class="chip'+(formKind===k[0]?' on':'')+'" data-k="'+k[0]+'">'+k[1]+'</button>';
-  }).join('');
+function pickedMulti(group){
+  return [].map.call(document.querySelectorAll('.rdpick[data-group="'+group+'"] .rdchip.on'),function(el){ return el.dataset.v; });
 }
-$('n_kind').addEventListener('click', function(e){
-  var c=e.target.closest('.chip'); if(!c) return;
-  formKind=c.dataset.k; drawKinds();
-});
-$('nSave').addEventListener('click', function(){
-  var text=$('n_text').value.trim();
-  if(!text){ toast('还没写内容'); $('n_text').focus(); return; }
-  var now=Date.now();
-  var data={ bookId:$('n_book').value, kind:formKind, page:$('n_page').value.trim(), text:text, updated:now };
-  if(editingNote){
-    for(var i=0;i<NOTES.length;i++){
-      if(NOTES[i].id===editingNote){ NOTES[i]=Object.assign({},NOTES[i],data); break; }
-    }
-  }else{
-    data.id=uid('n'); data.created=now; NOTES.push(data);
+function saveNote(id){
+  var text=($('nText').value||'').trim(); if(!text){ toast('还没写内容'); return; }
+  var n=null;
+  for(var i=0;i<NOTES.length;i++) if(NOTES[i].id===id) n=NOTES[i];
+  var isNew=!n;
+  if(isNew){ n={ id:uid('n'), updated:Date.now() }; NOTES.unshift(n); }
+  n.bookId=$('nBook').value||''; n.kind=picked('kind')||'quote'; n.page=($('nPage').value||'').trim();
+  n.date=$('nDate').value||today(); n.text=text; n.tags=pickedMulti('tags'); n.sample=0; touch(n);
+  commit(); closePanel(); toast(isNew?'笔记已收好':'已保存');
+}
+
+/* --- 打卡 --- */
+function logForm(bookId){
+  var bs=live(BOOKS).filter(function(b){ return b.status!=='drop'; });
+  if(!bs.length){ toast('书架里还没有书'); return; }
+  var opts=bs.map(function(b){ return '<option value="'+esc(b.id)+'"'+(bookId===b.id?' selected':'')+'>'+esc(b.title)+' · '+STATUS[b.status]+'</option>'; }).join('');
+  var h='<label class="rdfld"><span>今天读的是</span><select id="lBook">'+opts+'</select></label>'+
+    '<div class="rdrow2"><label class="rdfld"><span>日期</span><input id="lDate" type="date" value="'+today()+'"></label>'+
+    '<label class="rdfld"><span>读到第几页（自动累加到这本书）</span><input id="lPages" type="number" min="1" value="20"></label></div>'+
+    '<label class="rdfld"><span>快捷页数</span><div class="rdpick" data-group="pg">'+
+      [10,20,30,50,80].map(function(v){ return '<button type="button" class="rdchip" data-act="fill" data-target="lPages" data-v="'+v+'">'+v+' 页</button>'; }).join('')+'</div></label>'+
+    '<div class="rdrow2"><label class="rdfld"><span>读了多久（分钟）</span><input id="lMin" type="number" min="0" value="30"></label>'+
+    '<label class="rdfld"><span>快捷时长</span><div class="rdpick" data-group="mn">'+
+      [15,30,45,60].map(function(v){ return '<button type="button" class="rdchip" data-act="fill" data-target="lMin" data-v="'+v+'">'+v+' 分</button>'; }).join('')+'</div></label></div>'+
+    '<div style="font-size:11.5px;color:var(--sub);line-height:1.7">保存后会写进阅读日历和月度柱状图，同时把这本书的「已读到」往前推。</div>';
+  var foot='<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savelog">记下来</button>';
+  openPanel('记一页',h,foot);
+}
+function saveLog(){
+  var bid=$('lBook').value, pages=num($('lPages').value), mins=num($('lMin').value), date=$('lDate').value||today();
+  if(!bid||(!pages&&!mins)){ toast('填一下页数或时长'); return; }
+  LOGS.unshift({ id:uid('l'), updated:Date.now(), bookId:bid, date:date, pages:pages, minutes:mins });
+  var b=bookById(bid);
+  if(b){ b.done=Math.max(num(b.done),num(b.done)+pages); if(num(b.total)) b.done=Math.min(num(b.total),b.done);
+    if(b.status==='wish') b.status='reading'; if(!b.start) b.start=date;
+    if(num(b.total)&&b.done>=num(b.total)){ b.status='done'; b.finish=date; } touch(b); }
+  commit(); closePanel(); toast('记下了 · '+pages+' 页 / '+mins+' 分钟');
+}
+
+/* --- 目标 --- */
+function goalForm(){
+  var h='<label class="rdfld"><span>'+yearStr()+' 年想读完几本</span><input id="gVal" type="number" min="1" max="999" value="'+GOAL+'"></label>'+
+    '<div style="font-size:11.5px;color:var(--sub)">只影响统计页上方的年度进度条，书和笔记都不动。</div>';
+  openPanel('年度目标',h,'<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savegoal">保存</button>');
+}
+
+/* --- 导出 --- */
+function download(name,text){
+  try{ var blob=new Blob([text],{type:'text/markdown;charset=utf-8'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },800); toast('已导出 '+name);
+  }catch(e){ toast('导出没成功，可以试试换个浏览器'); }
+}
+function exportNotes(){
+  var bs=live(BOOKS), lines=['# 读书笔记','','导出于 '+today(),''];
+  bs.forEach(function(b){
+    var ns=live(NOTES).filter(function(n){ return n.bookId===b.id; });
+    if(!ns.length) return;
+    lines.push('## 《'+b.title+'》'+(b.author?' · '+b.author:''),'');
+    ns.sort(function(a,c){ return String(a.date||'').localeCompare(String(c.date||'')); }).forEach(function(n){
+      lines.push('### '+KINDS[n.kind]+(n.page?' · '+n.page:'')+(n.date?' · '+n.date:''));
+      lines.push('', String(n.text||'').replace(/\r/g,''), '');
+      if((n.tags||[]).length) lines.push('标签：'+n.tags.join(' / '),'');
+      lines.push('---','');
+    });
+  });
+  if(lines.length<=4){ toast('还没有笔记可以导出'); return; }
+  download('读书笔记_'+today()+'.md',lines.join('\n'));
+}
+function exportBooks(){
+  var bs=live(BOOKS), lines=['# 我的书架','','导出于 '+today()+' · 共 '+bs.length+' 本',''];
+  STATUS_ORDER.forEach(function(k){
+    var list=bs.filter(function(b){ return b.status===k; }); if(!list.length) return;
+    lines.push('## '+STATUS[k]+' · '+list.length+' 本','');
+    lines.push('| 书名 | 作者 | 分类 | 进度 | 评分 | 笔记 | 读完日期 |','| --- | --- | --- | --- | --- | --- | --- |');
+    list.forEach(function(b){ lines.push('| '+b.title+' | '+(b.author||'')+' | '+(b.cat||'')+' | '+num(b.done)+'/'+num(b.total)+' | '+
+      (num(b.rate)?rateStars(b.rate):'')+' | '+noteCount(b.id)+' | '+(b.finish||'')+' |'); });
+    lines.push('');
+  });
+  download('我的书架_'+today()+'.md',lines.join('\n'));
+}
+
+/* ==================== 事件 ==================== */
+document.addEventListener('click',function(e){
+  var el=e.target.closest?e.target.closest('[data-act]'):null;
+  if(!el){ if(e.target.id==='rdMask') closePanel(); return; }
+  var a=el.dataset.act, id=el.dataset.id, v=el.dataset.v;
+  if(a==='view'){ S.view=v; savePref(KV,v); render(); return; }
+  if(a==='look'){ S.look=v; savePref(KS,v); render(); return; }
+  if(a==='fstatus'){ S.status=v; render(); return; }
+  if(a==='fcat'){ S.cat=v; render(); return; }
+  if(a==='nkind'){ S.noteKind=v; render(); return; }
+  if(a==='ntag'){ S.noteTag=v; render(); return; }
+  if(a==='filterbook'){ S.noteBook=id; render(); return; }
+  if(a==='close'){ closePanel(); return; }
+  if(a==='addbook'){ openPanel('添一本书',bookForm(null),
+      '<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savebook">放进书架</button>'); return; }
+  if(a==='editbook'){ openPanel('编辑这本书',bookForm(bookById(id)),
+      '<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savebook" data-id="'+esc(id)+'">保存</button>'); return; }
+  if(a==='savebook'){ saveBook(id||''); return; }
+  if(a==='delbook'){
+    if(!ARMED[id]){ ARMED[id]=1; openBook(id); toast('再点一次确认移出'); return; }
+    delete ARMED[id]; var b=bookById(id); if(!b) return;
+    markDel(b); live(NOTES).forEach(function(n){ if(n.bookId===id) markDel(n); });
+    commit(); closePanel(); toast('已移出书架，它的笔记也一起收起来了'); return;
   }
-  persist(KN,NOTES); hideMask('mNote'); render(); toast('已保存');
+  if(a==='open'){ openBook(id); return; }
+  if(a==='finish'){
+    var b2=bookById(id); if(!b2) return;
+    b2.status='done'; b2.done=num(b2.total)||num(b2.done); b2.finish=today(); touch(b2);
+    commit(); if($('rdMask').className.indexOf('show')>=0) openBook(id); toast('《'+b2.title+'》读完了'); return;
+  }
+  if(a==='plus'){
+    var b3=bookById(id), n=num(v); if(!b3) return;
+    var before=num(b3.done); b3.done=before+n; if(num(b3.total)) b3.done=Math.min(num(b3.total),b3.done);
+    if(b3.status==='wish') b3.status='reading'; if(!b3.start) b3.start=today();
+    if(num(b3.total)&&b3.done>=num(b3.total)){ b3.status='done'; b3.finish=today(); }
+    touch(b3);
+    LOGS.unshift({ id:uid('l'), updated:Date.now(), bookId:id, date:today(), pages:Math.max(0,b3.done-before), minutes:0 });
+    commit(); if($('rdMask').className.indexOf('show')>=0) openBook(id); toast('读到 '+b3.done+' 页了'); return;
+  }
+  if(a==='logfor'){ logForm(id); return; }
+  if(a==='log'){ logForm(''); return; }
+  if(a==='savelog'){ saveLog(); return; }
+  if(a==='addnote'){ openPanel('写一条笔记',noteForm(null,id),
+      '<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savenote">收好</button>'); return; }
+  if(a==='editnote'){
+    var nn=null; for(var i=0;i<NOTES.length;i++) if(NOTES[i].id===id) nn=NOTES[i];
+    if(!nn) return;
+    openPanel('编辑笔记',noteForm(nn,nn.bookId),
+      '<button class="rdbtn" data-act="close">取消</button><button class="rdbtn acc" data-act="savenote" data-id="'+esc(id)+'">保存</button>'); return;
+  }
+  if(a==='savenote'){ saveNote(id||''); return; }
+  if(a==='delnote'){
+    if(!ARMED[id]){ ARMED[id]=1; render(); toast('再点一次确认删除'); return; }
+    delete ARMED[id];
+    NOTES.forEach(function(n){ if(n.id===id) markDel(n); });
+    commit(); toast('笔记已删除'); return;
+  }
+  if(a==='expand'){
+    var t=document.querySelector('.rdntext[data-id="'+id+'"]');
+    if(t){ var isLong=t.className.indexOf('long')>=0; t.className='rdntext'+(isLong?'':' long');
+      el.textContent=isLong?'收起':'展开全文'; } return;
+  }
+  if(a==='pick'){
+    var group=el.dataset.group;
+    [].forEach.call(document.querySelectorAll('.rdpick[data-group="'+group+'"] .rdchip'),function(x){ x.className='rdchip'; });
+    el.className='rdchip on'; return;
+  }
+  if(a==='pickmulti'){ el.className=(el.className.indexOf('on')>=0?'rdchip':'rdchip on'); return; }
+  if(a==='fill'){ var tgt=$(el.dataset.target); if(tgt){ tgt.value=v; }
+    [].forEach.call(el.parentNode.children,function(x){ x.className='rdchip'; }); el.className='rdchip on'; return; }
+  if(a==='star'){
+    var st=$('fStars'); st.dataset.v=v;
+    [].forEach.call(st.children,function(x){ x.className=(num(x.dataset.v)<=num(v)?'on':''); }); return;
+  }
+  if(a==='setgoal'){ goalForm(); return; }
+  if(a==='savegoal'){ var g=num($('gVal').value); GOAL=g>0?g:24;
+    try{ localStorage.setItem(KG,String(GOAL)); }catch(err){} render(); closePanel(); toast('年度目标已改成 '+GOAL+' 本'); return; }
+  if(a==='exportnotes'){ exportNotes(); return; }
+  if(a==='exportbooks'){ exportBooks(); return; }
+  if(a==='cleardemo'){
+    var cnt=0; BOOKS.concat(NOTES,LOGS).forEach(function(x){ if(x && (x.sample||x.wasSample) && !x.deleted){ markDel(x); cnt++; } });
+    commit(); toast('示范内容已清空（'+cnt+' 条），现在可以添加自己的书了'); return;
+  }
+  if(a==='redemo'){
+    var keep=function(a){ return a.filter(function(x){ return x && !x.deleted && !x.sample && !x.wasSample; }); };
+    var mb=keep(BOOKS), mn=keep(NOTES), ml=keep(LOGS);
+    try{ localStorage.removeItem(KB); localStorage.removeItem(KN); localStorage.removeItem(KL); }catch(err){}
+    seedDemo();
+    BOOKS=jget(KB).concat(mb); NOTES=jget(KN).concat(mn); LOGS=jget(KL).concat(ml);
+    commit(); toast('示范书架放回来了，自己添的书都还在'); return;
+  }
 });
-
-/* ============ 弹层通用 ============ */
-function showMask(id){ $(id).classList.add('show'); document.body.style.overflow='hidden'; }
-function hideMask(id){ $(id).classList.remove('show'); document.body.style.overflow=''; }
-document.addEventListener('click', function(e){
-  var m=e.target.closest('.mask'); if(!m) return;
-  if(e.target===m || e.target.closest('[data-close]')) hideMask(m.id);
+document.addEventListener('change',function(e){
+  if(e.target.dataset && e.target.dataset.act==='nbooksel'){ S.noteBook=e.target.value; render(); }
 });
-document.addEventListener('keydown', function(e){
-  if(e.key!=='Escape') return;
-  var open=document.querySelector('.mask.show');
-  if(open) hideMask(open.id);
+document.addEventListener('input',function(e){
+  if(e.target.id==='rdSearch'){ S.q=e.target.value;
+    if(S.view==='shelf') renderShelf(); else if(S.view==='notes') renderNotes(); }
 });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closePanel(); });
+window.addEventListener('message',function(e){ if(e.data && e.data.type==='wb-reload'){ /* 桥接层已处理 */ } });
 
-/* ============ 其它 ============ */
-var toastTimer=null;
-function toast(msg){
-  var t=$('toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.classList.remove('show'); },2100);
-}
-$('btnAddBook').addEventListener('click', function(){ openBook(null); });
-$('btnAddNote').addEventListener('click', function(){ openNote(null); });
-
-/* 启动 */
-(function init(){
-  try{ var v=localStorage.getItem('READ_VIEW'); if(v==='notes') S.view='notes'; }catch(e){}
-  setView(S.view);
-})();
+/* ==================== 启动 ==================== */
+loadAll();
+render();
 </script>
 </body>
 </html>
