@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261113a';
+const WB_THIS_VER='20261113b';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -938,7 +938,7 @@ const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver',
   /* 设备本地偏好，绝不跨设备（2026-11-05）：
      WB_LAYOUT 曾被同步上云，电脑切成电脑版 → 手机拉回 'pc' → 手机永远进不了手机版，
      顶栏一堆按钮被裁掉。WB_ZOOM 同理：电脑上放大，手机打开也会莫名压成窄条。 */
-  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM','READ_ISBN_CACHE',
+  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM','READ_ISBN_CACHE','READ_SCAN_RESULT',
   /* 子页 UI 偏好，同理不跨设备（阅读记录默认视图 / 书架排布 / 年度目标） */
   'READ_VIEW','READ_SHELF_VIEW','READ_CFG_V1',
   /* AI 配置按设备走（2026-11-12）：密钥本就不上云，地址/模型若跟着上云，
