@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#141110">
+<title>扫条形码</title>
+<style>
+:root{ --bg:#141110; --ink:#f6efe6; --dim:#a99e92; --acc:#b8714e; --acc2:#e0a179; --ok:#79c08a; --line:rgba(246,239,230,.16); }
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  overflow:hidden; overscroll-behavior:none; }
+body{ display:flex; flex-direction:column; }
+
+/* 顶栏 */
+.bar{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:calc(10px + env(safe-area-inset-top)) 14px 10px; }
+.bar .t{ font-size:16px; font-weight:700; letter-spacing:.5px; }
+.bar .x{ margin-left:auto; width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+  background:rgba(255,255,255,.06); color:var(--ink); font-size:19px; line-height:1; display:flex;
+  align-items:center; justify-content:center; }
+.bar .x:active{ background:rgba(255,255,255,.16); }
+
+/* 取景区 */
+.stage{ position:relative; flex:1 1 auto; min-height:0; overflow:hidden; background:#000; }
+#v{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.mask{ position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 74% 30% at 50% 48%, rgba(0,0,0,0) 58%, rgba(0,0,0,.62) 100%); }
+.frm{ position:absolute; left:50%; top:48%; transform:translate(-50%,-50%);
+  width:86%; height:26%; min-height:96px; pointer-events:none; }
+.frm i{ position:absolute; width:26px; height:26px; border:3px solid var(--acc2); border-radius:3px; }
+.frm i:nth-child(1){ left:0; top:0; border-right:0; border-bottom:0; }
+.frm i:nth-child(2){ right:0; top:0; border-left:0; border-bottom:0; }
+.frm i:nth-child(3){ left:0; bottom:0; border-right:0; border-top:0; }
+.frm i:nth-child(4){ right:0; bottom:0; border-left:0; border-top:0; }
+.scanline{ position:absolute; left:6%; right:6%; height:2px; top:0;
+  background:linear-gradient(90deg,transparent,var(--acc2),transparent); opacity:.9;
+  animation:sw 2.1s ease-in-out infinite; box-shadow:0 0 12px rgba(224,161,121,.8); }
+@keyframes sw{ 0%{ top:2%; } 50%{ top:96%; } 100%{ top:2%; } }
+.frm.ok i{ border-color:var(--ok); }
+.frm.ok .scanline{ background:linear-gradient(90deg,transparent,var(--ok),transparent); animation:none; opacity:0; }
+
+/* 底部面板 */
+.pad{ flex:0 0 auto; padding:12px 16px calc(16px + env(safe-area-inset-bottom)); background:var(--bg);
+  border-top:1px solid var(--line); }
+.msg{ font-size:14px; line-height:1.65; color:var(--dim); min-height:44px; }
+.msg b{ color:var(--ink); font-weight:600; }
+.msg.err{ color:#e8988a; }
+.row{ display:flex; gap:10px; margin-top:10px; }
+.btn{ flex:1; min-height:46px; border-radius:12px; border:1px solid var(--line);
+  background:rgba(255,255,255,.06); color:var(--ink); font-size:15px; font-weight:600;
+  font-family:inherit; padding:0 14px; }
+.btn:active{ transform:scale(.985); background:rgba(255,255,255,.14); }
+.btn.acc{ background:linear-gradient(180deg,var(--acc2),var(--acc)); border-color:transparent; color:#2a1a12; }
+.btn[disabled]{ opacity:.45; }
+.btn.on{ background:rgba(224,161,121,.24); border-color:var(--acc2); }
+
+.isbnbox{ display:none; margin-top:12px; }
+.isbnbox.on{ display:block; }
+.isbnbox label{ display:block; font-size:12.5px; color:var(--dim); margin-bottom:6px; }
+.isbnbox input{ width:100%; height:46px; border-radius:12px; border:1px solid var(--line);
+  background:rgba(255,255,255,.05); color:var(--ink); font-size:17px; letter-spacing:1.5px;
+  padding:0 18px; text-indent:0; font-family:inherit; }
+.isbnbox input::placeholder{ color:#6f665c; letter-spacing:1px; }
+.isbnbox input:focus{ outline:none; border-color:var(--acc2); }
+.tip{ font-size:12px; color:#7d746a; margin-top:10px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="t">扫条形码</div>
+  <button class="x" id="btnX" aria-label="关闭">✕</button>
+</div>
+
+<div class="stage">
+  <video id="v" playsinline muted autoplay></video>
+  <div class="mask"></div>
+  <div class="frm" id="frm"><i></i><i></i><i></i><i></i><div class="scanline"></div></div>
+</div>
+
+<div class="pad">
+  <div class="msg" id="msg">正在打开摄像头…</div>
+  <div class="row">
+    <button class="btn" id="btnTorch" style="display:none">手电筒</button>
+    <button class="btn" id="btnManual">手输 ISBN</button>
+    <button class="btn acc" id="btnRetry" style="display:none">重试</button>
+  </div>
+  <div class="isbnbox" id="isbnbox">
+    <label>书背面条形码下面那串数字（13 位）</label>
+    <input id="isbnIn" inputmode="numeric" autocomplete="off" placeholder="9787506365437">
+    <div class="row"><button class="btn acc" id="btnIsbnGo">用这个号码查书</button></div>
+  </div>
+  <div class="tip">框里对准条形码，别太远，让条码占满框的宽度。读到会自动回到录入页。</div>
+</div>
+
+<script>
+/* ============ EAN-13 解码（本页自带，不依赖 BarcodeDetector） ============ */
+var EAN_L={'0001101':0,'0011001':1,'0010011':2,'0111101':3,'0100011':4,'0110001':5,'0101111':6,'0111011':7,'0110111':8,'0001011':9};
+var EAN_G={'0100111':0,'0110011':1,'0011011':2,'0100001':3,'0011101':4,'0111001':5,'0000101':6,'0010001':7,'0001001':8,'0010111':9};
+var EAN_R={'1110010':0,'1100110':1,'1101100':2,'1000010':3,'1011100':4,'1001110':5,'1010000':6,'1000100':7,'1001000':8,'1110100':9};
+var EAN_PAR={'000000':0,'001011':1,'001101':2,'001110':3,'010011':4,'011001':5,'011100':6,'010101':7,'010110':8,'011010':9};
+
+function $ (s){ return document.querySelector(s); }
+function bitsStr(a,s,e){ var o=''; for(var i=s;i<e;i++) o+=a[i]?'1':'0'; return o; }
+function eanSum(d){
+  if(d.length!==13) return false;
+  var s=0,i;
+  for(i=0;i<12;i++) s+=(+d[i])*(i%2?3:1);
+  return ((10-s%10)%10)===(+d[12]);
+}
+function ean13(a){
+  if(!a || a.length<95) return null;
+  if(bitsStr(a,0,3)!=='101') return null;
+  if(bitsStr(a,45,50)!=='01010') return null;
+  if(bitsStr(a,92,95)!=='101') return null;
+  var par='', left='', right='', i, p;
+  for(i=0;i<6;i++){
+    p=bitsStr(a,3+i*7,10+i*7);
+    if(EAN_L[p]!=null){ par+='0'; left+=EAN_L[p]; }
+    else if(EAN_G[p]!=null){ par+='1'; left+=EAN_G[p]; }
+    else return null;
+  }
+  var f=EAN_PAR[par]; if(f==null) return null;
+  for(i=0;i<6;i++){
+    p=bitsStr(a,50+i*7,57+i*7);
+    if(EAN_R[p]==null) return null;
+    right+=EAN_R[p];
+  }
+  var d=String(f)+left+right;
+  return eanSum(d)?d:null;
+}
+/* 把 [s,e) 的实像素重采样成 total 位 */
+function sampleAt(bits,s,w,total){
+  var m=w/total, arr=new Array(total), i;
+  if(m<0.85) return null;
+  for(i=0;i<total;i++){
+    var idx=Math.round(s+(i+0.5)*m);
+    if(idx<0||idx>=bits.length) return null;
+    arr[i]=bits[idx];
+  }
+  return arr;
+}
+/* 一条扫描线 → ISBN，找不到返回 null */
+function tryLine(px,W){
+  var lum=new Array(W), mn=255, mx=0, i, o, v;
+  for(i=0;i<W;i++){
+    o=i*4;
+    v=(px[o]*299+px[o+1]*587+px[o+2]*114)/1000;
+    lum[i]=v; if(v<mn) mn=v; if(v>mx) mx=v;
+  }
+  if(mx-mn<52) return null;                 /* 对比度太低：糊了或没对上 */
+  var th=(mn+mx)/2, bits=new Array(W);
+  for(i=0;i<W;i++) bits[i]=lum[i]<th?1:0;
+  var s=-1,e=-1;
+  for(i=0;i<W;i++) if(bits[i]){ if(s<0) s=i; e=i; }
+  if(s<0||e-s<60) return null;
+  /* 两端各让几个像素，四种内缩组合都试，抗前景/背景粘连 */
+  var pads=[[0,0],[1,1],[2,2],[3,3],[0,1],[1,0],[0,2],[2,0]];
+  for(var k=0;k<pads.length;k++){
+    var s2=s+pads[k][0], e2=e-pads[k][1];
+    var w=e2-s2+1;
+    if(w<60) continue;
+    var r=ean13(sampleAt(bits,s2,w,95));
+    if(r) return r;
+  }
+  return null;
+}
+
+/* ============ 摄像头 ============ */
+var V=$('#v'), MSG=$('#msg'), FRM=$('#frm');
+var stream=null, timer=null, cv=null, ctx=null, track=null;
+var last=null, lastCount=0, done=false, stopped=false;
+
+function say(t,err){ MSG.innerHTML=t; MSG.className='msg'+(err?' err':''); }
+
+function openCam(){
+  if(stopped) return;
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    say('这个浏览器打不开摄像头。可以用下面的「手输 ISBN」，效果一样。',1);
+    $('#btnManual').click();
+    return;
+  }
+  say('正在打开摄像头…');
+  var tries=[
+    {video:{facingMode:{exact:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false},
+    {video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false},
+    {video:{width:{ideal:1280},height:{ideal:720}},audio:false},
+    {video:true,audio:false}
+  ];
+  var i=0;
+  (function next(){
+    if(stopped) return;
+    if(i>=tries.length){
+      say('摄像头没打开。可能是没给相机权限，或者这个浏览器（比如微信里）不让网页用相机。<br>'+
+          '照下面「手输 ISBN」也一样能查出全部信息，或者点右上角 ✕ 关掉，用系统浏览器打开这个页面再扫。',1);
+      $('#btnRetry').style.display='';
+      $('#btnManual').style.display='';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia(tries[i++]).then(function(st){
+      if(stopped){ try{ st.getTracks().forEach(function(t){t.stop();}); }catch(e){} return; }
+      stream=st;
+      V.srcObject=st;
+      var p=V.play(); if(p&&p.catch) p.catch(function(){});
+      track=st.getVideoTracks()[0]||null;
+      say('把条形码放进框里，让它尽量占满框的宽度。');
+      $('#btnRetry').style.display='none';
+      if(!cv){ cv=document.createElement('canvas'); }
+      if(timer) clearInterval(timer);
+      timer=setInterval(tick,210);
+      setupTorch();
+    }).catch(function(e){
+      var n=(e&&e.name)||'';
+      if(n==='NotAllowedError'||n==='SecurityError'){ say('相机权限被拒了。<br>点地址栏左边的小锁 → 允许相机，然后刷新；或者直接用「手输 ISBN」。',1); $('#btnRetry').style.display=''; return; }
+      if(n==='NotFoundError'||n==='OverconstrainedError'){ next(); return; }
+      next();
+    });
+  })();
+}
+
+function setupTorch(){
+  var btn=$('#btnTorch');
+  try{
+    var cap=track && track.getCapabilities ? track.getCapabilities() : null;
+    if(cap && cap.torch){
+      btn.style.display='';
+      btn.onclick=function(){
+        var on=btn.classList.toggle('on');
+        try{ track.applyConstraints({advanced:[{torch:on}]}); }catch(e){}
+      };
+    }
+  }catch(e){}
+}
+
+var confCount=0, confCode='';
+function tick(){
+  if(!stream||done) return;
+  if(!V.videoWidth||V.readyState<2) return;
+  var W=640, H=Math.round(V.videoHeight*W/V.videoWidth);
+  if(H<80){ W=440; H=Math.round(V.videoHeight*W/V.videoWidth); }
+  cv.width=W; cv.height=H;
+  ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(V,0,0,W,H);
+  /* 取景框内区域（左右各留 4%，纵向 0.34~0.62），13 条线横扫 */
+  var x0=Math.round(W*0.04), xw=Math.round(W*0.92);
+  var ys=[0.48,0.44,0.52,0.40,0.56,0.36,0.60,0.32,0.64,0.46,0.50,0.42,0.54];
+  for(var i=0;i<ys.length;i++){
+    var y=Math.round(H*ys[i]);
+    if(y<0||y>=H) continue;
+    var d=ctx.getImageData(x0,y,xw,1).data;
+    var r=tryLine(d,xw);
+    if(r){ hit(r); return; }
+  }
+}
+
+function hit(code){
+  /* 同一个号码连续读到 2 次才认，避免误读 */
+  if(code===confCode){ confCount++; } else { confCode=code; confCount=1; }
+  if(confCount<2){ say('读到了：<b>'+code+'</b> 再确认一下…'); return; }
+  done=true; clearInterval(timer); timer=null;
+  FRM.classList.add('ok');
+  say('已读到 <b>'+code+'</b>，正在回到录入页…');
+  try{ if(navigator.vibrate) navigator.vibrate(50); }catch(e){}
+  try{ if(stream) stream.getTracks().forEach(function(t){t.stop();}); }catch(e){}
+  send(code);
+}
+
+/* ============ 把结果送回录入页 ============ */
+function send(isbn){
+  var payload={ isbn:String(isbn), t:Date.now(), from:'scan' };
+  try{ localStorage.setItem('READ_SCAN_RESULT', JSON.stringify(payload)); }catch(e){}
+  try{ var bc=new BroadcastChannel('wb-read-scan'); bc.postMessage(payload); bc.close(); }catch(e){}
+  try{ if(window.opener) window.opener.postMessage({type:'wb-read-scan',data:payload},'*'); }catch(e){}
+  try{ if(window.parent&&window.parent!==window) window.parent.postMessage({type:'wb-read-scan',data:payload},'*'); }catch(e){}
+  setTimeout(function(){
+    try{ window.close(); }catch(e){}
+    setTimeout(function(){
+      /* 关不掉的浏览器：留一个明确的返回按钮 */
+      if(!document.hidden){
+        say('已读到 <b>'+isbn+'</b>。这个浏览器不让网页自己关标签，点下面按钮回去。');
+        $('#btnRetry').style.display='none';
+        $('#btnTorch').style.display='none';
+        $('#btnManual').style.display='none';
+        var b=document.createElement('button');
+        b.className='btn acc'; b.style.marginTop='10px'; b.textContent='回到录入页';
+        b.onclick=function(){
+          if(history.length>1) history.back();
+          else location.href='阅读记录.html';
+        };
+        $('.pad').appendChild(b);
+      }
+    },700);
+  },520);
+}
+
+/* ============ 交互 ============ */
+$('#btnX').onclick=function(){ closeSelf(); };
+function closeSelf(){
+  stopped=true; done=true;
+  if(timer){ clearInterval(timer); timer=null; }
+  try{ if(stream) stream.getTracks().forEach(function(t){t.stop();}); }catch(e){}
+  try{ window.close(); }catch(e){}
+  setTimeout(function(){
+    if(!document.hidden){ location.href='阅读记录.html'; }
+  },260);
+}
+$('#btnRetry').onclick=function(){ stopped=false; openCam(); };
+$('#btnManual').onclick=function(){
+  $('#isbnbox').classList.toggle('on');
+  if($('#isbnbox').classList.contains('on')){ setTimeout(function(){ $('#isbnIn').focus(); },80); }
+};
+$('#btnIsbnGo').onclick=function(){
+  var v=$('#isbnIn').value.replace(/[^\dXx]/g,'');
+  if(v.length<10){ say('号码太短了，ISBN 一般是 13 位。',1); return; }
+  done=true; if(timer){ clearInterval(timer); timer=null; }
+  send(v);
+};
+$('#isbnIn').addEventListener('keydown',function(e){ if(e.key==='Enter') $('#btnIsbnGo').click(); });
+
+/* 安全上下文提示：http 页面在手机上不给摄像头 */
+if(location.protocol!=='https:' && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+  say('这个地址不是 https，手机浏览器会拒绝给摄像头。请用 https 的地址打开。',1);
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){ if(timer){ clearInterval(timer); timer=null; } }
+  else if(stream&&!done&&!timer){ timer=setInterval(tick,210); }
+});
+openCam();
+</script>
+</body>
+</html>
