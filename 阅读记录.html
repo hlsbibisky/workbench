@@ -314,15 +314,19 @@
   .rdstars button.on{color:#d99a54}
   .rdhint2{font-size:11.5px; color:#a3947f; line-height:1.65; margin-top:-4px; margin-bottom:12px}
 
-  /* 扫码 */
-  .scanbox{position:relative; border-radius:14px; overflow:hidden; background:#2a231b; aspect-ratio:4/3}
-  .scanbox video{width:100%; height:100%; object-fit:cover; display:block}
-  .scanfrm{position:absolute; inset:16% 8%; border:2px solid rgba(255,255,255,.85); border-radius:10px;
-    box-shadow:0 0 0 9999px rgba(0,0,0,.28); pointer-events:none}
-  .scanfrm::after{content:''; position:absolute; left:6%; right:6%; top:50%; height:2px;
-    background:rgba(255,120,80,.85); animation:scanline 2.4s ease-in-out infinite}
-  @keyframes scanline{0%,100%{top:12%}50%{top:88%}}
-  .scanmsg{font-size:12.5px; color:var(--sub); margin-top:10px; min-height:20px}
+  /* 扫码（摄像头在独立页「扫码.html」里跑，因为手机浏览器不给 iframe 相机权限） */
+  .rdscancta{border:1px dashed var(--line); border-radius:16px; padding:20px 16px; text-align:center;
+    background:linear-gradient(180deg,#fdf8f0,#f8f1e6)}
+  .rdscancta .ic{font-size:36px; line-height:1}
+  .rdscancta .t1{font-size:16px; font-weight:700; color:var(--ink); margin-top:8px; letter-spacing:.3px}
+  .rdscancta .t2{font-size:12.5px; color:var(--sub); line-height:1.75; margin-top:7px}
+  .rdscancta .go{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px;
+    min-height:46px; border-radius:12px; background:var(--acc); color:#fff; font-size:15px; font-weight:700;
+    text-decoration:none; border:1px solid var(--acc)}
+  .rdscancta .go:hover{background:var(--acc2); border-color:var(--acc2)}
+  .rdscancta .go:active{transform:scale(.99)}
+  .scanmsg{font-size:12.5px; color:var(--sub); margin-top:10px; min-height:20px; line-height:1.7}
+  .scanmsg b{color:var(--ink)}
 
   /* 搜索结果 */
   .rdres{display:flex; flex-direction:column; gap:8px; margin-top:12px; max-height:44vh; overflow-y:auto}
@@ -471,16 +475,14 @@
       </div>
 
       <div class="rdtab on" id="tabScan">
-        <div class="scanbox">
-          <video id="scanVideo" playsinline muted autoplay></video>
-          <div class="scanfrm"></div>
+        <div class="rdscancta">
+          <div class="ic">📷</div>
+          <div class="t1">扫书背面的条形码</div>
+          <div class="t2">点下面按钮会开一个专门的扫码页，摄像头在那里跑（手机也支持）。<br>读到号码会自动回来，书名、作者、封面一起带出来。</div>
+          <a class="go" id="scanOpen" href="扫码.html?t=20261113b" target="_blank">打开扫码</a>
         </div>
-        <div class="scanmsg" id="scanMsg">点「打开摄像头」，把书背面的条形码对准框内，扫到会自动去查这本书。</div>
-        <div class="rdsetrow" style="margin-top:10px">
-          <button class="rdbtn acc" data-act="startscan">打开摄像头</button>
-          <button class="rdbtn ghost" data-act="stopscan">关闭</button>
-        </div>
-        <div class="fld" style="margin-top:14px"><span>或直接输入 ISBN（书背面条形码下面那串数字）</span>
+        <div class="scanmsg" id="scanMsg"></div>
+        <div class="fld" style="margin-top:16px"><span>或者直接输入 ISBN（书背面条形码下面那串数字）</span>
           <input id="scanIsbn" inputmode="numeric" autocomplete="off" placeholder="9787506365437">
         </div>
         <button class="rdbtn acc" data-act="isbnGo">查这本书</button>
@@ -1089,7 +1091,7 @@ function openBookForm(id, preset){
   renderCabPick();
   renderRate();
   setBookTab(cur.tab);
-  $('#scanMsg').textContent='点「打开摄像头」，把书背面的条形码对准框内，扫到会自动去查书名和封面。';
+  $('#scanMsg').textContent='';
   $('#isbnRes').innerHTML='';
   updateQuota();
   openMask('mBook');
@@ -1607,131 +1609,51 @@ function quickAdd(i){
   if(!S.view || S.view!=='cabs'){ S.view='cabs'; S.cab=null; render(); }
 }
 
-/* ================= 扫码（自带 EAN-13 解码，不依赖浏览器支持） ================= */
-var scanStream=null, scanTimer=null, scanDet=null, scanCv=null, scanCtx=null;
-var EAN_L={'0001101':0,'0011001':1,'0010011':2,'0111101':3,'0100011':4,'0110001':5,'0101111':6,'0111011':7,'0110111':8,'0001011':9};
-var EAN_G={'0100111':0,'0110011':1,'0011011':2,'0100001':3,'0011101':4,'0111001':5,'0000101':6,'0010001':7,'0001001':8,'0010111':9};
-var EAN_R={'1110010':0,'1100110':1,'1101100':2,'1000010':3,'1011100':4,'1001110':5,'1010000':6,'1000100':7,'1001000':8,'1110100':9};
-var EAN_PAR={'000000':0,'001011':1,'001101':2,'001110':3,'010011':4,'011001':5,'011100':6,'010101':7,'010110':8,'011010':9};
+/* ================= 扫码：摄像头在独立页「扫码.html」里跑 =================
+   手机上（尤其微信内置浏览器、iOS Safari）基本不给 iframe 里的页面相机权限，
+   所以扫码必须走顶层窗口。这里只负责把结果接回来。 */
+function stopScan(){}   /* 兼容旧调用（关弹层 / 录完一本时调用） */
 
-function bitsStr(a,s,e){ var o=''; for(var i=s;i<e;i++) o+=a[i]?'1':'0'; return o; }
-function eanSum(d){
-  if(d.length!==13) return false;
-  var s=0,i;
-  for(i=0;i<12;i++) s+=(+d[i])*(i%2?3:1);
-  return ((10-s%10)%10)===(+d[12]);
+function scanResult(payload){
+  if(!payload || !payload.isbn) return;
+  var isbn=String(payload.isbn).replace(/[^\dXx]/g,'');
+  if(isbn.length<10) return;
+  if(scanResult._t && scanResult._t===payload.t) return;   /* 三条通道会重复上报，只认一次 */
+  scanResult._t=payload.t||isbn;
+  if(!$('#mBook').classList.contains('on')) openBookForm(null);
+  setBookTab('scan');
+  onIsbn(isbn);
+  setTimeout(function(){ scanResult._t=null; },4000);
 }
-function ean13(a){
-  if(!a || a.length<95) return null;
-  if(bitsStr(a,0,3)!=='101') return null;
-  if(bitsStr(a,45,50)!=='01010') return null;
-  if(bitsStr(a,92,95)!=='101') return null;
-  var par='', left='', right='', i, p;
-  for(i=0;i<6;i++){
-    p=bitsStr(a,3+i*7,10+i*7);
-    if(EAN_L[p]!=null){ par+='0'; left+=EAN_L[p]; }
-    else if(EAN_G[p]!=null){ par+='1'; left+=EAN_G[p]; }
-    else return null;
-  }
-  var f=EAN_PAR[par]; if(f==null) return null;
-  for(i=0;i<6;i++){
-    p=bitsStr(a,50+i*7,57+i*7);
-    if(EAN_R[p]==null) return null;
-    right+=EAN_R[p];
-  }
-  var d=String(f)+left+right;
-  return eanSum(d)?d:null;
+
+/* 通道一：BroadcastChannel */
+try{
+  var scanBC=new BroadcastChannel('wb-read-scan');
+  scanBC.onmessage=function(e){ scanResult(e.data); };
+}catch(e){}
+/* 通道二：storage 事件 */
+window.addEventListener('storage',function(e){
+  if(e.key!=='READ_SCAN_RESULT'||!e.newValue) return;
+  try{ scanResult(JSON.parse(e.newValue)); }catch(err){}
+});
+/* 通道三：postMessage（扫码页 postMessage 给 opener / parent） */
+window.addEventListener('message',function(e){
+  if(e && e.data && e.data.type==='wb-read-scan') scanResult(e.data.data);
+});
+/* 从扫码页切回来时再兜底读一次（个别浏览器不发 storage 事件） */
+function pullScan(){
+  var raw=null;
+  try{ raw=localStorage.getItem('READ_SCAN_RESULT'); }catch(e){}
+  if(!raw) return;
+  var p=null; try{ p=JSON.parse(raw); }catch(e){}
+  if(!p||!p.isbn) return;
+  if(Date.now()-(p.t||0) > 5*60*1000) return;   /* 五分钟前的旧结果不认 */
+  try{ localStorage.removeItem('READ_SCAN_RESULT'); }catch(e){}
+  scanResult(p);
 }
-function sampleAt(bits,s,w,total){
-  var m=w/total, arr=new Array(total), i;
-  if(m<0.95) return null;
-  for(i=0;i<total;i++){
-    var idx=Math.round(s+(i+0.5)*m);
-    if(idx<0||idx>=bits.length) return null;
-    arr[i]=bits[idx];
-  }
-  return arr;
-}
-function tryLine(px,W){
-  var lum=new Array(W), mn=255, mx=0, i, o, v;
-  for(i=0;i<W;i++){
-    o=i*4;
-    v=(px[o]*299+px[o+1]*587+px[o+2]*114)/1000;
-    lum[i]=v; if(v<mn) mn=v; if(v>mx) mx=v;
-  }
-  if(mx-mn<45) return null;
-  var th=(mn+mx)/2, bits=new Array(W);
-  for(i=0;i<W;i++) bits[i]=lum[i]<th?1:0;
-  var s=-1,e=-1;
-  for(i=0;i<W;i++) if(bits[i]){ if(s<0) s=i; e=i; }
-  if(s<0||e<=s+40) return null;
-  var offs=[0,1,2,3,-1,-2], k, r, w;
-  for(k=0;k<offs.length;k++){
-    var s2=s+Math.max(0,offs[k]), e2=e-Math.max(0,offs[k])+Math.min(0,offs[k]);
-    w=e2-s2+1;
-    if(w<60) continue;
-    r=ean13(sampleAt(bits,s2,w,95));
-    if(r) return r;
-  }
-  return null;
-}
-function startScan(){
-  var v=$('#scanVideo'), msg=$('#scanMsg');
-  stopScan();
-  msg.textContent='正在打开摄像头…';
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    msg.textContent='这个浏览器拿不到摄像头。直接输入 ISBN 也一样，会自动去查。';
-    return;
-  }
-  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false})
-  .then(function(st){
-    scanStream=st;
-    v.srcObject=st;
-    var p=v.play(); if(p&&p.catch) p.catch(function(){});
-    scanDet=null;
-    if('BarcodeDetector' in window){
-      try{ scanDet=new BarcodeDetector({formats:['ean_13','ean_8','upc_a']}); }
-      catch(e){ try{ scanDet=new BarcodeDetector(); }catch(e2){ scanDet=null; } }
-    }
-    if(!scanCv){ scanCv=document.createElement('canvas'); }
-    msg.textContent='把书背面的条形码对准框内，扫到会自动去查书名和封面。';
-    scanTimer=setInterval(tickScan,240);
-  })
-  .catch(function(e){
-    msg.textContent='打不开摄像头：'+((e&&e.message)||e)+'。检查浏览器权限，或者直接输入 ISBN。';
-  });
-}
-function stopScan(){
-  if(scanTimer){ clearInterval(scanTimer); scanTimer=null; }
-  if(scanStream){ try{ scanStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} scanStream=null; }
-  var v=$('#scanVideo'); if(v) v.srcObject=null;
-}
-function tickScan(){
-  if(!scanStream) return;
-  var v=$('#scanVideo');
-  if(!v || v.readyState<2 || !v.videoWidth) return;
-  if(scanDet){
-    scanDet.detect(v).then(function(codes){
-      if(codes && codes.length){
-        var val=String(codes[0].rawValue||'').replace(/[^\dXx]/g,'');
-        if(val.length>=10){ stopScan(); onIsbn(val); }
-      }
-    }).catch(function(){});
-    return;
-  }
-  var W=440, H=Math.round(v.videoHeight*W/v.videoWidth);
-  if(!scanCv){ scanCv=document.createElement('canvas'); }
-  scanCv.width=W; scanCv.height=H;
-  scanCtx=scanCv.getContext('2d',{willReadFrequently:true});
-  scanCtx.drawImage(v,0,0,W,H);
-  var ys=[0.50,0.44,0.56,0.38,0.62,0.32,0.68,0.26,0.74];
-  for(var i=0;i<ys.length;i++){
-    var y=Math.max(0,Math.min(H-1,Math.round(H*ys[i])));
-    var d=scanCtx.getImageData(0,y,W,1).data;
-    var r=tryLine(d,W);
-    if(r){ stopScan(); onIsbn(r); return; }
-  }
-}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(pullScan,120); });
+window.addEventListener('focus',function(){ setTimeout(pullScan,120); });
+
 function onIsbn(isbn){
   isbn=String(isbn||'').replace(/[^\dXx]/g,'');
   if(isbn.length<10){ toast('ISBN 位数不对'); return; }
@@ -1832,8 +1754,8 @@ document.addEventListener('click',function(e){
 
     case 'close': closeMask(el.dataset.m); break;
     case 'btab': setBookTab(el.dataset.t); break;
-    case 'startscan': startScan(); break;
-    case 'stopscan': stopScan(); $('#scanMsg').textContent='摄像头已关闭。'; break;
+    case 'startscan': location.href='扫码.html?t=20261113b'; break;
+    case 'stopscan': stopScan(); break;
     case 'isbnGo':
       var v=$('#scanIsbn').value.replace(/[^\dXx]/g,'');
       if(v.length<10){ toast('ISBN 位数不对，再检查一下'); break; }
