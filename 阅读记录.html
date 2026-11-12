@@ -86,46 +86,63 @@
     margin-bottom:16px; font-size:12.5px; color:var(--sub); line-height:1.6;
   }
 
-  /* ===== 书柜卡 ===== */
-  .rdcabs{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px}
+  /* ===== 书柜卡：一屏只放柜子，卡里只放柜名 + 小封面 ===== */
+  .rdcabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px}
   .rdcab{
     background:linear-gradient(180deg,#fffdf9 0%,#faf4ea 100%); border:1px solid var(--line);
-    border-radius:16px; padding:13px 14px 11px; cursor:pointer; position:relative;
+    border-radius:15px; padding:0; cursor:pointer; position:relative; overflow:hidden;
     transition:transform .16s,box-shadow .16s,border-color .16s;
+    min-height:206px; display:flex; flex-direction:column;
   }
-  .rdcab:hover{transform:translateY(-3px); box-shadow:var(--sh); border-color:#dbcab5}
-  .rdcab.dragging{opacity:.45}
-  .rdcab.dragover{border-color:var(--acc); border-style:dashed}
-  .rdcabhead{display:flex; align-items:center; gap:8px}
-  .rdcabname{font-size:15px; font-weight:700; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .rdcabn{margin-left:auto; font-size:11.5px; color:var(--sub); background:#f2ebdf; border-radius:20px; padding:2px 9px; white-space:nowrap}
-  .rdcabshelf{
-    display:flex; gap:6px; align-items:flex-end; height:108px; padding:0 4px 5px; margin:11px 0 7px;
-    border-bottom:6px solid var(--wood); border-radius:2px; position:relative;
+  .rdcab:hover{transform:translateY(-3px); box-shadow:var(--sh); border-color:#d8c4ac}
+  .rdcab:active{transform:translateY(-1px)}
+  /* 柜名：整张卡最显眼的东西 */
+  .rdcabname{
+    font-size:24px; font-weight:800; letter-spacing:1px; line-height:1.22; text-align:center;
+    color:var(--ink); padding:16px 12px 13px; word-break:break-word;
+    background:linear-gradient(180deg,#fdf8f0,#f7efe2);
+    border-bottom:3px solid var(--wood);
+    box-shadow:inset 0 -1px 0 rgba(255,255,255,.7), 0 2px 0 rgba(205,177,147,.28);
   }
-  .rdcabshelf::after{content:''; position:absolute; left:0; right:0; bottom:-6px; height:6px;
-    background:linear-gradient(180deg,rgba(0,0,0,.10),transparent)}
-  .ministack{display:flex; gap:5px; align-items:flex-end; height:100%; overflow:hidden; flex:1}
-  .minibk{
-    width:30px; height:88px; border-radius:2px 2px 0 0; overflow:hidden; flex:0 0 auto;
+  .rdcabgrid{
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
+    padding:11px 11px 13px; align-content:start; flex:1; min-height:0;
+  }
+  .rdmcov{
+    aspect-ratio:2/3; border-radius:3px; overflow:hidden; position:relative;
     background:linear-gradient(160deg,var(--c1,#c8a887),var(--c2,#9c7f63));
-    display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-weight:600;
-    writing-mode:vertical-rl; letter-spacing:1px; box-shadow:inset -2px 0 0 rgba(0,0,0,.12);
+    box-shadow:0 1px 3px rgba(70,48,28,.18);
+    display:flex; align-items:center; justify-content:center;
   }
-  .minibk img{width:100%; height:100%; object-fit:cover; writing-mode:horizontal-tb}
-  .minislot{width:30px; height:88px; border:1.5px dashed #dfd2c0; border-radius:2px; flex:0 0 auto; opacity:.75}
-  .rdcabempty{color:#b3a493; font-size:12px; align-self:center; padding-left:6px}
-  .rdcabfoot{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--sub)}
-  .rdcabfoot .dot{width:3px; height:3px; border-radius:50%; background:#cbbdab}
-  .rdcabacts{display:flex; gap:5px; margin-left:auto; opacity:.5; transition:opacity .15s}
-  .rdcab:hover .rdcabacts, .rdcabacts.show{opacity:1}
-  .rdcabacts .rdbtn{padding:3px 7px; font-size:11px; border-radius:7px; background:#fffdf9}
+  .rdmcov img{width:100%; height:100%; object-fit:cover; display:block}
+  .rdmcov span{
+    font-size:9.5px; line-height:1.2; color:#fff; text-align:center; padding:3px 2px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    word-break:break-word;
+  }
+  .rdcabempty{
+    grid-column:1/-1; display:flex; align-items:center; justify-content:center;
+    min-height:86px; border:1.5px dashed #ded1bf; border-radius:8px;
+    color:#b3a493; font-size:12.5px; letter-spacing:.5px;
+  }
   .rdcabnew{
-    border:1.5px dashed #d5c6b2; background:transparent; border-radius:16px; min-height:200px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    color:#a0907c; cursor:pointer; font-size:13.5px; font-weight:600; transition:.16s;
+    border:1.5px dashed #d5c6b2; background:transparent; border-radius:15px; min-height:206px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    color:#a0907c; cursor:pointer; font-size:13px; font-weight:600; transition:.16s; letter-spacing:.5px;
   }
+  .rdcabnew b{font-size:30px; font-weight:300; line-height:1}
   .rdcabnew:hover{border-color:var(--acc); color:var(--acc); background:#fffdf9}
+
+  /* ===== 书柜管理（统一在⚙里改名/排序/删除）===== */
+  .rdmgrow{
+    display:flex; align-items:center; gap:8px; padding:9px 10px; border:1px solid var(--line);
+    border-radius:11px; background:#fffdf9; margin-bottom:8px;
+  }
+  .rdmgrow .nm{flex:1; min-width:0; font-weight:600; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rdmgrow .cnt{font-size:11.5px; color:var(--sub); white-space:nowrap}
+  .rdmgrow .rdbtn{padding:5px 10px; font-size:12px; border-radius:8px; min-width:38px; text-align:center}
+  .rdmgrow .rdbtn.danger{color:#a8442f; border-color:#e6c9bf; background:#fdf3ef}
+  .rdmgrow .rdbtn:disabled{cursor:default}
 
   /* ===== 书卡 ===== */
   .rdgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px}
@@ -315,9 +332,14 @@
   .rdresi .cov{width:38px; height:54px; border-radius:4px; overflow:hidden; flex:0 0 auto;
     background:linear-gradient(150deg,var(--c1,#c8a887),var(--c2,#9c7f63)); position:relative}
   .rdresi .cov img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .rdresi .tx{min-width:0}
+  .rdresi .tx{min-width:0; flex:1}
   .rdresi .tx b{display:block; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .rdresi .tx span{font-size:11.5px; color:var(--sub)}
+  .rdresi .tx span{font-size:11.5px; color:var(--sub); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rdresi .rdgo{
+    flex:0 0 auto; font-size:12px; font-weight:700; color:var(--acc2);
+    border:1px solid #ddc6b2; background:#fdf6ee; border-radius:20px; padding:5px 12px;
+  }
+  .rdresi:hover .rdgo{background:var(--acc); color:#fff; border-color:var(--acc)}
 
   /* 详情 */
   .rddet{display:flex; gap:14px; margin-bottom:16px}
@@ -374,7 +396,11 @@
     .rdmain{padding:11px 11px 100px}
     .rdgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px}
     .rdbkt{font-size:12.5px}
-    .rdcabs{grid-template-columns:1fr; gap:11px}
+    .rdcabs{grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px}
+    .rdcab{min-height:158px}
+    .rdcabname{font-size:18px; letter-spacing:.4px; padding:11px 8px 10px}
+    .rdcabgrid{grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; padding:8px 8px 10px}
+    .rdcabnew{min-height:158px; font-size:12px}
     .rdnow{grid-template-columns:1fr}
     .rdsum{grid-template-columns:repeat(2,1fr); gap:7px}
     .rdsumi{padding:8px 10px}
@@ -424,6 +450,7 @@
     <button data-act="view" data-v="settings">设置</button>
   </div>
   <div class="rdspacer"></div>
+  <button class="rdbtn" data-act="cabmgr" title="书柜管理：改名 / 排序 / 删除">⚙<span class="rdaddtxt"> 书柜</span></button>
   <button class="rdbtn acc" data-act="addbook">＋<span class="rdaddtxt"> 录入书籍</span></button>
 </div>
 
@@ -448,32 +475,26 @@
           <video id="scanVideo" playsinline muted autoplay></video>
           <div class="scanfrm"></div>
         </div>
-        <div class="scanmsg" id="scanMsg">点下面的按钮打开摄像头，把书背面的条形码对准框内。</div>
+        <div class="scanmsg" id="scanMsg">点「打开摄像头」，把书背面的条形码对准框内，扫到会自动去查这本书。</div>
         <div class="rdsetrow" style="margin-top:10px">
-          <button class="rdbtn" data-act="startscan">打开摄像头</button>
+          <button class="rdbtn acc" data-act="startscan">打开摄像头</button>
           <button class="rdbtn ghost" data-act="stopscan">关闭</button>
         </div>
-        <div class="fld" style="margin-top:14px"><span>或直接输入 ISBN（书背面条形码下面那串）</span>
+        <div class="fld" style="margin-top:14px"><span>或直接输入 ISBN（书背面条形码下面那串数字）</span>
           <input id="scanIsbn" inputmode="numeric" autocomplete="off" placeholder="9787506365437">
         </div>
-        <button class="rdbtn" data-act="isbnGo">用这个 ISBN</button>
-        <div class="rdhint2" style="margin-top:10px">
-          扫码只能读出 ISBN。书名、作者、封面这些信息要从图书网站取，而豆瓣／微信读书的接口不给网页跨域读取，
-          所以扫完会跳到「手动」并把 ISBN 填好——你可以顺手把豆瓣页面上的信息整段复制，粘进「手动」顶部的框里自动填满。
-        </div>
+        <button class="rdbtn acc" data-act="isbnGo">查这本书</button>
+        <div class="rdhint2" id="quotaHint" style="margin-top:10px"></div>
+        <div class="rdres" id="isbnRes"></div>
       </div>
 
       <div class="rdtab" id="tabFind">
-        <div class="fld"><span>书名 / 作者 / ISBN</span>
-          <input id="findQ" autocomplete="off" placeholder="比如：活着 余华">
+        <div class="fld"><span>书名 / 作者（也能直接粘 ISBN）</span>
+          <input id="findQ" autocomplete="off" placeholder="比如：月亮与六便士">
         </div>
-        <div class="rdsetrow">
-          <button class="rdbtn" data-act="findLocal">在本机找</button>
-          <button class="rdbtn ghost" data-act="findDouban">去豆瓣搜 ↗</button>
-          <button class="rdbtn ghost" data-act="findWeread">去微信读书搜 ↗</button>
-        </div>
-        <div class="rdhint2" style="margin-top:10px">
-          本机找不到时，会在新标签打开豆瓣／微信读书；把那一页的文字整段复制回来，粘到「手动」顶部的粘贴框，一次就能填好。
+        <button class="rdbtn acc" data-act="doSearch">搜索</button>
+        <div class="rdhint2" style="margin-top:8px">
+          在页面里直接出结果，点封面就录进去。以前那种「跳去豆瓣自己复制」的按钮已经删了。
         </div>
         <div class="rdres" id="findRes"></div>
       </div>
@@ -535,6 +556,23 @@
     <div class="rdpfoot">
       <button class="rdbtn" data-act="close" data-m="mCab">取消</button>
       <button class="rdbtn acc" data-act="savecab">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 书柜管理（改名 / 排序 / 删除 都收在这里） ========== -->
+<div class="rdmask" id="mCabMgr">
+  <div class="rdpanel" style="max-width:520px">
+    <div class="rdphead"><h3>书柜管理</h3><button class="x" data-act="close" data-m="mCabMgr">✕</button></div>
+    <div class="rdpbody">
+      <div class="rdmglist" id="cabMgrList"></div>
+      <button class="rdbtn acc" data-act="addcab" style="width:100%;margin-top:6px">＋ 新建书柜</button>
+      <div class="rdhint2" style="margin-top:12px">
+        书柜的改名、排序、删除都在这里。书柜页里只放柜子本身，不再挂按钮。
+      </div>
+    </div>
+    <div class="rdpfoot">
+      <button class="rdbtn" data-act="close" data-m="mCabMgr">关闭</button>
     </div>
   </div>
 </div>
@@ -629,7 +667,11 @@ function ensureDefaultCab(){
 })();
 
 function persist(){ jset(KB,BOOKS); jset(KC,CABS); jset(KL,LOGS); jset(KN,NOTES); jset(KCFG,CFG); }
-function commit(keep){ persist(); render(keep); }
+function commit(keep){
+  persist();
+  render(keep);
+  var mg=$('#mCabMgr'); if(mg && mg.classList.contains('on')) renderCabMgr();
+}
 
 /* ================= 计算 ================= */
 function pctOf(b){ var p=num(b.pages); if(!p) return b.status==='done'?100:0; return Math.max(0,Math.min(100,Math.round(num(b.read)/p*100))); }
@@ -648,7 +690,7 @@ function totalPagesRead(){ var s=0; live(BOOKS).forEach(function(b){ s+=num(b.re
 function coverHtml(b, cls, phCls){
   var t=tone(b.title);
   var h='<div class="'+(cls||'rdcover')+'" style="--c1:'+t[0]+';--c2:'+t[1]+'">';
-  if(b.cover) h+='<img src="'+esc(b.cover)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+  if(b.cover) h+='<img src="'+esc(coverSrc(b.cover))+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
   h+='<span class="'+(phCls||'ph')+'">'+esc(b.title||'未命名')+'</span>';
   return h;
 }
@@ -670,59 +712,29 @@ function render(keep){
   if(keep) window.scrollTo(0,sy); else window.scrollTo(0,0);
 }
 
-/* ---------- 我的书柜 ---------- */
+/* ---------- 我的书柜：整页只留柜子，别的什么都没有 ---------- */
+function cabCover(b){
+  var t=tone(b.title);
+  return '<div class="rdmcov" style="--c1:'+t[0]+';--c2:'+t[1]+'" title="'+esc(b.title||'')+'">'+
+    (b.cover? '<img src="'+esc(coverSrc(b.cover))+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+            : '<span>'+esc(String(b.title||'未命名').slice(0,10))+'</span>')+'</div>';
+}
 function viewCabs(){
   var lv=live(CABS).slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
-  if(!lv.length){ ensureDefaultCab(); lv=live(CABS).slice(); }
-  var allBooks=live(BOOKS);
-  var doneY=finishedThisYear().length;
-  var thisM=monthCounts(year())[new Date().getMonth()];
-  var h='';
-
-  h+='<div class="rdsum">'+
-     '<div class="rdsumi"><b>'+lv.length+'</b><span>个书柜</span></div>'+
-     '<div class="rdsumi"><b>'+allBooks.length+'</b><span>册藏书</span></div>'+
-     '<div class="rdsumi"><b>'+allBooks.filter(function(b){return b.status==='reading';}).length+'</b><span>本在读</span></div>'+
-     '<div class="rdsumi"><b>'+doneY+'</b><span>'+year()+' 年读完</span></div>'+
-     '<div class="rdsumi"><b>'+thisM+'</b><span>本月读完</span></div>'+
-     '</div>';
-
-  h+=monthStrip();
-
-  h+='<div class="rdhd"><h2>我的书柜</h2><span class="n">'+lv.length+' 个 · 拖动卡片可排序</span>'+
-     '<div class="r"><button class="rdbtn" data-act="addcab">＋ 新建书柜</button></div></div>';
-  h+='<div class="rdcabs">';
+  var h='<div class="rdcabs">';
   lv.forEach(function(c){
     var bs=booksOf(c.id);
-    var doneN=bs.filter(function(b){ return b.status==='done'; }).length;
-    var mc=bs.filter(function(b){ return b.status==='done' && finishYear(b)===year() && monthOf(b.finish)===new Date().getMonth()+1; }).length;
-    var col=COLORS[(c.color||0)%COLORS.length];
-    h+='<div class="rdcab" data-act="opencab" data-id="'+esc(c.id)+'" draggable="true">';
-    h+='<div class="rdcabhead"><span class="rdcabname">'+esc(c.name)+'</span><span class="rdcabn">'+bs.length+' 本</span></div>';
-    h+='<div class="rdcabshelf" style="border-bottom-color:'+col[0]+'"><div class="ministack">';
+    h+='<div class="rdcab" data-act="opencab" data-id="'+esc(c.id)+'">';
+    h+='<div class="rdcabname">'+esc(c.name)+'</div>';
+    h+='<div class="rdcabgrid">';
     if(bs.length){
-      bs.slice(0,7).forEach(function(b){
-        var t=tone(b.title);
-        h+='<div class="minibk" style="--c1:'+t[0]+';--c2:'+t[1]+'" title="'+esc(b.title)+'">'+
-           (b.cover? '<img src="'+esc(b.cover)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : esc(String(b.title||'').slice(0,6)))+
-           '</div>';
-      });
-      if(bs.length>7) h+='<div class="minibk" style="--c1:#ddd0bf;--c2:#c4b39c">+'+(bs.length-7)+'</div>';
+      bs.slice(0,8).forEach(function(b){ h+=cabCover(b); });
     }else{
-      h+='<div class="minislot"></div><div class="minislot"></div><div class="minislot"></div>'+
-         '<div class="rdcabempty">空柜子 · 点进去放书</div>';
+      h+='<div class="rdcabempty">空柜子</div>';
     }
     h+='</div></div>';
-    h+='<div class="rdcabfoot"><span>已读完 '+doneN+'/'+bs.length+'</span><span class="dot"></span><span>本月 +'+mc+'</span>';
-    h+='<span class="rdcabacts">'+
-       '<button class="rdbtn" data-act="cabadit" data-id="'+esc(c.id)+'" title="重命名/改颜色">编辑</button>'+
-       '<button class="rdbtn" data-act="cabup" data-id="'+esc(c.id)+'">↑</button>'+
-       '<button class="rdbtn" data-act="cabdown" data-id="'+esc(c.id)+'">↓</button>'+
-       '<button class="rdbtn danger" data-act="cabel" data-id="'+esc(c.id)+'">删</button>'+
-       '</span></div>';
-    h+='</div>';
   });
-  h+='<div class="rdcabnew" data-act="addcab">＋<span>新建一个书柜</span></div>';
+  h+='<div class="rdcabnew" data-act="addcab"><b>＋</b><span>新建书柜</span></div>';
   h+='</div>';
   return h;
 }
@@ -978,7 +990,7 @@ function viewStats(){
       arr.forEach(function(b){
         var t=tone(b.title);
         h+='<div class="rdyli" data-act="openbook" data-id="'+esc(b.id)+'" style="cursor:pointer">'+
-           '<span class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+'</span>'+
+           '<span class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+(b.cover?'<img src="'+esc(coverSrc(b.cover))+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+'</span>'+
            '<span>'+esc(b.title||'未命名')+'</span><span class="au">'+esc(b.author||'')+'</span></div>';
       });
       h+='</div></div>';
@@ -1077,7 +1089,9 @@ function openBookForm(id, preset){
   renderCabPick();
   renderRate();
   setBookTab(cur.tab);
-  $('#scanMsg').textContent='点下面的按钮打开摄像头，把书背面的条形码对准框内。';
+  $('#scanMsg').textContent='点「打开摄像头」，把书背面的条形码对准框内，扫到会自动去查书名和封面。';
+  $('#isbnRes').innerHTML='';
+  updateQuota();
   openMask('mBook');
 }
 function renderCabPick(){
@@ -1098,6 +1112,8 @@ function setBookTab(t){
   $$('#tabScan,#tabFind,#tabManual').forEach(function(p){ p.classList.remove('on'); });
   var el=$('#tab'+{scan:'Scan',find:'Find',manual:'Manual'}[t]); if(el) el.classList.add('on');
   if(t!=='scan') stopScan();
+  if(t==='scan') updateQuota();
+  if(t==='find'){ var r=$('#findRes'); if(r) r.innerHTML=''; }
 }
 
 function saveBook(){
@@ -1157,6 +1173,28 @@ function saveCab(){
   commit(); closeMask('mCab'); toast('书柜已保存');
 }
 
+/* ---------- 书柜管理（改名 / 排序 / 删除 全在这里） ---------- */
+function openCabMgr(){
+  renderCabMgr();
+  openMask('mCabMgr');
+}
+function renderCabMgr(){
+  var el=$('#cabMgrList'); if(!el) return;
+  var lv=live(CABS).slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+  if(!lv.length){
+    el.innerHTML='<div class="rdhint2" style="margin-bottom:6px">还没有书柜。下面新建第一个，名字可以用「2026年11月」这种。</div>';
+    return;
+  }
+  el.innerHTML=lv.map(function(c,i){
+    return '<div class="rdmgrow"><span class="nm">'+esc(c.name)+'</span>'+
+      '<span class="cnt">'+booksOf(c.id).length+' 本</span>'+
+      '<button class="rdbtn" data-act="cabadit" data-id="'+esc(c.id)+'">改名</button>'+
+      '<button class="rdbtn" data-act="cabup" data-id="'+esc(c.id)+'"'+(i===0?' disabled style="opacity:.35"':'')+'>↑</button>'+
+      '<button class="rdbtn" data-act="cabdown" data-id="'+esc(c.id)+'"'+(i===lv.length-1?' disabled style="opacity:.35"':'')+'>↓</button>'+
+      '<button class="rdbtn danger" data-act="cabel" data-id="'+esc(c.id)+'">删</button></div>';
+  }).join('');
+}
+
 /* ---------- 详情 ---------- */
 function openDetail(id){
   var b=byId(BOOKS,id); if(!b) return;
@@ -1166,7 +1204,7 @@ function openDetail(id){
   var cab=byId(CABS,b.cabId);
   var t=tone(b.title);
   var h='<div class="rddet">';
-  h+='<div class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="" onerror="this.style.display=\'none\'">':'')+'<span>'+esc(b.title||'')+'</span></div>';
+  h+='<div class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+(b.cover?'<img src="'+esc(coverSrc(b.cover))+'" alt="" onerror="this.style.display=\'none\'">':'')+'<span>'+esc(b.title||'')+'</span></div>';
   h+='<div class="info"><h3>'+esc(b.title||'未命名')+'</h3>'+
      '<div class="meta">'+esc(b.author||'—')+(b.publisher?' · '+esc(b.publisher):'')+(b.year?' · '+esc(b.year):'')+'<br>'+
      '<span class="rdtag">'+STATUS[b.status]+'</span> '+(cab?'<span class="rdtag">'+esc(cab.name)+'</span>':'')+
@@ -1386,31 +1424,281 @@ function parsePaste(){
   toast(got.length?('已填：'+got.join('、')):'没认出字段，手动填一下吧');
 }
 
-/* ================= 扫码 ================= */
-var scanStream=null, scanTimer=null, scanDet=null;
+/* ================= 查书（自己的查书服务优先，豆瓣免费代理兜底） ================= */
+var ML='https://api.microlink.io/';
+/* 查书小服务：读豆瓣的书名/作者/出版社/页数/封面，并对封面做转发（豆瓣封面禁止外链） */
+var BOOK_API='https://book-lookup-api.app.workbuddy.host';
+var BOOK_Q='sharecode=UK7K5O7NZZ';
+function apiUrl(p){ return BOOK_API+p+(p.indexOf('?')>=0?'&':'?')+BOOK_Q; }
+function coverSrc(u){
+  if(!u) return '';
+  if(/^data:|^blob:/i.test(u)) return u;
+  if(/doubanio\.com/i.test(u)) return apiUrl('/cover?u='+encodeURIComponent(u));
+  return u;
+}
+var KCACHE='READ_ISBN_CACHE';
+var CACHE=jget(KCACHE,{}); if(!CACHE || typeof CACHE!=='object') CACHE={};
+var QUOTA=null, LOOK=[], VIA='';
+
+function apiGet(path){
+  return fetch(apiUrl(path),{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(j){
+    if(!j || j.ok===false) throw new Error((j&&j.error)||'查书服务返回异常');
+    return j.data;
+  });
+}
+
+function clean(v){
+  if(v==null) return '';
+  var s=String(v).trim();
+  if(!s || s==='None' || s==='null' || s==='undefined' || s==='NaN') return '';
+  return s;
+}
+function cacheSet(k,v){
+  CACHE[k]=v;
+  jset(KCACHE,CACHE);
+  try{ if(window.parent!==window) window.parent.postMessage({type:'wb-data-changed'},'*'); }catch(e){}
+}
+function mlFetch(params){
+  var q=[];
+  for(var k in params) q.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));
+  return fetch(ML+'?'+q.join('&'),{cache:'no-store'}).then(function(r){
+    var qq=r.headers.get('x-rate-limit-remaining');
+    if(qq!=null && qq!=='') QUOTA=parseInt(qq,10);
+    if(!r.ok && r.status>=500) throw new Error('查询服务开小差（HTTP '+r.status+'）');
+    return r.json();
+  }).then(function(j){
+    if(!j || j.status!=='success'){
+      var m=(j&&(j.message||j.status))||'查询失败';
+      if(String(m).indexOf('rate')>=0 || String(m).indexOf('limit')>=0) throw new Error('今天的免费查询次数用完了，明天再来，或者手动填');
+      throw new Error(m);
+    }
+    return j.data||{};
+  });
+}
+function updateQuota(){
+  var el=$('#quotaHint'); if(!el) return;
+  if(VIA==='api'){ el.textContent='扫到 ISBN 会自动带出书名、作者、出版社和封面，不限次数。'; return; }
+  if(QUOTA==null){ el.textContent='扫到 ISBN 会自动带出书名、作者、出版社和封面。'; return; }
+  el.textContent='备用接口：今天还能查 '+QUOTA+' 次（查过的书会永久缓存，不再占次数）。';
+}
+/* #info 那段文字 → 字段 */
+var INFO_KEYS=['作者','译者','编者','出版社','出版时间','出版年','ISBN','页数','装帧','定价','原作名','副标题','丛书','出品方','统一书号'];
+function splitInfo(t){
+  t=String(t||'');
+  var re=new RegExp('('+INFO_KEYS.join('|')+')\\s*[:：]','g'), ms=[], m;
+  while((m=re.exec(t))) ms.push({k:m[1], start:m.index, end:re.lastIndex});
+  var o={};
+  for(var i=0;i<ms.length;i++){
+    var stop=i+1<ms.length?ms[i+1].start:t.length;
+    var v=t.slice(ms[i].end,stop).replace(/\s+/g,' ').trim();
+    if(v && !o[ms[i].k]) o[ms[i].k]=v;
+  }
+  return o;
+}
+/* ISBN → 整本书的信息：先问自己的服务，挂了再用免费代理 */
+function mlIsbn(isbn){
+  return mlFetch({
+    url:'https://book.douban.com/isbn/'+isbn+'/',
+    meta:'false',
+    'data.i.selector':'#info', 'data.i.attr':'text',
+    'data.t.selector':'#wrapper h1 span', 'data.t.attr':'text',
+    'data.c.selector':'#mainpic a', 'data.c.attr':'href',
+    'data.g.selector':'meta[property="og:image"]', 'data.g.attr':'content'
+  }).then(function(d){
+    var info=splitInfo(d.i), title=clean(d.t);
+    if(!title && !info['作者']) throw new Error('这个 ISBN 在豆瓣没有对应条目');
+    return {
+      title:title, author:info['作者']||'', translator:info['译者']||'',
+      publisher:info['出版社']||'', year:String(info['出版时间']||info['出版年']||'').slice(0,4),
+      pages:parseInt(info['页数'],10)||0, isbn:info['ISBN']||isbn,
+      price:info['定价']||'', binding:info['装帧']||'', series:info['丛书']||'',
+      cover:clean(d.c)||clean(d.g)||'', url:clean(d.url), from:'douban'
+    };
+  });
+}
+function isbnLookup(isbn){
+  isbn=String(isbn||'').replace(/[^\dXx]/g,'');
+  if(isbn.length<10) return Promise.reject(new Error('ISBN 位数不对'));
+  var ck='isbn:'+isbn, hit=CACHE[ck];
+  if(hit && typeof hit==='object' && hit.title) return Promise.resolve(hit);
+  return apiGet('/api/isbn?isbn='+isbn).then(function(md){
+    VIA='api';
+    if(md) md.from='douban';
+    cacheSet(ck,md);
+    return md;
+  }).catch(function(){
+    VIA='ml';
+    return mlIsbn(isbn).then(function(md){ cacheSet(ck,md); return md; });
+  });
+}
+/* 关键词 → 候选书 */
+function mlSearch(q){
+  return mlFetch({
+    url:'https://book.douban.com/j/subject_suggest?q='+q,
+    meta:'false',
+    'data.raw.selector':'body', 'data.raw.attr':'text'
+  }).then(function(d){
+    var raw=d.raw, arr=[];
+    if(typeof raw==='string'){
+      var t=raw.trim();
+      try{ arr=JSON.parse(t); }catch(e){ try{ arr=JSON.parse(t.replace(/'/g,'"')); }catch(e2){ arr=[]; } }
+    }else if(Object.prototype.toString.call(raw)==='[object Array]'){ arr=raw; }
+    return (arr||[]).filter(function(x){ return x && x.title; }).slice(0,12).map(function(x){
+      return {title:x.title, author:x.author_name||'', year:String(x.year||''),
+              cover:x.pic||'', url:x.url||'', sid:x.id||'', from:'douban'};
+    });
+  });
+}
+function bookSearch(q){
+  q=String(q||'').trim();
+  if(!q) return Promise.reject(new Error('先输入书名或作者'));
+  var isbnLike=q.replace(/[^\dXx]/g,'');
+  if(/^97[89]\d{10}$/.test(isbnLike) || /^\d{9}[\dXx]$/.test(isbnLike)) return isbnLookup(isbnLike).then(function(m){ return [m]; });
+  var ck='q:'+q.toLowerCase(), hit=CACHE[ck];
+  if(hit && hit.list) return Promise.resolve(hit.list);
+  return apiGet('/api/search?q='+encodeURIComponent(q)).then(function(list){
+    VIA='api';
+    list=list||[];
+    cacheSet(ck,{list:list});
+    return list;
+  }).catch(function(){
+    VIA='ml';
+    return mlSearch(q).then(function(list){ cacheSet(ck,{list:list}); return list; });
+  });
+}
+/* 结果卡 */
+function lookupCard(md,i){
+  var t=tone(md.title);
+  var meta=[md.author, md.publisher, md.year, md.pages?md.pages+' 页':''].filter(Boolean).join(' · ');
+  return '<div class="rdresi" data-act="quickadd" data-k="'+i+'">'+
+    '<div class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+
+      (md.cover? '<img src="'+esc(coverSrc(md.cover))+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+
+    '</div>'+
+    '<div class="tx"><b>'+esc(md.title)+'</b><span>'+esc(meta||'点一下录进书架')+'</span></div>'+
+    '<span class="rdgo">录入</span></div>';
+}
+function showLookup(boxSel, list, emptyTip){
+  LOOK=list;
+  var box=$(boxSel); if(!box) return;
+  if(!list || !list.length){
+    box.innerHTML='<div class="rdhint2">'+(emptyTip||'没找到，换个关键词试试。')+'</div>';
+    return;
+  }
+  box.innerHTML=list.map(lookupCard).join('');
+}
+/* 一键录入 */
+function quickAdd(i){
+  var md=LOOK[i]; if(!md) return;
+  var cab = S.cab || (live(CABS)[0]&&live(CABS)[0].id) || null;
+  var b={
+    id:uid('bk'), title:md.title||'未命名', author:md.author||'', translator:md.translator||'',
+    publisher:md.publisher||'', year:md.year||'', pages:num(md.pages), read:0,
+    isbn:md.isbn||'', cover:md.cover||'', status:'wish', cat:'文学',
+    cabId:cab, rate:0, added:nowMs(), updated:nowMs(), src:md.from||''
+  };
+  BOOKS.push(b);
+  commit();
+  closeMask('mBook');
+  stopScan();
+  toast(b.cabId ? ('已放进书柜：'+b.title) : ('已收进我的藏书：'+b.title+'（还没归柜）'));
+  if(!S.view || S.view!=='cabs'){ S.view='cabs'; S.cab=null; render(); }
+}
+
+/* ================= 扫码（自带 EAN-13 解码，不依赖浏览器支持） ================= */
+var scanStream=null, scanTimer=null, scanDet=null, scanCv=null, scanCtx=null;
+var EAN_L={'0001101':0,'0011001':1,'0010011':2,'0111101':3,'0100011':4,'0110001':5,'0101111':6,'0111011':7,'0110111':8,'0001011':9};
+var EAN_G={'0100111':0,'0110011':1,'0011011':2,'0100001':3,'0011101':4,'0111001':5,'0000101':6,'0010001':7,'0001001':8,'0010111':9};
+var EAN_R={'1110010':0,'1100110':1,'1101100':2,'1000010':3,'1011100':4,'1001110':5,'1010000':6,'1000100':7,'1001000':8,'1110100':9};
+var EAN_PAR={'000000':0,'001011':1,'001101':2,'001110':3,'010011':4,'011001':5,'011100':6,'010101':7,'010110':8,'011010':9};
+
+function bitsStr(a,s,e){ var o=''; for(var i=s;i<e;i++) o+=a[i]?'1':'0'; return o; }
+function eanSum(d){
+  if(d.length!==13) return false;
+  var s=0,i;
+  for(i=0;i<12;i++) s+=(+d[i])*(i%2?3:1);
+  return ((10-s%10)%10)===(+d[12]);
+}
+function ean13(a){
+  if(!a || a.length<95) return null;
+  if(bitsStr(a,0,3)!=='101') return null;
+  if(bitsStr(a,45,50)!=='01010') return null;
+  if(bitsStr(a,92,95)!=='101') return null;
+  var par='', left='', right='', i, p;
+  for(i=0;i<6;i++){
+    p=bitsStr(a,3+i*7,10+i*7);
+    if(EAN_L[p]!=null){ par+='0'; left+=EAN_L[p]; }
+    else if(EAN_G[p]!=null){ par+='1'; left+=EAN_G[p]; }
+    else return null;
+  }
+  var f=EAN_PAR[par]; if(f==null) return null;
+  for(i=0;i<6;i++){
+    p=bitsStr(a,50+i*7,57+i*7);
+    if(EAN_R[p]==null) return null;
+    right+=EAN_R[p];
+  }
+  var d=String(f)+left+right;
+  return eanSum(d)?d:null;
+}
+function sampleAt(bits,s,w,total){
+  var m=w/total, arr=new Array(total), i;
+  if(m<0.95) return null;
+  for(i=0;i<total;i++){
+    var idx=Math.round(s+(i+0.5)*m);
+    if(idx<0||idx>=bits.length) return null;
+    arr[i]=bits[idx];
+  }
+  return arr;
+}
+function tryLine(px,W){
+  var lum=new Array(W), mn=255, mx=0, i, o, v;
+  for(i=0;i<W;i++){
+    o=i*4;
+    v=(px[o]*299+px[o+1]*587+px[o+2]*114)/1000;
+    lum[i]=v; if(v<mn) mn=v; if(v>mx) mx=v;
+  }
+  if(mx-mn<45) return null;
+  var th=(mn+mx)/2, bits=new Array(W);
+  for(i=0;i<W;i++) bits[i]=lum[i]<th?1:0;
+  var s=-1,e=-1;
+  for(i=0;i<W;i++) if(bits[i]){ if(s<0) s=i; e=i; }
+  if(s<0||e<=s+40) return null;
+  var offs=[0,1,2,3,-1,-2], k, r, w;
+  for(k=0;k<offs.length;k++){
+    var s2=s+Math.max(0,offs[k]), e2=e-Math.max(0,offs[k])+Math.min(0,offs[k]);
+    w=e2-s2+1;
+    if(w<60) continue;
+    r=ean13(sampleAt(bits,s2,w,95));
+    if(r) return r;
+  }
+  return null;
+}
 function startScan(){
   var v=$('#scanVideo'), msg=$('#scanMsg');
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    msg.textContent='这个浏览器拿不到摄像头。可以直接输入 ISBN，或者用手机浏览器打开本页扫码。';
-    return;
-  }
-  if(!('BarcodeDetector' in window)){
-    msg.textContent='这个浏览器不支持网页条码识别（电脑版 Edge/Chrome 多数不支持，手机上的 Chrome/Edge 可以）。请直接输入 ISBN，或用手机扫码。';
-    return;
-  }
+  stopScan();
   msg.textContent='正在打开摄像头…';
-  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}})
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    msg.textContent='这个浏览器拿不到摄像头。直接输入 ISBN 也一样，会自动去查。';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false})
   .then(function(st){
     scanStream=st;
     v.srcObject=st;
     var p=v.play(); if(p&&p.catch) p.catch(function(){});
-    try{ scanDet=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','code_128']}); }
-    catch(e){ try{ scanDet=new BarcodeDetector(); }catch(e2){ scanDet=null; } }
-    msg.textContent='把书背面的条形码对准框内，识别到会自动跳到填表。';
-    scanTimer=setInterval(tickScan,420);
+    scanDet=null;
+    if('BarcodeDetector' in window){
+      try{ scanDet=new BarcodeDetector({formats:['ean_13','ean_8','upc_a']}); }
+      catch(e){ try{ scanDet=new BarcodeDetector(); }catch(e2){ scanDet=null; } }
+    }
+    if(!scanCv){ scanCv=document.createElement('canvas'); }
+    msg.textContent='把书背面的条形码对准框内，扫到会自动去查书名和封面。';
+    scanTimer=setInterval(tickScan,240);
   })
   .catch(function(e){
-    msg.textContent='打不开摄像头：'+((e&&e.message)||e)+'。检查一下浏览器有没有给权限；也可以直接输入 ISBN。';
+    msg.textContent='打不开摄像头：'+((e&&e.message)||e)+'。检查浏览器权限，或者直接输入 ISBN。';
   });
 }
 function stopScan(){
@@ -1419,21 +1707,46 @@ function stopScan(){
   var v=$('#scanVideo'); if(v) v.srcObject=null;
 }
 function tickScan(){
-  if(!scanDet || !scanStream) return;
-  var v=$('#scanVideo'); if(!v || v.readyState<2) return;
-  scanDet.detect(v).then(function(codes){
-    if(codes && codes.length){
-      var val=String(codes[0].rawValue||'').replace(/[^\dXx]/g,'');
-      if(val.length>=10){ stopScan(); onIsbn(val); }
-    }
-  }).catch(function(){});
+  if(!scanStream) return;
+  var v=$('#scanVideo');
+  if(!v || v.readyState<2 || !v.videoWidth) return;
+  if(scanDet){
+    scanDet.detect(v).then(function(codes){
+      if(codes && codes.length){
+        var val=String(codes[0].rawValue||'').replace(/[^\dXx]/g,'');
+        if(val.length>=10){ stopScan(); onIsbn(val); }
+      }
+    }).catch(function(){});
+    return;
+  }
+  var W=440, H=Math.round(v.videoHeight*W/v.videoWidth);
+  if(!scanCv){ scanCv=document.createElement('canvas'); }
+  scanCv.width=W; scanCv.height=H;
+  scanCtx=scanCv.getContext('2d',{willReadFrequently:true});
+  scanCtx.drawImage(v,0,0,W,H);
+  var ys=[0.50,0.44,0.56,0.38,0.62,0.32,0.68,0.26,0.74];
+  for(var i=0;i<ys.length;i++){
+    var y=Math.max(0,Math.min(H-1,Math.round(H*ys[i])));
+    var d=scanCtx.getImageData(0,y,W,1).data;
+    var r=tryLine(d,W);
+    if(r){ stopScan(); onIsbn(r); return; }
+  }
 }
 function onIsbn(isbn){
-  $('#f_isbn').value=isbn;
-  $('#scanMsg').textContent='已识别 ISBN：'+isbn;
-  setBookTab('manual');
-  $('#bookTitle').textContent='补全书名和封面';
-  toast('ISBN 已填好，补个书名就能存');
+  isbn=String(isbn||'').replace(/[^\dXx]/g,'');
+  if(isbn.length<10){ toast('ISBN 位数不对'); return; }
+  $('#scanIsbn').value=isbn;
+  $('#scanMsg').textContent='扫到 ISBN '+isbn+'，正在查这本书…';
+  $('#isbnRes').innerHTML='<div class="rdhint2">查询中，第一次会慢一两秒…</div>';
+  isbnLookup(isbn).then(function(md){
+    $('#scanMsg').textContent='查到了：'+md.title;
+    showLookup('#isbnRes',[md],'');
+    updateQuota();
+  }).catch(function(e){
+    $('#scanMsg').textContent='没查到：'+(e.message||e);
+    $('#isbnRes').innerHTML='<div class="rdhint2">这本书网上没查到。可以切到「手动」自己填，'+
+      '或者把豆瓣页面上的文字整段复制到「手动」顶部的粘贴框，会自动解析。</div>';
+  });
 }
 
 /* ================= 事件 ================= */
@@ -1523,8 +1836,22 @@ document.addEventListener('click',function(e){
     case 'stopscan': stopScan(); $('#scanMsg').textContent='摄像头已关闭。'; break;
     case 'isbnGo':
       var v=$('#scanIsbn').value.replace(/[^\dXx]/g,'');
-      if(v.length<10){ toast('ISBN 不像对的，再检查一下'); break; }
+      if(v.length<10){ toast('ISBN 位数不对，再检查一下'); break; }
       onIsbn(v); break;
+    case 'doSearch':
+      var q=($('#findQ').value||'').trim();
+      if(!q){ toast('先输入书名或作者'); break; }
+      $('#findRes').innerHTML='<div class="rdhint2">搜索中…</div>';
+      bookSearch(q).then(function(list){
+        showLookup('#findRes', list, '豆瓣没有这个关键词的结果，换个说法试试。');
+        updateQuota();
+      }).catch(function(e){
+        $('#findRes').innerHTML='<div class="rdhint2">搜索失败：'+esc(e.message||String(e))+'</div>';
+      });
+      break;
+    case 'quickadd': quickAdd(num(el.getAttribute('data-k'))); break;
+
+    case 'cabmgr': openCabMgr(); break;
 
     case 'pickst': cur.status=el.dataset.v;
       $$('#p_status .rdchip').forEach(function(x){ x.classList.toggle('on', x.dataset.v===cur.status); }); break;
@@ -1541,28 +1868,6 @@ document.addEventListener('click',function(e){
     case 'savecab': saveCab(); break;
     case 'savenote': saveNote(); break;
     case 'parsePaste': parsePaste(); break;
-
-    case 'findLocal':
-      var q=($('#findQ').value||'').trim().toLowerCase();
-      if(!q){ toast('先输入关键词'); break; }
-      var hits=live(BOOKS).filter(function(b){ return ((b.title||'')+(b.author||'')+(b.isbn||'')).toLowerCase().indexOf(q)>=0; });
-      var box=$('#findRes');
-      if(!hits.length){ box.innerHTML='<div class="rdhint2">本机没有找到。可以点上面的「去豆瓣搜」，把结果粘回来。</div>'; break; }
-      box.innerHTML=hits.slice(0,8).map(function(b){
-        var t=tone(b.title);
-        return '<div class="rdresi" data-act="openbook" data-id="'+esc(b.id)+'"><div class="cov" style="--c1:'+t[0]+';--c2:'+t[1]+'">'+
-          (b.cover?'<img src="'+esc(b.cover)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+'</div>'+
-          '<div class="tx"><b>'+esc(b.title||'')+'</b><span>'+esc(b.author||'')+' · '+STATUS[b.status]+'</span></div></div>';
-      }).join('');
-      break;
-    case 'findDouban':
-      var qd=($('#findQ').value||'').trim();
-      window.open('https://search.douban.com/book/subject_search?search_text='+encodeURIComponent(qd),'_blank','noopener');
-      break;
-    case 'findWeread':
-      var qw=($('#findQ').value||'').trim();
-      window.open('https://weread.qq.com/web/search/books?keyword='+encodeURIComponent(qw),'_blank','noopener');
-      break;
 
     case 'savegoal':
       var gv=num($('#setGoal').value);
