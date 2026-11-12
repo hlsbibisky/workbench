@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261112a';
+const WB_THIS_VER='20261112b';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -661,7 +661,7 @@ const MODULES = {
     sub:[ {id:'plan', name:'周计划', type:'iframe', src:'周计划.html', status:'online'} ]
   },
   read: {
-    title:'阅读记录', note:'书架 · 打卡 · 书摘 · 统计', group:'common',
+    title:'阅读记录', note:'我的书柜 · 藏书 · 在读 · 分析', group:'common',
     sub:[ {id:'shelf', name:'阅读记录', type:'iframe', src:'阅读记录.html', status:'online'} ]
   },
   daily: {
@@ -818,7 +818,7 @@ function selectSub(modKey, subId){
     const btn = document.createElement('button'); btn.className='fbtn'; btn.title='刷新此页';
     btn.innerHTML = ICONS.refresh;
     const f = document.createElement('iframe'); f.title = s.name;
-    f.allow = 'microphone; fullscreen; autoplay'; // 语音输入 + 放映室全屏 + 自动播放
+    f.allow = 'microphone; camera; fullscreen; autoplay'; // 语音输入 + 阅读记录扫码 + 放映室全屏 + 自动播放
     f.setAttribute('allowfullscreen','');
     /* 手机版：新建 / 加载完 / 延迟都补一次（srcdoc 的 load 时机不稳，三重兜底） */
     f.addEventListener('load', ()=>{ try{ wbFrameLoaded(f); }catch(e){} });
@@ -939,8 +939,8 @@ const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver',
      WB_LAYOUT 曾被同步上云，电脑切成电脑版 → 手机拉回 'pc' → 手机永远进不了手机版，
      顶栏一堆按钮被裁掉。WB_ZOOM 同理：电脑上放大，手机打开也会莫名压成窄条。 */
   'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM',
-  /* 子页 UI 偏好，同理不跨设备（阅读记录默认视图 / 书架排布） */
-  'READ_VIEW','READ_SHELF_VIEW',
+  /* 子页 UI 偏好，同理不跨设备（阅读记录默认视图 / 书架排布 / 年度目标） */
+  'READ_VIEW','READ_SHELF_VIEW','READ_CFG_V1',
   /* AI 配置按设备走（2026-11-12）：密钥本就不上云，地址/模型若跟着上云，
      别的设备会把旧 DeepSeek 覆盖回刚设好的智谱，聊天又变成 401。 */
   'ywApiBase','ywApiModel','ywVlBase','ywVlModel'];
@@ -2294,17 +2294,22 @@ const WB_MOBILE_SKINS = {
     html[data-wb-mobile="1"] .content{padding:12px !important;}
   `,
   '阅读记录.html': `
-    /* 阅读记录 v2：整页自带手机适配。外壳 WB_MOBILE_BASE 会给所有 button 灌 36px 高，
-       这里用更高权重压回，否则书脊/小按钮/表单 chips 全被撑胖。 */
+    /* 阅读记录 v3（我的书柜）：整页自带手机适配。外壳 WB_MOBILE_BASE 会给所有 button 灌 36px 高、
+       把 .bar/.tools 竖排，这里用更高权重压回，否则分段控件/筛选 chips/表单小按钮全被撑胖。 */
     html[data-wb-mobile="1"] .rdapp button{min-height:0 !important; width:auto !important;}
     html[data-wb-mobile="1"] .rdapp .rdbtn{min-height:32px !important;}
     html[data-wb-mobile="1"] .rdapp .rdbtn.mini{min-height:26px !important; font-size:11.5px !important;}
     html[data-wb-mobile="1"] .rdapp .rdchip{min-height:26px !important; font-size:12px !important;}
-    html[data-wb-mobile="1"] .rdapp .rdseg button{min-height:30px !important; font-size:12.5px !important;}
-    html[data-wb-mobile="1"] .rdapp .rdlook button{min-height:28px !important; font-size:11px !important;}
-    html[data-wb-mobile="1"] .rdapp .rdsearch{min-height:34px !important; width:100% !important;}
+    html[data-wb-mobile="1"] .rdapp .rdsegs button{min-height:30px !important; font-size:12.5px !important;}
+    html[data-wb-mobile="1"] .rdapp .rdsearch,
+    html[data-wb-mobile="1"] .rdapp .rdsel{min-height:34px !important; font-size:13px !important;}
+    html[data-wb-mobile="1"] .rdapp .rdcabacts{opacity:1 !important;}
+    html[data-wb-mobile="1"] .rdapp .rdstars button{min-height:28px !important; width:28px !important; font-size:20px !important;}
+    html[data-wb-mobile="1"] .rdapp .rdtabs button{min-height:34px !important;}
+    html[data-wb-mobile="1"] .rdapp .rdphead .x{width:32px !important; height:32px !important; min-height:32px !important;}
     html[data-wb-mobile="1"] .rdpanel{padding:0 !important; margin:0 !important;
-      border-radius:18px 18px 0 0 !important; box-shadow:none !important; max-height:calc(100dvh - 20px) !important;}
+      border-radius:18px 18px 0 0 !important; box-shadow:none !important; max-height:calc(100dvh - 12px) !important;}
+    html[data-wb-mobile="1"] .rdpfoot .rdbtn{min-height:42px !important; flex:1 !important; width:auto !important;}
   `,
   '美食记录.html': `
     html[data-wb-mobile="1"] .content{padding:12px !important;}
