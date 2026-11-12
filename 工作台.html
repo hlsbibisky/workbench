@@ -599,7 +599,7 @@ function wbLoadSupaFallback(){
 /* ⚠ 版本号必须在脚本顶部声明：下方的初始化 selectModule('inner') 会立刻经 wbIframeSrc() 读取它，
    若声明在后，const 的 TDZ 会抛 ReferenceError 并中断整段脚本
    —— 这正是「工作台打不开、所有子页都不加载」的直接原因。 */
-const WB_THIS_VER='20261112b';
+const WB_THIS_VER='20261112c';
 /* 抽屉菜单：手机端汉堡按钮打开/关闭，主区域点击/侧栏外点击也会关闭 */
 (function(){
   function close(){ document.body.classList.remove('menu-open'); }
@@ -1479,6 +1479,16 @@ async function wbMergeAll(cloudObj, dir){
         if(!wbIsEmptyVal(lv)) out[k]=merged; else if(!wbIsEmptyVal(cv)) out[k]=cv;
       } else if(wbIsObj(lv)&&wbIsObj(cv)){ out[k]=wbMergeObj(lv,cv,dir); }
       else { out[k]=(!wbIsEmptyVal(lv))?lv:cv; }
+      return;
+    }
+    /* 阅读记录（书柜/藏书/笔记/打卡）：一律按 id 纯并集合并，不带基线。
+       事故（2026-11-13）：一台本机数据不全的设备推送时，三向合并把「云端有、本机没有」
+       判成「用户删了」，4 本书与 4 条笔记被整批抹掉。阅读数据删除本来就走 deleted 软删标记，
+       不依赖「消失即删除」，所以这里绝不能传基线。 */
+    if(k.indexOf('READ_')===0){
+      if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(wbIsEmptyVal(lv)?'[]':lv, wbIsEmptyVal(cv)?'[]':cv, null, dir); return; }
+      if(wbIsEmptyVal(lv)&&!wbIsEmptyVal(cv)) return;
+      if(!wbIsEmptyVal(lv)) out[k]=lv;
       return;
     }
     if(wbIsArr(lv)||wbIsArr(cv)){ out[k]=wbMergeArr3(lv,cv,bv,dir); return; }   /* 数组：三向合并（按方向定优先级） */
