@@ -370,6 +370,7 @@
         <div class="aiarea">
           <textarea id="plotText" placeholder="把剧情简介、分集剧情或字幕文本粘贴到这里，AI 会生成时间轴评论。"></textarea>
           <button class="btn primary" style="width:100%;margin-top:8px;padding:7px 0;" onclick="genAiNotes()" id="genBtn">✨ 生成时间轴评论</button>
+          <div class="hint" style="margin-top:8px;">生成几十条评论是长任务：按 15 分钟分段逐段请求，每段最多等 2 分钟，按钮上会显示「已等 N 秒」；某一段卡住会自动精简字幕重试、再跳过，其余段落照常保存。</div>
           <div class="hint">
           <div class="hint">
             <b>AI 是怎么「看」电影的？</b><br>
@@ -542,7 +543,11 @@ function loadCfg(){
   };
 }
 function saveCfg(cfg){ lsSet(K_CFG,cfg); }
-/* AI 请求统一走这里：30 秒超时 + 明确报错，7 段生成不再无限干等 */
+/* 超时分档：一句话聊天要快；批量生成是长任务，一次要读完一整段字幕再写十几条 JSON。
+   ⚠ 旧版两者共用 30 秒 —— 聊天能回、生成必超时，看起来就像「AI 连接坏了」。 */
+const AI_MS_CHAT=30000;      /* 一对一聊天 / 实时视觉分析 */
+const AI_MS_PROFILE=90000;   /* AI 认片 */
+const AI_MS_GEN=120000;      /* 生成一整段时间轴评论（带思考的模型常要 40~90 秒） */
 function aiFetch(url,opt,ms){
   opt=opt||{}; var ctrl=null,timer=null; ms=ms||30000;
   if('AbortController' in window){
@@ -1332,7 +1337,7 @@ async function ensureProfile(cfg){
 +(plot?('\n\n剧情资料：'+plot):'');
   try{
     const res=await aiFetch(cfg.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
-      body:JSON.stringify({model:cfg.model,messages:[{role:'user',content:askTxt}],temperature:0.2})});
+      body:JSON.stringify({model:cfg.model,messages:[{role:'user',content:askTxt}],temperature:0.2})}, AI_MS_PROFILE);
     if(!res.ok) throw new Error('API '+res.status);
     const data=await res.json();
     let txt=((data.choices||[{}])[0].message||{}).content||'';
@@ -1348,15 +1353,8 @@ async function ensureProfile(cfg){
       return true;
     }
   }catch(e){ /* 认片失败不阻断生成，下面问用户 */ }
-  /* 认不出：问用户要片名，可跳过 */
-  const t=prompt('AI 没认出这部片。你知道片名吗？（留空直接确定=跳过，AI 会只靠字幕解读）\n文件名：'+fn);
-  if(t && t.trim()){
-    state.profile={recognized:false,userFilled:true,title:t.trim(),year:'',director:'',cast:[],plot:'',themes:'',updated:Date.now()};
-    saveMovie(); renderProfile();
-    sysTip('已把片名《'+t.trim()+'》记进影片档案，评论和陪聊会带上它。想补人物和剧情，去「AI生成」页点「编辑」。');
-  }else{
-    sysTip('这部片 AI 没认出来，也没填片名——评论会只按字幕内容写，人物关系可能对不上。之后随时可以在「AI生成」页点「编辑」补片名。');
-  }
+  /* 认不出 / 认片超时：不再弹阻塞对话框打断操作，只提示，片名可稍后在「AI生成」页补 */
+  sysTip('这部片 AI 没认出来（或认片超时），评论会只按字幕内容写。想让 AI 认对人，去「AI生成」页点「编辑」补片名就行。');
   return true;
 }
 function renderProfile(){
@@ -1484,12 +1482,12 @@ function saveAiCfg(){
 
 /* ================= AI 生成时间轴 ================= */
 /* 调一次 AI，并从中解析出 JSON 数组 */
-async function callJson(endpoint,model,key,prompt){
+async function callJson(endpoint,model,key,prompt,ms){
   const res=await aiFetch(endpoint,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
     body:JSON.stringify({model:model,messages:[{role:'user',content:prompt}],temperature:0.85})
-  });
+  }, ms||AI_MS_GEN);
   const data=await res.json().catch(function(){ return {}; });
   if(!res.ok){
     const em=(data&&data.error&&data.error.message)||'';
@@ -1594,6 +1592,11 @@ async function genAiNotes(){
   const key=cfg.key, model=cfg.model||'deepseek-flash', endpoint=cfg.endpoint||'https://api.deepseek.com';
   if(!key){ alert('请先点右上角「AI配置」填写 API Key'); return; }
   const btn=$('genBtn'), old=btn.textContent; btn.disabled=true;
+  /* 长任务要给看得见的进度：按钮上每秒刷新「已等 N 秒」，不再像卡死 */
+  let waitTimer=null, waitLabel='', waitAt=0;
+  const startWait=(label)=>{ waitLabel=label; waitAt=Date.now(); clearInterval(waitTimer); btn.textContent=label;
+    waitTimer=setInterval(()=>{ btn.textContent=waitLabel+' · 已等 '+Math.round((Date.now()-waitAt)/1000)+' 秒'; },1000); };
+  const stopWait=()=>{ clearInterval(waitTimer); waitTimer=null; };
   /* 生成期间上锁：① 禁止云同步回流的 wb-reload 把页面重载（否则跑到一半全丢）
                     ② 暂停写盘通知，避免每写一次就触发一轮同步包推送 */
   window.__genBusy=true; window.__syncSilent=true;
@@ -1607,6 +1610,7 @@ async function genAiNotes(){
   const diag=[];                       /* 记录哪几段没有字幕，最后如实告诉用户 */
   const L=styleLenSpec(), T=styleToneSpec(), D=styleDensSpec();
   const patched=[];                    /* 记录哪些区间走了「均匀兜底」补轮 */
+  const failed=[];                     /* 哪几段没生成出来，最后如实告诉用户 */
   try{
     if(hasSub){
       /* 有字幕：按 15 分钟切段、逐段生成。
@@ -1621,10 +1625,10 @@ async function genAiNotes(){
         const s=i*segSec, e=Math.min((i+1)*segSec, endSec);   /* 末段按真实片尾收口，别让 AI 写到片外去 */
         const cues=state.subtitle.filter(c=>c.start>=s && c.start<e);
         const segMin=Math.max(1,Math.round((Math.min(e,endSec)-s)/60));
-        btn.textContent=`生成中… 第 ${i+1}/${total} 段`;
-        let prompt;
+        startWait(`生成中… 第 ${i+1}/${total} 段`);
+        let prompt, segBody='';
         if(cues.length){
-          const body=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
+          segBody=cues.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
           prompt=`你是一位陪用户看电影的 AI 朋友。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}下面是同一部电影 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）的对白字幕，方括号里的时间就是电影的真实时间。
 请为这一段写「观影时间轴评论」。
 
@@ -1645,7 +1649,7 @@ ${D}
 7. ${T}
 
 字幕如下：
-${body}`;
+${segBody}`;
         } else {
           diag.push(`${fmt(s)}–${fmt(e)}`);
           prompt=`你是一位陪用户看电影的 AI 朋友。${profTxt?('【影片背景（AI 已核实，评论里的人物称呼以此为准）】'+profTxt):''}现在要为一部电影的 ${fmt(s)}–${fmt(e)} 这一段（约 ${segMin} 分钟）写「观影时间轴评论」，但这一段没有对白字幕可供参考。
@@ -1668,7 +1672,23 @@ ${D}
 剧情资料如下：
 ${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜头、配乐的通用感受，不要编造任何具体情节）'}`;
         }
-        const arr=await callJson(endpoint,model,key,prompt);
+        let arr=null;
+        try{ arr=await callJson(endpoint,model,key,prompt); }
+        catch(e1){
+          /* 这一段卡住：把字幕砍一半再试一次。长输入最容易把带思考的模型拖过时限。
+             不重试的话，任何一段超时都会让整批评论全部作废（旧版就是这个毛病）。 */
+          try{
+            const half=cues.length?cues.filter((_,ix)=>ix%2===0):[];
+            const halfBody=half.map(c=>`[${fmt(c.start)}] ${c.text}`).join('\n');
+            const shortPrompt=segBody?prompt.replace(segBody,()=> (halfBody||segBody.slice(0,3000))):prompt;
+            startWait(`第 ${i+1}/${total} 段重试（精简字幕）`);
+            arr=await callJson(endpoint,model,key,shortPrompt,AI_MS_GEN);
+          }catch(e2){
+            failed.push(`${fmt(s)}–${fmt(e)}：${String((e2&&e2.message)||e2).slice(0,50)}`);
+            arr=[];
+          }
+        }
+        stopWait();
         arr.forEach(it=>{
           const sec=parseTime(it.time);
           if(sec<0) return;                                  /* 时间格式不合法 → 丢弃 */
@@ -1705,7 +1725,11 @@ ${plot || '（用户没有提供剧情资料，请只写对氛围、节奏、镜
 8. ${cues.length?'有字幕就尽量结合真实台词来说，不要编造。':'没有字幕，绝对不要编造具体台词、人名、情节，只说氛围和感受。'}
 
 ${body}`;
-          const arr=await callJson(endpoint,model,key,prompt);
+          let arr=null;
+          startWait(`补第 ${round+1} 轮… ${gaps.length} 段空档`);
+          try{ arr=await callJson(endpoint,model,key,prompt); }
+          catch(e2){ failed.push(`补轮 ${fmt(gs)}–${fmt(ge)}：${String((e2&&e2.message)||e2).slice(0,50)}`); arr=[]; }
+          stopWait();
           arr.forEach(it=>{
             const sec=parseTime(it.time);
             if(sec<0) return;
@@ -1770,20 +1794,42 @@ ${plot}`;
     if(diag.length){
       sysTip(`说明：有 ${diag.length} 段没有字幕（${diag.slice(0,4).join('、')}${diag.length>4?' 等':''}），这几段是依据剧情资料补的，会比有字幕的段落粗略一些，也不会引用具体台词。`);
     }
-    sysTip( saved ? '已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。');
+    /* sysTip 同一条会互相覆盖，这里把「生成了多少 / 存没存上 / 哪几段没成」合到一条里说清楚 */
+    sysTip(`已生成 ${collected.length} 条评论`
+      + (saved ? '，已存档到「历史记录」，刷新或下次打开点卡片就能调出来，不用再生成（少花钱）。' : '，但 ⚠ 存档失败（本机存储可能已满），请先清理再生成，否则刷新会丢。')
+      + (failed.length ? ` 另有 ${failed.length} 段这次没生成出来（已跳过，多半是那一段 AI 想太久）：${failed.slice(0,3).join('、')}${failed.length>3?' 等':''}。想补齐再点一次生成即可。` : ''));
   }catch(e){
     const msg=String((e&&e.message)||e);
     const now=loadCfg();
-    let tip='本次用的是：'+now.model+' @ '+now.endpoint
-      +'\n配置以工作台右上角 🤖 AI 面板为准；点放映室「AI 配置」可核对。';
-    if(/failed to fetch|networkerror|network request failed|load failed|ERR_/i.test(msg)){
-      tip='浏览器没能连上接口：'+now.endpoint+'\n'
-        +'可能是该地址不允许网页跨域调用、网络或代理拦截、地址写错。\n'
-        +'可点工作台右上角 🤖 面板里的「测试连接」对照；两边用的必须是同一套配置。\n'
-        +'本次用的是：'+now.model+' @ '+now.endpoint;
+    /* 只要拿到过评论就先落盘，绝不再因为某一段超时把前面生成好的整批丢掉 */
+    if(collected.length){
+      collected.forEach(n=>{
+        state.notes=state.notes.filter(o=>(o.type==='ai')?Math.abs(o.time-n.time)>3:true);
+        state.notes.push(n);
+      });
+      state.notes.sort((a,b)=>a.time-b.time);
+      try{ saveMovie({date:todayStr()}); renderNotes(); }catch(e3){}
+      switchTab('chat');
+      sysTip(`已生成 ${collected.length} 条评论并存档。有 ${failed.length} 段没成功（已跳过）：${failed.slice(0,3).join('、')}${failed.length>3?' 等':''}。想补齐再点一次「✨ 生成时间轴评论」就行，已经生成好的不会被删。`);
+    }else{
+      let tip='本次用的是：'+now.model+' @ '+now.endpoint
+        +'\n配置以工作台右上角 🤖 AI 面板为准；点放映室「AI 配置」可核对。';
+      if(/等太久|超时|timeout|abort/i.test(msg)){
+        tip='这一段 AI 想得比限时久。\n'
+          +'聊天只发几十个字、30 秒内就回；一次要写十几条评论、还要带影片档案和整段字幕，带思考的模型常要 40~90 秒。\n'
+          +'现在「生成评论」单独放宽到 2 分钟（聊天仍是 30 秒），每段卡住会自动精简字幕重试一次再跳过。\n'
+          +'本次用的是：'+now.model+' @ '+now.endpoint;
+      }
+      if(/failed to fetch|networkerror|network request failed|load failed|ERR_/i.test(msg)){
+        tip='浏览器没能连上接口：'+now.endpoint+'\n'
+          +'可能是该地址不允许网页跨域调用、网络或代理拦截、地址写错。\n'
+          +'可点工作台右上角 🤖 面板里的「测试连接」对照；两边用的必须是同一套配置。\n'
+          +'本次用的是：'+now.model+' @ '+now.endpoint;
+      }
+      alert('生成失败：'+msg+'\n\n'+tip);
     }
-    alert('生成失败：'+msg+'\n\n'+tip);
   }finally{
+    stopWait();
     btn.textContent=old; btn.disabled=false;
     window.__genBusy=false; window.__syncSilent=false;
     try{ notifyParent(); }catch(err){}      /* 解锁后统一通知外壳同步一次 */
