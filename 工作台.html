@@ -938,7 +938,7 @@ const WB_SKIP=['wb_cloudsync','food_cloudsync','wb_last_sync_at','wb_cloud_ver',
   /* 设备本地偏好，绝不跨设备（2026-11-05）：
      WB_LAYOUT 曾被同步上云，电脑切成电脑版 → 手机拉回 'pc' → 手机永远进不了手机版，
      顶栏一堆按钮被裁掉。WB_ZOOM 同理：电脑上放大，手机打开也会莫名压成窄条。 */
-  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM',
+  'WB_LAYOUT','WB_LAYOUT2','WB_ZOOM','READ_ISBN_CACHE',
   /* 子页 UI 偏好，同理不跨设备（阅读记录默认视图 / 书架排布 / 年度目标） */
   'READ_VIEW','READ_SHELF_VIEW','READ_CFG_V1',
   /* AI 配置按设备走（2026-11-12）：密钥本就不上云，地址/模型若跟着上云，
@@ -2314,6 +2314,9 @@ const WB_MOBILE_SKINS = {
     html[data-wb-mobile="1"] .rdapp .rdsearch,
     html[data-wb-mobile="1"] .rdapp .rdsel{min-height:34px !important; font-size:13px !important;}
     html[data-wb-mobile="1"] .rdapp .rdcabacts{opacity:1 !important;}
+    html[data-wb-mobile="1"] .rdapp .rdcabname{font-size:18px !important; letter-spacing:.4px !important;}
+    html[data-wb-mobile="1"] .rdapp .rdmgrow{flex-wrap:nowrap !important; row-gap:0 !important;}
+    html[data-wb-mobile="1"] .rdapp .rdresi .rdgo{min-height:26px !important; padding:4px 10px !important;}
     html[data-wb-mobile="1"] .rdapp .rdstars button{min-height:28px !important; width:28px !important; font-size:20px !important;}
     html[data-wb-mobile="1"] .rdapp .rdtabs button{min-height:34px !important;}
     html[data-wb-mobile="1"] .rdapp .rdphead .x{width:32px !important; height:32px !important; min-height:32px !important;}
