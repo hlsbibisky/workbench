@@ -198,6 +198,47 @@
     border-radius:12px;cursor:pointer;font-size:15px;font-family:inherit;font-weight:600;transition:.2s;}
   .copy-btn:hover{background:var(--mark);}
 
+  /* ===== AI 追问对话区（结构沿用 AI 伴读 · 暖色气泡） ===== */
+  .gca-chat{display:none;margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;}
+  .gca-chat.show{display:block;}
+  .gca-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.5px;}
+  .gca-h .gca-sub{font-weight:400;font-size:11.5px;color:var(--sub);letter-spacing:0;}
+  .gca-msgs{max-height:460px;overflow-y:auto;padding:2px 2px 6px;display:flex;flex-direction:column;gap:13px;scroll-behavior:smooth;}
+  .gca-msg{display:flex;flex-direction:column;max-width:88%;}
+  .gca-msg.you{align-self:flex-end;align-items:flex-end;}
+  .gca-msg.ai{align-self:flex-start;align-items:flex-start;}
+  .gca-who{font-size:10.5px;color:var(--accent);letter-spacing:1.2px;margin:0 3px 5px;font-weight:600;}
+  .gca-msg.you .gca-who{color:var(--sub);}
+  .gca-bub{font-size:14.5px;line-height:1.9;word-break:break-word;padding:10px 14px;border-radius:13px;white-space:pre-wrap;}
+  .gca-msg.you .gca-bub{background:#f3e9dd;border:1px solid #ebdccb;border-radius:13px 13px 3px 13px;color:var(--ink);}
+  .gca-msg.ai .gca-bub{background:#fffdf9;border:1px solid var(--line);border-radius:13px 13px 13px 3px;}
+  .gca-bub p{margin:0 0 7px;} .gca-bub p:last-child{margin-bottom:0;}
+  .gca-bub ul{margin:4px 0 0;padding-left:18px;} .gca-bub li{margin:3px 0;}
+  .gca-bub b{color:#8a4f2c;font-weight:700;}
+  .gca-msg.err .gca-bub{color:#c0392b;background:#fdf1ef;border:1px solid #f2d7d2;white-space:normal;font-size:13px;}
+  .gca-think{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);padding:4px 3px 2px;}
+  .gca-think i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:gcaPl 1.1s infinite;}
+  .gca-think i:nth-child(2){animation-delay:.18s;} .gca-think i:nth-child(3){animation-delay:.36s;}
+  @keyframes gcaPl{0%,60%,100%{opacity:.25;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}
+  .gca-qs{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0 0;}
+  .gca-q{border:1px solid #e8ddcd;background:#fff;color:#6b5a45;border-radius:999px;padding:6px 12px;
+    font-size:12.5px;line-height:1.4;cursor:pointer;font-family:inherit;transition:.14s;}
+  .gca-q:hover{border-color:var(--accent);color:var(--accent);background:#fffaf4;}
+  .gca-q:disabled{opacity:.5;cursor:not-allowed;}
+  .gca-row{display:flex;gap:8px;align-items:flex-end;margin-top:11px;}
+  .gca-input{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;
+    font-family:inherit;font-size:16px;line-height:1.6;resize:none;outline:0;height:44px;max-height:120px;color:var(--ink);transition:.15s;}
+  .gca-input:focus{border-color:var(--accent);}
+  .gca-send{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;padding:0 20px;height:44px;
+    font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;flex:none;}
+  .gca-send:hover{background:#a05f3d;}
+  .gca-send:disabled{background:#d8cec1;border-color:#d8cec1;cursor:not-allowed;}
+  @media(max-width:560px){
+    .gca-msgs{max-height:none;overflow:visible;}
+    .gca-msg{max-width:92%;}
+    .gca-bub{font-size:15px;}
+  }
+
   .copy-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
     background:rgba(58,54,49,.92);color:#fff;padding:18px 36px;border-radius:14px;
     font-size:16px;z-index:9999;pointer-events:none;opacity:0;transition:.35s;
@@ -616,6 +657,17 @@
       </div>
     </details>
     <div id="aiAnswer" style="margin-top:10px;"></div>
+
+    <!-- 追问对话区：首轮解读完成后出现 -->
+    <div class="gca-chat" id="gcaChat">
+      <div class="gca-h">💬 继续追问 <span class="gca-sub" id="gcaSub">还在这卦里，想到什么接着问</span></div>
+      <div class="gca-msgs" id="gcaMsgs"></div>
+      <div class="gca-qs" id="gcaQs"></div>
+      <div class="gca-row">
+        <textarea class="gca-input" id="gcaInput" rows="1" placeholder="对这卦还有疑问？接着问…" autocomplete="off"></textarea>
+        <button class="gca-send" id="gcaSend" onclick="gcaSend()">发送</button>
+      </div>
+    </div>
   </div>
 
   <div class="card copy-area">
@@ -1042,6 +1094,7 @@ function computeAndShowResult(){
     data: benData, bianData: bianData
   };
 
+  try{ gcaClear(); }catch(e){}   /* 新卦：清掉上一卦的追问对话 */
   renderResult();
   /* 新卦自动存档；不是在看历史，所以把历史横幅收起来 */
   const hb = document.getElementById('guaHistBar'); if(hb) hb.style.display='none';
@@ -1392,16 +1445,17 @@ async function askGuaAI(){
   try{
     const ctrl=('AbortController' in window)?new AbortController():null;
     const timer=ctrl?setTimeout(()=>ctrl.abort(),120000):null;
-    const r=await fetch(base+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,temperature:0.4,messages:[{role:'user',content:prompt}]}),signal:ctrl?ctrl.signal:undefined});
+    const r=await fetch(gcaChatUrl(base),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,temperature:0.4,messages:[{role:'user',content:prompt}]}),signal:ctrl?ctrl.signal:undefined});
     if(timer)clearTimeout(timer);
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ throw (j&&j.error&&j.error.message)?j.error.message:('HTTP '+r.status); }
     const txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
     if(!txt) throw '回复为空，再试一次';
     box.innerHTML=renderGuaAnswer(txt);
-    st.innerHTML='<span style="color:#3f9d6b">解读完成</span>';
+    st.innerHTML='<span style="color:#3f9d6b">解读完成 · 下面可以继续追问</span>';
     try{ localStorage.setItem('guaLastAnswer',txt); }catch(e){}
     try{ guaHistWriteAI(appState.histId, txt); }catch(e){}
+    try{ gcaOpen(prompt, txt); }catch(e){}
   }catch(e){
     if(timer)clearTimeout(timer);
     let m=(e&&e.name==='AbortError')?'等太久放弃了':String((e&&e.message)||e);
@@ -1410,6 +1464,150 @@ async function askGuaAI(){
     box.innerHTML='<div class="ai-ans"><div class="ai-sec"><div class="ai-sec-b" style="color:#c0392b;">解读没成功：'+aiEsc(m)+'</div></div></div>';
   }finally{ btn.disabled=false; }
 }
+
+/* ============================================================
+   AI 追问对话（多轮）：首轮解读作为上下文，用户接着问
+   ============================================================ */
+const GCA_QUICK=[
+  '用大白话再讲一遍结论',
+  '应期能再具体一点吗',
+  '世应和用神到底怎么取的',
+  '我现在具体该做什么',
+  '这卦有没有可能是反着来的'
+];
+let gcaMsgs=[];        // 对话消息 [{role:'you'|'ai', text, err?}]
+let gcaBusy=false;
+let gcaBaseMsgs=null;  // 上下文：[system, 首轮user(完整卦象prompt), assistant(首轮解读)]
+
+/* 智谱 bigmodel 只放行带尾斜杠的 /chat/completions/（否则跨域预检被 WAF 拦） */
+function gcaChatUrl(base){
+  let b=String(base||'').replace(/\/+$/,'');
+  let u=b+'/chat/completions';
+  return /open\.bigmodel\.cn/i.test(b) ? u+'/' : u;
+}
+
+function gcaOpen(firstPrompt, firstAnswer){
+  gcaBaseMsgs=[
+    {role:'system',content:'你是六爻解卦助手，正在陪问卦的人围绕「同一卦」继续追问。约束：\n'+
+      '1) 始终依据《古筮真诠（总论篇、易理篇）》，不创造书里没有的规则，不换其他流派；\n'+
+      '2) 回答紧扣上面的卦象和你的首轮解读，不脱离这一卦；\n'+
+      '3) 问卦人不懂六爻，术语第一次出现先用一句大白话解释；先结论后原因；\n'+
+      '4) 回答简短具体，一般 3-8 句，不要重复整篇首轮解读，只针对这一问；\n'+
+      '5) 不写「仅供参考」「因人而异」这类空话；信息不够就直说无法断定。'},
+    {role:'user',content:String(firstPrompt||'')},
+    {role:'assistant',content:String(firstAnswer||'')}
+  ];
+  gcaMsgs=[];
+  const box=document.getElementById('gcaChat'); if(box) box.classList.add('show');
+  gcaRender();
+}
+
+function gcaBuildMessages(){
+  const out=(gcaBaseMsgs||[]).map(m=>({role:m.role,content:m.content}));
+  gcaMsgs.forEach(m=>{ if(!m.err) out.push({role:m.role==='you'?'user':'assistant',content:m.text}); });
+  return out;
+}
+
+function gcaRender(){
+  const box=document.getElementById('gcaMsgs'); if(!box) return;
+  let html='';
+  gcaMsgs.forEach(m=>{
+    if(m.role==='you'){
+      html+='<div class="gca-msg you"><div class="gca-who">我</div><div class="gca-bub">'+aiEsc(m.text)+'</div></div>';
+    }else if(m.err){
+      html+='<div class="gca-msg ai err"><div class="gca-who">解卦助手</div><div class="gca-bub">'+aiEsc(m.text)+'</div></div>';
+    }else{
+      html+='<div class="gca-msg ai"><div class="gca-who">解卦助手</div><div class="gca-bub">'+aiBody(String(m.text).split(/\r?\n/))+'</div></div>';
+    }
+  });
+  if(gcaBusy) html+='<div class="gca-think"><i></i><i></i><i></i> 正在想…</div>';
+  if(!html) html='<div style="font-size:12.5px;color:var(--sub);line-height:1.8;padding:2px 3px;">解读出来了，下面可以接着问——比如让他把结论讲成人话、把应期说具体一点，或者追问世应用神怎么取的。</div>';
+  box.innerHTML=html;
+  box.scrollTop=box.scrollHeight;
+  // 快捷 chips
+  const qs=document.getElementById('gcaQs');
+  if(qs){
+    qs.innerHTML=GCA_QUICK.map((q,i)=>'<button class="gca-q" data-i="'+i+'">'+aiEsc(q)+'</button>').join('');
+    qs.querySelectorAll('.gca-q').forEach(b=>{
+      b.onclick=()=>{ gcaSend(GCA_QUICK[+b.getAttribute('data-i')]); };
+      b.disabled=gcaBusy;
+    });
+  }
+  const send=document.getElementById('gcaSend'); if(send) send.disabled=gcaBusy;
+  const inp=document.getElementById('gcaInput'); if(inp) inp.disabled=gcaBusy;
+  const n=gcaMsgs.filter(m=>m.role==='ai'&&!m.err).length;
+  const sub=document.getElementById('gcaSub'); if(sub) sub.textContent=n?('已答 '+n+' 问'):'还在这卦里，想到什么接着问';
+}
+
+async function gcaSend(preset){
+  if(gcaBusy||!gcaBaseMsgs) return;
+  const inp=document.getElementById('gcaInput');
+  let q = (preset!=null) ? String(preset) : (inp?inp.value:'');
+  q=String(q||'').trim();
+  if(!q) return;
+  if(inp) inp.value='';
+  gcaMsgs.push({role:'you',text:q});
+  gcaBusy=true; gcaRender();
+  let cfg=null;
+  try{
+    cfg=guaCfg();
+    if(!cfg.key) throw new Error('还没填密钥——展开上面「接口设置」填一次，全站通用');
+    const ctrl=('AbortController' in window)?new AbortController():null;
+    const timer=ctrl?setTimeout(()=>ctrl.abort(),90000):null;
+    const r=await fetch(gcaChatUrl(cfg.base),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+      body:JSON.stringify({model:cfg.model,temperature:0.5,messages:gcaBuildMessages()}),
+      signal:ctrl?ctrl.signal:undefined
+    });
+    const j=await r.json().catch(()=>({}));
+    if(timer)clearTimeout(timer);
+    if(!r.ok) throw new Error((j&&j.error&&j.error.message)?j.error.message:('HTTP '+r.status));
+    const txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+    if(!txt||!String(txt).trim()){
+      const fr=(j&&j.choices&&j.choices[0]&&j.choices[0].finish_reason)?('（finish_reason='+j.choices[0].finish_reason+'）'):'';
+      throw new Error('这次没回上内容'+fr+'，再问一次试试');
+    }
+    gcaMsgs.push({role:'ai',text:String(txt).trim()});
+    try{ gcaHistWriteChat(appState.histId); }catch(e){}
+  }catch(e){
+    let m=(e&&e.name==='AbortError')?'等太久放弃了，再问一次':String((e&&e.message)||e);
+    if(m.indexOf('Failed to fetch')>=0) m='连不上接口——检查网络或接口地址'+(cfg?('（本次用的是 '+cfg.model+'）'):'');
+    gcaMsgs.push({role:'ai',text:'没答上来：'+m,err:true});
+  }finally{
+    gcaBusy=false; gcaRender();
+  }
+}
+
+/* 从历史卦例恢复对话 */
+function gcaRestore(rec){
+  const box=document.getElementById('gcaChat'); if(!box) return;
+  const ans=rec.ai||'';
+  if(!ans){ box.classList.remove('show'); gcaMsgs=[]; gcaBaseMsgs=null; return; }
+  const p=window.__guaPrompt||document.getElementById('aiPrompt').textContent||'';
+  gcaBaseMsgs=[
+    {role:'system',content:'你是六爻解卦助手，正在陪问卦的人围绕「同一卦」继续追问。回答紧扣卦象和首轮解读，依据《古筮真诠》，先结论后原因，术语先用大白话解释，简短具体，不写空话。'},
+    {role:'user',content:String(p)},
+    {role:'assistant',content:String(ans)}
+  ];
+  gcaMsgs=Array.isArray(rec.chat)?rec.chat.slice():[];
+  gcaBusy=false;
+  box.classList.add('show');
+  gcaRender();
+}
+
+function gcaClear(){
+  gcaMsgs=[]; gcaBusy=false; gcaBaseMsgs=null;
+  const box=document.getElementById('gcaChat'); if(box) box.classList.remove('show');
+  const inp=document.getElementById('gcaInput'); if(inp) inp.value='';
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  const inp=document.getElementById('gcaInput');
+  if(inp) inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); gcaSend(); }
+  });
+});
 
 function openApiPanel(){
   const g = id => document.getElementById(id);
@@ -1477,6 +1675,7 @@ function resetAll(){
   const hb = document.getElementById('guaHistBar'); if(hb) hb.style.display='none';
   const ab = document.getElementById('aiAnswer'); if(ab) ab.innerHTML='';
   const as = document.getElementById('guaAIState'); if(as) as.textContent='密钥填一次，全站通用（下方「接口设置」）';
+  try{ gcaClear(); }catch(e){}
   document.getElementById('questionInput').value=''; updateQCount();
   selectMode('manual'); updateThrowUI(); resetFormingArea();
   showPage('input');
@@ -1533,7 +1732,7 @@ function guaHistAdd(r){
     benGua: r.benGua, bianGua: r.bianGua, gong: r.gong,
     yaos: r.yaos, bianyaos: r.bianyaos, dongYaos: r.dongYaos,
     ganzhi: r.ganzhi, xunkong: r.xunkong, shiYing: r.shiYing,
-    ai: ''
+    ai: '', chat: []
   };
   const list = guaHistLoad();
   list.unshift(rec);
@@ -1549,6 +1748,18 @@ function guaHistWriteAI(id, txt){
   const list = guaHistLoad();
   for(let i=0;i<list.length;i++){
     if(list[i].id === id){ list[i].ai = txt; guaHistSave(list); guaHistRender(); return; }
+  }
+}
+/* 追问对话随卦例一起存；只留最近 20 条，避免 localStorage 被撑爆 */
+function gcaHistWriteChat(id){
+  if(!id) return;
+  const list = guaHistLoad();
+  for(let i=0;i<list.length;i++){
+    if(list[i].id === id){
+      list[i].chat = gcaMsgs.slice(-20);
+      guaHistSave(list);
+      return;
+    }
   }
 }
 function guaHistDel(id){
@@ -1619,8 +1830,9 @@ function guaHistOpen(id){
   const st  = document.getElementById('guaAIState');
   if(box) box.innerHTML = rec.ai ? renderGuaAnswer(rec.ai) : '';
   if(st)  st.innerHTML = rec.ai
-    ? '<span style="color:#3f9d6b">这条已经解读过了</span>'
+    ? '<span style="color:#3f9d6b">已解读 · 下面可继续追问</span>'
     : '这一卦还没解读，点「✨ 直接出解读」后会自动存进这条记录';
+  try{ gcaRestore(rec); }catch(e){}
   const d = new Date(rec.t);
   const when = document.getElementById('guaHistWhen');
   if(when) when.textContent = (d.getMonth()+1)+'月'+d.getDate()+'日 '+guaPad2(d.getHours())+':'+guaPad2(d.getMinutes());
