@@ -421,6 +421,7 @@
     <div class="mrow"><label>API Key</label><input id="cfgKey" type="password" placeholder="sk-..." autocomplete="new-password"></div>
     <div class="mrow"><label>实时视觉分析间隔（秒，0=关闭）</label><input id="cfgVision" type="number" min="0" step="5" placeholder="0"></div>
     <div class="hint">实时视觉分析会定时截图并调用多模态模型，费用较高，默认关闭。</div>
+    <div class="hint">陪聊要读懂剧情：flash 类模型（如 glm-5.3-flash）偏轻，换成 glm-4.6 / glm-5.3 这类非 flash 会更会分析人物关系。</div>
     <div class="macts">
       <button class="btn" onclick="closeAiCfg()">取消</button>
       <button class="btn primary" onclick="saveAiCfg()">保存</button>
@@ -1428,7 +1429,88 @@ async function reIdentify(){
   sysTip('正在让 AI 重新认片…');
   await ensureProfile(cfg);
 }
-/* 真实调用 AI 聊天（含「问这一幕」隐藏上下文） */
+/* ===== 陪聊的「证据上下文」 =====
+   2026-11-18 修：旧版只把播放点之前的 3 条字幕塞进 system（nearbySubtitle），
+   用户问「母女矛盾具体在哪」，模型手里只有三句话，只能答「目前还没具体展示」——
+   这是回答弱的真因，不是模型笨。生成评论之所以分析得好，是因为它按 15 分钟整段读字幕。
+   现在：当前窗口 + 问题关键词检索 + 全片抽样 + 相关 AI 评论，约 7000 字上限。 */
+function chatKeywords(q){
+  var raw=String(q||'');
+  var s=raw.replace(/帮我|看一下|说说|讲讲|分析一下|总结一下|具体|到底|现在|刚才|已经|她们|他们|我们|咱们|什么|怎么|为什么|哪里|哪些|哪个|是不是|有没有|能不能|可不可以|一下|这个|那个|这部|片子|电影|字幕|对话|内容|意思/g,' ')
+           .replace(/[^\u4e00-\u9fa5A-Za-z0-9]+/g,' ').trim();
+  var set={};
+  function add(w,wt){ w=String(w||''); if(!w) return; if(!set[w]||set[w]<wt) set[w]=wt; }  /* 单字同义词（妈/吵）也要能命中 */
+  s.split(/\s+/).forEach(function(w){
+    if(!w) return;
+    if(/^[A-Za-z0-9]+$/.test(w)){ add(w.toLowerCase(),2); return; }
+    for(var n=2;n<=4;n++) for(var k=0;k+n<=w.length;k++) add(w.slice(k,k+n), n>=3?3:1);
+  });
+  /* 同义词：字幕里很少直说「母女」「矛盾」，多是「妈 / 吵 / 生气 / 为什么」 */
+  var SYN={'母女':['妈','母亲','女儿','孩子','闺女'],'父子':['爸','父亲','儿子'],'夫妻':['丈夫','妻子','老公','老婆','结婚'],
+    '矛盾':['吵','生气','为什么','不理解','恨','委屈','责怪','埋怨','争执'],'差异':['不一样','总是','从来','每次','却','但是'],
+    '关系':['爱','恨','在乎','离开','家人'],'母亲':['妈','母亲'],'女儿':['女儿','孩子','闺女']};
+  Object.keys(SYN).forEach(function(k){ if(raw.indexOf(k)>=0) SYN[k].forEach(function(w){ add(w,2); }); });
+  return Object.keys(set).map(function(w){ return {w:w,wt:set[w]}; });
+}
+function chatSubContext(q,t){
+  var subs=(state.subtitle||[]).slice().sort(function(a,b){ return a.start-b.start; });
+  var total=subs.length;
+  if(!total) return {text:'',n:0,total:0};
+  var picked={}, i, c;
+  /* 1) 当前这一幕：播放点前 5 分钟、后 1 分钟，最多 40 条 */
+  if(t>0){
+    var win=[];
+    for(i=0;i<total;i++){ c=subs[i]; if(c.start>=t-300 && c.start<=t+60) win.push(i); }
+    win.slice(-40).forEach(function(k){ picked[k]=1; });
+  }
+  /* 2) 问题关键词命中：命中越多越靠前，每个命中点前后各扩 4 条 */
+  var kws=chatKeywords(q), scored=[];
+  if(kws.length){
+    for(i=0;i<total;i++){
+      var tx=String(subs[i].text||''), sc=0;
+      for(var k=0;k<kws.length;k++){ if(tx.indexOf(kws[k].w)>=0) sc+=kws[k].wt; }
+      if(sc>0) scored.push({i:i,sc:sc});
+    }
+    scored.sort(function(a,b){ return b.sc-a.sc; });
+    scored.slice(0,14).forEach(function(o){
+      for(var m=Math.max(0,o.i-4);m<=Math.min(total-1,o.i+4);m++) picked[m]=1;
+    });
+  }
+  /* 3) 全片抽样：每 10 分钟 3 条，保证有整体脉络（只取当前进度之前的） */
+  var endT=(t>0)?(t+60):(subs[total-1].start||0);
+  for(var s0=0;s0<endT;s0+=600){
+    var seg=[];
+    for(i=0;i<total;i++){ c=subs[i]; if(c.start>=s0 && c.start<s0+600 && c.start<=endT) seg.push(i); }
+    if(seg.length){ [0,Math.floor(seg.length/2),seg.length-1].forEach(function(k){ picked[seg[k]]=1; }); }
+  }
+  /* 4) 按时间排序，控制在 7000 字 / 160 条以内 */
+  var idx=Object.keys(picked).map(Number).sort(function(a,b){ return a-b; });
+  var out=[], chars=0;
+  for(i=0;i<idx.length;i++){
+    var line='['+fmt(subs[idx[i]].start)+'] '+String(subs[idx[i]].text||'').replace(/\s+/g,' ').trim().slice(0,140);
+    if(line.length<10) continue;
+    if(out.length>=160) break;
+    if(chars+line.length>7000 && out.length>=30) break;
+    out.push(line); chars+=line.length;
+  }
+  return {text:out.join('\n'),n:out.length,total:total};
+}
+function chatNotesContext(q,t){
+  var notes=(state.notes||[]).filter(function(n){ return n && n.type==='ai' && n.text; });
+  if(!notes.length) return '';
+  var kws=chatKeywords(q), pick=[], seen={};
+  function add(n){ var key=n.time+'|'+n.text; if(seen[key]) return; seen[key]=1; pick.push(n); }
+  if(kws.length){
+    notes.filter(function(n){ return kws.some(function(k){ return String(n.text).indexOf(k.w)>=0; }); })
+         .slice(0,16).forEach(add);
+  }
+  if(t>0) notes.filter(function(n){ return Math.abs(n.time-t)<=600; }).slice(-16).forEach(add);
+  pick.sort(function(a,b){ return a.time-b.time; });
+  return pick.slice(0,30).map(function(n){
+    return '['+fmt(n.time)+'] '+String(n.text).replace(/\s+/g,' ').slice(0,160);
+  }).join('\n');
+}
+/* 真实调用 AI 聊天 */
 async function chatWithAI(userText){
   const cfg=loadCfg();
   const key=cfg.key;
@@ -1438,20 +1520,52 @@ async function chatWithAI(userText){
     aiSay('AI','（还没配置 AI：点右上角「AI配置」填 API Key，我就能真的陪你聊了。现在先用本地模式。）');
     return;
   }
-  // 隐藏上下文：当前影片 + 播放位置 + 附近字幕 + 附近的 AI 评论（仅之前内容）
-  let ctx=`当前影片：${state.meta.title||'未命名'}`;
-  const prof=profileText(); if(prof) ctx+=`；影片档案：${prof}`;
-  if(isFinite(video.duration)&&video.duration>0) ctx+=`；当前播放位置：${fmt(video.currentTime)} / ${fmt(video.duration)}`;
-  const near=nearbySubtitle(video.currentTime);
-  if(near) ctx+=`；当前附近字幕（之前内容）：${near}`;
-  const nearNotes=nearbyNotes(video.currentTime);
-  if(nearNotes) ctx+=`；刚刚出现过的 AI 评论：${nearNotes}`;
+  const t=(isFinite(video.currentTime)&&video.currentTime>0)?video.currentTime:0;
+  const sub=chatSubContext(userText,t);
+  const noteTxt=chatNotesContext(userText,t);
+  const prof=profileText();
+
+  let ctx='当前影片：'+(state.meta.title||'未命名');
+  if(prof) ctx+='；影片档案：'+prof;
+  if(isFinite(video.duration)&&video.duration>0)
+    ctx+='；当前播放位置：'+fmt(video.currentTime)+' / '+fmt(video.duration);
+  if(sub.n){
+    ctx+='\n\n【字幕证据】全片共 '+sub.total+' 条字幕，以下是按你的问题和当前进度挑出的 '+sub.n+' 条（带时间点）：\n'+sub.text;
+  }else if(state.subtitle&&state.subtitle.length){
+    ctx+='\n\n【字幕证据】字幕已载入，但这次没挑到和问题相关的内容。';
+  }else{
+    ctx+='\n\n【字幕证据】这部片目前没有载入字幕。回答时先说明这一点，不要假装看过。';
+  }
+  if(noteTxt) ctx+='\n\n【你之前写过的 AI 评论（可以直接接着展开，不必说「没展示」）】\n'+noteTxt;
+
+  const sys=[
+    '你是陪用户看电影的 AI 朋友，语气自然，像懂电影的朋友在旁边一起看。',
+    ctx,
+    '',
+    '【回答要求】',
+    '1. 用户问人物关系、矛盾、动机、前后差异时，必须基于上面的字幕证据和你之前的评论归纳，不要推脱。先给一句结论，再举 2~3 处具体对话或时间点作证据。',
+    '2. 禁止说「目前还没具体展示」「字幕里没有相关内容」这类话——证据就在上面。只有确实找不到时，才说「我拿到的片段里没看到这一段」，并说明该看哪个时间段。',
+    '3. 你之前的评论已经分析过人物，可以接着往下说，不要装作没有。',
+    '4. 用户要求总结 / 分析时给 4~8 句，可以分点；日常闲聊仍保持 1~3 句。',
+    '5. 不剧透当前播放位置之后的情节。'
+  ].join('\n');
+
+  /* 多轮：带最近 8 句聊天，追问才接得住（旧版每轮都是失忆的） */
+  const hist=[];
+  (state.chatLog||[]).forEach(function(m){
+    if(!m || (m.who!=='我' && m.who!=='AI')) return;
+    if(m.who==='AI' && /^（调用 AI 失败/.test(String(m.text||''))) return;
+    hist.push({role:(m.who==='我'?'user':'assistant'),content:String(m.text||'').slice(0,400)});
+  });
+  if(hist.length && hist[hist.length-1].role==='user' &&
+     hist[hist.length-1].content.trim()===String(userText).trim()) hist.pop();
+  const messages=[{role:'system',content:sys}].concat(hist.slice(-8)).concat([{role:'user',content:userText}]);
+
   try{
-    const sys=`你是陪用户看电影的 AI 朋友，语气像朋友一样自然。回复要短：一般一到三句话，尽量不超过 60 字，除非用户明确要求展开、解释或多说一些。${ctx}。只依据用户给出的信息和影片上下文回答；不确定就说不确定，不要编造或剧透未播到的情节。`;
     const res=await aiFetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:model,messages:[{role:'system',content:sys},{role:'user',content:userText}],temperature:0.8})
+      body:JSON.stringify({model:model,messages:messages,temperature:0.35})
     }, AI_MS_CHAT);
     /* 失败时把接口原话摆出来：以前只写「API 401」，看不出是密钥不对还是地址串了门 */
     const raw=await res.text().catch(function(){ return ''; });
@@ -1462,6 +1576,8 @@ async function chatWithAI(userText){
     }
     const txt=((data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'').trim()||'（AI 没有返回内容）';
     aiSay('AI', txt);
+    const st=$('aiStatus');
+    if(st && sub.n) st.textContent='AI 刚刚发言 · 本次参考 '+sub.n+' 条字幕';
   }catch(e){
     let hint='';
     if(aiVendor(endpoint)==='ds' && aiModelVendor(model)!=='ds')
@@ -1470,18 +1586,6 @@ async function chatWithAI(userText){
       hint='｜主位还是 DeepSeek、密钥却是智谱的：去 🤖 AI 点「智谱 GLM」再保存';
     aiSay('AI','（调用 AI 失败：'+e.message+hint+'）');
   }
-}
-/* 取当前播放点之前的邻近字幕（供「问这一幕」用，稍后字幕上传后生效） */
-function nearbySubtitle(t){
-  if(!state.subtitle || !state.subtitle.length) return '';
-  const before=state.subtitle.filter(c=>c.start<=t).slice(-3);
-  return before.map(c=>`[${fmt(c.start)}] ${c.text}`).join('  ');
-}
-/* 取播放点前后 ±3 分钟内的 AI 评论（最多 4 条）——用户接话时让 AI 知道「刚才说了什么」 */
-function nearbyNotes(t){
-  const ai=(state.notes||[]).filter(n=>n.type==='ai' && Math.abs(n.time-t)<=180)
-    .sort((a,b)=>a.time-b.time).slice(0,4);
-  return ai.map(n=>`[${fmt(n.time)}] ${n.text}`).join('  ');
 }
 
 /* ================= 标签切换 ================= */
