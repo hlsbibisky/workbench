@@ -775,6 +775,7 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
         }
         var r = list[+el.dataset.i];
         if(!r) return;
+        if(r.chat){ $('chat').value = r.chat; lastMsgs = null; lastChat = null; syncCnt(); renderWhoPick(null, true); }
         var data = parseAnalysis(r.raw||'');
         renderOut(data, r);
         setFold('out', false);
@@ -970,7 +971,7 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
 
   /* ---------- 初始化 ---------- */
   (function init(){
-    $('chat').value = lsGet(K.chat,'');
+    $('chat').value = '';   /* 每次进来都是空白，不再自动填上次的对话 */
     $('prov').value = lsGet(K.prov,'deepseek');
     var p = PRESETS[$('prov').value] || PRESETS.deepseek;
     /* 启动时把自愈后的值显示出来，别让被自动填充污染的内容留在框里误导人 */
@@ -983,11 +984,9 @@ details.mini[open] summary{border-color:var(--accent);color:var(--accent);}
     renderWhoPick(null, !!$('chat').value.trim());
     setFold('in', lsGet(K.foldIn,'0') === '1');
     setFold('out', lsGet(K.foldOut,'0') === '1');
-    var savedBack = lsGet(K.back,'');
-    if(savedBack.trim()){
-      var d = parseAnalysis(savedBack);
-      if(d.items.length){ renderOut(d); setFold('out', lsGet(K.foldOut,'0')==='1'); flash('已恢复上次的解读'); }
-    }
+    /* 上次的解读不再自动摊开：进去就是空白，要看得去「历史」里点 */
+    renderOut(null);
+    setFold('out', true);
     if(!$('apiKey').value){ flash('填好接口密钥，结果直接出在下面'); }
   })();
 

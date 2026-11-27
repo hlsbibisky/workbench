@@ -1127,9 +1127,15 @@ var SAMPLE2 = '在我的后园，可以看见墙外有两株树，一株是枣�
 /* 启动 */
 (function init(){
   EMPTY_HTML = $('emptyBox') ? $('emptyBox').outerHTML : '';
-  loadCur();
   loadTrans();
-  if(S.text) $('src').value = S.text;
+  /* 上次的进度只归档进「历史」，页面上不摊开：每次进来都该是空白 */
+  try{
+    loadCur();
+    if(S.text || (S.msgs && S.msgs.length)) archive();
+  }catch(e){}
+  S.text=''; S.genre=''; S.readText=''; S.focus=[]; S.msgs=[]; S.qs=[]; S.sid='';
+  try{ localStorage.removeItem(K.cur); }catch(e){}
+  if($('src')) $('src').value = '';
   buildChips();
   initTrans();
   if(!S.qs.length){
