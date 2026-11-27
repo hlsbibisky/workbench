@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>周公解梦</title>
+<style>
+:root{
+  --dm-paper:#f7f4ee; --dm-paper2:#fffdf9; --dm-ink:#2f2a24; --dm-ink2:#5d564c; --dm-ink3:#8f877b;
+  --dm-line:#e4dccf; --dm-line2:#efe8db; --dm-brand:#b8714e; --dm-brand2:#d19a72;
+  --dm-soft:#f4e8dd; --dm-quote:#f1eade; --dm-ai:#fdf2e5; --dm-ok:#3f9d6b; --dm-bad:#bf4a34;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--dm-paper); color:var(--dm-ink); font-size:15px; line-height:1.8;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  padding:0 0 40px;
+}
+.dmwrap{width:100%;padding:14px 18px 8px;}
+@media(min-width:900px){ .dmwrap{padding:16px 26px 10px;} }
+
+/* ── 顶条 ── */
+.dmhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.dmhead .dmlead{
+  flex:1 1 260px;min-width:0;font-size:12.5px;color:var(--dm-ink3);letter-spacing:.04em;
+  border-left:3px solid var(--dm-brand2);padding-left:9px;line-height:1.6;
+}
+.dmact{display:flex;gap:8px;flex:0 0 auto;}
+.dmbtn{
+  font:inherit;font-size:12.5px;padding:7px 14px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--dm-line);background:var(--dm-paper2);color:var(--dm-ink2);
+  transition:.16s;white-space:nowrap;min-height:34px;
+}
+.dmbtn:hover{border-color:var(--dm-brand2);color:var(--dm-brand);background:#fff}
+.dmbtn.on{background:var(--dm-brand);border-color:var(--dm-brand);color:#fff}
+
+/* ── 输入卡 ── */
+.dmcard{
+  background:var(--dm-paper2);border:1px solid var(--dm-line);border-radius:14px;
+  padding:16px 18px 14px;box-shadow:0 1px 3px rgba(120,95,70,.05);
+}
+.dmtitle{font-size:15px;font-weight:600;color:var(--dm-ink);margin:0 0 3px;letter-spacing:.02em}
+.dmhint{font-size:12.5px;color:var(--dm-ink3);margin:0 0 10px;line-height:1.65}
+textarea#dmText{
+  width:100%;min-height:140px;resize:vertical;font:inherit;font-size:15px;line-height:1.85;
+  padding:12px 14px;border:1px solid var(--dm-line);border-radius:10px;background:#fff;
+  color:var(--dm-ink);outline:none;transition:.16s;
+}
+textarea#dmText:focus{border-color:var(--dm-brand2);box-shadow:0 0 0 3px rgba(184,113,78,.09)}
+textarea#dmText::placeholder{color:#b6ada0}
+
+.dmgrp{margin-top:14px}
+.dmgrp>h4{
+  font-size:12px;font-weight:500;color:var(--dm-ink3);margin:0 0 7px;letter-spacing:.08em;
+}
+.dmtags{display:flex;flex-wrap:wrap;gap:7px}
+.dmtag{
+  font:inherit;font-size:12.5px;line-height:1.4;padding:6px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--dm-line2);background:#fff;color:var(--dm-ink2);transition:.14s;user-select:none;
+}
+.dmtag:hover{border-color:var(--dm-brand2);color:var(--dm-brand)}
+.dmtag.sel{background:var(--dm-soft);border-color:var(--dm-brand2);color:#8d4e2f;font-weight:500}
+
+.dmfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:13px;border-top:1px dashed var(--dm-line)}
+.dmtoday{font-size:12px;color:var(--dm-ink3);letter-spacing:.03em;flex:1 1 auto;min-width:0}
+.dmtoday b{color:var(--dm-brand);font-weight:500}
+.dmgo{
+  font:inherit;font-size:14.5px;padding:11px 30px;border-radius:10px;cursor:pointer;border:none;
+  background:linear-gradient(135deg,#c07a52,#a85f3c);color:#fff;letter-spacing:.06em;
+  transition:.18s;box-shadow:0 2px 8px rgba(168,95,60,.22);flex:0 0 auto;
+}
+.dmgo:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(168,95,60,.3)}
+.dmgo:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
+
+/* ── 结果 ── */
+#dmOut{margin-top:18px;display:none}
+.dmmeta{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;
+}
+.dmmeta .lbl{font-size:11.5px;color:var(--dm-ink3);letter-spacing:.06em;margin-right:2px}
+.dmref{
+  font-size:11px;padding:3px 9px;border-radius:5px;background:var(--dm-quote);
+  color:#7a6a55;border:1px solid #e8dfd0;letter-spacing:.02em;
+}
+.dmsec{
+  background:var(--dm-paper2);border:1px solid var(--dm-line);border-radius:13px;
+  padding:15px 18px 16px;margin-bottom:12px;
+}
+.dmsec>h3{
+  font-size:14px;font-weight:600;margin:0 0 10px;color:var(--dm-brand);letter-spacing:.04em;
+  display:flex;align-items:center;gap:8px;
+}
+.dmsec>h3 .num{
+  display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+  border-radius:50%;background:var(--dm-soft);color:#9a5836;font-size:11.5px;font-weight:600;flex:0 0 auto;
+}
+.dmsec p{margin:0 0 9px}
+.dmsec p:last-child{margin-bottom:0}
+
+.dmq{
+  margin:9px 0;padding:9px 13px;border-left:3px solid var(--dm-brand2);
+  background:var(--dm-quote);border-radius:0 7px 7px 0;
+  font-size:14px;color:#514637;line-height:1.85;
+}
+.dmq .src{display:block;font-size:11.5px;color:#8d7f6b;margin-top:4px;letter-spacing:.02em}
+.dmsec .dmli{margin:0 0 7px;padding-left:16px;position:relative}
+.dmsec .dmli::before{content:'';position:absolute;left:3px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--dm-brand2)}
+
+/* 第六节：AI 推测，视觉上明确区别 */
+.dmsec.dmai{background:var(--dm-ai);border-color:#eddcc4;border-style:dashed}
+.dmsec.dmai>h3{color:#a2653c}
+.dmsec.dmai>h3 .num{background:#f7e4cd;color:#9b5f31}
+.dmai .dmbadge{
+  display:inline-block;font-size:11px;padding:2px 9px;border-radius:5px;
+  background:#f2ddc2;color:#8a5222;margin-left:auto;letter-spacing:.04em;font-weight:400;
+}
+
+/* 追问 */
+.dmchat{margin-top:6px;border-top:1px solid var(--dm-line);padding-top:18px}
+.dmchat h3{font-size:14px;font-weight:600;margin:0 0 4px;color:var(--dm-ink)}
+.dmchat .sub{font-size:12px;color:var(--dm-ink3);margin:0 0 12px}
+.dmbub{margin-bottom:11px;display:flex}
+.dmbub .t{
+  max-width:min(88%,760px);padding:10px 14px;border-radius:11px;font-size:14.5px;line-height:1.85;
+  white-space:pre-wrap;word-break:break-word;
+}
+.dmbub.me{justify-content:flex-end}
+.dmbub.me .t{background:var(--dm-soft);color:#5c3a26;border:1px solid #ecdccb;border-bottom-right-radius:4px}
+.dmbub.ai .t{background:#fff;border:1px solid var(--dm-line);border-bottom-left-radius:4px}
+.dmbub.ai .t.err{background:#fdf0ed;border-color:#f0d3cb;color:#a63d28}
+.dmbub.ai .t .qb{padding-left:11px;border-left:2px solid #e8ddcd;color:#6a5f50;margin:6px 0;font-size:13.5px}
+
+.dmasks{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.dminrow{display:flex;gap:9px;align-items:flex-end}
+.dminrow textarea{
+  flex:1 1 auto;min-width:0;min-height:46px;max-height:140px;resize:none;font:inherit;font-size:14.5px;
+  line-height:1.7;padding:11px 13px;border:1px solid var(--dm-line);border-radius:10px;background:#fff;
+  color:var(--dm-ink);outline:none;
+}
+.dminrow textarea:focus{border-color:var(--dm-brand2)}
+.dmsend{
+  flex:0 0 auto;font:inherit;font-size:14px;padding:11px 20px;border-radius:10px;border:1px solid var(--dm-brand);
+  background:var(--dm-brand);color:#fff;cursor:pointer;transition:.16s;min-height:46px;
+}
+.dmsend:hover{background:#a85f3c}
+.dmsend:disabled{opacity:.5;cursor:default}
+
+.dmload{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dm-ink3);padding:14px 0}
+.dmspin{
+  width:15px;height:15px;border:2px solid #e2d8c9;border-top-color:var(--dm-brand);
+  border-radius:50%;animation:dmsp .8s linear infinite;flex:0 0 auto;
+}
+@keyframes dmsp{to{transform:rotate(360deg)}}
+
+/* ── 历史抽屉 ── */
+.dmmask{
+  position:fixed;inset:0;background:rgba(60,48,36,.42);backdrop-filter:blur(2px);
+  display:none;align-items:center;justify-content:center;z-index:900;padding:12px;
+}
+.dmmask.on{display:flex}
+.dmpanel{
+  width:100%;max-width:760px;max-height:calc(100dvh - 24px);background:var(--dm-paper);
+  border-radius:16px;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 18px 60px rgba(50,38,26,.28);
+}
+.dmptop{
+  flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:14px 18px;
+  border-bottom:1px solid var(--dm-line);background:var(--dm-paper2);
+}
+.dmptop h3{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;letter-spacing:.03em}
+.dmptop .cnt{font-size:12px;color:var(--dm-ink3);font-weight:400;margin-left:6px}
+.dmclose{
+  flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--dm-line);
+  background:#fff;color:var(--dm-ink2);font-size:17px;line-height:1;cursor:pointer;padding:0;
+}
+.dmclose:hover{border-color:var(--dm-brand2);color:var(--dm-brand)}
+.dmbody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 18px 22px;-webkit-overflow-scrolling:touch}
+
+.dmhempty{text-align:center;color:var(--dm-ink3);font-size:13px;padding:46px 10px;line-height:2}
+.dmh{
+  background:var(--dm-paper2);border:1px solid var(--dm-line);border-radius:12px;
+  padding:13px 15px;margin-bottom:10px;cursor:pointer;transition:.15s;
+}
+.dmh:hover{border-color:var(--dm-brand2);box-shadow:0 2px 10px rgba(140,110,80,.08)}
+.dmh-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+.dmh-gz{font-size:13.5px;color:var(--dm-brand);font-weight:600;letter-spacing:.06em}
+.dmh-sol{font-size:11.5px;color:var(--dm-ink3)}
+.dmh-more{margin-left:auto;font-size:11px;color:var(--dm-ink3)}
+.dmh-d{font-size:13.5px;color:var(--dm-ink2);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dmh-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.dmh-tag{font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--dm-soft);color:#8d5333}
+.dmh-x{
+  font-size:11px;color:#b3a99b;border:none;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;
+}
+.dmh-x:hover{color:var(--dm-bad)}
+.dmhd{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--dm-line)}
+.dmh.open .dmhd{display:block}
+.dmh.open .dmh-d{-webkit-line-clamp:unset;overflow:visible;display:block}
+.dmhd .qa{margin-bottom:11px}
+.dmhd .qa .who{font-size:11px;color:var(--dm-ink3);letter-spacing:.06em;margin-bottom:3px}
+.dmhd .qa .tx{font-size:13px;line-height:1.85;color:var(--dm-ink2);max-height:260px;overflow-y:auto;padding-right:4px;white-space:pre-wrap}
+
+/* 依据面板 */
+.dmbook{font-size:13.5px;line-height:1.9;color:var(--dm-ink2)}
+.dmbook h4{font-size:13px;color:var(--dm-brand);margin:16px 0 6px;letter-spacing:.03em}
+.dmbook h4:first-child{margin-top:0}
+.dmbook .bk{display:block;padding:8px 0;border-bottom:1px dashed var(--dm-line2);font-size:13px;line-height:1.85}
+.dmbook .bk b{color:var(--dm-ink);font-weight:600}
+.dmbook .bk i{font-style:normal;color:var(--dm-ink3);font-size:12px}
+
+@media(max-width:640px){
+  .dmwrap{padding:12px 12px 6px}
+  .dmcard{padding:14px 14px 12px;border-radius:12px}
+  .dmsec{padding:13px 14px 14px;border-radius:11px}
+  .dmsec>h3{font-size:13.5px}
+  .dmgo{width:100%;padding:12px 20px}
+  .dmfoot{display:block}
+  .dmtoday{margin-bottom:10px;font-size:11.5px}
+  .dmhead .dmlead{flex:1 1 100%;font-size:12px}
+  .dmact{width:100%}
+  .dmact .dmbtn{flex:1 1 0;text-align:center}
+  .dmh-gz{font-size:12.5px}
+  .dmpanel{max-height:calc(100dvh - 16px);border-radius:13px}
+  .dmbody{padding:12px 13px 20px}
+  .dminrow{flex-wrap:wrap}
+  .dminrow textarea{flex:1 1 100%}
+  .dmsend{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="dmwrap">
+
+  <div class="dmhead">
+    <div class="dmlead">把梦讲清楚，比急着求一个吉凶要紧。下面的解读只引有出处的古籍，凡是推测都会单独标出来。</div>
+    <div class="dmact">
+      <button class="dmbtn" id="dmBooks">古籍依据</button>
+      <button class="dmbtn" id="dmHist">历史记录</button>
+    </div>
+  </div>
+
+  <div class="dmcard" id="dmInputCard">
+    <h2 class="dmtitle">你梦见了什么</h2>
+    <p class="dmhint">越具体越好：在哪里、和谁、发生了什么、醒来时什么感觉。只有一句也行。</p>
+    <textarea id="dmText" autocomplete="off" spellcheck="false" placeholder="比如：梦见自己站在一个很旧的楼道里，找不到自己家的门，手里的钥匙怎么都插不进去，急醒了。"></textarea>
+
+    <div class="dmgrp">
+      <h4>想问的方向（可多选，也可以不选）</h4>
+      <div class="dmtags" id="dmTheme"></div>
+    </div>
+
+    <div class="dmgrp">
+      <h4>最近发生的事（可多选，也可以不选）</h4>
+      <div class="dmtags" id="dmRecent"></div>
+    </div>
+
+    <div class="dmfoot">
+      <div class="dmtoday" id="dmToday"></div>
+      <button class="dmgo" id="dmGo">解这个梦</button>
+    </div>
+  </div>
+
+  <div id="dmOut"></div>
+
+</div>
+
+<!-- 历史记录 -->
+<div class="dmmask" id="dmHistMask">
+  <div class="dmpanel">
+    <div class="dmptop">
+      <h3>解梦记录<span class="cnt" id="dmHistCnt"></span></h3>
+      <button class="dmclose" id="dmHistClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="dmbody" id="dmHistBody"></div>
+  </div>
+</div>
+
+<!-- 古籍依据 -->
+<div class="dmmask" id="dmBookMask">
+  <div class="dmpanel">
+    <div class="dmptop">
+      <h3>这一页依据的是哪些书</h3>
+      <button class="dmclose" id="dmBookClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="dmbody">
+      <div class="dmbook" id="dmBookBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   周公解梦 —— 依据库
+   所有条文均据通行校录本录入，页面只从本库取条文，AI 也只在库内引用。
+   ============================================================================ */
+var DM_SRC = {};
+
+/* 一、六梦：《周礼·春官·占梦》原文 + 郑玄注 */
+DM_SRC.zhouli =
+'《周礼·春官·占梦》：占梦，掌其岁时，观天地之会，辨阴阳之气。以日月星辰占六梦之吉凶：一曰正梦，二曰噩梦，三曰思梦，四曰寤梦，五曰喜梦，六曰惧梦。\n' +
+'郑玄注：正梦，无所感动，平安自梦也；噩梦，惊愕而梦也；思梦，觉时所思念之而梦也；寤梦，觉时道之而梦也；喜梦，喜悦而梦也；惧梦，恐惧而梦也。';
+
+/* 二、六候：《列子·周穆王》 */
+DM_SRC.liezi =
+'《列子·周穆王》：觉有八徵，梦有六候。奚谓六候？一曰正梦，二曰蘁梦，三曰思梦，四曰寤梦，五曰喜梦，六曰惧梦。此六者，神所交也。\n' +
+'又：神遇为梦，形接为事。故昼想夜梦，神形所遇。故神凝者想梦自消。\n' +
+'又：藉带而寝则梦蛇，飞鸟衔发则梦飞；将阴梦火，将疾梦食。\n' +
+'又：一体之盈虚消息，皆通于天地，应于物类。故阴气壮，则梦涉大水而恐惧；阳气壮，则梦涉大火而燔焫；阴阳俱壮，则梦生杀。甚饱则梦与，甚饥则梦取。';
+
+/* 三、梦觉之辨：《庄子·齐物论》 */
+DM_SRC.zhuangzi =
+'《庄子·齐物论》：其寐也魂交，其觉也形开。\n' +
+'又：梦饮酒者，旦而哭泣；梦哭泣者，旦而田猎。方其梦也，不知其梦也。梦之中又占其梦焉，觉而后知其梦也。\n' +
+'又：昔者庄周梦为胡蝶，栩栩然胡蝶也，自喻适志与，不知周也。俄然觉，则蘧蘧然周也。不知周之梦为胡蝶与，胡蝶之梦为周与？周与胡蝶则必有分矣，此之谓物化。';
+
+/* 四、脏腑与梦：《黄帝内经·灵枢·淫邪发梦》 */
+DM_SRC.lingxu =
+'《灵枢·淫邪发梦》：正邪从外袭内，而未有定舍，反淫于藏，不得定处，与营卫俱行，而与魂魄飞扬，使人卧不得安而喜梦。\n' +
+'（气盛十二）阴气盛则梦涉大水而恐惧；阳气盛则梦大火而燔焫；阴阳俱盛则梦相杀；上盛则梦飞，下盛则梦堕；甚饥则梦取，甚饱则梦予；肝气盛则梦怒；肺气盛则梦恐惧、哭泣、飞扬；心气盛则梦善笑、恐畏；脾气盛则梦歌乐、身体重不举；肾气盛则梦腰脊两解不属。\n' +
+'（气虚十五）厥气客于心则梦见邱山烟火；客于肺则梦飞扬、见金铁之奇物；客于肝则梦山林树木；客于脾则梦见邱陵大泽、坏屋风雨；客于肾则梦临渊、没居水中；客于膀胱则梦游行；客于胃则梦饮食；客于大肠则梦田野；客于小肠则梦聚邑冲衢；客于胆则梦斗讼自刳；客于阴器则梦接内；客于项则梦斩首；客于胫则梦行走而不能前、及居深地窌苑中；客于股肱则梦礼节拜起；客于胞则梦溲便。';
+
+/* 五、十梦与吉凶总则：《潜夫论·梦列》（东汉·王符） */
+DM_SRC.qianfu =
+'《潜夫论·梦列》（东汉·王符）：凡梦，有直、有象、有精、有想、有人、有感、有时、有反、有病、有性。\n' +
+'直应之梦：先有所梦，后无差忒（梦见的事随后真应上了）。\n' +
+'象之梦：比拟相肖（用相似的形象来打比方）。\n' +
+'意精之梦：凝念注神，日思之而夜梦之（孔子日思周公之德，夜即梦之）。\n' +
+'记想之梦：人有所思，即梦其到；有忧，即梦其事（白天惦记什么，夜里就梦见什么）。\n' +
+'人位之梦：贵人梦之即为祥，贱人梦之即为妖；君子梦之即为荣，小人梦之即为辱（同一个梦，在不同处境的人身上意思不同）。\n' +
+'极反之梦：阴极即吉，阳极即凶（晋文公梦被楚子伏在身上吮脑，是大恶之象，及战乃大胜）。\n' +
+'感气之梦：阴雨之梦使人厌迷，阳旱之梦使人乱离，大寒之梦使人怨悲，大风之梦使人飘飞（天气与体感带出来的梦）。\n' +
+'应时之梦：春梦发生，夏梦高明，秋冬梦熟藏。\n' +
+'病气之梦：阴病梦寒，阳病梦热，内病梦乱，外病梦发。\n' +
+'性情之梦：人之情心，好恶不同，或以此吉，或以此凶，当各自察。\n' +
+'吉凶总则：凡察梦之大体，清洁鲜好、貌坚健、竹木茂美、宫室器械新成方正、开通光明、温和升上，向兴之象，皆为吉喜，谋从事成；诸臭污腐烂、枯槁绝雾、倾倚征邪、劓刖不安、闭塞幽昧、解落坠下，向衰之象，皆为计谋不从、举事不成；妖孽怪异、可憎可恶之事，皆为忧；图画恤胎、刻镂非真、瓦器虚空，皆为见欺绐（看到假东西）；倡优俳舞、小儿所戏弄之象，皆为观笑（一场玩笑）。\n' +
+'王符本人的告诫：本所谓之梦者，困不了察之称，而懵愦冒名也，故亦不专信以断事。……唯其时有精诚之所感薄、神灵之所告者，乃有占尔。';
+
+/* 六、梦象条目：敦煌写本《新集周公解梦书》（伯 3908，晚唐五代） */
+DM_SRC.mengshu =
+'【天文章第一】梦见上天者生贵子；梦见天明者合大喜；梦见看天者主长命；梦见天帝释者大吉；梦见天者主得财；梦见天崩者年大荒；梦见日月者主大赦；梦见日月照身大贵；梦见拜日月者大吉；梦见星者主官事；梦见流星者宅不安；梦见雪下者得官；梦见霜露者忧死凶；梦见雷雨者得酒肉；梦见日月没者大凶。\n' +
+'【地理章第二】梦见地者主私转；梦见地陷者宅不安；梦见地光者主大富；梦见地卧者财强；梦见扫地者有官事；梦见运土入宅大吉；梦见土在身大凶；梦见起土者官位至；梦见身入者大吉；梦见土金中银口舌；梦见渥土污衣大凶；梦见壁者主官事。\n' +
+'【山林草木章第三】梦见头戴山者得财；梦见山林中行者吉；梦见树木者有大吉；梦见树木生者有大吉；梦见树木死者大丧；梦见树折损兄弟；梦见树上者有喜事；梦见砍竹者主口舌；梦见草木旺盛宅凶；梦见柴木在堂大凶；梦见花发者身大贵；梦见花落者妻凶；梦见杂薰者有孕；梦见竹笋者忧事起；梦见树木忽枯死主母病。\n' +
+'【水火盗贼章第四】梦见水中者大吉；梦见落水者大凶；梦见止水者大祸凶；梦见饮水者得财帛；梦见流水者主诉讼；梦见水者大吉利；梦见大水者主婚姻；梦见把火行大走通；梦见燃火者主大吉；梦见江潮海水大昌；梦见穿井者得远信；梦见观井者得远信；梦见身井中卧者大凶；梦见逐贼行合大吉；梦见被打赶者大凶；梦见恶人牵主疾病；梦见狂贼入宅主家破。\n' +
+'【官禄兄弟章第五】梦见圣人者主大吉；梦见帝王崩主大荒；梦见拜尊长者大吉；梦见对大官者喜事；梦见得官者生贵子；梦见与贵人交往吉；梦见贵人赐饭主病；梦见在官厨中行吉；梦见大赦者主宅平安；梦见君邦人仗者富；梦见戴村帽者大贵；梦见佩印者爵至；梦见笏把者主迁移；梦见父子相见大吉；梦见兄弟分散口舌；梦见兄弟相打和合；梦见身成肥瘦大凶；梦见拜起不得大吉。\n' +
+'【人身梳镜章第六】梦见梳头者百事散；梦见发白者主长命；梦见桓头者百事吉；梦见镜明者吉、暗凶；梦见镜破者主分散；梦见身上虱出大吉；梦见叩头者忧官事；梦见沐浴者百事吉；梦见绳索者主长命；梦见尿屎污衣大吉；梦见照镜者大吉利；梦见牙齿生者大凶；梦见牙齿落者大丧；梦见身病者忧官事；梦见枷锁者主得官；梦见入狱吃杖并吉。\n' +
+'【饮食章第七】梦见食龙肉生贵子；梦见食马肉者妻有娠；梦见食牛者大身健；梦见食驴肉者忧远行；梦见食猪者主口舌；梦见食犬者死凶；梦见食死禽肉者分散；梦见食野兽肉家破；梦见百味者大吉；梦见食鸟肉有子孕；梦见果子食远人吉；梦见食酒者有喜。\n' +
+'【佛道音乐章第八】梦见礼佛得贵人力；梦见入寺行主喜事；梦见菩萨者主长命；梦见金刚得人力助；梦见僧尼百事不和；梦见吃斋者主大吉；梦见焚香者主婚姻事；梦见神庙者先人求食；梦见道仕者有愿起；梦见奏乐者哭泣；梦见打鼓者远信至；梦见作舞者主惊恐；梦见唱歌者有口舌；梦见琴瑟者主大喜；梦见笛者主合大吉。\n' +
+'【庄园田宅章第九】梦见新起屋宅大富；梦见屋舍破坏大凶；梦见屋倒者主疾病；梦见上屋高者大贵；梦见屋柱折者家破；梦见盖屋者主长命；梦见宅空者主大凶；梦见打人门者大吉；梦见人入门者官事；梦见屋动者家长凶；梦见家产破者孙病；梦见私电者主再婚；梦见电下水流大吉；梦见落厕中者主重病；梦见图画者有亲姻；梦见火烧屋者父母病；梦见水入宅得大财；梦见光明入宅大贵。\n' +
+'【衣服章第十】梦见着新衣者疾病；梦见衣裳解者口舌；梦见着青衣者得官；梦见着黄衣者大喜；梦见绿衣者妻有娠；梦见白衣者主大吉；梦见着绯衣者官事；梦见着女人衣者大凶；梦见衣服砂忧妻病；梦见新裁帽头死凶；梦见破巾子凶、新吉；梦见新袜吉、破者凶；梦见鞋履百事和合；梦见腰带者有官事；梦见钱线者主口舌；梦见破帽者有喜事。\n' +
+'【六畜禽兽章第十一】梦见六畜语先求食；梦见牛百者有大吉；梦见牛牵人求事吉；梦见煞牛马者家破；梦见牛出宅者奸非事；梦见骑马者远信来；梦见羊者主得好妻；梦见驴骡者有口舌；梦见猪者忧见官府；梦见师子者主大贵；梦见大虫者加官禄；梦见章鹿者得官；梦见犬咬人贵客来；梦见鸡鹅者主大庆。\n' +
+'【龙蛇章第十二】梦见龙斗主口舌；梦见龙飞者身合贵；梦见黑龙者家大富；梦见蛇当道者大吉；梦见蛇虎者主富吉；梦见蛇入床下重病；梦见蛇上屋大凶；梦见蛇上床主死事；梦见蛇相逐少口舌；梦见蛇咬人家者母丧；梦见蛇作盘宅不安；梦见打煞蛇者大吉；梦见杂死鸟远信至；梦见飞鸟入室凶死；梦见飞鸟死日行人病；梦见百虫自灭小口丧；梦见蜈蚣者大吉利；梦见蜘蛛子口舌；梦见龟者口舌；梦见鳖者主百吉；梦见鱼者尽不详。\n' +
+'【刀剑弓弩章第十三】梦见被刀伤者失财；梦见把刀自刺者得财；梦见磨刀者有大力；梦见把刀行者口舌散；梦见与人刀剑失利；梦见刀相砍者亲事；梦见被刀杀得长命；梦见把刀箭行身贵；梦见弓弦断事不就；梦见被射得人力；梦见拔剑行者大富；梦见军阵者远行。\n' +
+'【夫妻花粉章第十四】梦见妻喜得人财物；梦见妻打身得妻力；梦见打妻者主失财；梦见遣妻者得外财；梦见夫妻相拜主离；梦见夫妻执手大凶；梦见妻浓妆必分；梦见娶妻主改动；梦见妻有娠大凶；梦见妻病有失财；梦见妻者得大财；梦见妻带刀生子亲；梦见门开妻有外遇；梦见与女子交失力；梦见花钗妆粉口舌。\n' +
+'【楼阁家具钱帛章第十五】梦见宫市楼店大吉；梦见台影主官禄；梦见上楼阁者得官；梦见起造立屋主昌；梦见上屋忧火烛；梦见金银者有诉讼；梦见穿钱者主口舌；梦见将钱与人者主大吉利；梦见钱破者口舌散；梦见拾得财物失财；梦见维家具宅不安；梦见为席者忧病身；梦见锦绣忧官事；梦见绫绡者主大吉；梦见丝绵者主长命；梦见秤斗升尺得财；梦见纸笔者诉讼；梦见大书者有喜庆。\n' +
+'【舟车桥市谷章第十六】梦见落船中者大吉；梦见船翻者忧身灭；梦见船满者大疾病；梦见船中行者大利；梦见乘车行主得官；梦见车无轮福败；梦见上桥者主长命；梦见桥梁折者大凶；梦见桥上叫嚷大凶；梦见从险道行者吉；梦见路上屎尿大财得；梦见市中得者大吉；梦见米面忧身病；梦见粟谷者主长命；梦见麻豆麦者酒食；梦见登山垅主高贵；梦见从高坠地大凶。\n' +
+'【生死疾病章第十七】梦见病人行者忧凶；梦见病人者吉利；梦见病人唱歌者凶；梦见病人沐浴者凶；梦见病人吃饭食者凶；梦见病人吐者吉庆；梦见病人落地者凶；梦见病人下船者大吉；梦见病止丧父母家宁；梦见死人却活主贵；梦见有死凶忧子孙；梦见与死食同吉；梦见吊孝者大吉利；梦见哭泣大吉利；梦见邻舍有疾吉庆。\n' +
+'【冢墓棺材凶具章第十八】梦见冢作墓者大吉；梦见冢上生树者大吉；梦见墓林茂盛家主；梦见冢墓上行大喜；梦见冢墓树折有诉；梦见棺出宅失财；梦见棺入宅财来；梦见棺开张得大财；梦见棺木闭者凶恶；梦见棺水流吉；梦见棺木中人语得财。\n' +
+'【十二支日得梦章第十九】子日梦者主失脱、东家口舌；丑日梦者主财入宅及喜悦；寅日梦者得酒、远行人吉；卯日梦者主外客至、忌官事；辰日梦者酒肉事、得外财；巳日梦者东家小见病；午日梦者远行到、生吉；未日梦者主酒肉、喜乐吉；申日梦者官事口舌起；酉日梦者主酒食之事至；戌日梦者远客至、得外财；亥日梦者官吏疾病事。\n' +
+'【十二时得梦章第廿】子时得梦大吉昌；丑时得梦有猫财；寅时得梦者送酒肉；卯时得梦有雨下；辰时得梦有口舌；巳时得梦者主哭泣；午时得梦主失财；未时得梦少口病；申时得梦者主诤讼；酉时得梦有客来；戌时得梦远信至；亥时得梦者主官事。';
+
+/* ============================================================================
+   依据说明（给用户看的书单）
+   ============================================================================ */
+var DM_BOOKS = [
+  {
+    t:'一、梦怎么分类（判梦型的依据）',
+    list:[
+      {n:'《周礼·春官·占梦》', d:'先秦典籍。书中把梦分作正、噩、思、寤、喜、惧六类，并记有专管占梦的官职。本页判梦型用它。', i:'原文见上「六梦」一条。'},
+      {n:'《列子·周穆王》', d:'战国。同样记六候，并说「神遇为梦，形接为事」「昼想夜梦」——白天惦记什么，夜里就梦见什么。', i:'与《周礼》六梦名目基本一致，可互证。'},
+      {n:'《潜夫论·梦列》', d:'东汉王符。把梦细分为直、象、精、想、人、感、时、反、病、性十种，是古代最系统的一套梦的分类。', i:'本页「这个梦属于哪一型」主要按这十种来判。'}
+    ]
+  },
+  {
+    t:'二、具体梦象怎么查（对条目的依据）',
+    list:[
+      {n:'《新集周公解梦书》敦煌写本（伯 3908）', d:'晚唐五代写本，1908 年出自敦煌藏经洞，现藏法国国家图书馆。全书二十余章，按天象、地理、草木、水火、人事、衣饰、禽兽、生死等分类，逐条记「梦见什么，主什么」。', i:'这是本页梦象条目的主体。今本民间《周公解梦》多由这类敦煌梦书增删而来，「周公」是托名，并非周公旦亲笔——这一点学界已有定论。'}
+    ]
+  },
+  {
+    t:'三、梦和身体的关系（看身体线索的依据）',
+    list:[
+      {n:'《黄帝内经·灵枢·淫邪发梦》', d:'记脏腑气盛气衰与梦象的对应，如「肝气盛则梦怒」「肺气盛则梦恐惧、哭泣」「上盛则梦飞，下盛则梦堕」。', i:'中医把梦当作身体状态的一条线索，不是预言。本页只用它提示「最近身体可能处在什么状态」。'}
+    ]
+  },
+  {
+    t:'四、梦到底该不该信（态度的依据）',
+    list:[
+      {n:'《潜夫论·梦列》的告诫', d:'王符自己就写：「本所谓之梦者，困不了察之称，而懵愦冒名也，故亦不专信以断事。」又说恍惚杂梦「亦可必乎」。', i:'古人编梦书的人自己都不主张拿梦去断定吉凶。本页照这个态度说话。'},
+      {n:'《庄子·齐物论》', d:'「方其梦也，不知其梦也」「不知周之梦为胡蝶与，胡蝶之梦为周与」。', i:'梦与觉的界限本来就不牢靠，这是本页不把梦当预兆的底气。'},
+      {n:'《说文解字》', d:'「㝱，寐而有觉也」——睡着时还有所知觉，这就是梦。', i:'古人给梦下的定义，跟「预示」无关。'}
+    ]
+  },
+  {
+    t:'五、没有采用的部分',
+    list:[
+      {n:'敦煌本第廿一至廿三章', d:'建除日占梦、恶梦禁忌（如「卧床对屋梁」「家养白鸡犬」）、厌禳符咒。', i:'这部分带浓厚禳解色彩，且依赖建除十二神推算，与本页「给一个能落地的解释」不合，故不收。'},
+      {n:'明清通行本《周公解梦》', d:'坊间刻本极多，条文彼此矛盾、掺入大量后世俗说，版本难以互校。', i:'只作背景参照，不作为引用依据。'}
+    ]
+  }
+];
+
+/* ============================================================================
+   干支历
+   ============================================================================ */
+var DM_GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+var DM_ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+var DM_TERM=['小寒','立春','惊蛰','清明','立夏','芒种','小暑','立秋','白露','寒露','立冬','大雪'];
+var DM_C21=[5.4055,3.87,5.63,4.81,5.52,5.678,7.108,7.5,7.646,8.318,7.438,7.18];
+var DM_C20=[6.11,4.6295,6.3826,5.59,6.318,6.5,7.928,8.35,8.44,9.098,8.218,7.9];
+var DM_ZM=[1,2,3,4,5,6,7,8,9,10,11,0];
+var DM_WD=['日','一','二','三','四','五','六'];
+
+function dmJdn(y,m,d){
+  var a=Math.floor((14-m)/12), yy=y+4800-a, mm=m+12*a-3;
+  return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;
+}
+function dmDayGZ(y,m,d){
+  var g=((dmJdn(y,m,d)-2451551)%60+60)%60;
+  return {g:g%10,z:g%12};
+}
+/* 寿星公式（近似）。2000 年后精度到日；20 世纪已知个别年份差一日，
+   用 DM_FIX 补掉，宁可少算也不要给出错一天的干支。 */
+var DM_FIX = { '1984-1':1, '1954-1':1, '1914-1':1 };
+function dmTermDate(y,idx){
+  var Yc = y>=2000 ? y-2000 : y-1900;
+  var C  = y>=2000 ? DM_C21[idx] : DM_C20[idx];
+  var day = y>=2000 ? Math.floor(Yc*0.2422+C)-Math.floor((Yc-1)/4)
+                    : Math.floor(Yc*0.2422+C)-Math.floor(Yc/4);
+  var f = DM_FIX[y+'-'+idx];
+  if(f) day += f;
+  return new Date(y, idx, day, 0, 0, 0);
+}
+function dmGZ(dt){
+  var y=dt.getFullYear(), m=dt.getMonth()+1, d=dt.getDate(), hh=dt.getHours();
+  var ly = (dt < dmTermDate(y,1)) ? y-1 : y;
+  var yi = ((ly-4)%60+60)%60, yg=yi%10, yz=yi%12;
+
+  var terms=[];
+  for(var i=0;i<12;i++) terms.push({i:i, d:dmTermDate(y,i)});
+  terms.push({i:11, d:dmTermDate(y-1,11)});
+  terms.sort(function(a,b){ return a.d-b.d; });
+  var chosen=null;
+  for(var k=0;k<terms.length;k++){ if(terms[k].d<=dt) chosen=terms[k]; }
+  if(!chosen) chosen={i:11,d:dmTermDate(y-1,11)};
+  var mz=DM_ZM[chosen.i];
+  var startGan=[2,4,6,8,0,2,4,6,8,0][yg];
+  var mg=(startGan+(mz-2)+120)%10;
+
+  var dg=dmDayGZ(y,m,d);
+  var hz=(hh===23||hh===0)?0:Math.floor((hh+1)/2)%12;
+  var baseGan=(hh===23)?(dg.g+1)%10:dg.g;
+  var startZi=[0,2,4,6,8,0,2,4,6,8][baseGan];
+  var hg=(startZi+hz)%10;
+
+  return {
+    year: DM_GAN[yg]+DM_ZHI[yz],
+    month: DM_GAN[mg]+DM_ZHI[mz],
+    day: DM_GAN[dg.g]+DM_ZHI[dg.z],
+    hour: DM_GAN[hg]+DM_ZHI[hz],
+    dayZhi: DM_ZHI[dg.z],
+    hourZhi: DM_ZHI[hz],
+    term: DM_TERM[chosen.i]
+  };
+}
+function dmFull(){ return dmGZ(new Date()); }
+function dmGZLine(gz){
+  return gz.year+'年 '+gz.month+'月 '+gz.day+'日';
+}
+function dmSolText(dt){
+  return (dt.getMonth()+1)+'月'+dt.getDate()+'日 周'+DM_WD[dt.getDay()];
+}
+
+/* ============================================================================
+   AI 配置（与工作台 🤖 AI 面板一致：以 localStorage 为准，输入框兜底，坏值自愈）
+   ============================================================================ */
+var DM_PRESET={ base:'https://open.bigmodel.cn/api/paas/v4', model:'glm-4-flash' };
+var DM_BASE_RE=/^https?:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[^\s]*)?$/i;
+var DM_MODEL_RE=/^[A-Za-z0-9][A-Za-z0-9._:\-]{1,59}$/;
+
+function dmLs(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } }
+function dmNormBase(b){
+  var s=String(b||'').trim().replace(/\/+$/,'').replace(/\/chat\/completions\/?$/i,'');
+  if(/open\.bigmodel\.cn/i.test(s) && !/\/v4$/i.test(s)) s+='/v4';
+  return s;
+}
+function dmCfg(){
+  var base=dmNormBase(dmLs('ywApiBase',''));
+  var model=String(dmLs('ywApiModel','')||'').trim();
+  var key=String(dmLs('ywApiKey','')||'').trim();
+  var fixed=[];
+  if(!DM_BASE_RE.test(base)){ base=DM_PRESET.base; fixed.push('接口地址'); }
+  if(!DM_MODEL_RE.test(model)||model.indexOf('/')>=0){ model=DM_PRESET.model; fixed.push('模型名'); }
+  return { base:base, model:model, key:key, fixed:fixed };
+}
+function dmChatUrl(base){
+  var u=String(base||'').replace(/\/+$/,'')+'/chat/completions';
+  return /open\.bigmodel\.cn/i.test(base) ? u+'/' : u;
+}
+
+/* ============================================================================
+   Prompt
+   ============================================================================ */
+function dmCanonText(){
+  return '【古籍条文·梦型分类】\n'+DM_SRC.zhouli+'\n\n'+DM_SRC.liezi+'\n\n'+DM_SRC.qianfu+
+    '\n\n【古籍条文·梦象条目（敦煌本《新集周公解梦书》伯3908）】\n'+DM_SRC.mengshu+
+    '\n\n【古籍条文·身体与梦】\n'+DM_SRC.lingxu+
+    '\n\n【古籍条文·梦觉之辨】\n'+DM_SRC.zhuangzi;
+}
+
+function dmSystemPrompt(){
+  return [
+'你是「周公解梦」这一页的解梦人。你的每一条判断都必须落在中国古代梦书与典籍上，绝不许编造条文。',
+'',
+'【硬规则】',
+'1. 引用古籍只能从下面「古籍条文」里出，必须注明篇名或章次。梦里出现的物象在条文库里找不到对应，就直说「这一条古籍里没有对应的说法」，绝不许编一条像古文的句子充数。',
+'2. 不预言未来。不许出现「你几天内会……」「必有灾」「注定」这类话。古人自己也说梦不可专信以断事，你要照这个态度。',
+'3. 不许因为梦凶就吓人，也不许为了安慰把凶象硬说成吉。凶象就说「古人把它记作凶象」，然后讲清楚它更像是心里或身体哪一处不舒服。',
+'4. 通篇大白话。不出现纳甲、五行生克、气机、藏象、象数这类术语。要说「心里憋着一股劲没处发」，不要说「肝气郁结」。',
+'5. 不安慰式空话。不写「一切都会好的」「保持乐观」这类句子；要安慰就给具体的、能落地的说法。',
+'',
+'【解题步骤】',
+'第一步 辨梦型：用《周礼》六梦和《潜夫论》十梦（直、象、精、想、人、感、时、反、病、性）判断这个梦属于哪一两类。多数日常梦属于「想梦」「象梦」「病气之梦」「极反之梦」，不要什么都往「直应之梦」上靠。',
+'第二步 查梦象：到敦煌本《新集周公解梦书》里找与梦中具体物象对应的条目，一条一条对。',
+'第三步 看身体：梦里有明显情绪或身体线索时（发怒、恐惧哭泣、飞、坠、涉大水、大火、饥饿、饱食、腰脊不适、找厕所、走不动等），对照《灵枢·淫邪发梦》，说明身体可能处在什么状态。',
+'第四步 落到现实：讲这个梦在心理和现实层面可能对应什么，给能当天做的事。',
+'',
+'【输出格式】严格照下面六节，节标题一字不改，不要加 markdown 的 # 或 **：',
+'一、这个梦在说什么',
+'（3 到 5 句大白话，先给整体判断，不铺陈、不复述梦境）',
+'二、古人怎么看',
+'（先用一两句说这个梦古人归为哪一型、为什么，再分条。每条格式：',
+'　原文：「……」——《书名·篇名》',
+'　意思是：……（一句白话））',
+'三、你梦里的东西',
+'（针对梦里出现的具体物象逐条对照，格式同第二节。古籍里没有的物象，明说「这一条古籍里没有对应」）',
+'四、说得再直白一点',
+'（4 到 6 句，讲心理与现实。可以把梦和他说的近况联系起来，但要用「可能」「更像是」，不许断言）',
+'五、可以做的事',
+'（3 到 5 条，具体到当天能做的。不许写「放松心情」「注意休息」「多运动」这类空话）',
+'六、AI 推测',
+'（把上面所有属于你自己推断、古籍里没有明确依据的话挑出来重述，每条前面标「推测：」。确实没有超出古籍的推断，就只写一句：本次解读未超出所引条文。）',
+'',
+'总长 900 到 1500 字。宁短勿注水。',
+'',
+'━━━━━━━━━━ 以下是你可以引用的全部古籍条文 ━━━━━━━━━━',
+dmCanonText()
+  ].join('\n');
+}
+
+var DM_CHAT_SYS = [
+'你是「周公解梦」这一页的解梦人，正在陪同一个人围绕同一个梦继续追问。',
+'约束：',
+'1. 始终依据上面同一套古籍条文，不换书、不编条文、不引入弗洛伊德荣格等现代流派（用户问起才可提一句，并说明是现代说法）。',
+'2. 回答紧扣他这个梦和你的首轮解读，不重复整篇解读，只回答这一问。',
+'3. 大白话，3 到 8 句；术语第一次出现先用一句白话解释。',
+'4. 不预言、不吓人、不说空话。信息不够就直说「这一条我看不出来」。',
+'5. 回答里只要出现自己的推论，末尾加一句「（以上属推测，古籍没有明说）」；全是古籍里的，就不加。'
+].join('\n');
+
+/* ============================================================================
+   状态
+   ============================================================================ */
+var DM_KEY='dream_hist';
+var DM_THEMES=['这件事该怎么办','我和某个人的关系','工作与钱','身体和睡眠','我心里到底在怕什么','只是想弄明白这个梦','说不清，就是心里不安'];
+var DM_RECENTS=['换了工作','和人闹了矛盾','家里出了事','身体不太舒服','最近睡不好','压力很大','在等一个结果','刚搬了家','亲人或朋友离开','最近挺平静','说不上来'];
+var DM_QUICK=['那我现在最该注意什么','这个梦是不是反着解的','能再具体说说身体那部分吗','如果真是这样，我第一步做什么','还有别的可能吗'];
+
+var dmThemeSel=[], dmRecentSel=[];
+var dmCur=null;          /* 当前这条记录的 id */
+var dmMsgs=[];           /* 追问对话 [{role,text,err}] */
+var dmBase=null;         /* 首轮上下文 [system,user,assistant] */
+var dmBusy=false, dmWaitTimer=null, dmWaitSec=0;
+
+function dmEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dmId(){ return 'dm_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+
+/* ============================================================================
+   历史记录读写（数组，条目带稳定 id / updated / deleted，供外壳纯并集合并）
+   ============================================================================ */
+function dmHistAll(){
+  try{
+    var a=JSON.parse(localStorage.getItem(DM_KEY)||'[]');
+    if(!Array.isArray(a)) return [];
+    return a.filter(function(x){ return x && x.id && !x.deleted; });
+  }catch(e){ return []; }
+}
+function dmHistRaw(){
+  try{ var a=JSON.parse(localStorage.getItem(DM_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+}
+function dmHistSave(arr){
+  try{ localStorage.setItem(DM_KEY, JSON.stringify(arr)); }catch(e){}
+  dmBroadcast();
+}
+function dmHistPut(rec){
+  var a=dmHistRaw();
+  var i=-1;
+  for(var k=0;k<a.length;k++){ if(a[k] && a[k].id===rec.id){ i=k; break; } }
+  rec.updated=Date.now();
+  if(i>=0) a[i]=rec; else a.unshift(rec);
+  dmHistSave(a);
+}
+function dmHistDel(id){
+  var a=dmHistRaw();
+  for(var k=0;k<a.length;k++){
+    if(a[k] && a[k].id===id){ a[k].deleted=true; a[k].updated=Date.now(); }
+  }
+  dmHistSave(a);
+}
+function dmBroadcast(){
+  try{
+    if(window.parent && window.parent!==window){
+      window.parent.postMessage({type:'wb-data-changed', key:DM_KEY},'*');
+    }
+  }catch(e){}
+  try{
+    if(window.BroadcastChannel){ var bc=new BroadcastChannel('wb-food'); bc.postMessage({type:'wb-data-changed'}); bc.close(); }
+  }catch(e){}
+}
+
+/* ============================================================================
+   渲染：chips
+   ============================================================================ */
+function dmChips(box, arr, sel, cls){
+  box.innerHTML='';
+  arr.forEach(function(t){
+    var b=document.createElement('button');
+    b.type='button'; b.className='dmtag'+(sel.indexOf(t)>=0?' sel':'');
+    b.textContent=t;
+    b.onclick=function(){
+      var i=sel.indexOf(t);
+      if(i>=0) sel.splice(i,1); else sel.push(t);
+      b.classList.toggle('sel');
+    };
+    box.appendChild(b);
+  });
+}
+
+/* ============================================================================
+   渲染：AI 输出 → 分节
+   ============================================================================ */
+var DM_SECNAMES=['这个梦在说什么','古人怎么看','你梦里的东西','说得再直白一点','可以做的事','AI 推测'];
+
+function dmClean(s){
+  return String(s||'')
+    .replace(/\r/g,'')
+    .replace(/^\s*#{1,6}\s*/gm,'')
+    .replace(/\*\*/g,'')
+    .replace(/^\s*[-*_]{3,}\s*$/gm,'')
+    .trim();
+}
+
+/* 把一节正文渲染成 html：识别「原文：」引文行、列表行、普通段 */
+function dmRenderBody(txt){
+  var lines=String(txt||'').split('\n');
+  var out=[], buf=[], quote=[];
+
+  function flushP(){
+    var t=buf.join('\n').trim();
+    if(t){
+      t.split(/\n{2,}/).forEach(function(seg){
+        seg=seg.trim();
+        if(!seg) return;
+        out.push('<p>'+dmEsc(seg).replace(/\n/g,'<br>')+'</p>');
+      });
+    }
+    buf=[];
+  }
+  function flushQ(){
+    if(!quote.length) return;
+    var raw=quote.join('\n').trim();
+    quote=[];
+    if(!raw) return;
+    var src='';
+    var mm=raw.match(/——\s*(.+)$/);
+    if(mm){ src=mm[1].trim(); raw=raw.replace(/——\s*.+$/,'').trim(); }
+    out.push('<div class="dmq">'+dmEsc(raw)+(src?'<span class="src">—— '+dmEsc(src)+'</span>':'')+'</div>');
+  }
+
+  lines.forEach(function(ln){
+    var t=ln.trim();
+    if(!t){ flushQ(); flushP(); return; }
+    if(/^原文[:：]/.test(t)){
+      flushP();
+      quote.push(t.replace(/^原文[:：]\s*/,''));
+      return;
+    }
+    if(quote.length && /^意思是[:：]/.test(t)){
+      flushQ();
+      buf.push(t);
+      return;
+    }
+    if(quote.length && (/^——/.test(t))){
+      quote.push(t);
+      flushQ();
+      return;
+    }
+    flushQ();
+    if(/^[-·•]\s+/.test(t) || /^\d+[.、)]\s*/.test(t)){
+      flushP();
+      out.push('<div class="dmli">'+dmEsc(t.replace(/^[-·•]\s+/,'').replace(/^\d+[.、)]\s*/,''))+'</div>');
+      return;
+    }
+    buf.push(t);
+  });
+  flushQ(); flushP();
+  return out.join('');
+}
+
+/* 按六节切分；切不出来就整段兜底。按行找「一、」这样的节标题，比整段正则稳。 */
+function dmSplit(txt){
+  var t=dmClean(txt);
+  var lines=t.split('\n');
+  var NUMS='一二三四五六';
+  var cuts=[], seen={};
+  for(var i=0;i<lines.length;i++){
+    var m=lines[i].trim().match(/^([一二三四五六])\s*[、.．]\s*(.{0,30})$/);
+    if(m){
+      var n=NUMS.indexOf(m[1]);
+      if(n>=0 && !seen[n]){ seen[n]=1; cuts.push({line:i, n:n}); }
+    }
+  }
+  if(cuts.length<2) return null;
+  var secs=[];
+  for(var k=0;k<cuts.length;k++){
+    var s=cuts[k].line+1;
+    var e=(k+1<cuts.length)?cuts[k+1].line:lines.length;
+    secs.push({ n:cuts[k].n, title:DM_SECNAMES[cuts[k].n]||'', body:lines.slice(s,e).join('\n').trim() });
+  }
+  return secs;
+}
+
+function dmRenderAnswer(txt, refs){
+  var box=document.getElementById('dmOut');
+  var secs=dmSplit(txt);
+  var html='';
+
+  html+='<div class="dmmeta"><span class="lbl">本次所据</span>';
+  (refs||['周礼·占梦','潜夫论·梦列','新集周公解梦书','灵枢·淫邪发梦']).forEach(function(r){
+    html+='<span class="dmref">'+dmEsc(r)+'</span>';
+  });
+  html+='</div>';
+
+  if(!secs){
+    html+='<div class="dmsec"><h3><span class="num">·</span>解读</h3>'+dmRenderBody(txt)+'</div>';
+  }else{
+    var ROMAN=['一','二','三','四','五','六'];
+    secs.forEach(function(s){
+      var isAi=(s.n===5);
+      html+='<div class="dmsec'+(isAi?' dmai':'')+'">'+
+        '<h3><span class="num">'+ROMAN[s.n]+'</span>'+dmEsc(s.title)+
+        (isAi?'<span class="dmbadge">不是古籍原文</span>':'')+'</h3>'+
+        dmRenderBody(s.body)+'</div>';
+    });
+  }
+
+  html+='<div class="dmchat" id="dmChatBox">'+
+    '<h3>还想问什么</h3>'+
+    '<p class="sub">同一个梦可以一直问下去，不用重新写一遍。</p>'+
+    '<div id="dmChatList"></div>'+
+    '<div class="dmasks" id="dmQuick"></div>'+
+    '<div class="dminrow">'+
+      '<textarea id="dmAsk" rows="1" placeholder="接着问，比如：这梦要是反着解呢？" autocomplete="off"></textarea>'+
+      '<button class="dmsend" id="dmAskGo">发送</button>'+
+    '</div>'+
+    '<div id="dmChatState" style="font-size:12px;color:var(--dm-ink3);margin-top:8px;"></div>'+
+  '</div>';
+
+  box.innerHTML=html;
+  box.style.display='block';
+
+  /* 追问快捷 */
+  var q=document.getElementById('dmQuick');
+  DM_QUICK.forEach(function(t){
+    var b=document.createElement('button');
+    b.type='button'; b.className='dmtag'; b.textContent=t;
+    b.onclick=function(){ dmAsk(t); };
+    q.appendChild(b);
+  });
+  document.getElementById('dmAskGo').onclick=function(){
+    var el=document.getElementById('dmAsk');
+    dmAsk(el.value);
+  };
+  document.getElementById('dmAsk').addEventListener('keydown',function(e){
+    if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); dmAsk(this.value); }
+  });
+  document.getElementById('dmAsk').addEventListener('input',function(){
+    this.style.height='auto';
+    this.style.height=Math.min(this.scrollHeight,140)+'px';
+  });
+}
+
+/* ============================================================================
+   渲染：追问气泡
+   ============================================================================ */
+function dmBubble(role, text, err){
+  var list=document.getElementById('dmChatList');
+  if(!list) return;
+  var d=document.createElement('div');
+  d.className='dmbub '+(role==='user'?'me':'ai');
+  var inner;
+  if(role==='user'){ inner=dmEsc(text); }
+  else { inner=err?dmEsc(text):dmRenderBody(text); }
+  d.innerHTML='<div class="t'+(err?' err':'')+'">'+inner+'</div>';
+  list.appendChild(d);
+  d.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/* ============================================================================
+   请求
+   ============================================================================ */
+function dmFailMsg(e){
+  var m=String((e&&e.message)||e||'');
+  if(e&&e.name==='AbortError') m='等了太久没返回，先停下了。可以再点一次。';
+  if(m.indexOf('Failed to fetch')>=0 || m.indexOf('NetworkError')>=0) m='连不上接口——检查网络，或去顶栏 🤖 AI 里看接口地址对不对。';
+  return m;
+}
+
+async function dmCall(messages, opt){
+  opt=opt||{};
+  var cfg=dmCfg();
+  if(!cfg.key) throw new Error('还没有填密钥。点顶栏的 🤖 AI 填一次，全站通用。');
+  var ctrl=('AbortController' in window)?new AbortController():null;
+  var ms=opt.timeout||95000;
+  var timer=ctrl?setTimeout(function(){ ctrl.abort(); }, ms):null;
+  try{
+    var r=await fetch(dmChatUrl(cfg.base),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+      body:JSON.stringify({ model:cfg.model, temperature:opt.temp==null?0.5:opt.temp, messages:messages }),
+      signal: ctrl?ctrl.signal:undefined
+    });
+    if(timer){ clearTimeout(timer); timer=null; }
+    var j=await r.json().catch(function(){ return {}; });
+    if(!r.ok){
+      var em=(j&&j.error&&j.error.message)?j.error.message:('HTTP '+r.status);
+      throw new Error(em+'　（本次用的是 '+cfg.model+'）');
+    }
+    var txt=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+    if(!txt || !String(txt).trim()){
+      var fr=j&&j.choices&&j.choices[0]&&j.choices[0].finish_reason;
+      throw new Error('接口返回了空内容'+(fr?'（finish_reason: '+fr+'）':'')+'。再点一次；如果一直这样，去顶栏 🤖 AI 换一个模型。');
+    }
+    return String(txt).trim();
+  }finally{
+    if(timer) clearTimeout(timer);
+  }
+}
+
+/* ============================================================================
+   首轮解读
+   ============================================================================ */
+async function dmGo(){
+  var ta=document.getElementById('dmText');
+  var dream=(ta.value||'').trim();
+  var btn=document.getElementById('dmGo');
+  var out=document.getElementById('dmOut');
+  if(!dream){
+    ta.focus();
+    ta.style.borderColor='#d99b86';
+    setTimeout(function(){ ta.style.borderColor=''; },1400);
+    return;
+  }
+  if(dream.length<4){
+    if(!confirm('梦写得太短了，AI 可能看不出什么。还是要这样问吗？')) return;
+  }
+
+  var gz=dmFull();
+  var now=new Date();
+
+  /* 组装 user message */
+  var u=['今天：'+now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 周'+DM_WD[now.getDay()]+
+         '，'+gz.year+'年 '+gz.month+'月 '+gz.day+'日 '+gz.hour+'时（节气：'+gz.term+'后）。'];
+  u.push('');
+  u.push('【他做的梦】');
+  u.push(dream);
+  if(dmThemeSel.length){ u.push(''); u.push('【他想问的方向】'+dmThemeSel.join('、')); }
+  if(dmRecentSel.length){ u.push(''); u.push('【最近发生的事】'+dmRecentSel.join('、')); }
+  u.push('');
+  u.push('（若他没有说梦是哪天做的，日柱时辰按今天参看；说了就以他说的为准。）');
+
+  btn.disabled=true; btn.textContent='正在解…';
+  out.style.display='block';
+  out.innerHTML='<div class="dmsec"><div class="dmload"><span class="dmspin"></span><span id="dmWaitTxt">正在按「梦型 → 梦象 → 身体 → 现实」逐层对照古籍，通常半分钟到一分钟…</span></div></div>';
+
+  /* 计时提示 */
+  dmWaitSec=0;
+  if(dmWaitTimer) clearInterval(dmWaitTimer);
+  dmWaitTimer=setInterval(function(){
+    dmWaitSec+=2;
+    var t=document.getElementById('dmWaitTxt');
+    if(t && dmWaitSec>=10) t.textContent='还在写，已等 '+dmWaitSec+' 秒。这种长解读慢一些是正常的。';
+  },2000);
+
+  var sys=dmSystemPrompt();
+  var usr=u.join('\n');
+
+  try{
+    var txt=await dmCall([{role:'system',content:sys},{role:'user',content:usr}],{temp:0.5,timeout:95000});
+    dmBase=[{role:'system',content:sys},{role:'user',content:usr},{role:'assistant',content:txt}];
+    dmMsgs=[];
+
+    var rec={
+      id: dmId(),
+      created: Date.now(),
+      date: now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),
+      sol: dmSolText(now),
+      gz: dmGZLine(gz),
+      gzDay: gz.day,
+      gzHour: gz.hour,
+      term: gz.term,
+      dream: dream,
+      themes: dmThemeSel.slice(),
+      recents: dmRecentSel.slice(),
+      msgs: [{role:'ai', text:txt}]
+    };
+    dmCur=rec.id;
+    dmHistPut(rec);
+
+    dmRenderAnswer(txt);
+    document.getElementById('dmOut').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    var m=dmFailMsg(e);
+    out.innerHTML='<div class="dmsec"><h3><span class="num">!</span>没解成</h3>'+
+      '<p style="color:#a63d28">'+dmEsc(m)+'</p>'+
+      '<p style="font-size:12.5px;color:var(--dm-ink3);margin-top:8px">'+
+      '梦的内容还在上面，点一次「解这个梦」重试即可。密钥与接口在顶栏 🤖 AI。</p></div>';
+  }finally{
+    if(dmWaitTimer){ clearInterval(dmWaitTimer); dmWaitTimer=null; }
+    btn.disabled=false; btn.textContent='解这个梦';
+  }
+}
+
+/* ============================================================================
+   追问
+   ============================================================================ */
+async function dmAsk(q){
+  q=String(q||'').trim();
+  if(!q || dmBusy) return;
+  if(!dmBase){ return; }
+  var btn=document.getElementById('dmAskGo');
+  var st=document.getElementById('dmChatState');
+  var ta=document.getElementById('dmAsk');
+
+  dmBusy=true;
+  if(btn) btn.disabled=true;
+  if(st) st.textContent='正在答…';
+  dmBubble('user', q);
+
+  var msgs=dmBase.concat(dmMsgs.map(function(m){
+    return {role: m.role==='user'?'user':'assistant', content:m.text};
+  }));
+  msgs.push({role:'user',content:q});
+
+  try{
+    var txt=await dmCall(msgs,{temp:0.4,timeout:80000});
+    dmBubble('ai', txt);
+    dmMsgs.push({role:'user',text:q});
+    dmMsgs.push({role:'ai',text:txt});
+    if(st) st.textContent='';
+    /* 写回历史 */
+    if(dmCur){
+      var a=dmHistRaw();
+      for(var k=0;k<a.length;k++){
+        if(a[k] && a[k].id===dmCur){
+          a[k].msgs=dmMsgs.slice();
+          dmHistPut(a[k]);
+          break;
+        }
+      }
+    }
+  }catch(e){
+    dmBubble('ai', dmFailMsg(e), true);
+    if(st) st.textContent='';
+  }finally{
+    dmBusy=false;
+    var b2=document.getElementById('dmAskGo');
+    if(b2) b2.disabled=false;
+    var t2=document.getElementById('dmAsk');
+    if(t2){ t2.value=''; t2.style.height='auto'; t2.focus(); }
+  }
+}
+
+/* ============================================================================
+   历史记录面板
+   ============================================================================ */
+function dmOpenHist(){
+  var body=document.getElementById('dmHistBody');
+  var cnt=document.getElementById('dmHistCnt');
+  var a=dmHistAll();
+  a.sort(function(x,y){ return (y.created||0)-(x.created||0); });
+  cnt.textContent = a.length? ('共 '+a.length+' 条') : '';
+
+  if(!a.length){
+    body.innerHTML='<div class="dmhempty">还没有记录。<br>解过一次梦，这里就会按干支日子记下来。</div>';
+  }else{
+    var h='';
+    a.forEach(function(r){
+      var tags=(r.themes||[]).concat(r.recents||[]);
+      h+='<div class="dmh" data-id="'+dmEsc(r.id)+'">'+
+        '<div class="dmh-t">'+
+          '<span class="dmh-gz">'+dmEsc(r.gz||'')+'</span>'+
+          '<span class="dmh-sol">'+dmEsc(r.sol||r.date||'')+'</span>'+
+          '<span class="dmh-more">展开 ▾</span>'+
+          '<button class="dmh-x" data-del="'+dmEsc(r.id)+'" title="删除这条">删除</button>'+
+        '</div>'+
+        '<div class="dmh-d">'+dmEsc(r.dream||'')+'</div>'+
+        (tags.length?'<div class="dmh-tags">'+tags.map(function(t){ return '<span class="dmh-tag">'+dmEsc(t)+'</span>'; }).join('')+'</div>':'')+
+        '<div class="dmhd">'+dmHistDetail(r)+'</div>'+
+      '</div>';
+    });
+    body.innerHTML=h;
+
+    body.querySelectorAll('.dmh').forEach(function(el){
+      el.addEventListener('click',function(e){
+        if(e.target.closest('[data-del]')) return;
+        el.classList.toggle('open');
+        var mo=el.querySelector('.dmh-more');
+        if(mo) mo.textContent = el.classList.contains('open')? '收起 ▴' : '展开 ▾';
+      });
+    });
+    body.querySelectorAll('[data-del]').forEach(function(b){
+      b.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(!confirm('删掉这条记录？删了就不会再显示了。')) return;
+        dmHistDel(b.getAttribute('data-del'));
+        dmOpenHist();
+      });
+    });
+  }
+  document.getElementById('dmHistMask').classList.add('on');
+}
+
+function dmHistDetail(r){
+  var h='', qn=0;
+  (r.msgs||[]).forEach(function(m){
+    var who;
+    if(m.role==='user'){ qn++; who='追问 '+qn; } else { who='解读'; }
+    h+='<div class="qa"><div class="who">'+who+'</div><div class="tx">'+dmEsc(m.text||'')+'</div></div>';
+  });
+  if(!h) h='<div style="font-size:12.5px;color:var(--dm-ink3)">这条记录没有正文。</div>';
+  return h;
+}
+
+/* ============================================================================
+   依据面板
+   ============================================================================ */
+function dmOpenBooks(){
+  var box=document.getElementById('dmBookBody');
+  var h='';
+  DM_BOOKS.forEach(function(sec){
+    h+='<h4>'+dmEsc(sec.t)+'</h4>';
+    sec.list.forEach(function(b){
+      h+='<span class="bk"><b>'+dmEsc(b.n)+'</b>　'+dmEsc(b.d)+'<br><i>'+dmEsc(b.i)+'</i></span>';
+    });
+  });
+  h+='<p style="font-size:12px;color:var(--dm-ink3);margin-top:16px;line-height:1.9">'+
+     '说明：本页条文据通行校录本录入，标点作了统一。敦煌写本原件有残损与异文，各家校录略有出入；'+
+     '页内引用只作理解梦的参考，不构成任何医疗、投资、婚嫁等现实决定的依据。身体长期不适请就医。</p>';
+  box.innerHTML=h;
+  document.getElementById('dmBookMask').classList.add('on');
+}
+
+/* ============================================================================
+   初始化
+   ============================================================================ */
+function dmInit(){
+  /* 日期 */
+  var now=new Date(), gz=dmFull();
+  document.getElementById('dmToday').innerHTML =
+    dmEsc(now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 周'+DM_WD[now.getDay()]) +
+    '　·　<b>'+dmEsc(dmGZLine(gz))+'</b>　' + dmEsc(gz.hour+'时');
+
+  /* chips */
+  var th=document.getElementById('dmTheme'), rc=document.getElementById('dmRecent');
+  /* 首屏选中项留空——每次打开都是干净的 */
+  dmThemeSel=[]; dmRecentSel=[];
+  dmChips(th, DM_THEMES, dmThemeSel);
+  dmChips(rc, DM_RECENTS, dmRecentSel);
+
+  /* 输入框留空 */
+  document.getElementById('dmText').value='';
+  document.getElementById('dmOut').style.display='none';
+  document.getElementById('dmOut').innerHTML='';
+  dmCur=null; dmMsgs=[]; dmBase=null;
+
+  /* 按钮 */
+  document.getElementById('dmGo').onclick=dmGo;
+  document.getElementById('dmHist').onclick=dmOpenHist;
+  document.getElementById('dmBooks').onclick=dmOpenBooks;
+  document.getElementById('dmHistClose').onclick=function(){ document.getElementById('dmHistMask').classList.remove('on'); };
+  document.getElementById('dmBookClose').onclick=function(){ document.getElementById('dmBookMask').classList.remove('on'); };
+  document.getElementById('dmHistMask').addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('on');
+  });
+  document.getElementById('dmBookMask').addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('on');
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      document.getElementById('dmHistMask').classList.remove('on');
+      document.getElementById('dmBookMask').classList.remove('on');
+    }
+  });
+
+  /* 收到外壳重载指令：只刷新历史，不动输入框 */
+  window.addEventListener('message',function(e){
+    var d=e.data||{};
+    if(d.type==='wb-reload'){ /* 保持当前输入不动 */ }
+    if(d.type==='wb-request-save'){ dmBroadcast(); }
+  });
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',dmInit);
+else dmInit();
+</script>
+</body>
+</html>
