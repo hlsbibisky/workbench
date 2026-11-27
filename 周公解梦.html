@@ -209,7 +209,9 @@ textarea#dmText::placeholder{color:#b6ada0}
 .dmbook .bk b{color:var(--dm-ink);font-weight:600}
 .dmbook .bk i{font-style:normal;color:var(--dm-ink3);font-size:12px}
 
-@media(max-width:640px){
+/* 断点 560：工作台内容区常见宽度 560~900，这一段应保持桌面样式（按钮不铺满）；
+   真正的手机（360~430）才切单列。 */
+@media(max-width:560px){
   .dmwrap{padding:12px 12px 6px}
   .dmcard{padding:14px 14px 12px;border-radius:12px}
   .dmsec{padding:13px 14px 14px;border-radius:11px}
